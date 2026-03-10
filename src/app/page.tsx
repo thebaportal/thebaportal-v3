@@ -89,7 +89,7 @@ const testimonials = [
 ];
 
 const audience = [
-  { icon: "🎯", title: "Mid-career BAs", body: "You've got 2–5 years of experience and want to close the gap between 'good enough' and 'senior.'" },
+  { icon: "🎯", title: "Mid-career BAs", body: "You've got 2–5 years of experience and want to close the gap between good enough and senior." },
   { icon: "📋", title: "BA Cert Candidates", body: "Preparing for CBAP, CCBA, or PMI-PBA? Apply the BABOK concepts in simulation before the exam tests you on paper." },
   { icon: "🔄", title: "Career Changers", body: "Transitioning from project management, operations, or IT? Build the BA artifact portfolio and stakeholder instincts you don't have yet." },
   { icon: "🏢", title: "BA Team Leads", body: "Run your team through challenges as a cohort. Debrief together. Identify skill gaps before they show up on client engagements." },
@@ -113,7 +113,7 @@ const faqs = [
     a: "No. Normal difficulty is designed for BAs at any level. Hard and Expert modes push even experienced practitioners. If you've ever written a requirements document, you're ready to start.",
   },
   {
-    q: "What's included in the Pro subscription?",
+    q: "What is included in the Pro subscription?",
     a: "All 7 challenges, all 3 difficulty modes, full AI stakeholder simulation, Alex Rivera coaching, progress tracking, badges, and every new challenge added to the platform.",
   },
 ];
@@ -125,7 +125,7 @@ const pricing = {
 
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
-export function BAPortalLogo({ size = 32 }: { size?: number }) {
+function BAPortalLogo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Outer hexagon */}
@@ -392,7 +392,7 @@ function HeroMockup() {
                 <p style={{
                   fontSize: "12px", color: "#9090a0", margin: 0, lineHeight: 1.6,
                 }}>
-                  You surfaced the timeline conflict between Priya and Dan — that's the pivotal insight. Your NFR coverage was thorough. Push harder on the budget approval gap next time.
+                  You surfaced the timeline conflict between Priya and Dan — that is the pivotal insight. Your NFR coverage was thorough. Push harder on the budget approval gap next time.
                 </p>
               </div>
             </div>
@@ -553,7 +553,7 @@ export default function LandingPage() {
             fontSize: "17px", color: "#9090a0", lineHeight: 1.7,
             margin: "0 0 36px", maxWidth: "440px",
           }}>
-            Interview AI stakeholders, write real deliverables, and get scored by Alex Rivera — a Senior BA Coach who doesn't sugarcoat.
+            Interview AI stakeholders, write real deliverables, and get scored by Alex Rivera — a Senior BA Coach who does not sugarcoat.
           </p>
 
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "48px" }}>
@@ -759,7 +759,7 @@ export default function LandingPage() {
                 <div style={{
                   fontSize: "32px", color: t.color, lineHeight: 1,
                   marginBottom: "16px", opacity: 0.6,
-                }}>"</div>
+                }}>&ldquo;</div>
                 <p style={{
                   fontSize: "15px", color: "#c0c0cc",
                   lineHeight: 1.75, margin: "0 0 24px",
@@ -846,8 +846,8 @@ export default function LandingPage() {
               "All 7 industry challenges",
               "Normal, Hard, and Expert difficulty",
               "Full AI stakeholder simulation",
-              "Alex Rivera coaching & scoring",
-              "Progress tracking & badges",
+              "Alex Rivera coaching and scoring",
+              "Progress tracking and badges",
               "Every new challenge added",
             ].map(feature => (
               <div key={feature} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -887,7 +887,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "700px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "56px" }}>
             <div style={eyebrow}>FAQ</div>
-            <h2 style={h2}>Questions you'll actually ask</h2>
+            <h2 style={h2}>Questions you will actually ask</h2>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             {faqs.map((faq, i) => (
@@ -977,7 +977,7 @@ export default function LandingPage() {
           </span>
         </div>
         <p style={{ fontSize: "13px", color: "#333342", margin: 0 }}>
-          © {new Date().getFullYear()} TheBAPortal. Built by practitioners, for practitioners.
+          &copy; {new Date().getFullYear()} TheBAPortal. Built by practitioners, for practitioners.
         </p>
         <div style={{ display: "flex", gap: "24px" }}>
           {["Privacy", "Terms", "Contact"].map(link => (
