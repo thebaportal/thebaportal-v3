@@ -1,0 +1,278 @@
+import { createClient } from "@/lib/supabase/client";
+
+export interface ChallengeAttempt {
+  id: string;
+  challenge_id: string;
+  challenge_title: string;
+  challenge_type: string;
+  industry: string;
+  difficulty_mode: string;
+  total_score: number;
+  score_problem_framing: number;
+  score_root_cause: number;
+  score_evidence_use: number;
+  score_recommendation: number;
+  question_count: number;
+  completed_at: string;
+}
+
+export interface UserBadge {
+  id: string;
+  badge_id: string;
+  badge_name: string;
+  badge_description: string;
+  earned_at: string;
+}
+
+export interface UserProgress {
+  challenges_completed: number;
+  current_streak: number;
+  longest_streak: number;
+  avg_score: number;
+  total_hours: number;
+  ba_level: string;
+  last_active_date: string | null;
+}
+
+export const BADGE_DEFINITIONS = [
+  {
+    id: "first_steps",
+    name: "First Steps",
+    description: "Completed your first BA simulation challenge",
+    icon: "🎯",
+    color: "#00d4a0",
+    check: (attempts: ChallengeAttempt[]) => attempts.length >= 1,
+  },
+  {
+    id: "high_achiever",
+    name: "High Achiever",
+    description: "Scored 85 or above on a challenge",
+    icon: "⭐",
+    color: "#f59e0b",
+    check: (attempts: ChallengeAttempt[]) => attempts.some(a => a.total_score >= 85),
+  },
+  {
+    id: "hard_mode",
+    name: "Hard Mode",
+    description: "Completed a challenge on Hard difficulty",
+    icon: "🔥",
+    color: "#f97316",
+    check: (attempts: ChallengeAttempt[]) => attempts.some(a => a.difficulty_mode === "hard"),
+  },
+  {
+    id: "expert_mode",
+    name: "Expert Mode",
+    description: "Completed a challenge on Expert difficulty",
+    icon: "⚡",
+    color: "#ef4444",
+    check: (attempts: ChallengeAttempt[]) => attempts.some(a => a.difficulty_mode === "expert"),
+  },
+  {
+    id: "ba_practitioner",
+    name: "BA Practitioner",
+    description: "Completed 3 or more challenges",
+    icon: "📋",
+    color: "#a78bfa",
+    check: (attempts: ChallengeAttempt[]) => attempts.length >= 3,
+  },
+  {
+    id: "industry_specialist",
+    name: "Industry Specialist",
+    description: "Completed 2 challenges in the same industry",
+    icon: "🏭",
+    color: "#38bdf8",
+    check: (attempts: ChallengeAttempt[]) => {
+      const counts: Record<string, number> = {};
+      attempts.forEach(a => { counts[a.industry] = (counts[a.industry] || 0) + 1; });
+      return Object.values(counts).some(c => c >= 2);
+    },
+  },
+  {
+    id: "perfect_score",
+    name: "Perfect Analysis",
+    description: "Scored 95 or above on a challenge",
+    icon: "💎",
+    color: "#00d4a0",
+    check: (attempts: ChallengeAttempt[]) => attempts.some(a => a.total_score >= 95),
+  },
+  {
+    id: "all_complete",
+    name: "Full Spectrum",
+    description: "Completed all 6 simulation challenges",
+    icon: "🏆",
+    color: "#f59e0b",
+    check: (attempts: ChallengeAttempt[]) => {
+      const unique = new Set(attempts.map(a => a.challenge_id));
+      return unique.size >= 6;
+    },
+  },
+];
+
+export function calculateBALevel(completed: number, avgScore: number): string {
+  if (completed === 0) return "Rookie";
+  if (completed >= 6 && avgScore >= 80) return "Expert";
+  if (completed >= 5) return "Senior BA";
+  if (completed >= 3) return "Practitioner";
+  if (completed >= 1) return "Associate";
+  return "Rookie";
+}
+
+export function calculateLevelProgress(completed: number, avgScore: number): {
+  level: string;
+  nextLevel: string;
+  progressPct: number;
+  challengesNeeded: number;
+} {
+  if (completed === 0) return { level: "Rookie", nextLevel: "Associate", progressPct: 0, challengesNeeded: 1 };
+  if (completed >= 1 && completed < 3) return { level: "Associate", nextLevel: "Practitioner", progressPct: ((completed - 1) / 2) * 100, challengesNeeded: 3 - completed };
+  if (completed >= 3 && completed < 5) return { level: "Practitioner", nextLevel: "Senior BA", progressPct: ((completed - 3) / 2) * 100, challengesNeeded: 5 - completed };
+  if (completed >= 5 && completed < 6) return { level: "Senior BA", nextLevel: "Expert", progressPct: 50, challengesNeeded: 1 };
+  if (completed >= 6 && avgScore >= 80) return { level: "Expert", nextLevel: "Max Level", progressPct: 100, challengesNeeded: 0 };
+  return { level: "Senior BA", nextLevel: "Expert", progressPct: (avgScore / 80) * 100, challengesNeeded: 0 };
+}
+
+export function calculateSkillScores(attempts: ChallengeAttempt[]): {
+  elicitation: number;
+  requirements: number;
+  solutionAnalysis: number;
+  stakeholderMgmt: number;
+} {
+  if (attempts.length === 0) return { elicitation: 0, requirements: 0, solutionAnalysis: 0, stakeholderMgmt: 0 };
+
+  const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+  return {
+    elicitation: avg(attempts.map(a => a.score_problem_framing || 0).map(s => Math.round((s / 25) * 100))),
+    requirements: avg(attempts.map(a => a.score_root_cause || 0).map(s => Math.round((s / 25) * 100))),
+    solutionAnalysis: avg(attempts.map(a => a.score_evidence_use || 0).map(s => Math.round((s / 25) * 100))),
+    stakeholderMgmt: avg(attempts.map(a => a.score_recommendation || 0).map(s => Math.round((s / 25) * 100))),
+  };
+}
+
+export function calculateStreak(attempts: ChallengeAttempt[]): number {
+  if (attempts.length === 0) return 0;
+  const dates = [...new Set(attempts.map(a => new Date(a.completed_at).toDateString()))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (dates[0] !== today && dates[0] !== yesterday) return 0;
+  let streak = 1;
+  for (let i = 1; i < dates.length; i++) {
+    const diff = (new Date(dates[i - 1]).getTime() - new Date(dates[i]).getTime()) / 86400000;
+    if (diff <= 1.5) streak++;
+    else break;
+  }
+  return streak;
+}
+
+export async function saveAttempt(params: {
+  userId: string;
+  challengeId: string;
+  challengeTitle: string;
+  challengeType: string;
+  industry: string;
+  difficultyMode: string;
+  totalScore: number;
+  scoreProblemFraming: number;
+  scoreRootCause: number;
+  scoreEvidenceUse: number;
+  scoreRecommendation: number;
+  submissionText: string;
+  questionCount: number;
+}): Promise<void> {
+  const supabase = createClient();
+
+  // Save attempt
+  const { error: attemptError } = await supabase
+    .from("challenge_attempts")
+    .insert({
+      user_id: params.userId,
+      challenge_id: params.challengeId,
+      challenge_title: params.challengeTitle,
+      challenge_type: params.challengeType,
+      industry: params.industry,
+      difficulty_mode: params.difficultyMode,
+      total_score: params.totalScore,
+      score_problem_framing: params.scoreProblemFraming,
+      score_root_cause: params.scoreRootCause,
+      score_evidence_use: params.scoreEvidenceUse,
+      score_recommendation: params.scoreRecommendation,
+      submission_text: params.submissionText,
+      question_count: params.questionCount,
+    });
+
+  if (attemptError) { console.error("Error saving attempt:", attemptError); return; }
+
+  // Fetch all attempts to recalculate
+  const { data: allAttempts } = await supabase
+    .from("challenge_attempts")
+    .select("*")
+    .eq("user_id", params.userId);
+
+  if (!allAttempts) return;
+
+  const completed = allAttempts.length;
+  const avgScore = completed > 0
+    ? Math.round(allAttempts.reduce((sum, a) => sum + a.total_score, 0) / completed)
+    : 0;
+  const streak = calculateStreak(allAttempts);
+  const baLevel = calculateBALevel(completed, avgScore);
+  const totalHours = parseFloat((completed * 0.75).toFixed(2));
+
+  // Upsert progress
+  await supabase.from("user_progress").upsert({
+    user_id: params.userId,
+    challenges_completed: completed,
+    current_streak: streak,
+    avg_score: avgScore,
+    total_hours: totalHours,
+    ba_level: baLevel,
+    last_active_date: new Date().toISOString().split("T")[0],
+    updated_at: new Date().toISOString(),
+  });
+
+  // Check and award badges
+  const { data: existingBadges } = await supabase
+    .from("user_badges")
+    .select("badge_id")
+    .eq("user_id", params.userId);
+
+  const earnedIds = new Set(existingBadges?.map(b => b.badge_id) || []);
+
+  for (const badge of BADGE_DEFINITIONS) {
+    if (!earnedIds.has(badge.id) && badge.check(allAttempts)) {
+      await supabase.from("user_badges").insert({
+        user_id: params.userId,
+        badge_id: badge.id,
+        badge_name: badge.name,
+        badge_description: badge.description,
+      });
+    }
+  }
+}
+
+export async function getUserStats(userId: string) {
+  const supabase = createClient();
+
+  const [attemptsRes, badgesRes, progressRes] = await Promise.all([
+    supabase.from("challenge_attempts").select("*").eq("user_id", userId).order("completed_at", { ascending: false }),
+    supabase.from("user_badges").select("*").eq("user_id", userId).order("earned_at", { ascending: false }),
+    supabase.from("user_progress").select("*").eq("user_id", userId).single(),
+  ]);
+
+  const attempts: ChallengeAttempt[] = attemptsRes.data || [];
+  const badges: UserBadge[] = badgesRes.data || [];
+  const progress: UserProgress = progressRes.data || {
+    challenges_completed: 0,
+    current_streak: 0,
+    longest_streak: 0,
+    avg_score: 0,
+    total_hours: 0,
+    ba_level: "Rookie",
+    last_active_date: null,
+  };
+
+  const skills = calculateSkillScores(attempts);
+  const levelInfo = calculateLevelProgress(progress.challenges_completed, progress.avg_score);
+
+  return { attempts, badges, progress, skills, levelInfo };
+}

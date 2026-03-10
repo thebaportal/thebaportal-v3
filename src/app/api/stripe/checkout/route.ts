@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   try {
-    // Check env vars first
     console.log("=== CHECKOUT DEBUG ===");
     console.log("STRIPE_SECRET_KEY exists:", !!process.env.STRIPE_SECRET_KEY);
     console.log("STRIPE_MONTHLY_PRICE_ID:", process.env.STRIPE_MONTHLY_PRICE_ID);
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
       apiVersion: "2024-06-20",
     });
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     console.log("User:", user?.email, "Auth error:", authError?.message);
@@ -41,7 +46,8 @@ export async function POST(request: Request) {
 
     console.log("Using price ID:", priceId);
 
-    const { data: profile } = await supabase
+    // Use supabaseAdmin to read profile (bypasses RLS)
+    const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("stripe_customer_id, full_name")
       .eq("id", user.id)
@@ -59,10 +65,19 @@ export async function POST(request: Request) {
       customerId = customer.id;
       console.log("Created customer:", customerId);
 
-      await supabase
+      // Use supabaseAdmin to save customer ID (bypasses RLS)
+      const { error: updateError } = await supabaseAdmin
         .from("profiles")
         .update({ stripe_customer_id: customerId })
         .eq("id", user.id);
+
+      if (updateError) {
+        console.error("Failed to save stripe_customer_id:", updateError.message);
+      } else {
+        console.log("stripe_customer_id saved successfully");
+      }
+    } else {
+      console.log("Reusing existing Stripe customer:", customerId);
     }
 
     console.log("Creating checkout session...");
@@ -88,11 +103,10 @@ export async function POST(request: Request) {
     console.error("Message:", err.message);
     console.error("Type:", err.type);
     console.error("Code:", err.code);
-    console.error("Full error:", JSON.stringify(error, null, 2));
-    return NextResponse.json({ 
-      error: "checkout_failed", 
+    return NextResponse.json({
+      error: "checkout_failed",
       message: err.message,
-      type: err.type 
+      type: err.type,
     }, { status: 500 });
   }
 }

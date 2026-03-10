@@ -4,66 +4,436 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    /* Surfaces */
+    --bg:           #09090b;
+    --surface:      #0e0e12;
+    --card:         #131318;
+    --card-hover:   #17171e;
+
+    /* Premium calmer teal — replaces all #00e5a0 and #00ffb3 */
+    --teal:         #1fbf9f;
+    --teal-bright:  #25d4b0;
+    --teal-dim:     #178a74;
+    --teal-soft:    rgba(31,191,159,0.08);
+    --teal-border:  rgba(31,191,159,0.18);
+    --teal-glow:    rgba(31,191,159,0.10);
+
+    /* Text scale */
+    --text-1:       #f0f0f4;
+    --text-2:       #9090a0;
+    --text-3:       #505060;
+    --text-4:       #333342;
+
+    /* Borders */
+    --border:       rgba(255,255,255,0.07);
+    --border-mid:   rgba(255,255,255,0.11);
   }
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    scroll-behavior: smooth;
+    background: var(--bg);
+    font-size: 16px;
+  }
+
+  body {
+    font-family: 'Open Sans', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.65;
+    background: var(--bg);
+    color: var(--text-1);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /*
+   * TYPE SCALE
+   * hero-title    36px  Inter 800   — page hero headlines
+   * section-title 22px  Inter 700   — section headings
+   * card-title    17px  Inter 600   — card headings
+   * body          15px  Open Sans   — all body copy (inherited)
+   * meta          13px  Open Sans   — timestamps, tags, secondary info
+   * label         11px  Open Sans   — uppercase labels, section dividers
+   */
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', 'Open Sans', sans-serif;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+  }
+
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; }
+  h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
+  h3 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; }
+  h4 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+
+  p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-2);
+  }
+
+  ::selection {
+    background: rgba(31,191,159,0.18);
+    color: var(--text-1);
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.07);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(31,191,159,0.22);
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+@layer components {
+
+  /* ─────────────────────────────────
+     TYPE HELPERS
+  ───────────────────────────────── */
+
+  .type-hero {
+    font-family: 'Inter', 'Open Sans', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    color: var(--text-1);
   }
-  body {
-    @apply bg-slate-50 text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+
+  .type-section {
+    font-family: 'Inter', 'Open Sans', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    color: var(--text-1);
+  }
+
+  .type-card {
+    font-family: 'Inter', 'Open Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+    color: var(--text-1);
+  }
+
+  .type-body {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-2);
+  }
+
+  .type-meta {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--text-3);
+  }
+
+  .type-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-3);
+  }
+
+  /* ─────────────────────────────────
+     BUTTONS
+  ───────────────────────────────── */
+
+  .btn-teal {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    /* Elevation shadow only — no neon glow */
+    transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
+    background: var(--teal);
+    color: #05120f;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5), 0 3px 10px rgba(31,191,159,0.14);
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .btn-teal:hover {
+    background: var(--teal-bright);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0 6px 18px rgba(31,191,159,0.20);
+    transform: translateY(-1px);
+  }
+  .btn-teal:active { transform: translateY(0); }
+  .btn-teal:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border-mid);
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .btn-outline:hover {
+    border-color: var(--teal-border);
+    color: var(--teal);
+    background: var(--teal-soft);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: transparent;
+    color: var(--text-3);
+    border: none;
+    text-decoration: none;
+    line-height: 1;
+  }
+  .btn-ghost:hover {
+    color: var(--text-1);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* ─────────────────────────────────
+     CARDS — elevation via shadow not glow
+  ───────────────────────────────── */
+
+  .portal-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.6), 0 4px 14px rgba(0,0,0,0.35);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    cursor: pointer;
+  }
+  .portal-card:hover {
+    border-color: rgba(31,191,159,0.18);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6), 0 10px 30px rgba(0,0,0,0.45);
+    transform: translateY(-2px);
+  }
+
+  .portal-card-static {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.6), 0 4px 14px rgba(0,0,0,0.35);
+  }
+
+  /* ─────────────────────────────────
+     SIDEBAR
+  ───────────────────────────────── */
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+    width: 100%;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-3);
+    text-align: left;
+  }
+  .sidebar-item:hover {
+    color: var(--text-2);
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* ─────────────────────────────────
+     BADGES
+  ───────────────────────────────── */
+
+  .badge-teal {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(31,191,159,0.09);
+    color: var(--teal);
+    border: 1px solid rgba(31,191,159,0.18);
+  }
+
+  .badge-zinc {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+
+  .badge-red {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(239,68,68,0.08);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.16);
+  }
+
+  .badge-amber {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(245,158,11,0.08);
+    color: #fbbf24;
+    border: 1px solid rgba(245,158,11,0.16);
+  }
+
+  /* ─────────────────────────────────
+     INPUT
+  ───────────────────────────────── */
+
+  .portal-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-1);
+    outline: none;
+  }
+  .portal-input::placeholder { color: var(--text-4); }
+  .portal-input:focus {
+    border-color: rgba(31,191,159,0.28);
+    box-shadow: 0 0 0 3px rgba(31,191,159,0.07);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* ─────────────────────────────────
+     UTILITY
+  ───────────────────────────────── */
+
+  /* Reduced glow — calm dot not a beacon */
+  .teal-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 4px rgba(31,191,159,0.45);
+    flex-shrink: 0;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-3);
+  }
+
+  .dot-grid {
+    background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* ─────────────────────────────────
+     CHAT BUBBLES
+  ───────────────────────────────── */
+
+  .chat-bubble-user {
+    background: rgba(31,191,159,0.07);
+    border: 1px solid rgba(31,191,159,0.13);
+    border-radius: 14px 14px 4px 14px;
+    padding: 14px 18px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-1);
+  }
+
+  .chat-bubble-ai {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 14px 14px 14px 4px;
+    padding: 14px 18px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-1);
+  }
+
+  /* ─────────────────────────────────
+     SCORE CARDS
+  ───────────────────────────────── */
+
+  .score-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  .score-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    margin-bottom: 6px;
+  }
+
+  .score-value {
+    font-family: 'Inter', 'Open Sans', sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text-1);
+    line-height: 1;
   }
 }

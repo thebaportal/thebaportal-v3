@@ -1,13 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import DashboardClient from "./DashboardClient";
+import ProgressClient from "./ProgressClient";
 import { getUserStats } from "@/lib/progress";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: { upgrade?: string };
-}) {
+export default async function ProgressPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -31,12 +27,5 @@ export default async function DashboardPage({
     };
   }
 
-  return (
-    <DashboardClient
-      profile={profile}
-      user={{ email: user.email || "" }}
-      upgradeSuccess={searchParams.upgrade === "success"}
-      stats={stats}
-    />
-  );
+  return <ProgressClient profile={profile} stats={stats} />;
 }

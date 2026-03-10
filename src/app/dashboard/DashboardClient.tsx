@@ -1,397 +1,853 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { User } from "@supabase/supabase-js";
-import { Profile } from "@/types/database";
 import {
-  BookOpen, LayoutDashboard, Target, TrendingUp, Settings,
-  LogOut, ChevronDown, Flame, CheckCircle2, BarChart3,
-  Sparkles, ArrowRight, Crown, Lock, FileText, Brain, Users
+  LogOut, ChevronRight, ArrowRight, Bell,
+  Zap, Award, Settings, TrendingUp,
+  GraduationCap, BriefcaseBusiness, Trophy,
+  LayoutDashboard, BookOpen, Target, CheckCircle2,
+  Flame, Clock, Users, User, ChevronUp,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import type { ChallengeAttempt, UserBadge, UserProgress } from "@/lib/progress";
+import { BADGE_DEFINITIONS } from "@/lib/progress";
 
-interface DashboardClientProps {
-  user: User;
-  profile: Profile | null;
-  completedCount: number;
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface Stats {
+  attempts: ChallengeAttempt[];
+  badges: UserBadge[];
+  progress: UserProgress;
+  skills: { elicitation: number; requirements: number; solutionAnalysis: number; stakeholderMgmt: number };
+  levelInfo: { level: string; nextLevel: string; progressPct: number; challengesNeeded: number };
 }
 
+interface DashboardClientProps {
+  profile: { full_name: string | null; subscription_tier: string | null } | null;
+  user: { email: string };
+  upgradeSuccess?: boolean;
+  stats: Stats;
+}
+
+// ─── Nav ─────────────────────────────────────────────────────────────────────
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: true },
-  { label: "Scenarios", icon: Target, href: "/scenarios" },
-  { label: "Progress", icon: TrendingUp, href: "/progress" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+  { icon: LayoutDashboard,    label: "Dashboard",      href: "/dashboard",  active: true  },
+  { icon: BookOpen,           label: "Challenges",     href: "/scenarios"                },
+  { icon: TrendingUp,         label: "Progress",       href: "/progress"                 },
+  { icon: GraduationCap,      label: "Learning Paths", href: "/learning",   locked: true  },
+  { icon: Target,             label: "Exam Prep",      href: "/exam",       locked: true  },
+  { icon: BriefcaseBusiness,  label: "Career Suite",   href: "/career",     locked: true  },
+  { icon: Trophy,             label: "Portfolio",      href: "/portfolio",  locked: true  },
 ];
 
-const featureCards = [
+// ─── Featured challenges ─────────────────────────────────────────────────────
+const featuredChallenges = [
   {
-    icon: Brain,
-    title: "AI-Powered Scenarios",
-    description: "60+ real-world BA challenges with intelligent feedback across 8 industries",
-    badge: "Popular",
-    badgeColor: "bg-blue-100 text-blue-700",
-    cta: "Browse Scenarios",
-    href: "/scenarios",
-    gradient: "from-blue-50 to-indigo-50",
-    border: "border-blue-100",
-    locked: false,
+    id: "banking-discovery-001",
+    title: "Rising Customer Churn at First National Bank",
+    type: "Discovery",
+    industry: "Banking/Finance",
+    duration: "30–45 min",
+    stakeholders: 2,
+    typeColor: "#38bdf8",
+    img: "https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=600&q=80",
+    imgAlt: "Bank branch interior",
   },
   {
-    icon: FileText,
-    title: "BA Artifact Templates",
-    description: "Download professional BRDs, use case templates, process maps, and more",
-    badge: "Free",
-    badgeColor: "bg-green-100 text-green-700",
-    cta: "Get Templates",
-    href: "/templates",
-    gradient: "from-emerald-50 to-teal-50",
-    border: "border-emerald-100",
-    locked: false,
+    id: "healthcare-requirements-001",
+    title: "Patient Referral System Overhaul",
+    type: "Requirements",
+    industry: "Healthcare",
+    duration: "45–60 min",
+    stakeholders: 2,
+    typeColor: "#a78bfa",
+    img: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80",
+    imgAlt: "Hospital corridor",
   },
   {
-    icon: Users,
-    title: "Industry Case Studies",
-    description: "Deep-dive into Banking, Energy, Healthcare, and Tech BA projects",
-    badge: "Pro",
-    badgeColor: "bg-purple-100 text-purple-700",
-    cta: "View Case Studies",
-    href: "/case-studies",
-    gradient: "from-purple-50 to-pink-50",
-    border: "border-purple-100",
-    locked: true,
+    id: "energy-solution-001",
+    title: "Field Inspection Digitization at Cascade Energy",
+    type: "Solution Analysis",
+    industry: "Energy/Oil & Gas",
+    duration: "45–60 min",
+    stakeholders: 2,
+    typeColor: "#fb923c",
+    img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80",
+    imgAlt: "Energy industrial operations",
   },
 ];
 
-export default function DashboardClient({ user, profile, completedCount }: DashboardClientProps) {
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+const HERO_IMG = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1400&q=80";
+
+// ─── UserMenu ────────────────────────────────────────────────────────────────
+function UserMenu({
+  fullName, email, isPro, initials, onSignOut, signingOut,
+}: {
+  fullName: string | null;
+  email: string;
+  isPro: boolean;
+  initials: string;
+  onSignOut: () => void;
+  signingOut: boolean;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const upgradeSuccess = searchParams.get("upgrade") === "success";
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  const displayName = profile?.full_name || user.email?.split("@")[0] || "User";
-  const firstName = displayName.split(" ")[0];
-  const isPro = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
-  const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "8px" }}>
+
+      {/* Dropdown — renders above trigger */}
+      {open && (
+        <div style={{
+          position: "absolute",
+          bottom: "calc(100% + 6px)",
+          left: 0, right: 0,
+          background: "#1a1a22",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "14px",
+          overflow: "hidden",
+          boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+          zIndex: 50,
+        }}>
+          {/* Identity */}
+          <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{
+              fontSize: "13px", fontWeight: 600, color: "var(--text-1)",
+              fontFamily: "'Inter','Open Sans',sans-serif", marginBottom: "2px",
+            }}>
+              {fullName || "BA Learner"}
+            </div>
+            <div style={{ fontSize: "11px", color: "var(--text-3)", wordBreak: "break-all" }}>
+              {email}
+            </div>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: "5px",
+              marginTop: "8px", padding: "3px 8px", borderRadius: "6px",
+              background: isPro ? "rgba(31,191,159,0.12)" : "rgba(255,255,255,0.05)",
+              border: isPro ? "1px solid rgba(31,191,159,0.2)" : "1px solid rgba(255,255,255,0.08)",
+              fontSize: "11px", fontWeight: 600,
+              color: isPro ? "var(--teal)" : "var(--text-3)",
+            }}>
+              {isPro ? "⚡ Pro Member" : "Free Plan"}
+            </div>
+          </div>
+
+          {/* Menu items */}
+          <div style={{ padding: "6px" }}>
+            <DropdownItem icon={<User size={14} />} label="Profile" onClick={() => { setOpen(false); router.push("/settings"); }} />
+            <DropdownItem icon={<Settings size={14} />} label="Settings" onClick={() => { setOpen(false); router.push("/settings"); }} />
+            {!isPro && (
+              <DropdownItem
+                icon={<span style={{ fontSize: "13px" }}>⚡</span>}
+                label="Upgrade to Pro"
+                teal
+                onClick={() => { setOpen(false); router.push("/pricing"); }}
+              />
+            )}
+          </div>
+
+          {/* Sign out */}
+          <div style={{ padding: "6px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <button
+              onClick={() => { setOpen(false); onSignOut(); }}
+              disabled={signingOut}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: "10px",
+                padding: "9px 12px", borderRadius: "10px",
+                background: "none", border: "none",
+                cursor: signingOut ? "not-allowed" : "pointer",
+                color: "#f87171", fontSize: "13px", fontWeight: 600,
+                fontFamily: "'Inter','Open Sans',sans-serif",
+                transition: "background 0.15s",
+                opacity: signingOut ? 0.5 : 1,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.08)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "none")}
+            >
+              <LogOut size={14} />
+              {signingOut ? "Signing out…" : "Sign Out"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: "10px",
+          padding: "10px",
+          borderRadius: "12px",
+          background: open ? "rgba(255,255,255,0.06)" : "none",
+          border: open ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+          cursor: "pointer",
+          transition: "all 0.15s",
+          textAlign: "left",
+        }}
+        onMouseEnter={e => { if (!open) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.background = "none"; }}
+      >
+        <div style={{
+          width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
+          background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "12px", fontWeight: 700, color: "var(--teal)",
+          fontFamily: "'Inter','Open Sans',sans-serif",
+        }}>
+          {initials}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: "13px", fontWeight: 600, color: "var(--text-1)",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {fullName || "BA Learner"}
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "1px" }}>
+            {isPro ? "Pro Member" : "Free Plan"}
+          </div>
+        </div>
+        <ChevronUp
+          size={14}
+          style={{
+            color: "var(--text-4)", flexShrink: 0,
+            transform: open ? "rotate(0deg)" : "rotate(180deg)",
+            transition: "transform 0.2s ease",
+          }}
+        />
+      </button>
+    </div>
+  );
+}
+
+function DropdownItem({
+  icon, label, onClick, teal = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  teal?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", display: "flex", alignItems: "center", gap: "10px",
+        padding: "9px 12px", borderRadius: "10px",
+        background: "none", border: "none", cursor: "pointer",
+        color: teal ? "var(--teal)" : "var(--text-2)",
+        fontSize: "13px", fontWeight: 500,
+        fontFamily: "'Inter','Open Sans',sans-serif",
+        transition: "background 0.15s", textAlign: "left",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = teal ? "rgba(31,191,159,0.08)" : "rgba(255,255,255,0.05)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "none")}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function DashboardClient({ profile, user, upgradeSuccess, stats }: DashboardClientProps) {
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const isPro     = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
+  const firstName = profile?.full_name?.split(" ")[0] || "there";
+  const initials  = (profile?.full_name?.[0] || user.email[0]).toUpperCase();
+
+  const { progress, skills, levelInfo, badges, attempts } = stats;
 
   async function handleSignOut() {
+    setSigningOut(true);
+    const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
-    router.refresh();
   }
 
-  const stats = [
+  const statCards = [
     {
-      label: "Scenarios Completed",
-      value: completedCount,
+      label: "Challenges Done",
+      value: String(progress.challenges_completed),
+      sub: "of 6 available",
+      color: "#1fbf9f",
       icon: CheckCircle2,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      change: "+2 this week",
     },
     {
-      label: "Current Streak",
-      value: "3 days",
+      label: "Day Streak",
+      value: String(progress.current_streak),
+      sub: progress.current_streak > 0 ? "Keep it going" : "Start today",
+      color: "#fb923c",
       icon: Flame,
-      color: "text-orange-500",
-      bg: "bg-orange-50",
-      change: "Keep it going!",
     },
     {
-      label: "Overall Progress",
-      value: `${Math.round((completedCount / 60) * 100)}%`,
-      icon: BarChart3,
-      color: "text-green-600",
-      bg: "bg-green-50",
-      change: `${completedCount}/60 scenarios`,
+      label: "Avg Score",
+      value: progress.avg_score > 0 ? String(progress.avg_score) : "—",
+      sub: progress.avg_score > 0
+        ? progress.avg_score >= 80 ? "Excellent" : "Keep improving"
+        : "Submit a challenge",
+      color: "#a78bfa",
+      icon: Target,
+    },
+    {
+      label: "Hours Practiced",
+      value: progress.total_hours > 0 ? `${progress.total_hours}h` : "0h",
+      sub: "Goal: 1 hr / week",
+      color: "#38bdf8",
+      icon: Clock,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar */}
-      <aside className="flex-shrink-0 w-60">
-        <div className="fixed top-0 left-0 h-full w-60 bg-white border-r border-slate-100 flex flex-col z-30">
-          {/* Logo */}
-          <div className="px-5 py-5 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-slate-900 tracking-tight">TheBAPortal</span>
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
+
+      {/* ── SIDEBAR ────────────────────────────────────────────────────────── */}
+      <aside
+        className="w-64 flex-shrink-0 flex flex-col relative overflow-hidden"
+        style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}
+      >
+        <div className="absolute inset-0 pointer-events-none dot-grid" />
+        <div className="absolute top-0 left-0 right-0 h-40 pointer-events-none" style={{
+          background: "radial-gradient(ellipse at 50% 0%, rgba(31,191,159,0.05) 0%, transparent 70%)",
+        }} />
+
+        {/* Logo */}
+        <div className="relative px-5 pt-6 pb-5" style={{ borderBottom: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{
+              background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
+            }}>
+              <BookOpen className="w-4 h-4" style={{ color: "var(--teal)" }} />
             </div>
-          </div>
-
-          {/* Nav */}
-          <nav className="flex-1 px-3 py-4 space-y-0.5">
-            {navItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => router.push(item.href)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  item.active
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <item.icon className={`w-4 h-4 ${item.active ? "text-blue-600" : "text-slate-400"}`} />
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          {/* Upgrade Card */}
-          {!isPro && (
-            <div className="mx-3 mb-3 p-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl text-white">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Crown className="w-3.5 h-3.5 text-yellow-300" />
-                <span className="text-xs font-semibold text-yellow-300">Upgrade to Pro</span>
+            <div>
+              <div style={{
+                fontFamily: "'Inter','Open Sans',sans-serif",
+                fontWeight: 800, fontSize: "15px",
+                color: "var(--text-1)", letterSpacing: "-0.03em",
+              }}>
+                The<span style={{ color: "var(--teal)" }}>BA</span>Portal
               </div>
-              <p className="text-xs text-blue-100 mb-3">Unlock all 60+ scenarios and AI coaching</p>
-              <button
-                onClick={() => router.push("/pricing")}
-                className="w-full bg-white text-blue-700 text-xs font-semibold py-2 rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                See Plans →
-              </button>
+              <div className="type-label" style={{ marginTop: "2px" }}>v3.0 · Phase 1</div>
             </div>
-          )}
-
-          {/* Sign out */}
-          <div className="px-3 pb-4 border-t border-slate-100 pt-3">
-            <button
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-500 hover:bg-slate-50 hover:text-red-500 transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign out
-            </button>
           </div>
         </div>
+
+        {/* Nav */}
+        <nav className="relative flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
+          <div className="type-label px-3 pb-3">Platform</div>
+          {navItems.map(item => (
+            <button
+              key={item.href}
+              onClick={() => !item.locked && router.push(item.href)}
+              className="sidebar-item"
+              style={
+                item.active
+                  ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid var(--teal-border)" }
+                  : item.locked
+                  ? { color: "var(--text-4)", cursor: "not-allowed" }
+                  : {}
+              }
+            >
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
+              {item.active && <div className="teal-dot" />}
+              {item.locked && (
+                <span className="type-label" style={{
+                  padding: "2px 6px", borderRadius: "4px",
+                  background: "rgba(255,255,255,0.03)", color: "var(--text-4)",
+                }}>SOON</span>
+              )}
+            </button>
+          ))}
+          <div className="type-label px-3 pt-5 pb-3">Account</div>
+          <button className="sidebar-item" onClick={() => router.push("/settings")}>
+            <Settings className="w-4 h-4 flex-shrink-0" />
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        {/* BA Level */}
+        <div className="relative px-4 pb-3">
+          <div className="rounded-2xl p-4" style={{
+            background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
+          }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="type-meta">BA Level</span>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--teal)" }}>
+                {levelInfo.level}
+              </span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="type-meta">{progress.challenges_completed}/6 challenges</span>
+              {levelInfo.challengesNeeded > 0 && (
+                <span className="type-meta">→ {levelInfo.nextLevel}</span>
+              )}
+            </div>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${levelInfo.progressPct}%` }}
+                transition={{ duration: 1, ease: "easeOut", delay: 0.4 }}
+                className="h-full rounded-full"
+                style={{ background: "var(--teal)" }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── USER MENU (replaces hidden hover sign-out) ── */}
+        <UserMenu
+          fullName={profile?.full_name ?? null}
+          email={user.email}
+          isPro={isPro}
+          initials={initials}
+          onSignOut={handleSignOut}
+          signingOut={signingOut}
+        />
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top navbar */}
-        <header className="bg-white border-b border-slate-100 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20">
-          <h1 className="text-sm font-semibold text-slate-900">Dashboard</h1>
+      {/* ── MAIN ───────────────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto">
 
-          {/* User menu */}
-          <div className="relative">
+        {/* Sticky header */}
+        <header
+          className="px-8 py-5 flex items-center justify-between sticky top-0 z-20"
+          style={{
+            background: "rgba(9,9,11,0.88)",
+            backdropFilter: "blur(24px)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div>
+            <h1 style={{
+              fontFamily: "'Inter','Open Sans',sans-serif",
+              fontWeight: 800, fontSize: "22px",
+              color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1,
+            }}>Dashboard</h1>
+            <p className="type-meta" style={{ marginTop: "4px" }}>Good to see you, {firstName}</p>
+          </div>
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors"
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ border: "1px solid var(--border)", color: "var(--text-3)", background: "none", cursor: "pointer" }}
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                {initials}
-              </div>
-              <div className="text-left hidden sm:block">
-                <div className="text-sm font-medium text-slate-900 leading-tight">{displayName}</div>
-                <div className="text-xs text-slate-400 leading-tight">
-                  {isPro ? "Pro Member" : "Free Plan"}
-                </div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-slate-400" />
+              <Bell className="w-4 h-4" />
             </button>
-
-            {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-50">
-                <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                  <div className="text-xs text-slate-500 truncate">{user.email}</div>
-                </div>
-                <button className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                  <Settings className="w-3.5 h-3.5 text-slate-400" />
-                  Settings
+            {isPro
+              ? <span className="badge-teal"><Award className="w-3 h-3" />Pro</span>
+              : (
+                <button onClick={() => router.push("/pricing")} className="btn-teal" style={{ padding: "8px 18px", fontSize: "13px" }}>
+                  <Zap className="w-3.5 h-3.5" />Upgrade
                 </button>
-                {!isPro && (
-                  <button
-                    onClick={() => router.push("/pricing")}
-                    className="w-full text-left px-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 flex items-center gap-2"
-                  >
-                    <Crown className="w-3.5 h-3.5" />
-                    Upgrade to Pro
-                  </button>
-                )}
-                <div className="border-t border-slate-100 mt-1 pt-1">
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    Sign out
-                  </button>
-                </div>
-              </div>
-            )}
+              )
+            }
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 px-6 py-8 max-w-6xl w-full mx-auto">
+        <div className="px-8 py-8" style={{ maxWidth: "1100px" }}>
 
-          {/* SUCCESS BANNER */}
+          {/* Upgrade success */}
           {upgradeSuccess && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-green-50 border border-green-200 rounded-xl px-5 py-3.5 mb-6 flex items-center gap-3"
+              initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+              className="portal-card-static px-6 py-4 flex items-center gap-3 mb-6"
+              style={{ borderColor: "var(--teal-border)", background: "var(--teal-soft)" }}
             >
-              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-green-800">Welcome to Pro! 🎉</p>
-                <p className="text-xs text-green-600">You now have access to all 60+ scenarios and AI coaching.</p>
-              </div>
+              <div className="teal-dot" />
+              <p style={{ fontWeight: 600, fontSize: "14px", color: "var(--teal)" }}>
+                Welcome to Pro — all challenges and features are now unlocked.
+              </p>
             </motion.div>
           )}
 
-          {/* Hero welcome */}
+          {/* ── HERO ─────────────────────────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-8 mb-8 overflow-hidden"
+            className="relative overflow-hidden mb-6"
+            style={{ borderRadius: "20px", border: "1px solid var(--border)", minHeight: "240px" }}
           >
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-32 translate-x-32" />
-              <div className="absolute bottom-0 left-1/3 w-40 h-40 bg-white rounded-full translate-y-20" />
-            </div>
-            <div className="relative z-10 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                  <span className="text-blue-200 text-sm font-medium">Welcome back</span>
-                </div>
-                <h2 className="text-3xl font-bold text-white mb-1">
-                  Hello, {firstName}! 👋
-                </h2>
-                <p className="text-blue-200 text-sm">
-                  {completedCount === 0
-                    ? "Start your first BA challenge today and build real-world skills."
-                    : `You've completed ${completedCount} scenario${completedCount !== 1 ? "s" : ""}. Keep the momentum going!`}
-                </p>
-              </div>
-              {!isPro && (
-                <div className="hidden md:block">
-                  <button
-                    onClick={() => router.push("/pricing")}
-                    className="flex items-center gap-2 bg-white text-blue-700 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-blue-50 transition-all"
-                  >
-                    <Crown className="w-4 h-4 text-yellow-500" />
-                    Upgrade to Pro
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-              {isPro && (
-                <Badge className="bg-yellow-400 text-yellow-900 font-semibold px-3 py-1">
-                  <Crown className="w-3 h-3 mr-1" /> Pro Member
-                </Badge>
-              )}
-            </div>
-          </motion.div>
+            <img
+              src={HERO_IMG}
+              alt="Business analysis workspace"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: "brightness(0.18) saturate(0.45)" }}
+            />
+            <div className="absolute inset-0" style={{
+              background: "linear-gradient(105deg, rgba(9,9,11,0.97) 0%, rgba(9,9,11,0.88) 50%, rgba(9,9,11,0.3) 100%)",
+            }} />
+            <div className="absolute inset-0 pointer-events-none" style={{
+              background: "radial-gradient(ellipse at 15% 60%, rgba(31,191,159,0.05) 0%, transparent 55%)",
+            }} />
 
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
-          >
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white rounded-xl border border-slate-100 p-5 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 mb-1">{stat.label}</p>
-                    <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                    <p className="text-xs text-slate-400 mt-1">{stat.change}</p>
-                  </div>
-                  <div className={`${stat.bg} w-10 h-10 rounded-xl flex items-center justify-center`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                  </div>
-                </div>
+            <div className="relative px-10 py-9">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="badge-teal" style={{ fontSize: "11px" }}>Recommended</span>
+                <span className="badge-zinc" style={{ fontSize: "11px" }}>Banking/Finance · Discovery</span>
               </div>
-            ))}
-          </motion.div>
 
-          {/* Feature cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <h3 className="text-base font-semibold text-slate-900 mb-4">Get Started</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {featureCards.map((card) => (
-                <div
-                  key={card.title}
-                  className={`relative bg-gradient-to-br ${card.gradient} rounded-xl border ${card.border} p-5 hover:shadow-md transition-all group`}
-                >
-                  {card.locked && (
-                    <div className="absolute top-4 right-4">
-                      <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    </div>
-                  )}
-                  <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm mb-3">
-                    <card.icon className="w-4 h-4 text-slate-700" />
+              <h2 style={{
+                fontFamily: "'Inter','Open Sans',sans-serif",
+                fontWeight: 800, fontSize: "26px",
+                color: "var(--text-1)", letterSpacing: "-0.03em",
+                lineHeight: 1.15, marginBottom: "10px", maxWidth: "480px",
+              }}>
+                Rising Customer Churn<br />
+                <span style={{ color: "var(--teal)" }}>at First National Bank</span>
+              </h2>
+
+              <p className="type-body" style={{ maxWidth: "420px", marginBottom: "24px", fontSize: "14px" }}>
+                A 23% spike in account closures. Two stakeholders with conflicting stories.
+                Find the root cause before the board meeting.
+              </p>
+
+              <div className="flex items-center gap-8 mb-7">
+                {[
+                  { label: "Duration",     value: "30–45 min"              },
+                  { label: "Stakeholders", value: "2 interviews"           },
+                  { label: "Modes",        value: "Normal / Hard / Expert" },
+                ].map(item => (
+                  <div key={item.label}>
+                    <div className="type-label" style={{ marginBottom: "2px" }}>{item.label}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-2)" }}>{item.value}</div>
                   </div>
-                  <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-2 ${card.badgeColor}`}>
-                    {card.badge}
-                  </span>
-                  <h4 className="font-semibold text-slate-900 text-sm mb-1.5">{card.title}</h4>
-                  <p className="text-xs text-slate-500 mb-4 leading-relaxed">{card.description}</p>
-                  <button
-                    onClick={() => router.push(card.locked && !isPro ? "/pricing" : card.href)}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 group-hover:text-blue-600 transition-colors"
-                  >
-                    {card.locked && !isPro ? "Unlock with Pro" : card.cta}
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Plan card */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="mt-6 bg-white rounded-xl border border-slate-100 p-5"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900">Your Plan</h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge
-                    variant="secondary"
-                    className={isPro ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}
-                  >
-                    {isPro ? "Pro" : "Free"}
-                  </Badge>
-                  <span className="text-xs text-slate-400">
-                    {isPro ? "Access to all 60+ scenarios" : "Access to 20 free scenarios"}
-                  </span>
-                </div>
+                ))}
               </div>
-              {!isPro && (
+
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => router.push("/pricing")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all"
+                  onClick={() => router.push("/scenarios/banking-discovery-001?mode=normal")}
+                  className="btn-teal"
+                  style={{ fontSize: "14px" }}
                 >
-                  Upgrade Now
+                  Begin Challenge <ArrowRight className="w-4 h-4" />
                 </button>
-              )}
+                <button
+                  onClick={() => router.push("/scenarios")}
+                  className="btn-outline"
+                  style={{ fontSize: "14px" }}
+                >
+                  Browse all challenges
+                </button>
+              </div>
             </div>
           </motion.div>
 
-        </main>
-      </div>
+          {/* ── STAT CARDS ───────────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {statCards.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.07 }}
+                className="relative overflow-hidden"
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "16px",
+                  padding: "22px 20px",
+                }}
+              >
+                <div className="absolute inset-0 pointer-events-none" style={{
+                  background: `radial-gradient(ellipse at 85% 15%, ${stat.color}0d 0%, transparent 60%)`,
+                }} />
+                <div className="relative">
+                  <div style={{
+                    fontFamily: "'Inter','Open Sans',sans-serif",
+                    fontWeight: 800, fontSize: "32px",
+                    color: "var(--text-1)", letterSpacing: "-0.04em",
+                    lineHeight: 1, marginBottom: "6px",
+                  }}>
+                    {stat.value}
+                  </div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: stat.color, marginBottom: "3px" }}>
+                    {stat.label}
+                  </div>
+                  <div className="type-meta">{stat.sub}</div>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-px" style={{
+                  background: `linear-gradient(to right, ${stat.color}22, transparent)`,
+                }} />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* ── BOTTOM GRID ──────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Challenge cards — 2/3 */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 style={{
+                    fontFamily: "'Inter','Open Sans',sans-serif",
+                    fontWeight: 700, fontSize: "17px",
+                    color: "var(--text-1)", letterSpacing: "-0.02em",
+                  }}>Start Practicing</h2>
+                  <p className="type-meta" style={{ marginTop: "3px" }}>
+                    Three challenges to build your foundation
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push("/scenarios")}
+                  style={{
+                    fontSize: "13px", fontWeight: 600, color: "var(--teal)",
+                    display: "flex", alignItems: "center", gap: "4px",
+                    background: "none", border: "none", cursor: "pointer",
+                  }}
+                >
+                  View all 6 <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {featuredChallenges.map((ch, i) => {
+                  const isCompleted = attempts.some(a => a.challenge_id === ch.id);
+                  const bestScore   = attempts
+                    .filter(a => a.challenge_id === ch.id)
+                    .reduce((best, a) => Math.max(best, a.total_score), 0);
+
+                  return (
+                    <motion.div
+                      key={ch.id}
+                      initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 + i * 0.08 }}
+                      onClick={() => router.push(`/scenarios/${ch.id}?mode=normal`)}
+                      className="group relative overflow-hidden cursor-pointer"
+                      style={{
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "16px",
+                        display: "flex",
+                        alignItems: "stretch",
+                        minHeight: "108px",
+                        transition: "all 0.22s ease",
+                      }}
+                      onMouseEnter={e => {
+                        const el = e.currentTarget as HTMLElement;
+                        el.style.borderColor = `${ch.typeColor}30`;
+                        el.style.boxShadow = "0 8px 30px rgba(0,0,0,0.45)";
+                        el.style.transform = "translateY(-2px)";
+                      }}
+                      onMouseLeave={e => {
+                        const el = e.currentTarget as HTMLElement;
+                        el.style.borderColor = "var(--border)";
+                        el.style.boxShadow = "none";
+                        el.style.transform = "none";
+                      }}
+                    >
+                      {/* Photo strip */}
+                      <div
+                        className="relative flex-shrink-0 overflow-hidden"
+                        style={{ width: "120px", borderRadius: "16px 0 0 16px" }}
+                      >
+                        <img
+                          src={ch.img}
+                          alt={ch.imgAlt}
+                          className="w-full h-full object-cover"
+                          style={{ filter: "brightness(0.38) saturate(0.65)" }}
+                        />
+                        <div className="absolute inset-0" style={{
+                          background: "linear-gradient(to right, transparent 45%, var(--card) 100%)",
+                        }} />
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 px-5 py-4 flex flex-col justify-center">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span style={{
+                            fontSize: "10px", fontWeight: 700,
+                            padding: "2px 8px", borderRadius: "5px",
+                            background: `${ch.typeColor}12`, color: ch.typeColor,
+                            border: `1px solid ${ch.typeColor}22`,
+                            letterSpacing: "0.05em",
+                          }}>
+                            {ch.type.toUpperCase()}
+                          </span>
+                          {isCompleted && (
+                            <span style={{
+                              fontSize: "10px", fontWeight: 700,
+                              padding: "2px 8px", borderRadius: "5px",
+                              background: "var(--teal-soft)", color: "var(--teal)",
+                              border: "1px solid var(--teal-border)",
+                            }}>
+                              DONE · {bestScore}/100
+                            </span>
+                          )}
+                        </div>
+                        <div style={{
+                          fontFamily: "'Inter','Open Sans',sans-serif",
+                          fontWeight: 600, fontSize: "14px",
+                          color: "var(--text-1)", letterSpacing: "-0.01em",
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        }}>
+                          {ch.title}
+                        </div>
+                        <div className="flex items-center gap-4 mt-1.5">
+                          <span className="type-meta flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />{ch.duration}
+                          </span>
+                          <span className="type-meta flex items-center gap-1.5">
+                            <Users className="w-3 h-3" />{ch.stakeholders} stakeholders
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Arrow */}
+                      <div className="flex items-center pr-5 flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{
+                          background: `${ch.typeColor}10`, border: `1px solid ${ch.typeColor}22`,
+                        }}>
+                          <ChevronRight className="w-4 h-4" style={{ color: ch.typeColor }} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right column — skills + badges + upsell */}
+            <div className="space-y-4">
+              <h2 style={{
+                fontFamily: "'Inter','Open Sans',sans-serif",
+                fontWeight: 700, fontSize: "17px",
+                color: "var(--text-1)", letterSpacing: "-0.02em",
+              }}>Skills & Badges</h2>
+
+              {/* Skill bars */}
+              <div className="portal-card-static p-5" style={{ borderRadius: "16px" }}>
+                <p className="type-meta" style={{ marginBottom: "16px" }}>Skill Progress</p>
+                {[
+                  { label: "Elicitation",      pct: skills.elicitation,      color: "var(--teal)" },
+                  { label: "Requirements",      pct: skills.requirements,     color: "#a78bfa"     },
+                  { label: "Solution Analysis", pct: skills.solutionAnalysis, color: "#fb923c"     },
+                  { label: "Stakeholder Mgmt",  pct: skills.stakeholderMgmt,  color: "#38bdf8"     },
+                ].map((skill, i) => (
+                  <div key={skill.label} style={{ marginBottom: i < 3 ? "14px" : 0 }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-2)" }}>
+                        {skill.label}
+                      </span>
+                      <span style={{
+                        fontSize: "11px", color: "var(--text-3)",
+                        fontFamily: "'JetBrains Mono',monospace",
+                      }}>
+                        {skill.pct}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${skill.pct}%` }}
+                        transition={{ delay: 0.5 + i * 0.1, duration: 0.8, ease: "easeOut" }}
+                        className="h-full rounded-full"
+                        style={{ background: skill.color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {attempts.length === 0 && (
+                  <p className="type-meta" style={{ marginTop: "12px", textAlign: "center" }}>
+                    Complete a challenge to see scores
+                  </p>
+                )}
+              </div>
+
+              {/* Badge wall */}
+              <div className="portal-card-static p-5" style={{ borderRadius: "16px" }}>
+                <p className="type-meta" style={{ marginBottom: "14px" }}>
+                  Badges — {badges.length} of {BADGE_DEFINITIONS.length} earned
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {BADGE_DEFINITIONS.map(badge => {
+                    const earned = badges.some(b => b.badge_id === badge.id);
+                    return (
+                      <div
+                        key={badge.id}
+                        title={`${badge.name}: ${badge.description}`}
+                        className="flex flex-col items-center gap-1.5 p-2 rounded-xl"
+                        style={{
+                          background: earned ? `${badge.color}0d` : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${earned ? badge.color + "20" : "rgba(255,255,255,0.05)"}`,
+                          opacity: earned ? 1 : 0.35,
+                        }}
+                      >
+                        <span style={{ fontSize: "18px", filter: earned ? "none" : "grayscale(1)" }}>
+                          {badge.icon}
+                        </span>
+                        <span style={{
+                          fontSize: "9px", fontWeight: 600,
+                          color: earned ? badge.color : "var(--text-4)",
+                          textAlign: "center", lineHeight: 1.2,
+                        }}>
+                          {badge.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => router.push("/progress")}
+                  style={{
+                    width: "100%", marginTop: "14px",
+                    fontSize: "13px", fontWeight: 600, color: "var(--teal)",
+                    background: "none", border: "none", cursor: "pointer",
+                    paddingTop: "12px", borderTop: "1px solid var(--border)",
+                  }}
+                >
+                  View full progress →
+                </button>
+              </div>
+
+              {/* Pro upsell */}
+              {!isPro && (
+                <div className="relative overflow-hidden p-5" style={{
+                  background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px",
+                }}>
+                  <div className="absolute top-0 right-0 w-28 h-28 pointer-events-none" style={{
+                    background: "radial-gradient(ellipse, rgba(31,191,159,0.06) 0%, transparent 70%)",
+                    transform: "translate(20%, -20%)",
+                  }} />
+                  <div className="relative">
+                    <div style={{
+                      fontFamily: "'Inter','Open Sans',sans-serif",
+                      fontWeight: 700, fontSize: "15px",
+                      color: "var(--text-1)", marginBottom: "6px",
+                    }}>
+                      Unlock Pro
+                    </div>
+                    <p className="type-body" style={{ fontSize: "13px", marginBottom: "14px" }}>
+                      All 6 challenges, Expert mode, full AI evaluation and scoring.
+                    </p>
+                    <button
+                      onClick={() => router.push("/pricing")}
+                      className="btn-teal"
+                      style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "13px" }}
+                    >
+                      <Zap className="w-3.5 h-3.5" />Upgrade — $29/mo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ height: "48px" }} />
+        </div>
+      </main>
     </div>
   );
 }
