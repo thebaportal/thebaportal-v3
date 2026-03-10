@@ -66,9 +66,14 @@ export async function POST(request: Request) {
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subId = invoice.subscription as string;
+      const parent = invoice.parent;
+      const subId =
+        parent && parent.type === "subscription_details"
+          ? parent.subscription_details?.subscription
+          : null;
+
       if (subId) {
-        const sub = await stripe.subscriptions.retrieve(subId);
+        const sub = await stripe.subscriptions.retrieve(subId as string);
         const userId = sub.metadata?.supabase_user_id;
         if (userId) {
           await supabaseAdmin
