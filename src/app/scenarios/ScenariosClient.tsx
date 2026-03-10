@@ -28,55 +28,46 @@ const difficultyConfig: Record<string, { label: string; color: string }> = {
 };
 
 // ─── Real Unsplash images per challenge ─────────────────────────────────────
-// Each image is hand-picked for the industry and scenario.
-// Width 800, quality 80, dark enough to overlay text.
 const challengeImages: Record<string, { url: string; credit: string }> = {
-  // Banking: financial operations floor / teller meeting
   "banking-discovery-001": {
     url: "https://images.unsplash.com/photo-1601597111158-2fceff292cdc?w=800&q=80",
     credit: "Banking operations",
   },
-  // Healthcare: clinical admin / referral desk
   "healthcare-requirements-001": {
     url: "https://images.unsplash.com/photo-1504439468489-c8920d796a29?w=800&q=80",
     credit: "Clinical operations",
   },
-  // Energy: pipeline / field inspection
   "energy-solution-001": {
     url: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&q=80",
     credit: "Field inspection",
   },
-  // SaaS / Tech: product team at screens
   "saas-uat-001": {
     url: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=80",
     credit: "Product team",
   },
-  // Insurance: claims / customer service office
   "insurance-incident-001": {
     url: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&q=80",
     credit: "Claims office",
   },
-  // SaaS Facilitation: workshop / whiteboard session
   "saas-facilitation-001": {
     url: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80",
     credit: "Strategy session",
   },
 };
 
-// Fallback image if a challenge id is not mapped
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80";
 
 const industries = ["All", "Banking/Finance", "Healthcare", "Energy/Oil & Gas", "Technology/SaaS", "Insurance"];
 const typeFilters = ["All Types", "Discovery", "Requirements", "Solution Analysis", "UAT", "Incident", "Facilitation"];
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard",     href: "/dashboard" },
-  { icon: BookOpen,        label: "Challenges",    href: "/scenarios", active: true },
-  { icon: TrendingUp,      label: "Progress",      href: "/progress" },
-  { icon: GraduationCap,   label: "Learning Paths",href: "/learning",  locked: true },
-  { icon: Target,          label: "Exam Prep",     href: "/exam",      locked: true },
-  { icon: BriefcaseBusiness,label:"Career Suite",  href: "/career",    locked: true },
-  { icon: Trophy,          label: "Portfolio",     href: "/portfolio", locked: true },
+  { icon: LayoutDashboard, label: "Dashboard",      href: "/dashboard" },
+  { icon: BookOpen,        label: "Challenges",     href: "/scenarios", active: true },
+  { icon: TrendingUp,      label: "Progress",       href: "/progress" },
+  { icon: GraduationCap,   label: "Learning Paths", href: "/learning",  locked: true },
+  { icon: Target,          label: "Exam Prep",      href: "/exam",      locked: true },
+  { icon: BriefcaseBusiness, label: "Career Suite", href: "/career",    locked: true },
+  { icon: Trophy,          label: "Portfolio",      href: "/portfolio", locked: true },
 ];
 
 interface ScenariosClientProps {
@@ -286,11 +277,10 @@ export default function ScenariosClient({ profile }: ScenariosClientProps) {
                     fontWeight: 600,
                     cursor: "pointer",
                     border: "1px solid transparent",
-                    background: "none",
                     transition: "all 0.15s",
                     ...(activeIndustry === ind
                       ? { background: "var(--teal-soft)", color: "var(--teal)", borderColor: "var(--teal-border)" }
-                      : { color: "var(--text-3)" }),
+                      : { background: "none", color: "var(--text-3)" }),
                   }}
                 >
                   {ind}
@@ -314,11 +304,10 @@ export default function ScenariosClient({ profile }: ScenariosClientProps) {
                     fontWeight: 600,
                     cursor: "pointer",
                     border: "1px solid transparent",
-                    background: "none",
                     transition: "all 0.15s",
                     ...(activeType === t
                       ? { background: "rgba(167,139,250,0.10)", color: "#a78bfa", borderColor: "rgba(167,139,250,0.22)" }
-                      : { color: "var(--text-3)" }),
+                      : { background: "none", color: "var(--text-3)" }),
                   }}
                 >
                   {t}
@@ -422,7 +411,6 @@ export default function ScenariosClient({ profile }: ScenariosClientProps) {
                         className="relative flex-shrink-0 overflow-hidden"
                         style={{ width: "220px", borderRadius: "18px 0 0 18px" }}
                       >
-                        {/* The photo */}
                         <img
                           src={img.url}
                           alt={img.credit}
@@ -438,11 +426,9 @@ export default function ScenariosClient({ profile }: ScenariosClientProps) {
                             (e.currentTarget as HTMLImageElement).style.filter = "brightness(0.45) saturate(0.75)";
                           }}
                         />
-                        {/* Gradient fade to the right so it merges into the card */}
                         <div className="absolute inset-0" style={{
                           background: "linear-gradient(to right, rgba(19,19,24,0) 55%, var(--card) 100%)",
                         }} />
-                        {/* Top-left type badge over the photo */}
                         <div
                           className="absolute top-4 left-4"
                           style={{
