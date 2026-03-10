@@ -31,7 +31,7 @@ interface Challenge {
     yourRole: string;
     deliverable: string;
     hints?: string[];
-    successCriteria: string[];
+    successCriteria?: string[];
   };
   stakeholders: Stakeholder[];
   flawedDocument?: string;
@@ -259,7 +259,7 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
       evalResult !== null ||
       validationResult !== null;
 
-    if (!hasWork) return; // nothing to reset — do nothing silently
+    if (!hasWork) return;
 
     if (!confirm("Reset all your work for this challenge? This cannot be undone.")) return;
     setConversations({});
@@ -365,7 +365,6 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
     setInputValue("");
   }
 
-  // Build tabs list dynamically
   const tabs: { key: TabType; label: string }[] = [
     { key: "brief",     label: "Brief" },
     { key: "interview", label: "Interview" },
@@ -564,7 +563,7 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                     </button>
                   </div>
 
-                  {challenge.brief.successCriteria?.length > 0 && (
+                  {challenge.brief.successCriteria && challenge.brief.successCriteria.length > 0 && (
                     <div style={{ ...card, marginTop: "16px" }}>
                       <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif", marginBottom: "12px" }}>
                         Success Criteria
@@ -1157,7 +1156,6 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                 width: "100%", padding: "24px 24px 0",
               }}
             >
-              {/* Phase B header */}
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 marginBottom: "20px", flexShrink: 0,
@@ -1172,7 +1170,6 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                 </div>
               </div>
 
-              {/* ValidationClient — scrollable when showing results, flex when in input mode */}
               <div style={{
                 flex: 1,
                 minHeight: 0,
