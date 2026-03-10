@@ -16,7 +16,8 @@ interface Stakeholder {
   id: string;
   name: string;
   role: string;
-  initials: string;
+  initials?: string;
+  avatar?: string;
 }
 
 interface Challenge {
@@ -615,7 +616,7 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                         color: isActive ? "#05120f" : "var(--text-2)",
                         fontFamily: "'Inter','Open Sans',sans-serif",
                       }}>
-                        {s.initials}
+                        {s.initials ?? s.avatar ?? s.name.slice(0,2).toUpperCase()}
                       </div>
                       <div style={{ textAlign: "left" }}>
                         <div style={{ fontSize: "13px", fontWeight: 600, color: isActive ? "var(--teal)" : "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>
@@ -659,7 +660,7 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                     border: "1px solid rgba(31,191,159,0.2)",
                     fontFamily: "'Inter','Open Sans',sans-serif", flexShrink: 0,
                   }}>
-                    {activeStakeholder.initials}
+                    {activeStakeholder.initials ?? activeStakeholder.avatar ?? activeStakeholder.name.slice(0,2).toUpperCase()}
                   </div>
                   <div>
                     <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>
@@ -701,7 +702,7 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                           border: "1px solid rgba(31,191,159,0.2)",
                           fontFamily: "'Inter','Open Sans',sans-serif", marginTop: "2px",
                         }}>
-                          {activeStakeholder?.initials}
+                          {activeStakeholder?.initials ?? activeStakeholder?.avatar ?? activeStakeholder?.name?.slice(0,2).toUpperCase()}
                         </div>
                       )}
                       <div style={{
@@ -737,7 +738,7 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                       border: "1px solid rgba(31,191,159,0.2)",
                       fontFamily: "'Inter','Open Sans',sans-serif",
                     }}>
-                      {activeStakeholder?.initials}
+                      {activeStakeholder?.initials ?? activeStakeholder?.avatar ?? activeStakeholder?.name?.slice(0,2).toUpperCase()}
                     </div>
                     <div style={{
                       padding: "14px 18px", borderRadius: "16px 16px 16px 4px",

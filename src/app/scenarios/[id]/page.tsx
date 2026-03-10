@@ -37,5 +37,5 @@ export default async function ChallengePage({
     ? (rawMode as ValidMode)
     : "normal";
 
-  return <ChallengeClient challenge={challenge} userId={user.id} mode={mode} />;
+  return <ChallengeClient challenge={challenge} mode={mode} />;
 }
