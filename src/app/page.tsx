@@ -269,11 +269,11 @@ function useReveal() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) setVisible(true); }, { threshold: 0.12 });
+    const obs = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) setVisible(true); }, { threshold: 0.08 });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
-  return { ref, style: { opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(22px)", transition: "opacity .6s ease, transform .6s ease" } };
+  return { ref, style: { opacity: visible ? 1 : 0, transition: "opacity .7s ease" } };
 }
 
 // ── Section Eyebrow ───────────────────────────────────────────────────────────
