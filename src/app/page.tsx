@@ -108,7 +108,6 @@ function ChatWindow() {
   const msgsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    msgsEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [visibleMessages, isTyping]);
 
   useEffect(() => {
@@ -223,7 +222,6 @@ function ChatWindow() {
             </div>
           </div>
         )}
-        <div ref={msgsEndRef} />
       </div>
 
       {/* Status bar */}
