@@ -108,7 +108,7 @@ function ChatWindow() {
   const msgsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    msgsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    msgsEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [visibleMessages, isTyping]);
 
   useEffect(() => {
