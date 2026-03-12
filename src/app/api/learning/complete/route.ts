@@ -2,6 +2,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { checkAndAwardBadge } from "@/lib/badges";
 
 export async function POST(req: Request) {
   const cookieStore = cookies();
@@ -21,5 +22,9 @@ export async function POST(req: Request) {
     .upsert({ user_id: user.id, lesson_id: lessonId, module_id: moduleId, completed_at: new Date().toISOString() });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+
+  // Check if this completion finishes the module and awards a badge
+  const badge = await checkAndAwardBadge(user.id, moduleId);
+
+  return NextResponse.json({ success: true, badge });
 }
