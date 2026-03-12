@@ -4,7 +4,7 @@ import ProgressClient from "./ProgressClient";
 import { getUserStats } from "@/lib/progress";
 
 export default async function ProgressPage() {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
@@ -27,5 +27,5 @@ export default async function ProgressPage() {
     };
   }
 
-  return <ProgressClient profile={profile} stats={stats} />;
+  return <ProgressClient profile={profile} user={{ email: user.email! }} stats={stats} />;
 }

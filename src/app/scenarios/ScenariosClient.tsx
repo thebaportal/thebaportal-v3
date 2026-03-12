@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { challenges } from "@/data/challenges";
@@ -9,6 +9,7 @@ import {
   Target, Search, ArrowLeft, Users, X,
   Settings, TrendingUp, GraduationCap,
   BriefcaseBusiness, Trophy, LayoutDashboard, Filter,
+  LogOut, User, ChevronUp,
 } from "lucide-react";
 
 // ─── Type config ────────────────────────────────────────────────────────────
@@ -70,20 +71,159 @@ const navItems = [
   { icon: Trophy,          label: "Portfolio",      href: "/portfolio", locked: true },
 ];
 
-interface ScenariosClientProps {
-  profile: { subscription_tier: string; full_name?: string | null } | null;
+// ─── UserMenu ────────────────────────────────────────────────────────────────
+function DropdownItem({
+  icon, label, onClick, teal = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  teal?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", display: "flex", alignItems: "center", gap: "10px",
+        padding: "9px 12px", borderRadius: "10px",
+        background: "none", border: "none", cursor: "pointer",
+        color: teal ? "var(--teal)" : "var(--text-2)",
+        fontSize: "13px", fontWeight: 500,
+        fontFamily: "'Inter','Open Sans',sans-serif",
+        transition: "background 0.15s", textAlign: "left",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = teal ? "rgba(31,191,159,0.08)" : "rgba(255,255,255,0.05)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "none")}
+    >
+      {icon}
+      {label}
+    </button>
+  );
 }
 
-export default function ScenariosClient({ profile }: ScenariosClientProps) {
+function UserMenu({
+  fullName, email, isPro, initials, onSignOut, signingOut,
+}: {
+  fullName: string | null;
+  email: string;
+  isPro: boolean;
+  initials: string;
+  onSignOut: () => void;
+  signingOut: boolean;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "8px" }}>
+      {open && (
+        <div style={{
+          position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0,
+          background: "#1a1a22", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "14px", overflow: "hidden", boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", zIndex: 50,
+        }}>
+          <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif", marginBottom: "2px" }}>{fullName || "BA Learner"}</div>
+            <div style={{ fontSize: "11px", color: "var(--text-3)", wordBreak: "break-all" }}>{email}</div>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "8px",
+              padding: "3px 8px", borderRadius: "6px",
+              background: isPro ? "rgba(31,191,159,0.12)" : "rgba(255,255,255,0.05)",
+              border: isPro ? "1px solid rgba(31,191,159,0.2)" : "1px solid rgba(255,255,255,0.08)",
+              fontSize: "11px", fontWeight: 600, color: isPro ? "var(--teal)" : "var(--text-3)",
+            }}>
+              {isPro ? "⚡ Pro Member" : "Free Plan"}
+            </div>
+          </div>
+          <div style={{ padding: "6px" }}>
+            <DropdownItem icon={<User size={14} />} label="Profile" onClick={() => { setOpen(false); router.push("/settings"); }} />
+            <DropdownItem icon={<Settings size={14} />} label="Settings" onClick={() => { setOpen(false); router.push("/settings"); }} />
+            {!isPro && <DropdownItem icon={<span style={{ fontSize: "13px" }}>⚡</span>} label="Upgrade to Pro" teal onClick={() => { setOpen(false); router.push("/pricing"); }} />}
+          </div>
+          <div style={{ padding: "6px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <button
+              onClick={() => { setOpen(false); onSignOut(); }}
+              disabled={signingOut}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: "10px",
+                padding: "9px 12px", borderRadius: "10px", background: "none", border: "none",
+                cursor: signingOut ? "not-allowed" : "pointer", color: "#f87171",
+                fontSize: "13px", fontWeight: 600, fontFamily: "'Inter','Open Sans',sans-serif",
+                transition: "background 0.15s", opacity: signingOut ? 0.5 : 1,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.08)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "none")}
+            >
+              <LogOut size={14} />
+              {signingOut ? "Signing out…" : "Sign Out"}
+            </button>
+          </div>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "10px",
+          borderRadius: "12px", background: open ? "rgba(255,255,255,0.06)" : "none",
+          border: open ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+          cursor: "pointer", transition: "all 0.15s", textAlign: "left",
+        }}
+        onMouseEnter={e => { if (!open) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.background = "none"; }}
+      >
+        <div style={{
+          width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
+          background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "12px", fontWeight: 700, color: "var(--teal)", fontFamily: "'Inter','Open Sans',sans-serif",
+        }}>
+          {initials}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {fullName || "BA Learner"}
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "1px" }}>{isPro ? "Pro Member" : "Free Plan"}</div>
+        </div>
+        <ChevronUp size={14} style={{ color: "var(--text-4)", flexShrink: 0, transform: open ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.2s ease" }} />
+      </button>
+    </div>
+  );
+}
+
+interface ScenariosClientProps {
+  profile: { subscription_tier: string; full_name?: string | null } | null;
+  user: { email: string };
+}
+
+export default function ScenariosClient({ profile, user }: ScenariosClientProps) {
   const router = useRouter();
   const [activeIndustry, setActiveIndustry] = useState("All");
   const [activeType,     setActiveType]     = useState("All Types");
   const [searchQuery,    setSearchQuery]    = useState("");
+  const [signingOut,     setSigningOut]     = useState(false);
 
   const isPro = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
-  const initials = (profile?.full_name?.[0] || "B").toUpperCase();
+  const initials = (profile?.full_name?.[0] || user.email[0]).toUpperCase();
   const completedChallenges = 0;
   const totalChallenges = challenges.length;
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   const filtered = challenges.filter(c => {
     const matchInd  = activeIndustry === "All" || c.industry === activeIndustry;
@@ -158,11 +298,6 @@ export default function ScenariosClient({ profile }: ScenariosClientProps) {
             </button>
           ))}
 
-          <div className="type-label px-3 pt-5 pb-3">Account</div>
-          <button className="sidebar-item" onClick={() => router.push("/settings")}>
-            <Settings className="w-4 h-4 flex-shrink-0" />
-            <span>Settings</span>
-          </button>
         </nav>
 
         {/* BA Level */}
@@ -184,27 +319,16 @@ export default function ScenariosClient({ profile }: ScenariosClientProps) {
           </div>
         </div>
 
-        {/* User */}
-        <div className="relative px-3 pb-4" style={{ borderTop: "1px solid var(--border)" }}>
-          <div
-            className="flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer"
-            style={{ transition: "background 0.15s" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-          >
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{
-              background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid var(--teal-border)",
-              fontFamily: "'Inter','Open Sans',sans-serif",
-            }}>
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }} className="truncate">
-                {profile?.full_name || "BA Learner"}
-              </div>
-              <div className="type-meta">{isPro ? "Pro Member" : "Free Plan"}</div>
-            </div>
-          </div>
+        {/* User Menu */}
+        <div className="relative">
+          <UserMenu
+            fullName={profile?.full_name ?? null}
+            email={user.email}
+            isPro={isPro}
+            initials={initials}
+            onSignOut={handleSignOut}
+            signingOut={signingOut}
+          />
         </div>
       </aside>
 
