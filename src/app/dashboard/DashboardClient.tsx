@@ -33,7 +33,7 @@ const navItems = [
   { icon: BookOpen,           label: "Challenges",   href: "/scenarios"               },
   { icon: TrendingUp,         label: "Progress",     href: "/progress"                },
   { icon: GraduationCap,      label: "Learning",     href: "/learning"                },
-  { icon: Target,             label: "Exam Prep",    href: "/exam",       locked: true },
+  { icon: Target,             label: "Exam Prep",    href: "/exam"                    },
   { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career",     locked: true },
   { icon: Trophy,             label: "Portfolio",    href: "/portfolio",  locked: true },
 ];
