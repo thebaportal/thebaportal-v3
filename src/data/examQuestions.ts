@@ -1,4 +1,4 @@
-export type BABOKArea = "planning" | "elicitation" | "lifecycle" | "strategy" | "analysis" | "evaluation";
+export type BABOKArea = "planning" | "elicitation" | "lifecycle" | "strategy" | "analysis" | "evaluation" | "agile";
 export type Difficulty = "ecba" | "ccba" | "cbap";
 
 export interface ExamQuestion {
@@ -20,6 +20,7 @@ export const AREA_LABELS: Record<BABOKArea, string> = {
   strategy: "Strategy Analysis",
   analysis: "Requirements Analysis and Design Definition",
   evaluation: "Solution Evaluation",
+  agile: "Agile Perspective",
 };
 
 export const AREA_SHORT: Record<BABOKArea, string> = {
@@ -29,6 +30,7 @@ export const AREA_SHORT: Record<BABOKArea, string> = {
   strategy: "Strategy",
   analysis: "Analysis & Design",
   evaluation: "Solution Eval",
+  agile: "Agile",
 };
 
 export const QUESTIONS: ExamQuestion[] = [
@@ -764,6 +766,129 @@ export const QUESTIONS: ExamQuestion[] = [
     options: ["The project sponsor who approved the original investment", "The development team who built the solution", "The BA team who defined the original requirements", "End users who interact with the solution in their daily work"],
     correctIndex: 3, babokRef: "BABOK v3 Section 8.2", technique: "User feedback, Surveys",
     explanation: "End users are the primary source of insight into whether the solution fits real-world workflows. Their feedback surfaces limitations, workarounds, and gaps that no other stakeholder group can provide with the same accuracy. Executive views reflect strategy; user views reflect reality." },
+
+  // ── AGILE PERSPECTIVE ─────────────────────────────────────────────────────────
+
+  { id: "ag-1", area: "agile", difficulty: "ecba",
+    question: "What is the primary role of a BA in an agile team?",
+    options: ["Writing detailed requirements documents before each sprint begins", "Approving all user stories before they can enter the sprint", "Managing the project timeline and reporting progress to the sponsor", "Bridging the product owner and development team, clarifying requirements just-in-time and ensuring stories are clear enough to build"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9", technique: "Agile analysis",
+    explanation: "In agile the BA is not a gatekeeper or document writer — she is a collaborator who keeps the conversation between business and delivery flowing. Requirements emerge through dialogue, and the BA ensures that dialogue happens clearly enough that the team can act on it without rework." },
+
+  { id: "ag-2", area: "agile", difficulty: "ecba",
+    question: "What is the purpose of a user story?",
+    options: ["To provide developers with exact technical specifications for implementation", "To replace the functional requirements document entirely", "To track defects raised during development", "To describe a small unit of value from a user's perspective, creating a placeholder for a conversation about what needs to be built"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "User stories",
+    explanation: "A user story is not a specification — it is a conversation starter. Its three-part format (As a, I want, So that) captures who benefits, what they want, and why. The real value is the acceptance criteria discussion it triggers between the BA, product owner, and team." },
+
+  { id: "ag-3", area: "agile", difficulty: "ecba",
+    question: "What does 'Definition of Done' mean in an agile context?",
+    options: ["A checklist confirming the project manager has accepted final delivery", "A document listing all features that will be built in the product", "The point at which the product owner signs off on the full backlog", "A shared agreement defining the criteria every user story must meet before it is considered complete and potentially shippable"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.4", technique: "Definition of Done",
+    explanation: "Without a Definition of Done, 'complete' means different things to different people. It typically includes coded, reviewed, tested, and meeting acceptance criteria. The BA plays a key role in ensuring the definition includes business quality — not just technical quality." },
+
+  { id: "ag-4", area: "agile", difficulty: "ecba",
+    question: "What is a product backlog?",
+    options: ["A log of defects found during sprint testing", "A list of completed features from previous sprints", "The project manager's task list for the current sprint", "A prioritised list of all work the team may need to do, owned by the product owner and continuously refined"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Backlog management",
+    explanation: "The product backlog is the single source of truth for upcoming work. Items at the top are detailed and ready; items at the bottom may be vague. It is never 'finished' — new insights, stakeholder feedback, and changing conditions continuously reshape it." },
+
+  { id: "ag-5", area: "agile", difficulty: "ecba",
+    question: "What does 'potentially shippable increment' mean at the end of a sprint?",
+    options: ["A list of features scheduled for the next major release", "Work items that have been estimated but not yet started", "Requirements that have been approved by the product owner but not yet developed", "A fully tested, working piece of product that could theoretically be released to users, even if the business chooses not to release it yet"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.4", technique: "Iterative delivery",
+    explanation: "The shippable increment is the agile team's proof of progress. It must actually work — not just be coded. The decision to release belongs to the business, but the decision about whether it is ready belongs to the Definition of Done. The BA's role is ensuring the increment genuinely satisfies the stated business value." },
+
+  { id: "ag-6", area: "agile", difficulty: "ccba",
+    question: "A BA is writing acceptance criteria for a user story about logging in. Which format is MOST appropriate for making criteria testable?",
+    options: ["As a user, I want to log in so that I can access my account", "The system shall validate credentials when the login button is clicked", "A numbered list of developer tasks required to implement the login screen", "Given I am on the login page, When I enter valid credentials and click Login, Then I am redirected to my dashboard — the Given-When-Then format that makes each criterion a runnable test"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Acceptance criteria, BDD",
+    explanation: "Given-When-Then (also the basis of BDD) makes acceptance criteria unambiguous. Each criterion can be directly translated into a test. The user story format belongs in the story title, not the acceptance criteria. Developer task lists describe implementation, not business behaviour." },
+
+  { id: "ag-7", area: "agile", difficulty: "ccba",
+    question: "During sprint planning, the BA notices a user story is far too large to complete in one sprint. What should she do FIRST?",
+    options: ["Accept the story and ask the team to work overtime to complete it", "Remove the story from the backlog and raise it in the next programme review", "Escalate to the project sponsor for a scope decision", "Work with the product owner and team to split the story into smaller, independently deliverable pieces that each still deliver value"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Story splitting",
+    explanation: "An oversized story — often called an epic — cannot be estimated reliably and creates sprint risk. Story splitting is a core BA skill in agile. Good splits preserve independent value delivery rather than creating technical sub-tasks. The INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable) is the standard check." },
+
+  { id: "ag-8", area: "agile", difficulty: "ccba",
+    question: "What is the BA's most important contribution to a sprint retrospective?",
+    options: ["Presenting the sprint velocity metrics to the product owner", "Updating the product backlog with new items identified during the sprint", "Demonstrating the sprint increment to stakeholders who missed the review", "Reflecting on how well requirements were understood and communicated, and identifying how analysis activities can be improved in the next sprint"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.4", technique: "Retrospectives",
+    explanation: "The retrospective covers people, process, and tools. For the BA, this means examining whether stories were clear enough, whether acceptance criteria caught edge cases, and whether stakeholder availability supported good decision-making. The retrospective is where the BA's process improves — not just the engineering process." },
+
+  { id: "ag-9", area: "agile", difficulty: "ccba",
+    question: "How should a BA approach requirements documentation when working on an agile project?",
+    options: ["Produce no documentation at all — working software makes it unnecessary", "Use identical documentation standards to waterfall, only changing the delivery cadence", "Produce all requirements documentation upfront before development begins", "Create documentation that is just enough and just in time — lightweight artefacts that support conversation rather than replacing it"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.2", technique: "Agile documentation",
+    explanation: "The Agile Manifesto values working software over comprehensive documentation — but does not eliminate documentation. The BA judgment call is: what level of documentation adds value here? Sprint artefacts, acceptance criteria, lightweight models, and decision logs often replace large specifications without losing the knowledge they were meant to preserve." },
+
+  { id: "ag-10", area: "agile", difficulty: "ccba",
+    question: "What is the key difference between a product roadmap and a sprint backlog?",
+    options: ["They are the same artefact viewed at different levels of abstraction", "The sprint backlog is long-term; the product roadmap is for the current iteration", "The product roadmap is used by developers; the sprint backlog is for executive reporting", "A product roadmap shows strategic direction and release themes over time; a sprint backlog is the specific work the team commits to completing in one sprint"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Roadmap planning",
+    explanation: "The roadmap answers: where are we going and roughly when? The sprint backlog answers: what exactly are we doing in the next two weeks? Both matter for the BA — the roadmap provides strategic context that prevents the team from optimising sprints at the expense of the bigger picture." },
+
+  { id: "ag-11", area: "agile", difficulty: "cbap",
+    question: "A stakeholder keeps adding new feature requests directly to the team mid-sprint, disrupting their focus. What should the BA do?",
+    options: ["Add all new features to the current sprint immediately to maintain the stakeholder relationship", "Refuse all changes and escalate to the project manager for enforcement", "Accept changes from the product owner only and tell other stakeholders their input is not welcome", "Explain that mid-sprint changes disrupt delivery commitments, create a clear intake path for new requests, and work with the product owner to triage and prioritise them for future sprints"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.2", technique: "Change management, Stakeholder engagement",
+    explanation: "Agile welcomes change — but through the right channel. Mid-sprint injection fragments the team's focus and undermines the cadence that makes agile work. The BA's job is to make the intake path so easy that stakeholders want to use it, while protecting the team's ability to finish what they started." },
+
+  { id: "ag-12", area: "agile", difficulty: "cbap",
+    question: "An agile team has high velocity but the product owner is consistently unhappy with outcomes. What is MOST likely causing this?",
+    options: ["The team needs to increase velocity further to deliver more features per sprint", "The team is not using story points correctly and must switch to hours", "The BA is writing too many user stories and overwhelming the product owner", "Stories are being completed technically but without sufficient business context — acceptance criteria are not capturing the real value, leaving the team busy but not aligned"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Value delivery, Acceptance criteria",
+    explanation: "Velocity measures output. The product owner cares about outcomes. When both are misaligned, the root cause is almost always in the quality of requirements — not the quantity of work. User stories without sharp acceptance criteria get built to spec but not to intent. The BA's analysis quality determines whether high velocity creates real value." },
+
+  { id: "ag-13", area: "agile", difficulty: "ecba",
+    question: "What is a 'spike' in agile, and when should the BA recommend one?",
+    options: ["A sudden increase in defects that triggers an emergency fix sprint", "A team meeting to address a critical production incident", "A user story that has been rejected and needs rework", "A time-boxed research or investigation activity used to reduce uncertainty before the team commits to building a solution"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Spike, Risk reduction",
+    explanation: "When a story cannot be estimated because the team lacks knowledge — about a technology, integration, or business rule — a spike produces the information needed to estimate and plan properly. The BA should recommend spikes when ambiguity is the bottleneck, not more requirements writing." },
+
+  { id: "ag-14", area: "agile", difficulty: "ccba",
+    question: "What is the BA's primary responsibility during backlog refinement sessions?",
+    options: ["Writing the technical architecture for upcoming user stories", "Approving the final prioritisation order on behalf of the business", "Updating the project plan with newly identified scope items", "Collaborating with the product owner to clarify intent, split large items, and add acceptance criteria so stories are ready for sprint planning"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Backlog refinement",
+    explanation: "Refinement is where the BA earns her place in agile. Stories coming out of refinement should be sized, clear, and have acceptance criteria that the team can test against. If refinement is skipped or superficial, sprint planning becomes a second requirements session — wasting the team's most expensive collaborative time." },
+
+  { id: "ag-15", area: "agile", difficulty: "ecba",
+    question: "According to the Agile Manifesto, which is valued MORE: comprehensive documentation or working software?",
+    options: ["Comprehensive documentation — it provides the governance audit trail enterprises require", "Neither — the Manifesto explicitly treats them as equal priorities", "It depends on the organisation's regulatory environment", "Working software — the Manifesto values working software over comprehensive documentation, while still recognising that documentation has value"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.1", technique: "Agile Manifesto",
+    explanation: "The four Manifesto values each follow the pattern: we value X over Y, but Y still has value. Documentation is not eliminated — it is deprioritised relative to software that demonstrably works. This is the single most important philosophical shift for BAs moving from document-centric to delivery-centric practice." },
+
+  { id: "ag-16", area: "agile", difficulty: "cbap",
+    question: "An enterprise is transitioning from waterfall to agile. What is the MOST critical mindset shift required of the BA?",
+    options: ["Learning to write user stories instead of use case specifications", "Reducing stakeholder engagement to allow faster delivery cycles", "Moving from monthly status reports to weekly sprint reports", "Shifting from comprehensive upfront requirements to iterative discovery — embracing ambiguity, collaborating continuously, and treating requirements as a living conversation rather than a signed-off document"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.2", technique: "Agile mindset",
+    explanation: "Format changes (user stories vs use cases) are cosmetic. The real transformation is epistemological — the BA must accept that requirements are not knowable upfront and that discovery happens through delivery. This is uncomfortable for organisations that use signed-off specs as risk management tools. The BA must help the organisation find agile-compatible governance mechanisms instead." },
+
+  { id: "ag-17", area: "agile", difficulty: "ccba",
+    question: "In Kanban, what does limiting Work in Progress (WIP) help the team achieve?",
+    options: ["Preventing new features from being added without sponsor approval", "Reducing the number of developers assigned to each task", "Controlling the total budget allocated to the current release", "Reducing multitasking and bottlenecks so work flows faster — completing existing items before starting new ones improves throughput and surfaces blockers earlier"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.4", technique: "Kanban, Flow",
+    explanation: "WIP limits enforce the counterintuitive truth that starting less work means finishing more. When WIP is unlimited, everyone is busy but nothing finishes. WIP limits force the team to resolve blockers rather than bypassing them by starting something new. For the BA, this means staggered analysis work rather than analysing everything in parallel." },
+
+  { id: "ag-18", area: "agile", difficulty: "cbap",
+    question: "A BA is facilitating a planning poker session. One developer consistently gives much higher estimates than the rest of the team. What should she do?",
+    options: ["Override the developer's estimate with the team median to keep planning moving", "Exclude the developer from future estimation sessions to avoid delays", "Accept the highest estimate automatically to build in a generous safety buffer", "Ask the developer to explain their reasoning — they may have identified technical risks, dependencies, or edge cases that others have not considered, which is exactly what planning poker is designed to surface"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "Planning poker, Estimation",
+    explanation: "Divergent estimates are a feature of planning poker, not a problem. The discussion triggered by outliers is where the team's collective intelligence surfaces hidden complexity. The developer giving high estimates is often the one who has read the story most carefully. Overriding or silencing that signal destroys the technique's value." },
+
+  { id: "ag-19", area: "agile", difficulty: "ecba",
+    question: "What is Acceptance Test Driven Development (ATDD)?",
+    options: ["An automated testing framework used by QA teams for regression testing", "A project management approach for tracking stakeholder acceptance of deliverables", "A technique for documenting business requirements after development is complete", "A practice where acceptance criteria are written before development begins, so tests and shared understanding are established upfront and drive implementation"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.3", technique: "ATDD, BDD",
+    explanation: "ATDD shifts the definition of 'done' to the front of the sprint. When acceptance tests exist before code is written, the team knows exactly what success looks like. The BA's role is to facilitate the 'three amigos' conversation (BA, developer, tester) that produces acceptance criteria detailed enough to drive tests." },
+
+  { id: "ag-20", area: "agile", difficulty: "cbap",
+    question: "A product owner changes sprint priorities so frequently that the team cannot maintain a stable cadence. What should the BA recommend?",
+    options: ["Lock the entire backlog at project start and refuse changes to any prioritisation", "Have the scrum master enforce a strict no-change policy after sprint planning", "Escalate the product owner's behaviour to senior management for performance management", "Help the product owner articulate a clear product vision and measurable success criteria — so prioritisation decisions are anchored to strategic outcomes rather than reactive to individual stakeholder pressure"],
+    correctIndex: 3, babokRef: "BABOK v3 Agile Perspective, Section 9.2", technique: "Product vision, Prioritisation",
+    explanation: "Constant priority changes are usually a symptom of an unclear product vision, not an indecisive product owner. When the destination is fuzzy, every new input looks like it might be the right direction. A clear vision and defined success metrics give the product owner a framework to say no — which is harder than saying yes but far more valuable to the team." },
+
 ];
 
 export function shuffle<T>(arr: T[]): T[] {
@@ -783,14 +908,15 @@ export function selectPracticeQuestions(area: BABOKArea, count: number, difficul
 }
 
 export function selectMockQuestions(): ExamQuestion[] {
-  const areas: BABOKArea[] = ["planning", "elicitation", "lifecycle", "strategy", "analysis", "evaluation"];
+  // 7 areas × 7 questions = 49, +1 extra = 50
+  const areas: BABOKArea[] = ["planning", "elicitation", "lifecycle", "strategy", "analysis", "evaluation", "agile"];
   const selected: ExamQuestion[] = [];
   const usedIds = new Set<string>();
   for (const area of areas) {
-    const areaQs = shuffle(QUESTIONS.filter(q => q.area === area)).slice(0, 8);
+    const areaQs = shuffle(QUESTIONS.filter(q => q.area === area)).slice(0, 7);
     areaQs.forEach(q => { selected.push(q); usedIds.add(q.id); });
   }
-  const extras = shuffle(QUESTIONS.filter(q => !usedIds.has(q.id))).slice(0, 2);
+  const extras = shuffle(QUESTIONS.filter(q => !usedIds.has(q.id))).slice(0, 1);
   extras.forEach(q => selected.push(q));
   return shuffle(selected);
 }
