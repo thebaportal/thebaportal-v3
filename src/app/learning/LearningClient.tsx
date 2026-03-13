@@ -993,29 +993,29 @@ export default function LearningClient({ profile, completedLessons: initialCompl
       case "story": return (
         <div>
           {L.whereWeAre && (
-            <div style={{ padding: "14px 18px", borderRadius: "12px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.15)", marginBottom: "28px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "#38bdf8", letterSpacing: "0.06em", fontFamily: "var(--font-mono)", marginBottom: "6px" }}>WHERE WE LEFT OFF</div>
-              <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.7 }}>{L.whereWeAre}</p>
+            <div style={{ padding: "16px 20px", borderRadius: "12px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.15)", marginBottom: "32px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "#38bdf8", letterSpacing: "0.07em", fontFamily: "var(--font-mono)", marginBottom: "8px" }}>WHERE WE LEFT OFF</div>
+              <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.75 }}>{L.whereWeAre}</p>
             </div>
           )}
-          <div style={{ fontSize: "15px", lineHeight: 1.85, color: "var(--text-2)" }}>
-            {L.story.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "18px" }}>{para}</p>)}
+          <div style={{ fontSize: "16px", lineHeight: 1.9, color: "var(--text-2)" }}>
+            {L.story.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "22px" }}>{para}</p>)}
           </div>
         </div>
       );
       case "concept": return (
         <div>
-          <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em", marginBottom: "20px" }}>{L.concept.title}</h3>
-          <div style={{ fontSize: "15px", lineHeight: 1.85, color: "var(--text-2)" }}>
-            {L.concept.body.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "18px" }}>{para}</p>)}
+          <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "24px" }}>{L.concept.title}</h3>
+          <div style={{ fontSize: "16px", lineHeight: 1.9, color: "var(--text-2)" }}>
+            {L.concept.body.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "22px" }}>{para}</p>)}
           </div>
         </div>
       );
       case "example": return (
         <div>
-          <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em", marginBottom: "20px" }}>{L.example.title}</h3>
-          <div style={{ fontSize: "15px", lineHeight: 1.85, color: "var(--text-2)" }}>
-            {L.example.body.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "18px" }}>{para}</p>)}
+          <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "24px" }}>{L.example.title}</h3>
+          <div style={{ fontSize: "16px", lineHeight: 1.9, color: "var(--text-2)" }}>
+            {L.example.body.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "22px" }}>{para}</p>)}
           </div>
         </div>
       );
@@ -1159,9 +1159,17 @@ export default function LearningClient({ profile, completedLessons: initialCompl
           <button onClick={() => setSelectedModule(null)} className="flex items-center gap-2 mb-4" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", fontSize: "13px" }}>
             <ArrowLeft size={14} /> All modules
           </button>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", fontFamily: "var(--font-mono)", marginBottom: "4px" }}>MODULE {selectedModule.number}</div>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.08em", fontFamily: "var(--font-mono)", marginBottom: "4px" }}>MODULE {selectedModule.number}</div>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "16px", color: "var(--text-1)", letterSpacing: "-0.02em", lineHeight: 1.25 }}>{selectedModule.title}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-4)", marginTop: "4px" }}>{selectedModule.sdlcPhase}</div>
+          <div style={{ fontSize: "11px", color: "var(--text-4)", marginTop: "4px" }}>{selectedModule.sdlcPhase}</div>
+          <div style={{ marginTop: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+              <span style={{ fontSize: "10px", color: "var(--text-4)", fontFamily: "var(--font-mono)" }}>{selectedModule.lessons.filter(l => completedLessons.includes(l.id)).length} / {selectedModule.lessons.length} lessons</span>
+            </div>
+            <div style={{ height: "3px", background: "var(--border)", borderRadius: "2px", overflow: "hidden" }}>
+              <div style={{ height: "100%", background: "var(--teal)", borderRadius: "2px", width: `${(selectedModule.lessons.filter(l => completedLessons.includes(l.id)).length / selectedModule.lessons.length) * 100}%`, transition: "width 0.4s ease" }} />
+            </div>
+          </div>
         </div>
 
         <div className="flex-1 px-3 py-4 space-y-1">
@@ -1185,36 +1193,44 @@ export default function LearningClient({ profile, completedLessons: initialCompl
         </div>
 
         <div className="px-4 pb-5">
-          <div style={{ padding: "14px", borderRadius: "12px", background: "rgba(31,191,159,0.05)", border: "1px solid rgba(31,191,159,0.12)" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.06em", fontFamily: "var(--font-mono)", marginBottom: "6px" }}>MODULE BADGE</div>
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: "20px" }}>{selectedModule.badgeOnCompletion.icon}</span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>{selectedModule.badgeOnCompletion.name}</span>
-            </div>
-            <p style={{ fontSize: "11px", color: "var(--text-4)", marginTop: "4px" }}>Complete all lessons to earn this badge</p>
-          </div>
+          {(() => {
+            const earned = selectedModule.lessons.every(l => completedLessons.includes(l.id));
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderRadius: "10px", background: earned ? `${selectedModule.badgeOnCompletion.color}14` : "rgba(255,255,255,0.03)", border: `1px solid ${earned ? selectedModule.badgeOnCompletion.color + "40" : "var(--border)"}`, transition: "all 0.4s" }}>
+                <span style={{ fontSize: "22px", filter: earned ? "none" : "grayscale(1)", opacity: earned ? 1 : 0.4, transition: "all 0.4s" }}>{selectedModule.badgeOnCompletion.icon}</span>
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: 700, color: earned ? selectedModule.badgeOnCompletion.color : "var(--text-3)", lineHeight: 1.2, transition: "color 0.4s" }}>{selectedModule.badgeOnCompletion.name}</div>
+                  <div style={{ fontSize: "10px", color: "var(--text-4)", marginTop: "2px" }}>{earned ? "Badge earned" : "Complete all lessons to earn"}</div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="px-10 pt-8 pb-0 sticky top-0 z-10" style={{ background: "rgba(9,9,11,0.94)", backdropFilter: "blur(20px)", borderBottom: "1px solid var(--border)", paddingBottom: "0" }}>
-          <div className="flex items-center gap-3 mb-5">
-            <span style={{ fontSize: "11px", color: "var(--text-4)", fontFamily: "var(--font-mono)" }}>Module {selectedModule.number} / Lesson {selectedLesson?.number}</span>
-            <span style={{ fontSize: "11px", color: "var(--text-4)" }}>·</span>
-            <span style={{ fontSize: "11px", color: "var(--text-4)" }}>{selectedLesson?.readingTime} read</span>
+        <div className="px-10 pt-6 pb-0 sticky top-0 z-10" style={{ background: "rgba(9,9,11,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-2 mb-3" style={{ overflow: "hidden" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", fontFamily: "var(--font-mono)", flexShrink: 0 }}>MODULE {selectedModule.number}</span>
+            <ChevronRight size={10} style={{ color: "var(--text-4)", flexShrink: 0 }} />
+            <span style={{ fontSize: "11px", color: "var(--text-3)", fontFamily: "var(--font-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedModule.title}</span>
+            <ChevronRight size={10} style={{ color: "var(--text-4)", flexShrink: 0 }} />
+            <span style={{ fontSize: "11px", color: "var(--text-4)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>LESSON {selectedLesson?.number}</span>
+            <span style={{ marginLeft: "auto", fontSize: "11px", color: "var(--text-4)", flexShrink: 0, paddingLeft: "16px" }}>{selectedLesson?.readingTime}</span>
           </div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "26px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1.2, marginBottom: "16px" }}>{selectedLesson?.title}</h1>
-          <div className="flex items-center gap-1">
-            {sections.map(sec => (
+          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "30px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1.15, marginBottom: "18px" }}>{selectedLesson?.title}</h1>
+          <div className="flex items-center gap-1.5">
+            {sections.map((sec, idx) => (
               <button key={sec} onClick={() => setActiveSection(sec)}
-                style={{ padding: "8px 14px", borderRadius: "8px 8px 0 0", fontSize: "12px", fontWeight: 600, cursor: "pointer", background: activeSection === sec ? "var(--bg)" : "none", border: activeSection === sec ? "1px solid var(--border)" : "1px solid transparent", borderBottom: activeSection === sec ? "1px solid var(--bg)" : "1px solid transparent", color: activeSection === sec ? "var(--text-1)" : "var(--text-4)", marginBottom: activeSection === sec ? "-1px" : "0", transition: "all 0.15s" }}>
+                style={{ padding: "8px 16px", borderRadius: "8px 8px 0 0", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: activeSection === sec ? "var(--bg)" : "none", border: activeSection === sec ? "1px solid var(--border)" : "1px solid transparent", borderBottom: activeSection === sec ? "1px solid var(--bg)" : "1px solid transparent", color: activeSection === sec ? "var(--text-1)" : "var(--text-4)", marginBottom: activeSection === sec ? "-1px" : "0", transition: "all 0.15s" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, color: activeSection === sec ? "var(--teal)" : "var(--text-4)", letterSpacing: "0.04em" }}>0{idx + 1}</span>
                 {sectionLabels[sec]}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="px-10 py-8" style={{ maxWidth: "680px" }}>
+        <div className="px-10 py-10" style={{ maxWidth: "660px" }}>
           <AnimatePresence mode="wait">
             <motion.div key={`${selectedLesson?.id}-${activeSection}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               {renderSectionContent()}
