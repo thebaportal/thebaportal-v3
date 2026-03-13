@@ -1243,10 +1243,17 @@ export default function LearningClient({ profile, completedLessons: initialCompl
               <ChevronLeft size={14} /> Previous
             </button>
             <span style={{ fontSize: "11px", color: "var(--text-4)", fontFamily: "var(--font-mono)" }}>{sections.indexOf(activeSection) + 1} of {sections.length}</span>
-            <button onClick={() => { const idx = sections.indexOf(activeSection); if (idx < sections.length - 1) setActiveSection(sections[idx + 1]); }} disabled={sections.indexOf(activeSection) === sections.length - 1} className="btn-ghost"
-              style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", opacity: sections.indexOf(activeSection) === sections.length - 1 ? 0.3 : 1 }}>
-              Next <ChevronRight size={14} />
-            </button>
+            {activeSection === "check" ? (
+              <button onClick={handleLessonComplete} className="btn-ghost"
+                style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--teal)", fontWeight: 700 }}>
+                Next lesson <ChevronRight size={14} />
+              </button>
+            ) : (
+              <button onClick={() => { const idx = sections.indexOf(activeSection); if (idx < sections.length - 1) setActiveSection(sections[idx + 1]); }} className="btn-ghost"
+                style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+                Next <ChevronRight size={14} />
+              </button>
+            )}
           </div>
         </div>
       </main>
