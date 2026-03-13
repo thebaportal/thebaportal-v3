@@ -974,7 +974,10 @@ export default function LearningClient({ profile, completedLessons: initialCompl
         body: JSON.stringify({ lessonId: selectedLesson.id, moduleId: selectedModule.id }),
       });
       const data = await res.json();
-      if (data.badge) setEarnedBadge(data.badge);
+      if (data.badgeAwarded) {
+        setEarnedBadge(data.badgeAwarded);
+        return; // stay on screen so badge toast is visible
+      }
     } catch { /* fail silently */ }
 
     const currentIdx = selectedModule.lessons.findIndex(l => l.id === selectedLesson.id);
