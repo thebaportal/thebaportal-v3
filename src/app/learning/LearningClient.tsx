@@ -967,6 +967,9 @@ export default function LearningClient({ profile, completedLessons: initialCompl
     if (!selectedLesson || !selectedModule) return;
     setCompletedLessons(prev => [...prev, selectedLesson.id]);
 
+    const currentIdx = selectedModule.lessons.findIndex(l => l.id === selectedLesson.id);
+    const isLastLesson = currentIdx === selectedModule.lessons.length - 1;
+
     try {
       const res = await fetch("/api/learning/complete", {
         method: "POST",
@@ -976,12 +979,14 @@ export default function LearningClient({ profile, completedLessons: initialCompl
       const data = await res.json();
       if (data.badgeAwarded) {
         setEarnedBadge(data.badgeAwarded);
-        return; // stay on screen so badge toast is visible
+        if (isLastLesson) setTimeout(() => setSelectedModule(null), 3500);
+        return;
       }
     } catch { /* fail silently */ }
 
-    const currentIdx = selectedModule.lessons.findIndex(l => l.id === selectedLesson.id);
-    if (currentIdx < selectedModule.lessons.length - 1) {
+    if (isLastLesson) {
+      setTimeout(() => setSelectedModule(null), 800);
+    } else {
       setTimeout(() => openLesson(selectedModule.lessons[currentIdx + 1]), 800);
     }
   }
