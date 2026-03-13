@@ -33,8 +33,8 @@ interface ResultRecord {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const AREAS: BABOKArea[] = ["planning", "elicitation", "lifecycle", "strategy", "analysis", "evaluation", "agile"];
-const MOCK_DURATION = 90 * 60;
+const AREAS: BABOKArea[] = ["planning", "elicitation", "lifecycle", "strategy", "analysis", "evaluation", "agile", "bi", "architecture", "it", "bpm", "competencies"];
+const MOCK_DURATION = 210 * 60;
 
 const AREA_COLORS: Record<BABOKArea, string> = {
   planning: "#06b6d4",
@@ -44,6 +44,11 @@ const AREA_COLORS: Record<BABOKArea, string> = {
   analysis: "#ef4444",
   evaluation: "#3b82f6",
   agile: "#f97316",
+  bi: "#ec4899",
+  architecture: "#6366f1",
+  it: "#14b8a6",
+  bpm: "#a855f7",
+  competencies: "#84cc16",
 };
 
 const AREA_ICONS: Record<BABOKArea, string> = {
@@ -54,6 +59,11 @@ const AREA_ICONS: Record<BABOKArea, string> = {
   analysis: "🔍",
   evaluation: "✅",
   agile: "⚡",
+  bi: "📊",
+  architecture: "🏛️",
+  it: "💻",
+  bpm: "⚙️",
+  competencies: "🧠",
 };
 
 // ── Radar Chart ────────────────────────────────────────────────────────────────
