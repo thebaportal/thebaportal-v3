@@ -998,7 +998,7 @@ export default function LearningClient({ profile, completedLessons: initialCompl
               <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.75 }}>{L.whereWeAre}</p>
             </div>
           )}
-          <div style={{ fontSize: "16px", lineHeight: 1.9, color: "var(--text-2)" }}>
+          <div style={{ fontSize: "17px", lineHeight: 1.9, color: "var(--text-2)" }}>
             {L.story.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "22px" }}>{para}</p>)}
           </div>
         </div>
@@ -1006,7 +1006,7 @@ export default function LearningClient({ profile, completedLessons: initialCompl
       case "concept": return (
         <div>
           <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "24px" }}>{L.concept.title}</h3>
-          <div style={{ fontSize: "16px", lineHeight: 1.9, color: "var(--text-2)" }}>
+          <div style={{ fontSize: "17px", lineHeight: 1.9, color: "var(--text-2)" }}>
             {L.concept.body.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "22px" }}>{para}</p>)}
           </div>
         </div>
@@ -1014,7 +1014,7 @@ export default function LearningClient({ profile, completedLessons: initialCompl
       case "example": return (
         <div>
           <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "24px" }}>{L.example.title}</h3>
-          <div style={{ fontSize: "16px", lineHeight: 1.9, color: "var(--text-2)" }}>
+          <div style={{ fontSize: "17px", lineHeight: 1.9, color: "var(--text-2)" }}>
             {L.example.body.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: "22px" }}>{para}</p>)}
           </div>
         </div>
