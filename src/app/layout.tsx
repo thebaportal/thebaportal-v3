@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TheBAPortal — Real BA Work. Simulated Pressure.",
-  description: "Interview AI stakeholders, write real deliverables, and get scored by Alex Rivera — a Senior BA Coach who does not sugarcoat.",
+  title: {
+    default: "TheBAPortal",
+    template: "%s | TheBAPortal",
+  },
+  description: "Certification practice, AI-powered scenarios, and real BA deliverables — built for BAs preparing for ECBA, CCBA, and CBAP.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

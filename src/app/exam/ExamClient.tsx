@@ -233,6 +233,33 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
   const [results, setResults] = useState<ResultRecord[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
 
+  // Exit warning (back button / page unload guard)
+  const [showExitWarning, setShowExitWarning] = useState(false);
+
+  // Back button and page-close guard during active sessions
+  const sessionActive = view === "practice-session" || view === "mock-session";
+  useEffect(() => {
+    if (!sessionActive) return;
+    // Push a dummy history entry so the back button triggers popstate
+    // instead of immediately navigating away
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = () => {
+      // Re-push so the next back press is also intercepted
+      window.history.pushState(null, "", window.location.href);
+      setShowExitWarning(true);
+    };
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [sessionActive]);
+
   // Mock timer
   useEffect(() => {
     if (!mockRunning || mockDone) return;
@@ -356,6 +383,42 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
     areaStats[area] = { done, avg };
   }
 
+  // ── Exit warning modal ───────────────────────────────────────────────────────
+  const ExitWarningModal = showExitWarning ? (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "rgba(0,0,0,0.55)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }}>
+      <div style={{
+        background: "var(--bg-2)", border: "1px solid var(--border)",
+        borderRadius: "16px", padding: "32px", maxWidth: "420px", width: "100%",
+        margin: "0 24px", boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+      }}>
+        <div style={{ fontSize: "15px", fontWeight: 800, color: "var(--text-1)", marginBottom: "10px" }}>
+          Leave this session?
+        </div>
+        <p style={{ fontSize: "14px", color: "var(--text-3)", lineHeight: 1.75, margin: "0 0 24px" }}>
+          {view === "mock-session"
+            ? "Your mock exam progress will be lost, including your timer and all answers. This cannot be undone."
+            : "Your practice session progress will be lost. Your answers so far will not be saved."}
+        </p>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            onClick={() => { setShowExitWarning(false); goHome(); }}
+            style={{ flex: 1, padding: "11px", borderRadius: "8px", border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.08)", color: "#ef4444", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+            Yes, leave session
+          </button>
+          <button
+            onClick={() => setShowExitWarning(false)}
+            style={{ flex: 1, padding: "11px", borderRadius: "8px", background: "var(--teal)", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+            Stay in session
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   // ── Layout wrapper (used by all main views) ──────────────────────────────────
   function Workspace({ children, rightPanel, centerTitle }: {
     children: React.ReactNode;
@@ -382,6 +445,7 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
 
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg-1)", display: "flex", flexDirection: "column" }}>
+        {ExitWarningModal}
 
         {/* TOP CONTROL BAR */}
         <div style={{
@@ -825,7 +889,7 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
                   <span style={{ width: "24px", height: "24px", borderRadius: "50%", border: `2px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 800, color, flexShrink: 0 }}>
                     {String.fromCharCode(65 + i)}
                   </span>
-                  <span style={{ fontSize: "14px", color, lineHeight: 1.65, flex: 1 }}>{opt}</span>
+                  <span style={{ fontSize: "15px", color, lineHeight: 1.7, flex: 1 }}>{opt}</span>
                   {showFeedback && isCorrect && <CheckCircle size={16} color="#10b981" style={{ flexShrink: 0, marginTop: "2px" }} />}
                   {showFeedback && isSel && !isCorrect && <XCircle size={16} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />}
                 </button>
@@ -837,7 +901,7 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
           {showFeedback && (
             <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "12px", padding: "20px", marginBottom: "24px" }}>
               <div style={{ fontSize: "10px", fontWeight: 800, color: "#06b6d4", letterSpacing: "0.08em", marginBottom: "10px" }}>EXPLANATION</div>
-              <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.8, margin: "0 0 12px" }}>{q.explanation}</p>
+              <p style={{ fontSize: "15px", color: "var(--text-2)", lineHeight: 1.85, margin: "0 0 12px" }}>{q.explanation}</p>
               <div style={{ display: "flex", gap: "16px", fontSize: "11px", color: "var(--text-4)", borderTop: "1px solid var(--border)", paddingTop: "10px" }}>
                 <span><strong style={{ color: "var(--text-3)" }}>Reference:</strong> {q.babokRef}</span>
                 <span><strong style={{ color: "var(--text-3)" }}>Technique:</strong> {q.technique}</span>
@@ -1090,7 +1154,7 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
                   <span style={{ width: "24px", height: "24px", borderRadius: "50%", border: `2px solid ${isSel ? "rgba(139,92,246,0.6)" : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 800, color: isSel ? "#8b5cf6" : "var(--text-3)", flexShrink: 0 }}>
                     {String.fromCharCode(65 + i)}
                   </span>
-                  <span style={{ fontSize: "14px", color: isSel ? "var(--text-1)" : "var(--text-2)", lineHeight: 1.65 }}>{opt}</span>
+                  <span style={{ fontSize: "15px", color: isSel ? "var(--text-1)" : "var(--text-2)", lineHeight: 1.7 }}>{opt}</span>
                 </button>
               );
             })}

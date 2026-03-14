@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import ExamClient from "./ExamClient";
 
-export const metadata = { title: "Exam Prep — TheBAPortal" };
+export const metadata = { title: "Exam Prep" };
 
 export default async function ExamPage() {
   const cookieStore = cookies();
