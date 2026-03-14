@@ -62,7 +62,7 @@ Write a compelling cover letter with four distinct paragraphs. Return ONLY valid
 
   try {
     const response = await ai.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1200,
       messages: [{ role: "user", content: userPrompt }],
     });

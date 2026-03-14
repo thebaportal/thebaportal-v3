@@ -91,7 +91,7 @@ Respond ONLY in this JSON format (no markdown, no preamble):
 }`;
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 1200,
     messages: [{ role: "user", content: prompt }],
   });
@@ -208,7 +208,7 @@ ${submission}
 Evaluate this submission now. Return only the JSON object.`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1500,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt,

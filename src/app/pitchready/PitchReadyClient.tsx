@@ -372,6 +372,8 @@ export default function PitchReadyClient({ userName }: Props) {
   // Feedback state
   const [currentFeedback, setCurrentFeedback] = useState<FeedbackReport | null>(null);
   const [currentSession, setCurrentSession] = useState<SessionRecord | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // Sessions / history
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
@@ -508,13 +510,19 @@ export default function PitchReadyClient({ userName }: Props) {
   }, []);
 
   const submitForFeedback = useCallback(async () => {
-    if (!studioSetup.scenario) return;
+    if (!studioSetup.scenario || isSubmitting) return;
     const finalTranscript = finalTranscriptRef.current.trim() || transcript.trim();
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
     try {
       const res = await fetch("/api/pitchready/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           transcript: finalTranscript || "The speaker did not produce a detectable transcript. Please provide basic feedback on starting strong.",
           scenario: studioSetup.scenario.title,
@@ -523,7 +531,10 @@ export default function PitchReadyClient({ userName }: Props) {
           wordCount,
         }),
       });
-      const { feedback } = await res.json();
+      clearTimeout(timeout);
+      const data = await res.json();
+      const feedback: FeedbackReport = data.feedback;
+      if (!feedback) throw new Error("No feedback returned");
       setCurrentFeedback(feedback);
 
       const session: SessionRecord = {
@@ -542,11 +553,17 @@ export default function PitchReadyClient({ userName }: Props) {
       persistSession(session);
       setSessions(loadSessions());
       setView("feedback");
-    } catch {
-      alert("Feedback generation failed. Please check your connection and try again.");
+    } catch (err) {
+      clearTimeout(timeout);
+      const msg = err instanceof Error && err.name === "AbortError"
+        ? "Request timed out. Check your connection and try again."
+        : "Analysis failed. Please try again.";
+      setSubmitError(msg);
       setStudioPhase("ready");
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [studioSetup, transcript, recordingTime, wordCount]);
+  }, [studioSetup, transcript, recordingTime, wordCount, isSubmitting]);
 
   function fmtTime(s: number) {
     return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -722,9 +739,9 @@ export default function PitchReadyClient({ userName }: Props) {
           position: "sticky", top: 0, height: "100vh", overflowY: "auto",
         }}>
           <div style={{ padding: "24px 20px 16px" }}>
-            <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.12em", color: "var(--text-3)", marginBottom: "4px" }}>
-              THE BA PORTAL
-            </div>
+            <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-3)", textDecoration: "none", marginBottom: "14px", opacity: 0.7 }}>
+              <ArrowLeft size={12} /> Dashboard
+            </a>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: `linear-gradient(135deg, ${CORAL}, #f97316)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Mic size={14} color="#fff" />
@@ -1150,11 +1167,15 @@ export default function PitchReadyClient({ userName }: Props) {
                       <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.8, margin: 0 }}>{transcript}</p>
                     </div>
                   )}
-                  <button className="btn-teal" onClick={submitForFeedback} style={{ justifyContent: "center" }}>
-                    Generate Feedback Report
+                  <button className="btn-teal" onClick={submitForFeedback} disabled={isSubmitting}
+                    style={{ justifyContent: "center", opacity: isSubmitting ? 0.7 : 1 }}>
+                    {isSubmitting ? "Analysing your delivery..." : "Generate Feedback Report"}
                   </button>
+                  {submitError && (
+                    <p style={{ color: "#f87171", fontSize: "13px", marginTop: "12px", textAlign: "center" }}>{submitError}</p>
+                  )}
                   <div style={{ marginTop: "12px" }}>
-                    <button onClick={() => { setStudioPhase("ready"); setTranscript(""); finalTranscriptRef.current = ""; setRecordingTime(0); setWordCount(0); }}
+                    <button onClick={() => { setStudioPhase("ready"); setTranscript(""); finalTranscriptRef.current = ""; setRecordingTime(0); setWordCount(0); setSubmitError(""); }}
                       style={{ fontSize: "12px", color: "var(--text-3)", background: "none", border: "none", cursor: "pointer" }}>
                       Record again instead
                     </button>
