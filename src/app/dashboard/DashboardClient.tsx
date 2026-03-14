@@ -8,7 +8,7 @@ import {
   Zap, Award, Settings, TrendingUp,
   GraduationCap, BriefcaseBusiness, Trophy,
   LayoutDashboard, BookOpen, Target, CheckCircle2,
-  Flame, Clock, Users, User, ChevronUp,
+  Flame, Clock, Users, User, ChevronUp, Mic,
 } from "lucide-react";
 import type { ChallengeAttempt, UserBadge, UserProgress } from "@/lib/progress";
 import { BADGE_DEFINITIONS } from "@/lib/progress";
@@ -34,6 +34,7 @@ const navItems = [
   { icon: TrendingUp,         label: "Progress",     href: "/progress"                },
   { icon: GraduationCap,      label: "Learning",     href: "/learning"                },
   { icon: Target,             label: "Exam Prep",    href: "/exam"                    },
+  { icon: Mic,                label: "PitchReady",   href: "/pitchready"              },
   { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career",     locked: true },
   { icon: Trophy,             label: "Portfolio",    href: "/portfolio",  locked: true },
 ];
