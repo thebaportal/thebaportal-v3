@@ -28,15 +28,15 @@ interface DashboardClientProps {
   stats: Stats;
 }
 
-const navItems = [
+const navItems: { icon: React.ElementType; label: string; href: string; active?: boolean; locked?: boolean }[] = [
   { icon: LayoutDashboard,    label: "Dashboard",    href: "/dashboard",  active: true },
   { icon: BookOpen,           label: "Challenges",   href: "/scenarios"               },
   { icon: TrendingUp,         label: "Progress",     href: "/progress"                },
   { icon: GraduationCap,      label: "Learning",     href: "/learning"                },
   { icon: Target,             label: "Exam Prep",    href: "/exam"                    },
   { icon: Mic,                label: "PitchReady",   href: "/pitchready"              },
-  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career"                   },
-  { icon: Trophy,             label: "Portfolio",    href: "/portfolio",  locked: true },
+  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career"                  },
+  { icon: Trophy,             label: "Portfolio",    href: "/portfolio"               },
 ];
 
 const featuredChallenges = [
