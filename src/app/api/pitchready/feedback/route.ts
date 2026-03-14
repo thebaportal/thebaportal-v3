@@ -98,7 +98,7 @@ Return ONLY valid JSON with this exact structure. Do not include any text outsid
   try {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 2200,
+      max_tokens: 1400,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
