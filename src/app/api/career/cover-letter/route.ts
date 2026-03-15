@@ -6,7 +6,7 @@ import {
   AlignmentType, BorderStyle,
 } from "docx";
 
-export const maxDuration = 30;
+export const maxDuration = 26;
 const ai = new Anthropic();
 const DARK = "1e2d3d";
 const MID = "475569";

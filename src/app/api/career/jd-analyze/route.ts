@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export const maxDuration = 30;
+export const maxDuration = 26;
 const ai = new Anthropic();
 
 export async function POST(req: Request) {

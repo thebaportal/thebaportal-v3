@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 26;
 
 export async function POST(req: Request) {
   const cookieStore = cookies();
