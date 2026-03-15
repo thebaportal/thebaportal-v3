@@ -34,21 +34,37 @@ Career goal in 2-3 years: ${answers.goal || "Not provided"}
 
 Give a genuine, personalised recommendation. Don't hedge — pick a primary track and explain why. It's fine to acknowledge secondary fit.
 
+IMPORTANT — TheBAPortal context:
+The user is already on TheBAPortal (thebaportal.com), a platform built specifically for Business Analysts. It offers:
+- BA challenge simulations across different industries and difficulty levels — the best way to build a real portfolio of BA work fast
+- A structured learning path with modules covering core BA skills
+- PitchReady — a tool for practising verbal presentations and stakeholder communication
+- A Career Suite with resume improvement, cover letter builder, JD analyzer, interview prep, and salary negotiation
+- A public portfolio page that showcases their completed challenges and badges to employers
+
+For users who are new to BA or transitioning, the single most effective thing they can do RIGHT NOW is complete BA challenge simulations on this platform — they build real, demonstrable evidence of BA thinking that they can put in a portfolio and reference in interviews. Always include this as a next step, worded naturally (e.g. "Start working through the BA challenge simulations here on TheBAPortal — each one gives you a real scenario to analyse and a scored submission you can show employers").
+
 Return ONLY valid JSON — no text outside it:
 {
   "primaryTrack": "Technical BA" | "Product BA" | "Business & Strategy BA",
-  "fitScore": <0-100 — how strong the fit is>,
-  "whyThisTrack": "<2-3 sentences explaining why this track fits them specifically — reference their actual answers>",
+  "trackScores": {
+    "Technical BA": <0-100>,
+    "Product BA": <0-100>,
+    "Business & Strategy BA": <0-100>
+  },
+  "whyThisFits": "<2 sentences: why their specific answers point to this track. Reference what they said, not generic traits.>",
+  "whereYouAreNow": "<1-2 sentences honestly acknowledging where they are starting from. Warm and direct, no fluff.>",
+  "whatNextFocus": "<1-2 sentences on the most important skill or area to focus on right now given their starting point.>",
   "secondaryTrack": "<the second-best track for them, or null>",
   "strengths": ["<3 things from their background that position them well for this track>"],
-  "gaps": ["<2-3 things they'll need to develop to succeed in this track>"],
+  "gaps": ["<2-3 things they will need to develop to succeed in this track>"],
   "nextSteps": [
-    "<concrete, specific next step — not 'network more' or 'get certified', but specific actions>",
-    "<second next step>",
-    "<third next step>"
+    "<Step 1 — always reference TheBAPortal challenge simulations as an immediate action, worded naturally>",
+    "<Step 2 — a specific, concrete external action tailored to their situation>",
+    "<Step 3 — another specific action. Could reference TheBAPortal learning modules, PitchReady, or Career Suite tools where genuinely relevant>"
   ],
   "roleTypesToTarget": ["<3-4 specific BA job titles or role types to look for>"],
-  "watchOut": "<one honest caution — something that could derail them or slow their progress if they're not careful>"
+  "watchOut": "<one honest caution — something that could derail them or slow their progress if they are not careful>"
 }`;
 
   try {
