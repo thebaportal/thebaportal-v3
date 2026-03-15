@@ -309,7 +309,7 @@ function AdvisorLoading() {
 
   return (
     <div style={{ padding: "48px 0", display: "flex", flexDirection: "column", gap: "32px" }}>
-      <AlexAvatar />
+      <p style={{ fontSize: "15px", color: C.muted, margin: 0 }}>Working through your answers…</p>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {LOADING_STEPS.map((s, i) => (
           <div key={i} style={{
@@ -401,32 +401,23 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   // ── Intro ──
   if (step === "intro") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-        <AlexAvatar size={52} />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <p style={{ fontSize: "18px", fontWeight: "700", color: C.text, margin: 0, lineHeight: "1.4" }}>
-            Hi, I am Alex.
-          </p>
-          <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: 0 }}>
-            I help Business Analysts figure out where they fit and how to move forward in their careers.
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <p style={{ fontSize: "20px", fontWeight: "700", color: C.text, margin: 0, lineHeight: "1.4" }}>
+            Let us figure out which BA path fits you.
           </p>
           <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-            Whether you are exploring Business Analysis for the first time, transitioning from another field, or trying to decide which direction to grow in — this tool will help you think it through.
+            There are three directions most BAs end up in. I will ask you four quick questions and tell you which one makes the most sense for you and why.
           </p>
-          <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-            We will look at three common BA career paths and work out which one best matches the way you like to work. This takes less than a minute.
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", lineHeight: "1.6", margin: 0 }}>
+            No BA experience needed. Just answer honestly and we will work it out.
           </p>
         </div>
 
         <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", fontSize: "15px" }}
           onClick={() => setStep("paths")}>
-          Let&apos;s start
+          Let&apos;s go
         </button>
-
-        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", lineHeight: "1.6", margin: 0 }}>
-          You do not need to know BA terminology to use this. Just answer a few simple questions and we will figure it out together.
-        </p>
       </div>
     );
   }
@@ -545,17 +536,14 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
-        {/* Alex + recommendation header */}
+        {/* Recommendation header */}
         <div style={{ ...card, border: `1px solid ${tc}33`, background: `${tc}0d` }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
-            <AlexAvatar />
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "4px" }}>YOUR PATH</div>
-              <div style={{ fontSize: "22px", fontWeight: "700", color: tc }}>{result.primaryTrack}</div>
-              {result.secondaryTrack && (
-                <div style={{ fontSize: "12px", color: C.muted, marginTop: "2px" }}>Also consider: {result.secondaryTrack}</div>
-              )}
-            </div>
+          <div style={{ marginBottom: "20px" }}>
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "6px" }}>YOUR PATH</div>
+            <div style={{ fontSize: "24px", fontWeight: "700", color: tc }}>{result.primaryTrack}</div>
+            {result.secondaryTrack && (
+              <div style={{ fontSize: "13px", color: C.muted, marginTop: "4px" }}>Also worth considering: {result.secondaryTrack}</div>
+            )}
           </div>
 
           {/* Three structured explanation sections */}
@@ -754,8 +742,7 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
 
   // Loading — reading the resume
   if (step === "loading") return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "40px 0" }}>
-      <AlexAvatar />
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "40px 0" }}>
       <div style={{ color: C.teal, fontSize: "15px" }}>Reading your resume…</div>
       <div style={{ color: C.muted, fontSize: "13px" }}>Give me a moment to take a look.</div>
     </div>
@@ -763,8 +750,7 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
 
   // Building the improved resume
   if (step === "building") return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "40px 0" }}>
-      <AlexAvatar />
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "40px 0" }}>
       <div style={{ color: C.teal, fontSize: "15px" }}>Building your improved resume…</div>
       <div style={{ color: C.muted, fontSize: "13px" }}>This usually takes around 15 seconds.</div>
     </div>
@@ -773,7 +759,6 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
   // Done
   if (step === "done") return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "40px 0" }}>
-      <AlexAvatar />
       <div style={{ fontSize: "18px", fontWeight: "700", color: C.green }}>Your resume is ready.</div>
       <p style={{ color: C.muted, fontSize: "15px", lineHeight: "1.6", margin: 0 }}>
         Check your downloads folder. The file is in Word format so you can make any final edits yourself before sending it out.
@@ -799,7 +784,6 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
   // Intro — first impression and coach intro
   if (step === "intro") return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <AlexAvatar />
 
       {/* Coach intro */}
       {coachIntro && (
@@ -827,7 +811,6 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
     const isLast = qIdx === questions.length - 1;
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        <AlexAvatar />
 
         {/* Progress */}
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -884,7 +867,6 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
   // Upload screen
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <AlexAvatar />
 
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <p style={{ fontSize: "16px", color: C.text, lineHeight: "1.7", margin: 0 }}>
