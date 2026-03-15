@@ -1009,7 +1009,7 @@ function CoverLetterTool({ fullName, onNavigate }: { fullName: string; onNavigat
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
       <div style={{ display: "flex", gap: "12px" }}>
         <button style={btn()} onClick={downloadLetter}>Download cover letter (.docx)</button>
-        <button style={btn("ghost")} onClick={() => setStep("setup")}>← Back</button>
+        <button style={btn("ghost")} onClick={() => setStep("setup")}>Back</button>
       </div>
     </div>
   );
@@ -1017,7 +1017,7 @@ function CoverLetterTool({ fullName, onNavigate }: { fullName: string; onNavigat
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Upload your resume and paste the job description. The AI will ask a couple of targeted questions to make your letter specific and compelling.
+        Upload your resume and paste the job description. I will ask a couple of quick questions so the letter speaks directly to that role.
       </p>
       <FileUpload label="Your resume" onParsed={(text) => setResumeText(text)} />
       <div>
@@ -1027,7 +1027,7 @@ function CoverLetterTool({ fullName, onNavigate }: { fullName: string; onNavigat
       </div>
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
       <button style={btn()} disabled={!resumeText || jdText.trim().length < 50} onClick={fetchQuestions}>
-        Next →
+        Next
       </button>
     </div>
   );
@@ -1116,7 +1116,7 @@ function JDAnalyzerTool() {
       {/* Must haves + verdict */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
         <div style={card}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>MUST-HAVES</div>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>MUST HAVES</div>
           {result.mustHaves.map((m, i) => (
             <div key={i} style={{ fontSize: "13px", color: C.text, marginBottom: "8px", paddingLeft: "12px", borderLeft: `2px solid ${C.amber}` }}>{m}</div>
           ))}
@@ -1154,7 +1154,7 @@ function JDAnalyzerTool() {
       </div>
 
       <button style={btn("ghost")} onClick={() => { setResult(null); setJdText(""); setResumeText(""); }}>
-        ← Analyse another role
+        Analyse another role
       </button>
     </div>
   );
@@ -1162,17 +1162,17 @@ function JDAnalyzerTool() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Paste a job description and optionally upload your resume for an ATS keyword match score and two-column gap analysis.
+        Paste the job description. If you upload your resume as well, I will score how well your keywords match and show you exactly what is missing.
       </p>
       <div>
         <span style={label}>Job description</span>
         <textarea rows={10} style={textarea(10)} placeholder="Paste the full job description here…"
           value={jdText} onChange={e => setJdText(e.target.value)} />
       </div>
-      <FileUpload label="Your resume (optional — adds ATS score)" onParsed={(text) => setResumeText(text)} />
+      <FileUpload label="Your resume (optional, used for ATS score)" onParsed={(text) => setResumeText(text)} />
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
       <button style={btn()} disabled={jdText.trim().length < 50} onClick={analyse}>
-        Analyse →
+        Run the analysis
       </button>
     </div>
   );
@@ -1275,7 +1275,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 
   const submitAnswer = async () => {
     if (!transcript.trim() || transcript.trim().split(/\s+/).length < 5) {
-      setError("Answer too short — try again with a more complete response.");
+      setError("That answer needs a bit more detail. Give it another try.");
       return;
     }
     stopRecording();
@@ -1380,7 +1380,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
         <div style={{ display: "flex", gap: "12px" }}>
           {!isLast && (
             <button style={btn()} onClick={() => { setCurrentQ(currentQ + 1); setTranscript(""); setStep("practice"); }}>
-              Next question →
+              Next question
             </button>
           )}
           {done && (
@@ -1396,7 +1396,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
             </>
           )}
           <button style={btn("ghost")} onClick={() => { setTranscript(""); setStep("practice"); }}>
-            ← Retry this question
+            Try this one again
           </button>
         </div>
       </div>
@@ -1469,12 +1469,12 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
             <div style={{ color: C.muted, fontSize: "14px" }}>Analysing your answer…</div>
           ) : (
             <button style={btn()} disabled={!transcript.trim()} onClick={submitAnswer}>
-              Get feedback →
+              Get my feedback
             </button>
           )}
           {currentQ > 0 && feedbacks[currentQ - 1] && (
             <button style={btn("ghost")} onClick={() => { setCurrentQ(currentQ - 1); setStep("answer-review"); }}>
-              ← View previous
+              View previous
             </button>
           )}
         </div>
@@ -1485,7 +1485,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Paste the job description and get AI-generated interview questions tailored to the role. Practice your answers out loud and get per-answer STAR feedback.
+        Paste the job description below. I will put together questions based on the role and give you feedback on each answer you record.
       </p>
       <div>
         <span style={label}>Job description</span>
@@ -1500,7 +1500,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
       <FileUpload label="Your resume (optional — personalises questions)" onParsed={(text) => setResumeText(text)} />
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
       <button style={btn()} disabled={jdText.trim().length < 50} onClick={generateQuestions}>
-        Generate my interview questions →
+        Generate my interview questions
       </button>
     </div>
   );
@@ -1556,7 +1556,7 @@ function SalaryTool() {
 
       {/* Counter offer range */}
       <div style={{ ...card, borderColor: C.tealBorder, background: C.tealBg }}>
-        <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>COUNTER-OFFER RANGE</div>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>COUNTER OFFER RANGE</div>
         <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.5", margin: 0 }}>{result.counterOfferRange}</p>
       </div>
 
@@ -1599,7 +1599,7 @@ function SalaryTool() {
       </div>
 
       <button style={btn("ghost")} onClick={() => { setResult(null); setForm({ offerAmount: "", currency: "$", jobTitle: "", yearsExp: "", location: "", notes: "" }); }}>
-        ← Analyse another offer
+        Analyse another offer
       </button>
     </div>
   );
@@ -1607,7 +1607,7 @@ function SalaryTool() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Enter your offer details and get an honest assessment plus negotiation scripts you can use word-for-word.
+        Enter your offer details and I will give you an honest read on it, plus scripts you can use in the actual conversation.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", gap: "12px" }}>
         <div>
@@ -1648,7 +1648,7 @@ function SalaryTool() {
       </div>
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
       <button style={btn()} disabled={!form.offerAmount} onClick={analyse}>
-        Analyse offer →
+        Analyse my offer
       </button>
     </div>
   );
@@ -1669,15 +1669,15 @@ const JOURNEY = [
     label: "Strengthen your profile",
     tools: [
       { id: "resume" as Tool, label: "Resume Improvement", desc: "Upload and strengthen" },
-      { id: "cover-letter" as Tool, label: "Cover Letter", desc: "Role-specific letter" },
-      { id: "jd" as Tool, label: "JD Analyzer", desc: "ATS match and gaps" },
+      { id: "cover-letter" as Tool, label: "Cover Letter", desc: "Written for the role" },
+      { id: "jd" as Tool, label: "JD Analyzer", desc: "See how well you match" },
     ],
   },
   {
     step: 3,
     label: "Prepare for interviews",
     tools: [
-      { id: "interview" as Tool, label: "Interview Prep", desc: "Voice practice and feedback" },
+      { id: "interview" as Tool, label: "Interview Prep", desc: "Practice answering out loud" },
     ],
   },
   {
