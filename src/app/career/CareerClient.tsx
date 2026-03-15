@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type Tool = "advisor" | "resume" | "cover-letter" | "jd" | "interview" | "salary";
+type Tool = "home" | "advisor" | "resume" | "cover-letter" | "jd" | "interview" | "salary";
 
 interface Props {
   fullName: string;
@@ -331,7 +331,7 @@ function AdvisorLoading() {
   );
 }
 
-function AdvisorTool() {
+function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   const router = useRouter();
   const [step, setStep] = useState<"intro" | "paths" | "question" | "loading" | "result">("intro");
   const [qIndex, setQIndex] = useState(0);
@@ -656,6 +656,19 @@ function AdvisorTool() {
           </div>
         </div>
 
+        {/* Next step nudge */}
+        {onNavigate && (
+          <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>YOUR NEXT STEP</div>
+            <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: "0 0 14px" }}>
+              Now that you know your direction, the best thing you can do is strengthen your resume so it speaks the language of that track.
+            </p>
+            <button style={{ ...btn(), fontSize: "13px", padding: "9px 18px" }} onClick={() => onNavigate("resume")}>
+              Go to Resume Improvement
+            </button>
+          </div>
+        )}
+
         <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={restart}>
           Start over
         </button>
@@ -668,9 +681,10 @@ function AdvisorTool() {
 
 // ── Resume Improvement ──────────────────────────────────────────────────────
 
-function ResumeTool({ fullName }: { fullName: string }) {
+function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (tool: Tool) => void }) {
   const [step, setStep] = useState<"upload" | "loading" | "intro" | "question" | "building" | "done">("upload");
   const [resumeText, setResumeText] = useState("");
+  const [nameInput, setNameInput] = useState(fullName.replace(/[^a-zA-Z0-9 ]/g, "").trim());
   const [questions, setQuestions] = useState<string[]>([]);
   const [impression, setImpression] = useState("");
   const [coachIntro, setCoachIntro] = useState("");
@@ -708,7 +722,7 @@ function ResumeTool({ fullName }: { fullName: string }) {
       const res = await fetch("/api/career/resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText, questions, answers, fullName }),
+        body: JSON.stringify({ resumeText, questions, answers, fullName: nameInput || fullName }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -716,9 +730,10 @@ function ResumeTool({ fullName }: { fullName: string }) {
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
+      const safeName = (nameInput || fullName).replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/\s+/g, "_") || "Resume";
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${(fullName || "Resume").replace(/\s+/g, "_")}_Improved_Resume.docx`;
+      a.download = `${safeName}_Improved_Resume.docx`;
       a.click();
       URL.revokeObjectURL(url);
       setStep("done");
@@ -762,8 +777,19 @@ function ResumeTool({ fullName }: { fullName: string }) {
       <p style={{ color: C.muted, fontSize: "15px", lineHeight: "1.6", margin: 0 }}>
         Check your downloads folder. The file is in Word format so you can make any final edits yourself before sending it out.
       </p>
+      {onNavigate && (
+        <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)", marginTop: "8px" }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>YOUR NEXT STEP</div>
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: "0 0 14px" }}>
+            With your resume strengthened, the next move is a cover letter that speaks directly to the role you are targeting.
+          </p>
+          <button style={{ ...btn(), fontSize: "13px", padding: "9px 18px" }} onClick={() => onNavigate("cover-letter")}>
+            Go to Cover Letter Builder
+          </button>
+        </div>
+      )}
       <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
-        onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); setQIdx(0); }}>
+        onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); setQIdx(0); setNameInput(fullName.replace(/[^a-zA-Z0-9 ]/g, "").trim()); }}>
         Review another resume
       </button>
     </div>
@@ -870,6 +896,17 @@ function ResumeTool({ fullName }: { fullName: string }) {
 
       <FileUpload label="Your current resume" onParsed={(text) => setResumeText(text)} />
 
+      <div>
+        <span style={{ ...label, marginBottom: "8px", display: "block" }}>Your full name (used on the improved resume)</span>
+        <input
+          type="text"
+          style={input}
+          placeholder="e.g. Sarah Johnson"
+          value={nameInput}
+          onChange={e => setNameInput(e.target.value)}
+        />
+      </div>
+
       <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", lineHeight: "1.5", margin: 0 }}>
         Your resume is only used to generate your improved version. Nothing is stored or shared.
       </p>
@@ -886,7 +923,7 @@ function ResumeTool({ fullName }: { fullName: string }) {
 
 // ── Cover Letter Builder ────────────────────────────────────────────────────
 
-function CoverLetterTool({ fullName }: { fullName: string }) {
+function CoverLetterTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (tool: Tool) => void }) {
   const [step, setStep] = useState<"setup" | "questions" | "loading" | "done">("setup");
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
@@ -953,11 +990,21 @@ function CoverLetterTool({ fullName }: { fullName: string }) {
   );
 
   if (step === "done") return (
-    <div style={{ textAlign: "center", padding: "48px 0" }}>
-      <div style={{ fontSize: "40px", marginBottom: "16px" }}>✓</div>
-      <div style={{ fontSize: "18px", fontWeight: "700", color: C.green, marginBottom: "8px" }}>Cover letter downloaded</div>
-      <p style={{ color: C.muted, fontSize: "14px", marginBottom: "24px" }}>Your personalised cover letter is in your downloads folder.</p>
-      <button style={btn("ghost")} onClick={() => { setStep("setup"); setResumeText(""); setJdText(""); setQuestions([]); setAnswers([]); }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "40px 0" }}>
+      <div style={{ fontSize: "18px", fontWeight: "700", color: C.green }}>Cover letter downloaded</div>
+      <p style={{ color: C.muted, fontSize: "14px" }}>Your personalised cover letter is in your downloads folder.</p>
+      {onNavigate && (
+        <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>YOUR NEXT STEP</div>
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: "0 0 14px" }}>
+            Before you apply, run the job description through the JD Analyzer to make sure your resume is hitting the right keywords.
+          </p>
+          <button style={{ ...btn(), fontSize: "13px", padding: "9px 18px" }} onClick={() => onNavigate("jd")}>
+            Go to JD Analyzer
+          </button>
+        </div>
+      )}
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={() => { setStep("setup"); setResumeText(""); setJdText(""); setQuestions([]); setAnswers([]); }}>
         Write another letter
       </button>
     </div>
@@ -1166,7 +1213,7 @@ interface InterviewFeedback {
   suggestedRewrite: string; interviewerPerspective: string;
 }
 
-function InterviewTool() {
+function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   const [step, setStep] = useState<"setup" | "generating" | "practice" | "answer-review">("setup");
   const [jdText, setJdText] = useState("");
   const [company, setCompany] = useState("");
@@ -1354,9 +1401,16 @@ function InterviewTool() {
             </button>
           )}
           {done && (
-            <button style={btn()} onClick={() => { setStep("setup"); setQuestions([]); setFeedbacks([]); setJdText(""); setCompany(""); setTranscript(""); }}>
-              Start new session
-            </button>
+            <>
+              <button style={btn()} onClick={() => { setStep("setup"); setQuestions([]); setFeedbacks([]); setJdText(""); setCompany(""); setTranscript(""); }}>
+                Start new session
+              </button>
+              {onNavigate && (
+                <button style={{ ...btn("ghost"), fontSize: "13px" }} onClick={() => onNavigate("salary")}>
+                  Next: Salary Negotiation
+                </button>
+              )}
+            </>
           )}
           <button style={btn("ghost")} onClick={() => { setTranscript(""); setStep("practice"); }}>
             ← Retry this question
@@ -1619,27 +1673,52 @@ function SalaryTool() {
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
-const TOOLS: { id: Tool; label: string; desc: string }[] = [
-  { id: "advisor", label: "Career Strategy", desc: "Find your BA track" },
-  { id: "resume", label: "Resume Improvement", desc: "Upload & strengthen" },
-  { id: "cover-letter", label: "Cover Letter", desc: "Role-specific letter" },
-  { id: "jd", label: "JD Analyzer", desc: "ATS match & gaps" },
-  { id: "interview", label: "Interview Prep", desc: "Voice practice + feedback" },
-  { id: "salary", label: "Salary Negotiation", desc: "Offer analysis & scripts" },
+const JOURNEY = [
+  {
+    step: 1,
+    label: "Find your direction",
+    tools: [
+      { id: "advisor" as Tool, label: "Career Strategy", desc: "Find your BA track" },
+    ],
+  },
+  {
+    step: 2,
+    label: "Strengthen your profile",
+    tools: [
+      { id: "resume" as Tool, label: "Resume Improvement", desc: "Upload and strengthen" },
+      { id: "cover-letter" as Tool, label: "Cover Letter", desc: "Role-specific letter" },
+      { id: "jd" as Tool, label: "JD Analyzer", desc: "ATS match and gaps" },
+    ],
+  },
+  {
+    step: 3,
+    label: "Prepare for interviews",
+    tools: [
+      { id: "interview" as Tool, label: "Interview Prep", desc: "Voice practice and feedback" },
+    ],
+  },
+  {
+    step: 4,
+    label: "Handle the offer",
+    tools: [
+      { id: "salary" as Tool, label: "Salary Negotiation", desc: "Offer analysis and scripts" },
+    ],
+  },
 ];
+
+const TOOL_TITLES: Record<string, string> = {
+  home: "Career Suite",
+  advisor: "Career Strategy Advisor",
+  resume: "Resume Improvement",
+  "cover-letter": "Cover Letter Builder",
+  jd: "JD Analyzer",
+  interview: "Interview Prep",
+  salary: "Salary Negotiation",
+};
 
 export default function CareerClient({ fullName }: Props) {
   const router = useRouter();
-  const [activeTool, setActiveTool] = useState<Tool>("advisor");
-
-  const toolTitles: Record<Tool, string> = {
-    advisor: "Career Strategy Advisor",
-    resume: "Resume Improvement",
-    "cover-letter": "Cover Letter Builder",
-    jd: "JD Analyzer",
-    interview: "Interview Prep",
-    salary: "Salary Negotiation",
-  };
+  const [activeTool, setActiveTool] = useState<Tool>("home");
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -1653,36 +1732,119 @@ export default function CareerClient({ fullName }: Props) {
         <span style={{ fontSize: "13px", color: C.muted }}>{fullName}</span>
       </div>
 
-      <div style={{ display: "flex", maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", gap: "24px" }}>
-        {/* Sidebar */}
-        <div style={{ width: "200px", flexShrink: 0 }}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>TOOLS</div>
-          {TOOLS.map(t => (
-            <button key={t.id} onClick={() => setActiveTool(t.id)}
-              style={{
-                display: "block", width: "100%", textAlign: "left",
-                padding: "10px 14px", borderRadius: "8px", marginBottom: "4px", cursor: "pointer",
-                background: activeTool === t.id ? C.tealBg : "transparent",
-                border: `1px solid ${activeTool === t.id ? C.tealBorder : "transparent"}`,
-                color: activeTool === t.id ? C.teal : C.muted,
-                transition: "all 0.12s",
-              }}>
-              <div style={{ fontSize: "13px", fontWeight: "600" }}>{t.label}</div>
-              <div style={{ fontSize: "11px", marginTop: "2px", opacity: 0.7 }}>{t.desc}</div>
-            </button>
+      <div style={{ display: "flex", maxWidth: "1140px", margin: "0 auto", padding: "32px 24px", gap: "28px" }}>
+        {/* Sidebar — journey structure */}
+        <div style={{ width: "210px", flexShrink: 0 }}>
+          {/* Alex mini block */}
+          <div style={{ ...card, padding: "14px 16px", marginBottom: "20px", cursor: "pointer", borderColor: activeTool === "home" ? C.tealBorder : C.border, background: activeTool === "home" ? C.tealBg : C.panel }}
+            onClick={() => setActiveTool("home")}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: activeTool === "home" ? C.teal : C.text }}>Career Suite</div>
+                <div style={{ fontSize: "11px", color: C.muted }}>Overview</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Journey steps */}
+          {JOURNEY.map(group => (
+            <div key={group.step} style={{ marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "700", color: C.muted, flexShrink: 0 }}>{group.step}</div>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.06em", textTransform: "uppercase" }}>{group.label}</div>
+              </div>
+              {group.tools.map(t => (
+                <button key={t.id} onClick={() => setActiveTool(t.id)}
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "9px 12px 9px 28px", borderRadius: "7px", marginBottom: "3px", cursor: "pointer",
+                    background: activeTool === t.id ? C.tealBg : "transparent",
+                    border: `1px solid ${activeTool === t.id ? C.tealBorder : "transparent"}`,
+                    color: activeTool === t.id ? C.teal : C.muted,
+                    transition: "all 0.12s",
+                    position: "relative",
+                  }}>
+                  {activeTool === t.id && (
+                    <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: C.teal, fontSize: "10px" }}>▶</span>
+                  )}
+                  <div style={{ fontSize: "13px", fontWeight: "600" }}>{t.label}</div>
+                  <div style={{ fontSize: "11px", marginTop: "1px", opacity: 0.7 }}>{t.desc}</div>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
 
         {/* Main content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ fontSize: "22px", fontWeight: "700", color: "white", marginBottom: "24px" }}>
-            {toolTitles[activeTool]}
-          </h1>
-          {activeTool === "advisor" && <AdvisorTool />}
-          {activeTool === "resume" && <ResumeTool fullName={fullName} />}
-          {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} />}
+          {activeTool !== "home" && (
+            <h1 style={{ fontSize: "22px", fontWeight: "700", color: "white", marginBottom: "24px" }}>
+              {TOOL_TITLES[activeTool]}
+            </h1>
+          )}
+
+          {/* Home landing */}
+          {activeTool === "home" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+              {/* Alex intro */}
+              <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)", padding: "28px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "19px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: "700", color: C.text, marginBottom: "2px" }}>Alex</div>
+                    <div style={{ fontSize: "11px", color: C.muted, marginBottom: "14px" }}>Career Advisor</div>
+                    <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: "0 0 8px" }}>
+                      I will help you move from where you are today to a BA role that fits how you work.
+                    </p>
+                    <p style={{ fontSize: "14px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
+                      Each tool here tackles a different part of that process. You do not need to use everything at once. Start where you are.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Intro text */}
+              <div>
+                <h1 style={{ fontSize: "26px", fontWeight: "700", color: "white", margin: "0 0 12px" }}>Career Suite</h1>
+                <p style={{ fontSize: "16px", color: C.muted, lineHeight: "1.7", margin: "0 0 8px" }}>
+                  This section helps you move from learning Business Analysis to landing a BA role.
+                </p>
+                <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: "0 0 6px" }}>
+                  You can improve your resume, prepare for interviews, analyse job descriptions, and practice real conversations.
+                </p>
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", lineHeight: "1.5", margin: 0 }}>
+                  Most people begin with Career Strategy or Resume Improvement.
+                </p>
+              </div>
+
+              {/* Journey step cards */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {JOURNEY.map(group => (
+                  <div key={group.step} style={card}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: C.tealBg, border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", color: C.teal, flexShrink: 0 }}>{group.step}</div>
+                      <div style={{ fontSize: "15px", fontWeight: "700", color: C.text }}>{group.label}</div>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {group.tools.map(t => (
+                        <button key={t.id} onClick={() => setActiveTool(t.id)}
+                          style={{ ...btn(), fontSize: "13px", padding: "8px 16px" }}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTool === "advisor" && <AdvisorTool onNavigate={setActiveTool} />}
+          {activeTool === "resume" && <ResumeTool fullName={fullName} onNavigate={setActiveTool} />}
+          {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} onNavigate={setActiveTool} />}
           {activeTool === "jd" && <JDAnalyzerTool />}
-          {activeTool === "interview" && <InterviewTool />}
+          {activeTool === "interview" && <InterviewTool onNavigate={setActiveTool} />}
           {activeTool === "salary" && <SalaryTool />}
         </div>
       </div>
