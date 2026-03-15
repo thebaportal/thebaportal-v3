@@ -684,7 +684,8 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (tool: Tool) => void }) {
   const [step, setStep] = useState<"upload" | "loading" | "intro" | "question" | "building" | "done">("upload");
   const [resumeText, setResumeText] = useState("");
-  const [nameInput, setNameInput] = useState(fullName.replace(/[^a-zA-Z0-9 ]/g, "").trim());
+  const cleanedProfileName = fullName.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+  const [nameInput, setNameInput] = useState(cleanedProfileName.includes(" ") ? cleanedProfileName : "");
   const [questions, setQuestions] = useState<string[]>([]);
   const [impression, setImpression] = useState("");
   const [coachIntro, setCoachIntro] = useState("");
@@ -789,7 +790,7 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
         </div>
       )}
       <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
-        onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); setQIdx(0); setNameInput(fullName.replace(/[^a-zA-Z0-9 ]/g, "").trim()); }}>
+        onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); setQIdx(0); setNameInput(cleanedProfileName.includes(" ") ? cleanedProfileName : ""); }}>
         Review another resume
       </button>
     </div>
@@ -903,7 +904,7 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
           style={input}
           placeholder="e.g. Sarah Johnson"
           value={nameInput}
-          onChange={e => setNameInput(e.target.value)}
+          onChange={e => setNameInput(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ""))}
         />
       </div>
 
