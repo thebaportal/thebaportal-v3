@@ -29,11 +29,9 @@ export async function POST(req: Request) {
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;
     } else if (name.endsWith(".pdf")) {
-      // pdf-parse has a known Next.js issue with its test-file loader — import directly
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error no type declarations for this subpath
-      const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default;
-      const result = await pdfParse(buffer);
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new PDFParse({ data: buffer });
+      const result = await parser.getText();
       text = result.text;
     } else {
       return Response.json({ error: "Unsupported file type. Please upload a Word (.docx) or PDF file." }, { status: 400 });

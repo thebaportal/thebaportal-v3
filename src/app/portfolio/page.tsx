@@ -7,7 +7,7 @@ import type { UserBadge, UserProgress } from "@/lib/progress";
 
 export const metadata = { title: "My Portfolio" };
 
-export function slugify(name: string): string {
+function slugify(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
