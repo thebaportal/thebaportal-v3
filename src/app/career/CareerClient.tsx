@@ -104,14 +104,17 @@ function FileUpload({ onParsed, label: lbl }: {
     form.append("file", file);
     try {
       const res = await fetch("/api/career/parse-resume", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Upload failed");
-      setFileName(data.fileName);
+      let data: { text?: string; fileName?: string; error?: string } = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "We could not open that file. Please upload your resume as a Word document (.docx) or PDF and try again.");
+      }
+      setFileName(data.fileName || file.name);
       setStatus("done");
-      onParsed(data.text, data.fileName);
+      onParsed(data.text!, data.fileName!);
     } catch (err) {
       setStatus("error");
-      setErrorMsg(err instanceof Error ? err.message : "Upload failed");
+      setErrorMsg(err instanceof Error ? err.message : "We could not open that file. Please upload your resume as a Word document (.docx) or PDF and try again.");
     }
   };
 
@@ -451,7 +454,7 @@ function ResumeTool({ fullName }: { fullName: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Upload your current resume. The AI will ask a few coaching questions to fill the gaps, then generate an improved version as a Word file.
+        Upload your current resume and we will review it with you. You may be asked a few short questions to better understand your experience, achievements, and the kind of role you are targeting. From there, we will help you strengthen it and return an improved version in Word format, so you can make any final edits yourself.
       </p>
       <FileUpload label="Your current resume" onParsed={(text) => { setResumeText(text); }} />
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
