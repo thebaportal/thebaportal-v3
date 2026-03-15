@@ -669,17 +669,17 @@ function AdvisorTool() {
 // ── Resume Improvement ──────────────────────────────────────────────────────
 
 function ResumeTool({ fullName }: { fullName: string }) {
-  const [step, setStep] = useState<"upload" | "questions" | "loading" | "done">("upload");
+  const [step, setStep] = useState<"upload" | "loading" | "intro" | "question" | "building" | "done">("upload");
   const [resumeText, setResumeText] = useState("");
   const [questions, setQuestions] = useState<string[]>([]);
   const [impression, setImpression] = useState("");
+  const [coachIntro, setCoachIntro] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
+  const [qIdx, setQIdx] = useState(0);
   const [error, setError] = useState("");
-  const [loadingMsg, setLoadingMsg] = useState("");
 
   const fetchQuestions = async (text: string) => {
     setStep("loading");
-    setLoadingMsg("Reading your resume…");
     setError("");
     try {
       const res = await fetch("/api/career/resume-questions", {
@@ -689,19 +689,20 @@ function ResumeTool({ fullName }: { fullName: string }) {
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Failed");
-      setQuestions(data.questions);
+      setQuestions(data.questions || []);
       setImpression(data.firstImpression || "");
-      setAnswers(new Array(data.questions.length).fill(""));
-      setStep("questions");
+      setCoachIntro(data.coachIntro || "");
+      setAnswers(new Array((data.questions || []).length).fill(""));
+      setQIdx(0);
+      setStep("intro");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setStep("upload");
     }
   };
 
-  const downloadImproved = async () => {
-    setStep("loading");
-    setLoadingMsg("Improving your resume…");
+  const buildResume = async () => {
+    setStep("building");
     setError("");
     try {
       const res = await fetch("/api/career/resume", {
@@ -711,7 +712,7 @@ function ResumeTool({ fullName }: { fullName: string }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Download failed");
+        throw new Error(data.error || "Something went wrong");
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -722,62 +723,162 @@ function ResumeTool({ fullName }: { fullName: string }) {
       URL.revokeObjectURL(url);
       setStep("done");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Download failed");
-      setStep("questions");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setStep("question");
     }
   };
 
+  const advanceQuestion = () => {
+    if (qIdx < questions.length - 1) {
+      setQIdx(qIdx + 1);
+    } else {
+      buildResume();
+    }
+  };
+
+  // Loading — reading the resume
   if (step === "loading") return (
-    <div style={{ textAlign: "center", padding: "60px 0" }}>
-      <div style={{ color: C.teal, fontSize: "15px", marginBottom: "8px" }}>{loadingMsg}</div>
-      <div style={{ color: C.muted, fontSize: "13px" }}>Give it a moment…</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "40px 0" }}>
+      <AlexAvatar />
+      <div style={{ color: C.teal, fontSize: "15px" }}>Reading your resume…</div>
+      <div style={{ color: C.muted, fontSize: "13px" }}>Give me a moment to take a look.</div>
     </div>
   );
 
+  // Building the improved resume
+  if (step === "building") return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "40px 0" }}>
+      <AlexAvatar />
+      <div style={{ color: C.teal, fontSize: "15px" }}>Building your improved resume…</div>
+      <div style={{ color: C.muted, fontSize: "13px" }}>This usually takes around 15 seconds.</div>
+    </div>
+  );
+
+  // Done
   if (step === "done") return (
-    <div style={{ textAlign: "center", padding: "48px 0" }}>
-      <div style={{ fontSize: "40px", marginBottom: "16px" }}>✓</div>
-      <div style={{ fontSize: "18px", fontWeight: "700", color: C.green, marginBottom: "8px" }}>Resume downloaded</div>
-      <p style={{ color: C.muted, fontSize: "14px", marginBottom: "24px" }}>Check your downloads folder for your improved .docx file.</p>
-      <button style={btn("ghost")} onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); }}>
-        Improve another resume
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "40px 0" }}>
+      <AlexAvatar />
+      <div style={{ fontSize: "18px", fontWeight: "700", color: C.green }}>Your resume is ready.</div>
+      <p style={{ color: C.muted, fontSize: "15px", lineHeight: "1.6", margin: 0 }}>
+        Check your downloads folder. The file is in Word format so you can make any final edits yourself before sending it out.
+      </p>
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
+        onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); setQIdx(0); }}>
+        Review another resume
       </button>
     </div>
   );
 
-  if (step === "questions") return (
+  // Intro — first impression and coach intro
+  if (step === "intro") return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <AlexAvatar />
+
+      {/* Coach intro */}
+      {coachIntro && (
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: 0 }}>
+          {coachIntro}
+        </p>
+      )}
+
+      {/* First impression */}
       {impression && (
-        <div style={{ ...card, borderColor: C.tealBorder, background: C.tealBg }}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>FIRST IMPRESSION</div>
-          <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: 0 }}>{impression}</p>
+        <div style={{ ...card, borderLeft: `3px solid ${C.teal}`, background: "rgba(8,145,178,0.06)" }}>
+          <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: 0 }}>{impression}</p>
         </div>
       )}
-      <div style={card}>
-        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>COACHING QUESTIONS</div>
-        <p style={{ fontSize: "14px", color: C.muted, marginBottom: "20px", lineHeight: "1.5" }}>
-          Answer these to help strengthen your resume. Skip any that don&apos;t apply.
-        </p>
-        <CoachingQA questions={questions} answers={answers}
-          onChange={(i, v) => setAnswers(prev => { const a = [...prev]; a[i] = v; return a; })} />
-      </div>
-      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
-      <div style={{ display: "flex", gap: "12px" }}>
-        <button style={btn()} onClick={downloadImproved}>Download improved resume (.docx)</button>
-        <button style={btn("ghost")} onClick={() => setStep("upload")}>← Back</button>
-      </div>
+
+      <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px" }}
+        onClick={() => setStep("question")}>
+        Let&apos;s continue
+      </button>
     </div>
   );
 
+  // One question at a time
+  if (step === "question" && questions.length > 0) {
+    const isLast = qIdx === questions.length - 1;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <AlexAvatar />
+
+        {/* Progress */}
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          {questions.map((_, i) => (
+            <div key={i} style={{
+              width: i === qIdx ? "24px" : "8px", height: "8px", borderRadius: "4px",
+              background: i < qIdx ? C.green : i === qIdx ? C.teal : C.border,
+              transition: "all 0.2s",
+            }} />
+          ))}
+          <span style={{ fontSize: "12px", color: C.muted, marginLeft: "8px" }}>
+            Question {qIdx + 1} of {questions.length}
+          </span>
+        </div>
+
+        {/* Question */}
+        <div style={{ ...card, borderLeft: `3px solid ${C.tealBorder}` }}>
+          <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: 0, whiteSpace: "pre-line" }}>
+            {questions[qIdx]}
+          </p>
+        </div>
+
+        {/* Answer */}
+        <div>
+          <span style={{ ...label, marginBottom: "10px", display: "block" }}>Your answer</span>
+          <textarea
+            rows={4}
+            style={textarea(4)}
+            placeholder="Take your time. Even rough notes are helpful."
+            value={answers[qIdx] || ""}
+            onChange={e => setAnswers(prev => { const a = [...prev]; a[qIdx] = e.target.value; return a; })}
+          />
+        </div>
+
+        {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <button style={{ ...btn(), padding: "12px 28px" }} onClick={advanceQuestion}>
+            {isLast ? "Build my improved resume" : "Next question"}
+          </button>
+          <button style={{ ...btn("ghost") }} onClick={advanceQuestion}>
+            Skip this one
+          </button>
+          {qIdx > 0 && (
+            <button style={btn("ghost")} onClick={() => setQIdx(qIdx - 1)}>
+              Back
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Upload screen
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Upload your current resume and we will review it with you. You may be asked a few short questions to better understand your experience, achievements, and the kind of role you are targeting. From there, we will help you strengthen it and return an improved version in Word format, so you can make any final edits yourself.
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <AlexAvatar />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <p style={{ fontSize: "16px", color: C.text, lineHeight: "1.7", margin: 0 }}>
+          Upload your current resume and I will review it with you.
+        </p>
+        <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
+          I will ask a few short questions to better understand your experience, your achievements, and the kind of role you are targeting. From there I will help you strengthen your resume and send back an improved version in Word format so you can make any final edits yourself.
+        </p>
+      </div>
+
+      <FileUpload label="Your current resume" onParsed={(text) => setResumeText(text)} />
+
+      <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", lineHeight: "1.5", margin: 0 }}>
+        Your resume is only used to generate your improved version. Nothing is stored or shared.
       </p>
-      <FileUpload label="Your current resume" onParsed={(text) => { setResumeText(text); }} />
+
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
-      <button style={btn()} disabled={!resumeText} onClick={() => fetchQuestions(resumeText)}>
-        Analyse my resume →
+
+      <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px" }}
+        disabled={!resumeText} onClick={() => fetchQuestions(resumeText)}>
+        Review my resume
       </button>
     </div>
   );
