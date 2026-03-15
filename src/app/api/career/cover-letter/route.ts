@@ -3,9 +3,10 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import {
   Document, Packer, Paragraph, TextRun,
-  AlignmentType, BorderStyle, LevelFormat,
+  AlignmentType, BorderStyle,
 } from "docx";
 
+export const maxDuration = 30;
 const ai = new Anthropic();
 const DARK = "1e2d3d";
 const MID = "475569";
@@ -24,47 +25,54 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { jobTitle, company, tone, fullName, selectedAttempts, badges, progress, skills } = await req.json();
+  const { resumeText, jdText, questions, answers, fullName } = await req.json();
+  if (!resumeText || resumeText.length < 100) {
+    return Response.json({ error: "Resume text is required." }, { status: 400 });
+  }
+  if (!jdText || jdText.trim().length < 50) {
+    return Response.json({ error: "Job description is required." }, { status: 400 });
+  }
 
-  const toneDesc: Record<string, string> = {
-    professional: "Formal and polished — appropriate for corporate or government roles.",
-    conversational: "Warm but credible — confident without being stiff. Good for mid-market or startup roles.",
-    executive: "Assertive and direct — written for senior roles. Opens with impact, closes with authority.",
-  };
+  const qaBlock = (questions as string[])
+    .map((q: string, i: number) => `Q: ${q}\nA: ${(answers as string[])[i] || "(no answer)"}`)
+    .join("\n\n");
 
-  const attemptsStr = (selectedAttempts || []).map((a: { challenge_title: string; challenge_type: string; total_score: number; industry: string }) =>
-    `- ${a.challenge_title} (${a.challenge_type} in ${a.industry}, scored ${a.total_score}/100)`
-  ).join("\n") || "No specific challenges selected.";
+  // Extract job title and company from JD text (best effort)
+  const jdLines = jdText.split("\n").slice(0, 5).join(" ");
 
-  const badgeStr = (badges || []).map((b: { badge_name: string }) => b.badge_name).join(", ") || "None";
+  const prompt = `You are a senior BA career coach writing a cover letter for a client. Use the resume, job description, and coaching answers to write a cover letter that feels personal, credible, and targeted — not like a template.
 
-  const userPrompt = `You are an expert BA career coach writing a cover letter for a business analyst. Write in this tone: ${toneDesc[tone] || toneDesc.professional}
+RESUME:
+${resumeText.slice(0, 2500)}
 
-ROLE APPLIED FOR: ${jobTitle || "Business Analyst"}
-COMPANY: ${company || "the organisation"}
-CANDIDATE NAME: ${fullName}
-BA LEVEL: ${progress?.ba_level || "Associate"}
-CHALLENGES COMPLETED: ${progress?.challenges_completed || 0} (avg score ${progress?.avg_score || 0}/100)
-SKILLS: Elicitation ${skills?.elicitation || 0}%, Requirements ${skills?.requirements || 0}%, Solution Analysis ${skills?.solutionAnalysis || 0}%, Stakeholder Management ${skills?.stakeholderMgmt || 0}%
+JOB DESCRIPTION:
+${jdText.slice(0, 1500)}
 
-SELECTED CHALLENGE EVIDENCE TO USE:
-${attemptsStr}
+COACHING ANSWERS (use these to personalise the letter):
+${qaBlock}
 
-BADGES EARNED: ${badgeStr}
+Write a strong four-paragraph cover letter. Rules:
+- Do NOT start with "I am writing to apply for"
+- Every paragraph must earn its place — no filler
+- Use specific language from both their resume and the JD
+- Sound like a confident professional, not a textbook
+- Reference their actual experience, not hypothetical skills
 
-Write a compelling cover letter with four distinct paragraphs. Return ONLY valid JSON:
+Return ONLY valid JSON — no text outside it:
 {
-  "opening": "<First paragraph — hook that immediately signals value to the employer. Connect their likely needs to the candidate's specific expertise. Do NOT start with 'I am writing to apply'. 3-4 sentences.>",
-  "evidence1": "<Second paragraph — use the first challenge simulation as a specific, concrete proof point of capability. Reference the challenge type and what was demonstrated. 3-4 sentences.>",
-  "evidence2": "<Third paragraph — use the second challenge or the candidate's badge/skill profile as additional evidence. Show range or depth. 3-4 sentences.>",
-  "closing": "<Fourth paragraph — confident close. Express genuine interest in this specific role/company. Include a clear CTA. Do not be sycophantic. 2-3 sentences.>"
+  "jobTitle": "<job title from the JD>",
+  "company": "<company name from the JD, or 'the organisation' if unclear>",
+  "opening": "<First paragraph — hook that immediately shows value and fit. 3-4 sentences.>",
+  "body1": "<Second paragraph — most relevant experience directly mapped to the role's core need. Be specific. 3-4 sentences.>",
+  "body2": "<Third paragraph — a second strength or achievement that adds dimension. Use coaching answers. 3-4 sentences.>",
+  "closing": "<Fourth paragraph — confident close, genuine interest, clear call to action. 2-3 sentences. No sycophancy.>"
 }`;
 
   try {
     const response = await ai.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1200,
-      messages: [{ role: "user", content: userPrompt }],
+      messages: [{ role: "user", content: prompt }],
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "";
@@ -79,63 +87,46 @@ Write a compelling cover letter with four distinct paragraphs. Return ONLY valid
       sections: [{
         properties: { page: { margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 } } },
         children: [
-          // Date
           new Paragraph({
             spacing: { after: 320 },
             children: [new TextRun({ text: today, size: 20, color: MID, font: "Calibri" })],
           }),
-
-          // Hiring manager
           new Paragraph({
             spacing: { after: 60 },
             children: [new TextRun({ text: "Hiring Manager", bold: true, size: 22, color: DARK, font: "Calibri" })],
           }),
           new Paragraph({
             spacing: { after: 60 },
-            children: [new TextRun({ text: company || "Company Name", size: 20, color: MID, font: "Calibri" })],
+            children: [new TextRun({ text: c.company || "Company Name", size: 20, color: MID, font: "Calibri" })],
           }),
           spacer(320),
-
-          // Salutation
           new Paragraph({
             spacing: { after: 200 },
-            children: [new TextRun({ text: `Dear Hiring Manager,`, size: 22, font: "Calibri", color: DARK })],
+            children: [new TextRun({ text: "Dear Hiring Manager,", size: 22, font: "Calibri", color: DARK })],
           }),
-
-          // Subject line
           new Paragraph({
             spacing: { after: 240 },
             children: [new TextRun({
-              text: `Re: Application for ${jobTitle || "Business Analyst"}`,
+              text: `Re: Application for ${c.jobTitle || "Business Analyst"}`,
               bold: true, size: 22, font: "Calibri", color: DARK,
             })],
           }),
-
-          // Opening paragraph
           new Paragraph({
             spacing: { after: 200 },
             children: [new TextRun({ text: c.opening, size: 22, font: "Calibri" })],
           }),
-
-          // Evidence paragraph 1
           new Paragraph({
             spacing: { after: 200 },
-            children: [new TextRun({ text: c.evidence1, size: 22, font: "Calibri" })],
+            children: [new TextRun({ text: c.body1, size: 22, font: "Calibri" })],
           }),
-
-          // Evidence paragraph 2
           new Paragraph({
             spacing: { after: 200 },
-            children: [new TextRun({ text: c.evidence2, size: 22, font: "Calibri" })],
+            children: [new TextRun({ text: c.body2, size: 22, font: "Calibri" })],
           }),
-
-          // Closing
           new Paragraph({
             spacing: { after: 400 },
             children: [new TextRun({ text: c.closing, size: 22, font: "Calibri" })],
           }),
-
-          // Sign off
           new Paragraph({
             spacing: { after: 80 },
             children: [new TextRun({ text: "Yours sincerely,", size: 22, font: "Calibri" })],
@@ -145,14 +136,12 @@ Write a compelling cover letter with four distinct paragraphs. Return ONLY valid
             spacing: { after: 60 },
             children: [new TextRun({ text: fullName || "Your Name", bold: true, size: 22, font: "Calibri", color: DARK })],
           }),
-
-          // Footer
           new Paragraph({
             spacing: { before: 480 },
             alignment: AlignmentType.CENTER,
             border: { top: { color: "e2e8f0", size: 4, style: BorderStyle.SINGLE, space: 4 } },
             children: [new TextRun({
-              text: `Portfolio: thebaportal.com/portfolio  |  ${progress?.challenges_completed || 0} BA simulations completed  |  Avg score ${progress?.avg_score || 0}/100`,
+              text: "Written with TheBAPortal career coaching",
               size: 16, color: "94a3b8", italics: true, font: "Calibri",
             })],
           }),
@@ -169,7 +158,7 @@ Write a compelling cover letter with four distinct paragraphs. Return ONLY valid
       },
     });
   } catch (err) {
-    console.error("Cover letter generation error:", err);
-    return Response.json({ error: "Generation failed. Please try again." }, { status: 500 });
+    console.error("Cover letter error:", err);
+    return Response.json({ error: "Could not generate cover letter. Please try again." }, { status: 500 });
   }
 }

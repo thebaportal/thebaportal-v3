@@ -6,6 +6,7 @@ import {
   AlignmentType, BorderStyle, WidthType, LevelFormat,
 } from "docx";
 
+export const maxDuration = 30;
 const ai = new Anthropic();
 
 const DARK = "1e2d3d";
@@ -81,55 +82,54 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { template, fullName, jobTarget, yearsExp, certifications, attempts, badges, skills, progress } = await req.json();
+  const { resumeText, questions, answers, fullName } = await req.json();
+  if (!resumeText || resumeText.length < 100) {
+    return Response.json({ error: "Resume text is required." }, { status: 400 });
+  }
 
-  const templateDesc: Record<string, string> = {
-    technical: "Technical BA who bridges business and IT — writes detailed functional specs, leads UAT, and works daily with development teams.",
-    operational: "Operational BA focused on process improvement, efficiency gains, and organisational change management.",
-    strategic: "Strategic BA operating at portfolio and enterprise level — advises on investment cases, operating models, and business direction.",
-  };
+  const qaBlock = (questions as string[])
+    .map((q: string, i: number) => `Q: ${q}\nA: ${(answers as string[])[i] || "(no answer)"}`)
+    .join("\n\n");
 
-  const attemptsStr = (attempts || []).slice(0, 6).map((a: { challenge_title: string; challenge_type: string; industry: string; total_score: number; difficulty_mode: string }) =>
-    `- ${a.challenge_title} (Type: ${a.challenge_type}, Industry: ${a.industry}, Score: ${a.total_score}/100, Difficulty: ${a.difficulty_mode})`
-  ).join("\n") || "No simulations completed yet.";
+  const prompt = `You are a senior BA career coach and professional resume writer. Your job is to take a client's existing resume and improve it using additional context they've provided through a coaching conversation.
 
-  const badgeNames = (badges || []).map((b: { badge_name: string }) => b.badge_name).join(", ") || "None";
+ORIGINAL RESUME:
+${resumeText.slice(0, 4000)}
 
-  const userPrompt = `You are an expert BA career coach and professional CV writer. Write tailored resume content for a ${template} BA profile.
+COACHING Q&A (use these answers to fill gaps and strengthen the resume):
+${qaBlock}
 
-CANDIDATE PROFILE:
-Name: ${fullName}
-Target role: ${jobTarget || "Business Analyst"}
-Years of experience: ${yearsExp || "Not specified"}
-Certifications held: ${certifications || "None stated"}
-BA level: ${progress?.ba_level || "Associate"}
-Challenges completed: ${progress?.challenges_completed || 0}
-Average score: ${progress?.avg_score || 0}/100
-Skill scores — Elicitation: ${skills?.elicitation || 0}%, Requirements: ${skills?.requirements || 0}%, Solution Analysis: ${skills?.solutionAnalysis || 0}%, Stakeholder Management: ${skills?.stakeholderMgmt || 0}%
+Rewrite and improve this resume. Keep the person's real experience and career history — don't invent jobs or qualifications they haven't mentioned. Use the coaching answers to:
+- Add specific metrics, outcomes, and results where they were vague
+- Replace weak bullet points with strong action + result statements
+- Surface achievements they undersold or left out
+- Add tools, technologies, or methodologies they mentioned in their answers
+- Sharpen the professional summary to reflect their actual target and strength
 
-Template specialisation: ${templateDesc[template] || templateDesc.technical}
+Write like a real resume writer, not a template filler. Use confident, direct language. Every bullet should earn its place.
 
-VERIFIED PRACTICE SIMULATIONS COMPLETED:
-${attemptsStr}
-
-ACHIEVEMENTS EARNED: ${badgeNames}
-
-Return ONLY valid JSON — no markdown, no commentary outside the JSON:
+Return ONLY valid JSON — no text outside it:
 {
-  "professionalSummary": "<3-4 punchy sentences. Specific to the ${template} specialisation. Mention years of experience. No clichés like 'passionate' or 'results-driven'. Open strong.>",
-  "coreCompetencies": ["<12 specific competencies relevant to ${template} BA — mix hard and soft skills, use industry-standard BA terminology>"],
+  "professionalSummary": "<3-4 sentences. Specific, confident, no clichés. Reflects their actual background and target.>",
+  "coreCompetencies": ["<10-12 specific competencies — mix of hard skills, tools, and BA techniques>"],
+  "experienceBullets": {
+    "<Job Title at Company>": [
+      "<strong bullet — action verb + what you did + result/impact>",
+      "<another bullet>"
+    ]
+  },
   "keyAchievements": [
-    "<5 strong achievement bullets — action verb + what you did + implied or explicit outcome. Reference challenge types where relevant.>"
+    "<5 cross-role achievements that stand out — most impressive results from their career>"
   ],
-  "methodologyApproach": "<2-3 sentences on their analytical and delivery approach, tailored to ${template} specialisation. Reference frameworks like BABOK, Agile, BPMN, or relevant ones.>",
-  "professionalDevelopment": ["<3 items demonstrating continuous learning — reference challenge types, industries, or certifications mentioned>"]
+  "education": "<education details preserved from original resume>",
+  "certifications": "<certifications from original resume plus any mentioned in coaching answers>"
 }`;
 
   try {
     const response = await ai.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1400,
-      messages: [{ role: "user", content: userPrompt }],
+      max_tokens: 1800,
+      messages: [{ role: "user", content: prompt }],
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "";
@@ -137,7 +137,20 @@ Return ONLY valid JSON — no markdown, no commentary outside the JSON:
     if (!jsonMatch) throw new Error("No JSON in response");
     const c = JSON.parse(jsonMatch[0]);
 
-    const today = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const experienceSection: Paragraph[] = [];
+    if (c.experienceBullets && typeof c.experienceBullets === "object") {
+      for (const [role, bullets] of Object.entries(c.experienceBullets)) {
+        experienceSection.push(
+          new Paragraph({
+            spacing: { before: 200, after: 80 },
+            children: [new TextRun({ text: role, bold: true, size: 22, color: DARK, font: "Calibri" })],
+          })
+        );
+        for (const b of (bullets as string[])) {
+          experienceSection.push(bullet(b));
+        }
+      }
+    }
 
     const doc = new Document({
       numbering: {
@@ -161,21 +174,6 @@ Return ONLY valid JSON — no markdown, no commentary outside the JSON:
             spacing: { after: 80 },
             children: [new TextRun({ text: fullName || "Your Name", bold: true, size: 60, color: DARK, font: "Calibri" })],
           }),
-          // Role line
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 80 },
-            children: [new TextRun({ text: jobTarget || "Business Analyst", size: 26, color: MID, italics: true, font: "Calibri" })],
-          }),
-          // Certifications / contact line
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 40 },
-            children: [new TextRun({
-              text: [certifications, "TheBAPortal.com"].filter(Boolean).join("  |  "),
-              size: 18, color: MID, font: "Calibri",
-            })],
-          }),
           hr(ACCENT),
 
           // Professional Summary
@@ -195,33 +193,38 @@ Return ONLY valid JSON — no markdown, no commentary outside the JSON:
           ...(c.keyAchievements || []).map(bullet),
           new Paragraph({ spacing: { after: 60 } }),
 
-          // Methodology
-          sectionHead("Methodology & Approach"),
-          new Paragraph({
-            spacing: { after: 200 },
-            children: [new TextRun({ text: c.methodologyApproach, size: 21, font: "Calibri" })],
-          }),
+          // Experience
+          ...(experienceSection.length > 0 ? [
+            sectionHead("Professional Experience"),
+            ...experienceSection,
+            new Paragraph({ spacing: { after: 60 } }),
+          ] : []),
 
-          // Professional Development
-          sectionHead("Professional Development"),
-          ...(c.professionalDevelopment || []).map(bullet),
-
-          // Certifications section
-          ...(certifications ? [
-            sectionHead("Certifications & Credentials"),
+          // Education
+          ...(c.education ? [
+            sectionHead("Education"),
             new Paragraph({
               spacing: { after: 80 },
-              children: [new TextRun({ text: certifications, size: 20, font: "Calibri" })],
+              children: [new TextRun({ text: c.education, size: 20, font: "Calibri" })],
             }),
           ] : []),
 
-          // Footer note
+          // Certifications
+          ...(c.certifications ? [
+            sectionHead("Certifications & Professional Development"),
+            new Paragraph({
+              spacing: { after: 80 },
+              children: [new TextRun({ text: c.certifications, size: 20, font: "Calibri" })],
+            }),
+          ] : []),
+
+          // Footer
           new Paragraph({
             spacing: { before: 320 },
             border: { top: { color: "e2e8f0", size: 4, style: BorderStyle.SINGLE, space: 4 } },
             alignment: AlignmentType.CENTER,
             children: [new TextRun({
-              text: `Portfolio of verified BA work: thebaportal.com/portfolio  |  ${progress?.challenges_completed || 0} simulations  |  Avg score ${progress?.avg_score || 0}/100  |  ${today}`,
+              text: "Improved with TheBAPortal career coaching",
               size: 16, color: "94a3b8", italics: true, font: "Calibri",
             })],
           }),
@@ -234,11 +237,11 @@ Return ONLY valid JSON — no markdown, no commentary outside the JSON:
     return new Response(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${safeName}_BA_Resume.docx"`,
+        "Content-Disposition": `attachment; filename="${safeName}_Improved_Resume.docx"`,
       },
     });
   } catch (err) {
-    console.error("Resume generation error:", err);
-    return Response.json({ error: "Generation failed. Please try again." }, { status: 500 });
+    console.error("Resume improvement error:", err);
+    return Response.json({ error: "Could not improve your resume. Please try again." }, { status: 500 });
   }
 }

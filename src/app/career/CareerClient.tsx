@@ -1,1268 +1,1269 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { ChallengeAttempt, UserBadge, UserProgress } from "@/lib/progress";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────────────────────────
 
-type CareerTool = "resume" | "cover-letter" | "jd" | "interview" | "linkedin";
-type ResumeTemplate = "technical" | "operational" | "strategic";
-type CoverLetterTone = "professional" | "conversational" | "executive";
-type LinkedInStyle = "concise" | "detailed" | "confident";
-type InterviewCategory = "behavioral" | "technical" | "stakeholder" | "process";
-
-interface Skills {
-  elicitation: number;
-  requirements: number;
-  solutionAnalysis: number;
-  stakeholderMgmt: number;
-}
-
-interface JDAnalysis {
-  matchScore: number;
-  roleSummary: string;
-  matchedSkills: { skill: string; evidence: string }[];
-  gapSkills: { skill: string; priority: "high" | "medium" | "low"; recommendation: string }[];
-  interviewTalkingPoints: string[];
-  questionsToExpect: string[];
-  fitVerdict: string;
-}
-
-interface StarScore {
-  score: number;
-  feedback: string;
-}
-
-interface InterviewFeedback {
-  overallScore: number;
-  star: { situation: StarScore; task: StarScore; action: StarScore; result: StarScore };
-  delivery: { pacing: { score: number; wpm: number; feedback: string }; confidence: { score: number; feedback: string } };
-  topStrength: string;
-  topImprovement: string;
-  missingElement: string;
-  suggestedRewrite: string;
-  interviewerPerspective: string;
-}
+type Tool = "advisor" | "resume" | "cover-letter" | "jd" | "interview" | "salary";
 
 interface Props {
-  userId: string;
   fullName: string;
-  tier: string;
-  attempts: ChallengeAttempt[];
-  badges: UserBadge[];
-  progress: UserProgress;
-  skills: Skills;
 }
 
-// ── Interview Question Bank ────────────────────────────────────────────────────
+// ── Colours / style helpers ─────────────────────────────────────────────────
 
-const INTERVIEW_QUESTIONS: Record<InterviewCategory, string[]> = {
-  behavioral: [
-    "Tell me about a time you had to manage conflicting stakeholder requirements. What did you do and what was the outcome?",
-    "Describe a situation where your analysis uncovered a problem the business hadn't anticipated. How did you handle it?",
-    "Give me an example of when you had to influence a decision without having direct authority over the people involved.",
-    "Tell me about a time a project requirement changed significantly mid-delivery. How did you adapt?",
-    "Describe a situation where you disagreed with a stakeholder's direction. What did you do?",
-  ],
-  technical: [
-    "Walk me through your end-to-end approach when starting a new requirements-gathering engagement.",
-    "How do you decide which elicitation techniques to use for a given stakeholder group?",
-    "Explain how you would write a use case for a system that has no documentation.",
-    "How do you handle requirements traceability across a large, complex project?",
-    "Describe your process for validating that a delivered solution actually meets the original business need.",
-  ],
-  stakeholder: [
-    "How do you manage a stakeholder who is frequently unavailable but whose sign-off is critical to your project?",
-    "Describe your approach to building trust quickly with a new stakeholder group.",
-    "Tell me how you would handle a situation where two senior stakeholders have directly opposing views on what the solution should be.",
-    "How do you communicate complex analytical findings to a non-technical executive audience?",
-    "What is your strategy for keeping stakeholders engaged throughout a long-running programme?",
-  ],
-  process: [
-    "How do you approach process mapping for a workflow that no one fully understands end to end?",
-    "Describe how you would document an as-is process that has multiple regional variations.",
-    "Walk me through how you identify process improvement opportunities from a current-state analysis.",
-    "How do you measure whether a process change has actually delivered the intended benefit?",
-    "What frameworks or methodologies have you used to analyse and improve business processes?",
-  ],
+const C = {
+  bg: "#0a0d14",
+  panel: "#0d1117",
+  border: "rgba(255,255,255,0.06)",
+  muted: "rgba(255,255,255,0.35)",
+  text: "rgba(255,255,255,0.85)",
+  teal: "#22d3ee",
+  tealBg: "rgba(8,145,178,0.12)",
+  tealBorder: "rgba(8,145,178,0.3)",
+  green: "#6ee7b7",
+  greenBg: "rgba(16,185,129,0.12)",
+  red: "#f87171",
+  redBg: "rgba(239,68,68,0.1)",
+  amber: "#fbbf24",
 };
 
-// ── Score Ring ─────────────────────────────────────────────────────────────────
+const btn = (variant: "teal" | "ghost" | "danger" = "teal"): React.CSSProperties => ({
+  padding: "10px 20px",
+  borderRadius: "8px",
+  fontSize: "14px",
+  fontWeight: "600",
+  cursor: "pointer",
+  fontFamily: "Inter, system-ui, sans-serif",
+  ...(variant === "teal" ? {
+    background: C.tealBg,
+    border: `1px solid ${C.tealBorder}`,
+    color: C.teal,
+  } : variant === "danger" ? {
+    background: C.redBg,
+    border: "1px solid rgba(239,68,68,0.3)",
+    color: C.red,
+  } : {
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    color: C.muted,
+  }),
+});
 
-function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
-  const r = (size - 10) / 2;
+const card: React.CSSProperties = {
+  background: C.panel,
+  border: `1px solid ${C.border}`,
+  borderRadius: "12px",
+  padding: "24px",
+};
+
+const label: React.CSSProperties = {
+  display: "block",
+  fontSize: "12px",
+  fontWeight: "700",
+  letterSpacing: "0.07em",
+  color: C.muted,
+  marginBottom: "8px",
+  fontFamily: "JetBrains Mono, monospace",
+  textTransform: "uppercase",
+};
+
+const input: React.CSSProperties = {
+  width: "100%",
+  background: "#0a0d14",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: "8px",
+  padding: "12px 14px",
+  fontSize: "14px",
+  color: C.text,
+  fontFamily: "Inter, system-ui, sans-serif",
+  boxSizing: "border-box",
+};
+
+const textarea = (rows = 4): React.CSSProperties => ({
+  ...input,
+  resize: "vertical",
+  minHeight: `${rows * 24 + 24}px`,
+});
+
+// ── File Upload Helper ──────────────────────────────────────────────────────
+
+function FileUpload({ onParsed, label: lbl }: {
+  onParsed: (text: string, fileName: string) => void;
+  label: string;
+}) {
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [fileName, setFileName] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleFile = async (file: File) => {
+    setStatus("loading");
+    setErrorMsg("");
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await fetch("/api/career/parse-resume", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Upload failed");
+      setFileName(data.fileName);
+      setStatus("done");
+      onParsed(data.text, data.fileName);
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err instanceof Error ? err.message : "Upload failed");
+    }
+  };
+
+  return (
+    <div>
+      <span style={label}>{lbl}</span>
+      <label style={{
+        display: "block",
+        border: `2px dashed ${status === "done" ? C.tealBorder : "rgba(255,255,255,0.12)"}`,
+        borderRadius: "10px",
+        padding: "20px",
+        textAlign: "center",
+        cursor: "pointer",
+        background: status === "done" ? C.tealBg : "transparent",
+        transition: "all 0.15s",
+      }}>
+        <input type="file" accept=".pdf,.doc,.docx" style={{ display: "none" }}
+          onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
+        {status === "loading" && <span style={{ color: C.muted, fontSize: "14px" }}>Reading file…</span>}
+        {status === "done" && <span style={{ color: C.teal, fontSize: "14px" }}>✓ {fileName} — click to replace</span>}
+        {status === "error" && <span style={{ color: C.red, fontSize: "14px" }}>{errorMsg}</span>}
+        {status === "idle" && (
+          <span style={{ color: C.muted, fontSize: "14px" }}>
+            Click to upload Word (.docx) or PDF
+          </span>
+        )}
+      </label>
+    </div>
+  );
+}
+
+// ── Coaching Q&A ────────────────────────────────────────────────────────────
+
+function CoachingQA({ questions, answers, onChange }: {
+  questions: string[];
+  answers: string[];
+  onChange: (i: number, val: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {questions.map((q, i) => (
+        <div key={i}>
+          <p style={{ fontSize: "15px", color: C.text, marginBottom: "10px", lineHeight: "1.5" }}>
+            <span style={{ color: C.teal, fontWeight: "700", marginRight: "8px" }}>{i + 1}.</span>
+            {q}
+          </p>
+          <textarea
+            rows={3}
+            style={textarea(3)}
+            placeholder="Your answer…"
+            value={answers[i] || ""}
+            onChange={e => onChange(i, e.target.value)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Score Ring ──────────────────────────────────────────────────────────────
+
+function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
+  const r = (size - 8) / 2;
   const circ = 2 * Math.PI * r;
-  const filled = (score / 100) * circ;
-  const color = score >= 75 ? "#10b981" : score >= 55 ? "#f59e0b" : "#e05547";
+  const colour = score >= 75 ? C.teal : score >= 50 ? C.amber : C.red;
   return (
     <svg width={size} height={size} style={{ flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="8"
-        strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-      <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize={size < 64 ? 12 : 18} fontWeight="700" fontFamily="system-ui">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={colour} strokeWidth="4"
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - score / 100)}
+        strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      <text x="50%" y="50%" textAnchor="middle" dy="0.35em" fill={colour}
+        fontSize={size < 48 ? "10" : "13"} fontWeight="700" fontFamily="JetBrains Mono, monospace">
         {score}
       </text>
     </svg>
   );
 }
 
-// ── Star Bar ───────────────────────────────────────────────────────────────────
+// ── Career Strategy Advisor ─────────────────────────────────────────────────
 
-function StarBar({ label, score, feedback }: { label: string; score: number; feedback: string }) {
-  const [open, setOpen] = useState(false);
-  const color = score >= 75 ? "#10b981" : score >= 55 ? "#f59e0b" : "#e05547";
-  return (
-    <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "12px", marginBottom: "12px" }}>
-      <button onClick={() => setOpen(o => !o)}
-        style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", fontFamily: "JetBrains Mono, monospace", width: "80px", textAlign: "left" }}>{label}</span>
-          <div style={{ flex: 1, height: "6px", background: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${score}%`, background: color, borderRadius: "3px", transition: "width 0.6s ease" }} />
+function AdvisorTool() {
+  const [step, setStep] = useState<"questions" | "loading" | "result">("questions");
+  const [answers, setAnswers] = useState({ background: "", currentRole: "", whatLove: "", whatAvoid: "", goal: "" });
+  const [result, setResult] = useState<null | {
+    primaryTrack: string; fitScore: number; whyThisTrack: string; secondaryTrack: string | null;
+    strengths: string[]; gaps: string[]; nextSteps: string[]; roleTypesToTarget: string[]; watchOut: string;
+  }>(null);
+  const [error, setError] = useState("");
+
+  const fields = [
+    { key: "background", label: "Your BA background", placeholder: "What's your experience so far? Include years, industries, types of projects." },
+    { key: "currentRole", label: "Current role or area", placeholder: "What are you doing now? If you're transitioning, what from?" },
+    { key: "whatLove", label: "What you love about BA work", placeholder: "What energises you most in this kind of work?" },
+    { key: "whatAvoid", label: "What you want to avoid", placeholder: "Any types of work, environments, or tasks you'd prefer to steer clear of?" },
+    { key: "goal", label: "Your goal in 2–3 years", placeholder: "Where do you want to be? What does success look like?" },
+  ] as const;
+
+  const submit = async () => {
+    setStep("loading");
+    setError("");
+    try {
+      const res = await fetch("/api/career/career-advisor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      setResult(data);
+      setStep("result");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setStep("questions");
+    }
+  };
+
+  const trackColour = (track: string) => {
+    if (track.includes("Technical")) return "#818cf8";
+    if (track.includes("Product")) return C.teal;
+    return C.amber;
+  };
+
+  if (step === "loading") {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 0" }}>
+        <div style={{ color: C.teal, fontSize: "15px", marginBottom: "8px" }}>Analysing your profile…</div>
+        <div style={{ color: C.muted, fontSize: "13px" }}>This takes a few seconds</div>
+      </div>
+    );
+  }
+
+  if (step === "result" && result) {
+    const tc = trackColour(result.primaryTrack);
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        {/* Track recommendation */}
+        <div style={{ ...card, border: `1px solid ${tc}33`, background: `${tc}0d` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+            <ScoreRing score={result.fitScore} size={64} />
+            <div>
+              <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "4px" }}>YOUR TRACK</div>
+              <div style={{ fontSize: "22px", fontWeight: "700", color: tc }}>{result.primaryTrack}</div>
+              {result.secondaryTrack && (
+                <div style={{ fontSize: "12px", color: C.muted, marginTop: "2px" }}>Secondary fit: {result.secondaryTrack}</div>
+              )}
+            </div>
           </div>
-          <span style={{ color, fontSize: "13px", fontWeight: "700", width: "36px", textAlign: "right", fontFamily: "JetBrains Mono, monospace" }}>{score}</span>
-          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px" }}>{open ? "▲" : "▼"}</span>
+          <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whyThisTrack}</p>
         </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          {/* Strengths */}
+          <div style={card}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT YOU BRING</div>
+            {result.strengths.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ color: C.green, flexShrink: 0 }}>✓</span>
+                <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.4" }}>{s}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Gaps */}
+          <div style={card}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT TO BUILD</div>
+            {result.gaps.map((g, i) => (
+              <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ color: C.amber, flexShrink: 0 }}>→</span>
+                <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.4" }}>{g}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Next steps */}
+        <div style={card}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>NEXT STEPS</div>
+          {result.nextSteps.map((s, i) => (
+            <div key={i} style={{ display: "flex", gap: "12px", marginBottom: "12px", alignItems: "flex-start" }}>
+              <span style={{ background: C.tealBg, border: `1px solid ${C.tealBorder}`, borderRadius: "50%", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700", color: C.teal, flexShrink: 0 }}>{i + 1}</span>
+              <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.5" }}>{s}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Roles + watch out */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={card}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>ROLES TO TARGET</div>
+            {result.roleTypesToTarget.map((r, i) => (
+              <div key={i} style={{ fontSize: "14px", color: C.text, marginBottom: "8px", paddingLeft: "14px", borderLeft: `2px solid ${C.border}` }}>{r}</div>
+            ))}
+          </div>
+          <div style={{ ...card, border: "1px solid rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WATCH OUT FOR</div>
+            <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: 0 }}>{result.watchOut}</p>
+          </div>
+        </div>
+
+        <button style={btn("ghost")} onClick={() => { setStep("questions"); setResult(null); }}>
+          ← Start over
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+        Answer five questions and get a personalised recommendation on which BA track suits you best — with concrete next steps.
+      </p>
+      {fields.map(f => (
+        <div key={f.key}>
+          <span style={label}>{f.label}</span>
+          <textarea
+            rows={3}
+            style={textarea(3)}
+            placeholder={f.placeholder}
+            value={answers[f.key]}
+            onChange={e => setAnswers(prev => ({ ...prev, [f.key]: e.target.value }))}
+          />
+        </div>
+      ))}
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <button style={btn()} onClick={submit}
+        disabled={!answers.background.trim() || !answers.goal.trim()}>
+        Get my career strategy →
       </button>
-      {open && (
-        <p style={{ margin: "10px 0 0 92px", color: "rgba(255,255,255,0.65)", fontSize: "13px", lineHeight: 1.65 }}>{feedback}</p>
-      )}
     </div>
   );
 }
 
-// ── Waveform Animation (for interview recording) ───────────────────────────────
+// ── Resume Improvement ──────────────────────────────────────────────────────
 
-function WaveformBars() {
-  return (
-    <>
-      <style>{`
-        @keyframes csWave {
-          0%, 100% { transform: scaleY(0.3); }
-          50% { transform: scaleY(1); }
-        }
-      `}</style>
-      <div style={{ display: "flex", alignItems: "center", gap: "3px", height: "32px" }}>
-        {[0.2, 0.5, 0.8, 0.4, 1.0, 0.6, 0.3, 0.9, 0.5, 0.7, 0.4, 0.8].map((delay, i) => (
-          <div key={i} style={{
-            width: "3px", height: "100%", background: "#d97706", borderRadius: "2px",
-            animation: `csWave 1.1s ease-in-out ${delay * 0.6}s infinite`,
-            transformOrigin: "center",
-          }} />
-        ))}
-      </div>
-    </>
-  );
-}
+function ResumeTool({ fullName }: { fullName: string }) {
+  const [step, setStep] = useState<"upload" | "questions" | "loading" | "done">("upload");
+  const [resumeText, setResumeText] = useState("");
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [impression, setImpression] = useState("");
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const [loadingMsg, setLoadingMsg] = useState("");
 
-// ── Main Component ─────────────────────────────────────────────────────────────
-
-export default function CareerClient({ userId, fullName, tier, attempts, badges, progress, skills }: Props) {
-  const router = useRouter();
-  const [activeTool, setActiveTool] = useState<CareerTool>("resume");
-
-  // Resume state
-  const [resumeTemplate, setResumeTemplate] = useState<ResumeTemplate>("technical");
-  const [resumeJobTarget, setResumeJobTarget] = useState("");
-  const [resumeYearsExp, setResumeYearsExp] = useState("");
-  const [resumeCerts, setResumeCerts] = useState("");
-  const [resumeGenerating, setResumeGenerating] = useState(false);
-  const [resumeError, setResumeError] = useState("");
-
-  // Cover letter state
-  const [clJobTitle, setClJobTitle] = useState("");
-  const [clCompany, setClCompany] = useState("");
-  const [clTone, setClTone] = useState<CoverLetterTone>("professional");
-  const [clSelected, setClSelected] = useState<string[]>([]);
-  const [clGenerating, setClGenerating] = useState(false);
-  const [clError, setClError] = useState("");
-
-  // JD state
-  const [jdText, setJdText] = useState("");
-  const [jdGenerating, setJdGenerating] = useState(false);
-  const [jdResult, setJdResult] = useState<JDAnalysis | null>(null);
-  const [jdError, setJdError] = useState("");
-
-  // Interview state
-  const [interviewCategory, setInterviewCategory] = useState<InterviewCategory>("behavioral");
-  const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [transcript, setTranscript] = useState("");
-  const [interimTranscript, setInterimTranscript] = useState("");
-  const [wordCount, setWordCount] = useState(0);
-  const [speechSupported, setSpeechSupported] = useState(true);
-  const [interviewFeedback, setInterviewFeedback] = useState<InterviewFeedback | null>(null);
-  const [interviewGenerating, setInterviewGenerating] = useState(false);
-  const [interviewError, setInterviewError] = useState("");
-  const [micAllowed, setMicAllowed] = useState(false);
-
-  // LinkedIn state
-  const [liStyle, setLiStyle] = useState<LinkedInStyle>("concise");
-  const [liResult, setLiResult] = useState<string | null>(null);
-  const [liGenerating, setLiGenerating] = useState(false);
-  const [liError, setLiError] = useState("");
-  const [liCopied, setLiCopied] = useState(false);
-
-  // Refs for interview recording
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const finalTranscriptRef = useRef("");
-
-  useEffect(() => {
-    setSpeechSupported("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
-  }, []);
-
-  // Timer
-  useEffect(() => {
-    if (isRecording) {
-      timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+  const fetchQuestions = async (text: string) => {
+    setStep("loading");
+    setLoadingMsg("Reading your resume…");
+    setError("");
+    try {
+      const res = await fetch("/api/career/resume-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeText: text }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      setQuestions(data.questions);
+      setImpression(data.firstImpression || "");
+      setAnswers(new Array(data.questions.length).fill(""));
+      setStep("questions");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setStep("upload");
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isRecording]);
+  };
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
-  // ── Resume download ────────────────────────────────────────────────────────
-
-  const handleResumeDownload = async () => {
-    setResumeGenerating(true);
-    setResumeError("");
+  const downloadImproved = async () => {
+    setStep("loading");
+    setLoadingMsg("Improving your resume…");
+    setError("");
     try {
       const res = await fetch("/api/career/resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          template: resumeTemplate,
-          fullName,
-          jobTarget: resumeJobTarget,
-          yearsExp: resumeYearsExp,
-          certifications: resumeCerts,
-          attempts,
-          badges,
-          skills,
-          progress,
-        }),
+        body: JSON.stringify({ resumeText, questions, answers, fullName }),
       });
       if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || "Generation failed");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Download failed");
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${(fullName || "BA_Resume").replace(/\s+/g, "_")}_Resume.docx`;
+      a.download = `${(fullName || "Resume").replace(/\s+/g, "_")}_Improved_Resume.docx`;
       a.click();
       URL.revokeObjectURL(url);
+      setStep("done");
     } catch (err) {
-      setResumeError(err instanceof Error ? err.message : "Generation failed");
-    } finally {
-      setResumeGenerating(false);
+      setError(err instanceof Error ? err.message : "Download failed");
+      setStep("questions");
     }
   };
 
-  // ── Cover letter download ──────────────────────────────────────────────────
+  if (step === "loading") return (
+    <div style={{ textAlign: "center", padding: "60px 0" }}>
+      <div style={{ color: C.teal, fontSize: "15px", marginBottom: "8px" }}>{loadingMsg}</div>
+      <div style={{ color: C.muted, fontSize: "13px" }}>Give it a moment…</div>
+    </div>
+  );
 
-  const handleCoverLetterDownload = async () => {
-    setClGenerating(true);
-    setClError("");
-    const selectedAttempts = attempts.filter(a => clSelected.includes(a.id));
+  if (step === "done") return (
+    <div style={{ textAlign: "center", padding: "48px 0" }}>
+      <div style={{ fontSize: "40px", marginBottom: "16px" }}>✓</div>
+      <div style={{ fontSize: "18px", fontWeight: "700", color: C.green, marginBottom: "8px" }}>Resume downloaded</div>
+      <p style={{ color: C.muted, fontSize: "14px", marginBottom: "24px" }}>Check your downloads folder for your improved .docx file.</p>
+      <button style={btn("ghost")} onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); }}>
+        Improve another resume
+      </button>
+    </div>
+  );
+
+  if (step === "questions") return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {impression && (
+        <div style={{ ...card, borderColor: C.tealBorder, background: C.tealBg }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>FIRST IMPRESSION</div>
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: 0 }}>{impression}</p>
+        </div>
+      )}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>COACHING QUESTIONS</div>
+        <p style={{ fontSize: "14px", color: C.muted, marginBottom: "20px", lineHeight: "1.5" }}>
+          Answer these to help strengthen your resume. Skip any that don&apos;t apply.
+        </p>
+        <CoachingQA questions={questions} answers={answers}
+          onChange={(i, v) => setAnswers(prev => { const a = [...prev]; a[i] = v; return a; })} />
+      </div>
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <div style={{ display: "flex", gap: "12px" }}>
+        <button style={btn()} onClick={downloadImproved}>Download improved resume (.docx)</button>
+        <button style={btn("ghost")} onClick={() => setStep("upload")}>← Back</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+        Upload your current resume. The AI will ask a few coaching questions to fill the gaps, then generate an improved version as a Word file.
+      </p>
+      <FileUpload label="Your current resume" onParsed={(text) => { setResumeText(text); }} />
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <button style={btn()} disabled={!resumeText} onClick={() => fetchQuestions(resumeText)}>
+        Analyse my resume →
+      </button>
+    </div>
+  );
+}
+
+// ── Cover Letter Builder ────────────────────────────────────────────────────
+
+function CoverLetterTool({ fullName }: { fullName: string }) {
+  const [step, setStep] = useState<"setup" | "questions" | "loading" | "done">("setup");
+  const [resumeText, setResumeText] = useState("");
+  const [jdText, setJdText] = useState("");
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [jdSummary, setJdSummary] = useState("");
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const [loadingMsg, setLoadingMsg] = useState("");
+
+  const fetchQuestions = async () => {
+    setStep("loading");
+    setLoadingMsg("Reviewing resume and job description…");
+    setError("");
+    try {
+      const res = await fetch("/api/career/cover-letter-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeText, jdText }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      setQuestions(data.questions);
+      setJdSummary(data.jdSummary || "");
+      setAnswers(new Array(data.questions.length).fill(""));
+      setStep("questions");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setStep("setup");
+    }
+  };
+
+  const downloadLetter = async () => {
+    setStep("loading");
+    setLoadingMsg("Writing your cover letter…");
+    setError("");
     try {
       const res = await fetch("/api/career/cover-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobTitle: clJobTitle,
-          company: clCompany,
-          tone: clTone,
-          fullName,
-          selectedAttempts,
-          badges,
-          progress,
-          skills,
-        }),
+        body: JSON.stringify({ resumeText, jdText, questions, answers, fullName }),
       });
       if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || "Generation failed");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Download failed");
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${(fullName || "Cover_Letter").replace(/\s+/g, "_")}_Cover_Letter.docx`;
+      a.download = `${(fullName || "CoverLetter").replace(/\s+/g, "_")}_Cover_Letter.docx`;
       a.click();
       URL.revokeObjectURL(url);
+      setStep("done");
     } catch (err) {
-      setClError(err instanceof Error ? err.message : "Generation failed");
-    } finally {
-      setClGenerating(false);
+      setError(err instanceof Error ? err.message : "Download failed");
+      setStep("questions");
     }
   };
 
-  // ── JD analyze ────────────────────────────────────────────────────────────
+  if (step === "loading") return (
+    <div style={{ textAlign: "center", padding: "60px 0" }}>
+      <div style={{ color: C.teal, fontSize: "15px", marginBottom: "8px" }}>{loadingMsg}</div>
+    </div>
+  );
 
-  const handleJDAnalyze = async () => {
-    setJdGenerating(true);
-    setJdError("");
-    setJdResult(null);
+  if (step === "done") return (
+    <div style={{ textAlign: "center", padding: "48px 0" }}>
+      <div style={{ fontSize: "40px", marginBottom: "16px" }}>✓</div>
+      <div style={{ fontSize: "18px", fontWeight: "700", color: C.green, marginBottom: "8px" }}>Cover letter downloaded</div>
+      <p style={{ color: C.muted, fontSize: "14px", marginBottom: "24px" }}>Your personalised cover letter is in your downloads folder.</p>
+      <button style={btn("ghost")} onClick={() => { setStep("setup"); setResumeText(""); setJdText(""); setQuestions([]); setAnswers([]); }}>
+        Write another letter
+      </button>
+    </div>
+  );
+
+  if (step === "questions") return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {jdSummary && (
+        <div style={{ ...card, borderColor: C.tealBorder, background: C.tealBg }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>ROLE SUMMARY</div>
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: 0 }}>{jdSummary}</p>
+        </div>
+      )}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>A FEW QUICK QUESTIONS</div>
+        <CoachingQA questions={questions} answers={answers}
+          onChange={(i, v) => setAnswers(prev => { const a = [...prev]; a[i] = v; return a; })} />
+      </div>
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <div style={{ display: "flex", gap: "12px" }}>
+        <button style={btn()} onClick={downloadLetter}>Download cover letter (.docx)</button>
+        <button style={btn("ghost")} onClick={() => setStep("setup")}>← Back</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+        Upload your resume and paste the job description. The AI will ask a couple of targeted questions to make your letter specific and compelling.
+      </p>
+      <FileUpload label="Your resume" onParsed={(text) => setResumeText(text)} />
+      <div>
+        <span style={label}>Job description</span>
+        <textarea rows={8} style={textarea(8)} placeholder="Paste the full job description here…"
+          value={jdText} onChange={e => setJdText(e.target.value)} />
+      </div>
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <button style={btn()} disabled={!resumeText || jdText.trim().length < 50} onClick={fetchQuestions}>
+        Next →
+      </button>
+    </div>
+  );
+}
+
+// ── JD Analyzer ─────────────────────────────────────────────────────────────
+
+function JDAnalyzerTool() {
+  const [jdText, setJdText] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<null | {
+    jobTitle: string; company: string; atsScore: number | null;
+    rows: { requirement: string; candidateMatch: string; strength: "strong" | "partial" | "gap" }[];
+    mustHaves: string[]; missingKeywords: string[]; keywordSuggestions: string[];
+    verdict: string; topTip: string;
+  }>(null);
+
+  const analyse = async () => {
+    setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/career/jd-analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jdText, skills, attempts, badges, progress }),
+        body: JSON.stringify({ jdText, resumeText }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed");
-      setJdResult(data.analysis);
+      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      setResult(data.analysis);
     } catch (err) {
-      setJdError(err instanceof Error ? err.message : "Analysis failed");
+      setError(err instanceof Error ? err.message : "Analysis failed");
     } finally {
-      setJdGenerating(false);
+      setLoading(false);
     }
   };
 
-  // ── Interview recording ────────────────────────────────────────────────────
+  const strengthColour = (s: "strong" | "partial" | "gap") =>
+    s === "strong" ? C.green : s === "partial" ? C.amber : C.red;
 
-  const pickQuestion = () => {
-    const questions = INTERVIEW_QUESTIONS[interviewCategory];
-    const q = questions[Math.floor(Math.random() * questions.length)];
-    setCurrentQuestion(q);
-    setTranscript("");
-    setInterimTranscript("");
-    setWordCount(0);
-    setRecordingTime(0);
-    setInterviewFeedback(null);
-    setInterviewError("");
-    finalTranscriptRef.current = "";
-  };
+  if (loading) return (
+    <div style={{ textAlign: "center", padding: "60px 0" }}>
+      <div style={{ color: C.teal, fontSize: "15px" }}>Analysing job description…</div>
+    </div>
+  );
 
-  const startRecording = useCallback(async () => {
+  if (result) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <div style={{ fontSize: "20px", fontWeight: "700", color: C.text }}>{result.jobTitle}</div>
+          <div style={{ fontSize: "13px", color: C.muted }}>{result.company}</div>
+        </div>
+        {result.atsScore !== null && (
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <ScoreRing score={result.atsScore} size={64} />
+            <div>
+              <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace" }}>ATS MATCH</div>
+              <div style={{ fontSize: "13px", color: C.muted }}>keyword score</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Two-column match table */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>REQUIREMENTS vs YOUR PROFILE</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: "0", borderRadius: "8px", overflow: "hidden", border: `1px solid ${C.border}` }}>
+          {/* Header */}
+          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.04)", fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace" }}>THEY WANT</div>
+          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.04)", fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", borderLeft: `1px solid ${C.border}` }}>YOU BRING</div>
+          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.04)", fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", textAlign: "center", borderLeft: `1px solid ${C.border}` }}>FIT</div>
+          {/* Rows */}
+          {result.rows.map((row, i) => (
+            <>
+              <div key={`r-${i}`} style={{ padding: "12px 14px", fontSize: "13px", color: C.text, lineHeight: "1.4", borderTop: `1px solid ${C.border}` }}>{row.requirement}</div>
+              <div key={`c-${i}`} style={{ padding: "12px 14px", fontSize: "13px", color: C.muted, lineHeight: "1.4", borderTop: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}` }}>{row.candidateMatch}</div>
+              <div key={`s-${i}`} style={{ padding: "12px 14px", fontSize: "12px", fontWeight: "700", color: strengthColour(row.strength), textAlign: "center", borderTop: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}`, textTransform: "uppercase", letterSpacing: "0.05em" }}>{row.strength}</div>
+            </>
+          ))}
+        </div>
+      </div>
+
+      {/* Must haves + verdict */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <div style={card}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>MUST-HAVES</div>
+          {result.mustHaves.map((m, i) => (
+            <div key={i} style={{ fontSize: "13px", color: C.text, marginBottom: "8px", paddingLeft: "12px", borderLeft: `2px solid ${C.amber}` }}>{m}</div>
+          ))}
+        </div>
+        <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>TOP TIP</div>
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: "0 0 12px" }}>{result.topTip}</p>
+        </div>
+      </div>
+
+      {/* Missing keywords */}
+      {result.missingKeywords && result.missingKeywords.length > 0 && (
+        <div style={card}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.red, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>MISSING ATS KEYWORDS</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
+            {result.missingKeywords.map((k, i) => (
+              <span key={i} style={{ background: C.redBg, border: "1px solid rgba(239,68,68,0.3)", borderRadius: "4px", padding: "4px 10px", fontSize: "12px", color: C.red, fontFamily: "JetBrains Mono, monospace" }}>{k}</span>
+            ))}
+          </div>
+          {result.keywordSuggestions && result.keywordSuggestions.length > 0 && (
+            <>
+              <div style={{ fontSize: "11px", fontWeight: "700", color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>ADD THESE PHRASES TO YOUR RESUME</div>
+              {result.keywordSuggestions.map((s, i) => (
+                <div key={i} style={{ fontSize: "13px", color: C.text, marginBottom: "6px", fontFamily: "JetBrains Mono, monospace" }}>&quot;{s}&quot;</div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Verdict */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>VERDICT</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.verdict}</p>
+      </div>
+
+      <button style={btn("ghost")} onClick={() => { setResult(null); setJdText(""); setResumeText(""); }}>
+        ← Analyse another role
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+        Paste a job description and optionally upload your resume for an ATS keyword match score and two-column gap analysis.
+      </p>
+      <div>
+        <span style={label}>Job description</span>
+        <textarea rows={10} style={textarea(10)} placeholder="Paste the full job description here…"
+          value={jdText} onChange={e => setJdText(e.target.value)} />
+      </div>
+      <FileUpload label="Your resume (optional — adds ATS score)" onParsed={(text) => setResumeText(text)} />
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <button style={btn()} disabled={jdText.trim().length < 50} onClick={analyse}>
+        Analyse →
+      </button>
+    </div>
+  );
+}
+
+// ── Interview Prep ──────────────────────────────────────────────────────────
+
+interface InterviewQuestion {
+  id: string;
+  question: string;
+  category: "behavioral" | "technical" | "stakeholder" | "process";
+  hint: string;
+}
+
+interface StarScore { score: number; feedback: string; }
+interface InterviewFeedback {
+  overallScore: number;
+  star: { situation: StarScore; task: StarScore; action: StarScore; result: StarScore };
+  delivery: { pacing: { score: number; wpm: number; feedback: string }; confidence: { score: number; feedback: string } };
+  topStrength: string; topImprovement: string; missingElement: string;
+  suggestedRewrite: string; interviewerPerspective: string;
+}
+
+function InterviewTool() {
+  const [step, setStep] = useState<"setup" | "generating" | "practice" | "answer-review">("setup");
+  const [jdText, setJdText] = useState("");
+  const [company, setCompany] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [roleContext, setRoleContext] = useState("");
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+  const [currentQ, setCurrentQ] = useState(0);
+  const [feedbacks, setFeedbacks] = useState<(InterviewFeedback | null)[]>([]);
+  const [error, setError] = useState("");
+
+  // Recording state
+  const [recording, setRecording] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [duration, setDuration] = useState(0);
+  const [wordCount, setWordCount] = useState(0);
+  const [analysing, setAnalysing] = useState(false);
+
+  const recognitionRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef(0);
+
+  const generateQuestions = async () => {
+    setStep("generating");
+    setError("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      setMicAllowed(true);
-      finalTranscriptRef.current = "";
-      setTranscript("");
-      setInterimTranscript("");
-      setWordCount(0);
-      setRecordingTime(0);
-      setInterviewFeedback(null);
+      const res = await fetch("/api/career/interview-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jdText, company, resumeText }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      setQuestions(data.questions);
+      setRoleContext(data.roleContext || "");
+      setFeedbacks(new Array(data.questions.length).fill(null));
+      setCurrentQ(0);
+      setStep("practice");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setStep("setup");
+    }
+  };
 
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setIsRecording(true);
-
-      if (speechSupported) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const SR = ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) as new () => any;
-        const recognition = new SR();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "en-US";
-        recognitionRef.current = recognition;
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        recognition.onresult = (event: any) => {
-          let interim = "";
-          let finalAdded = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const text = event.results[i][0].transcript;
-            if (event.results[i].isFinal) finalAdded += text + " ";
-            else interim += text;
-          }
-          if (finalAdded) {
-            finalTranscriptRef.current += finalAdded;
-            const wc = finalTranscriptRef.current.trim().split(/\s+/).filter(Boolean).length;
-            setWordCount(wc);
-          }
-          setTranscript(finalTranscriptRef.current);
-          setInterimTranscript(interim);
-        };
-
-        recognition.onerror = () => { /* silent — MediaRecorder still captures */ };
-        recognition.start();
+  const startRecording = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { setError("Speech recognition not supported in this browser. Try Chrome."); return; }
+    const rec = new (SR as new () => any)();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-GB";
+    let full = "";
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) full += e.results[i][0].transcript + " ";
+        else interim = e.results[i][0].transcript;
       }
-    } catch {
-      setInterviewError("Microphone access denied. Please allow microphone access and try again.");
-    }
-  }, [speechSupported]);
+      setTranscript(full + interim);
+    };
+    rec.start();
+    recognitionRef.current = rec;
+    startTimeRef.current = Date.now();
+    timerRef.current = setInterval(() => setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000)), 500);
+    setRecording(true);
+    setTranscript("");
+    setDuration(0);
+  };
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-    }
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    setIsRecording(false);
-    setInterimTranscript("");
-  }, []);
+  const stopRecording = () => {
+    recognitionRef.current?.stop();
+    if (timerRef.current) clearInterval(timerRef.current);
+    const secs = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    setDuration(secs);
+    setRecording(false);
+  };
 
-  const submitInterviewAnswer = async () => {
-    const finalText = finalTranscriptRef.current.trim();
-    if (!finalText || finalText.length < 20) {
-      setInterviewError("Answer too short to analyse. Record for at least 30 seconds.");
+  const submitAnswer = async () => {
+    if (!transcript.trim() || transcript.trim().split(/\s+/).length < 5) {
+      setError("Answer too short — try again with a more complete response.");
       return;
     }
-    setInterviewGenerating(true);
-    setInterviewError("");
+    stopRecording();
+    setAnalysing(true);
+    setError("");
+    const wc = transcript.trim().split(/\s+/).length;
+    setWordCount(wc);
+    const q = questions[currentQ];
     try {
       const res = await fetch("/api/career/interview-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: currentQuestion,
-          transcript: finalText,
-          category: interviewCategory,
-          duration: recordingTime,
-          wordCount,
-        }),
+        body: JSON.stringify({ question: q.question, transcript, category: q.category, duration, wordCount: wc }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed");
-      setInterviewFeedback(data.feedback);
+      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      const updated = [...feedbacks];
+      updated[currentQ] = data.feedback;
+      setFeedbacks(updated);
+      setStep("answer-review");
     } catch (err) {
-      setInterviewError(err instanceof Error ? err.message : "Analysis failed");
+      setError(err instanceof Error ? err.message : "Analysis failed");
     } finally {
-      setInterviewGenerating(false);
+      setAnalysing(false);
     }
   };
 
-  // ── LinkedIn generate ──────────────────────────────────────────────────────
-
-  const handleLinkedIn = async () => {
-    setLiGenerating(true);
-    setLiError("");
-    setLiResult(null);
-    try {
-      const res = await fetch("/api/career/linkedin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ style: liStyle, fullName, progress, skills, badges, attempts }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Generation failed");
-      setLiResult(data.summary);
-    } catch (err) {
-      setLiError(err instanceof Error ? err.message : "Generation failed");
-    } finally {
-      setLiGenerating(false);
-    }
+  const catColour = (cat: string) => {
+    const m: Record<string, string> = { behavioral: "#818cf8", technical: C.teal, stakeholder: C.amber, process: C.green };
+    return m[cat] || C.muted;
   };
 
-  const copyLinkedIn = async () => {
-    if (!liResult) return;
-    await navigator.clipboard.writeText(liResult);
-    setLiCopied(true);
-    setTimeout(() => setLiCopied(false), 2500);
-  };
+  if (step === "generating") return (
+    <div style={{ textAlign: "center", padding: "60px 0" }}>
+      <div style={{ color: C.teal, fontSize: "15px" }}>Generating your interview questions…</div>
+    </div>
+  );
 
-  // ── Nav items ──────────────────────────────────────────────────────────────
-
-  const navItems: { id: CareerTool; label: string; desc: string }[] = [
-    { id: "resume", label: "Resume Builder", desc: "AI-tailored to your profile" },
-    { id: "cover-letter", label: "Cover Letter", desc: "Evidence-based, ready to download" },
-    { id: "jd", label: "JD Analyzer", desc: "Paste a role, see your fit score" },
-    { id: "interview", label: "Interview Prep", desc: "Voice practice with AI coaching" },
-    { id: "linkedin", label: "LinkedIn Summary", desc: "Written from your portal activity" },
-  ];
-
-  // ── Styles ─────────────────────────────────────────────────────────────────
-
-  const S = {
-    page: {
-      minHeight: "100vh",
-      background: "#0a0d14",
-      display: "flex",
-      fontFamily: "Open Sans, system-ui, sans-serif",
-    } as React.CSSProperties,
-
-    sidebar: {
-      width: "220px",
-      flexShrink: 0,
-      background: "#0d1117",
-      borderRight: "1px solid rgba(255,255,255,0.06)",
-      display: "flex",
-      flexDirection: "column" as const,
-      padding: "0",
-    },
-
-    sidebarTop: {
-      padding: "24px 20px 20px",
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
-    },
-
-    logo: {
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      marginBottom: "4px",
-      cursor: "pointer",
-    },
-
-    logoIcon: {
-      width: "32px",
-      height: "32px",
-      borderRadius: "8px",
-      background: "linear-gradient(135deg, #d97706, #92400e)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: "14px",
-      fontWeight: "700",
-      color: "white",
-      fontFamily: "JetBrains Mono, monospace",
-    },
-
-    logoText: {
-      fontSize: "13px",
-      fontWeight: "700",
-      color: "white",
-      fontFamily: "Inter, system-ui, sans-serif",
-    },
-
-    logoSub: {
-      fontSize: "11px",
-      color: "rgba(255,255,255,0.3)",
-      marginLeft: "42px",
-      fontFamily: "JetBrains Mono, monospace",
-    },
-
-    navSection: {
-      flex: 1,
-      padding: "16px 12px",
-      overflowY: "auto" as const,
-    },
-
-    navItem: (active: boolean): React.CSSProperties => ({
-      display: "block",
-      width: "100%",
-      textAlign: "left",
-      padding: "10px 12px",
-      borderRadius: "8px",
-      marginBottom: "4px",
-      cursor: "pointer",
-      border: "none",
-      background: active ? "rgba(217,119,6,0.15)" : "none",
-      borderLeft: active ? "2px solid #d97706" : "2px solid transparent",
-      transition: "all 0.15s",
-    }),
-
-    navLabel: (active: boolean): React.CSSProperties => ({
-      fontSize: "13px",
-      fontWeight: active ? "600" : "400",
-      color: active ? "#fbbf24" : "rgba(255,255,255,0.6)",
-      display: "block",
-    }),
-
-    navDesc: {
-      fontSize: "11px",
-      color: "rgba(255,255,255,0.3)",
-      marginTop: "2px",
-      display: "block",
-    },
-
-    sidebarBottom: {
-      padding: "16px 12px",
-      borderTop: "1px solid rgba(255,255,255,0.06)",
-    },
-
-    backBtn: {
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-      background: "none",
-      border: "none",
-      cursor: "pointer",
-      color: "rgba(255,255,255,0.35)",
-      fontSize: "12px",
-      padding: "6px 8px",
-    },
-
-    main: {
-      flex: 1,
-      display: "flex",
-      flexDirection: "column" as const,
-      overflow: "hidden",
-    },
-
-    topBar: {
-      background: "#0d1117",
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
-      padding: "14px 32px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-
-    toolTitle: {
-      fontSize: "18px",
-      fontWeight: "700",
-      color: "white",
-      fontFamily: "Inter, system-ui, sans-serif",
-    },
-
-    statsRow: {
-      display: "flex",
-      gap: "20px",
-    },
-
-    statChip: {
-      fontSize: "12px",
-      color: "rgba(255,255,255,0.4)",
-      fontFamily: "JetBrains Mono, monospace",
-    },
-
-    content: {
-      flex: 1,
-      overflow: "auto",
-      padding: "32px",
-      maxWidth: "860px",
-    },
-
-    card: {
-      background: "#131920",
-      border: "1px solid rgba(255,255,255,0.06)",
-      borderRadius: "12px",
-      padding: "28px",
-      marginBottom: "20px",
-    },
-
-    cardTitle: {
-      fontSize: "15px",
-      fontWeight: "700",
-      color: "white",
-      marginBottom: "20px",
-      fontFamily: "Inter, system-ui, sans-serif",
-    },
-
-    label: {
-      fontSize: "12px",
-      fontWeight: "600",
-      color: "rgba(255,255,255,0.45)",
-      letterSpacing: "0.06em",
-      textTransform: "uppercase" as const,
-      marginBottom: "8px",
-      display: "block",
-      fontFamily: "JetBrains Mono, monospace",
-    },
-
-    input: {
-      width: "100%",
-      background: "#0a0d14",
-      border: "1px solid rgba(255,255,255,0.1)",
-      borderRadius: "8px",
-      padding: "10px 14px",
-      color: "white",
-      fontSize: "14px",
-      outline: "none",
-      boxSizing: "border-box" as const,
-    },
-
-    textarea: {
-      width: "100%",
-      background: "#0a0d14",
-      border: "1px solid rgba(255,255,255,0.1)",
-      borderRadius: "8px",
-      padding: "12px 14px",
-      color: "white",
-      fontSize: "14px",
-      outline: "none",
-      resize: "vertical" as const,
-      minHeight: "120px",
-      boxSizing: "border-box" as const,
-      fontFamily: "Open Sans, system-ui, sans-serif",
-    },
-
-    select: {
-      background: "#0a0d14",
-      border: "1px solid rgba(255,255,255,0.1)",
-      borderRadius: "8px",
-      padding: "10px 14px",
-      color: "white",
-      fontSize: "14px",
-      outline: "none",
-      cursor: "pointer",
-    },
-
-    btnPrimary: {
-      background: "linear-gradient(135deg, #d97706, #b45309)",
-      border: "none",
-      borderRadius: "8px",
-      padding: "11px 24px",
-      color: "white",
-      fontSize: "14px",
-      fontWeight: "700",
-      cursor: "pointer",
-      fontFamily: "Inter, system-ui, sans-serif",
-    },
-
-    btnSecondary: {
-      background: "rgba(255,255,255,0.06)",
-      border: "1px solid rgba(255,255,255,0.1)",
-      borderRadius: "8px",
-      padding: "10px 20px",
-      color: "rgba(255,255,255,0.7)",
-      fontSize: "14px",
-      cursor: "pointer",
-    },
-
-    btnDanger: {
-      background: "rgba(239,68,68,0.15)",
-      border: "1px solid rgba(239,68,68,0.3)",
-      borderRadius: "8px",
-      padding: "10px 20px",
-      color: "#f87171",
-      fontSize: "14px",
-      cursor: "pointer",
-    },
-
-    errorText: {
-      color: "#f87171",
-      fontSize: "13px",
-      marginTop: "12px",
-    },
-
-    formRow: {
-      display: "grid",
-      gap: "16px",
-      gridTemplateColumns: "1fr 1fr",
-      marginBottom: "16px",
-    } as React.CSSProperties,
-
-    formGroup: {
-      marginBottom: "16px",
-    },
-  };
-
-  // ── Render tool views ──────────────────────────────────────────────────────
-
-  function renderResume() {
-    const templates: { id: ResumeTemplate; label: string; desc: string }[] = [
-      { id: "technical", label: "Technical BA", desc: "Works with dev teams, writes specs, leads UAT" },
-      { id: "operational", label: "Operational BA", desc: "Process improvement, change management, efficiency" },
-      { id: "strategic", label: "Strategic BA", desc: "Portfolio-level, business cases, operating models" },
-    ];
+  if (step === "answer-review") {
+    const fb = feedbacks[currentQ];
+    if (!fb) return null;
+    const q = questions[currentQ];
+    const isLast = currentQ === questions.length - 1;
+    const done = feedbacks.every(f => f !== null);
     return (
-      <div>
-        <div style={S.card}>
-          <p style={S.cardTitle}>Resume Builder</p>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "24px", lineHeight: 1.6 }}>
-            Claude reads your completed challenges, scores, and badges — then writes a tailored BA resume built around real evidence of your work. Choose your specialisation, add your details, and download as a Word file you can edit.
-          </p>
-
-          <div style={{ marginBottom: "20px" }}>
-            <label style={S.label}>Specialisation</label>
-            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" as const }}>
-              {templates.map(t => (
-                <button key={t.id} onClick={() => setResumeTemplate(t.id)}
-                  style={{
-                    flex: 1, minWidth: "180px", padding: "14px 16px", borderRadius: "8px", cursor: "pointer", textAlign: "left",
-                    background: resumeTemplate === t.id ? "rgba(217,119,6,0.12)" : "rgba(255,255,255,0.03)",
-                    border: resumeTemplate === t.id ? "1px solid #d97706" : "1px solid rgba(255,255,255,0.08)",
-                  }}>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: resumeTemplate === t.id ? "#fbbf24" : "rgba(255,255,255,0.7)", marginBottom: "4px" }}>{t.label}</div>
-                  <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)" }}>{t.desc}</div>
-                </button>
-              ))}
-            </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <ScoreRing score={fb.overallScore} size={64} />
+          <div>
+            <div style={{ fontSize: "18px", fontWeight: "700", color: C.text }}>Q{currentQ + 1} Feedback</div>
+            <div style={{ fontSize: "13px", color: catColour(q.category) }}>{q.category}</div>
           </div>
+        </div>
 
-          <div style={S.formRow}>
-            <div>
-              <label style={S.label}>Target Role Title</label>
-              <input style={S.input} value={resumeJobTarget} onChange={e => setResumeJobTarget(e.target.value)}
-                placeholder="e.g. Senior Business Analyst" />
-            </div>
-            <div>
-              <label style={S.label}>Years of Experience</label>
-              <input style={S.input} value={resumeYearsExp} onChange={e => setResumeYearsExp(e.target.value)}
-                placeholder="e.g. 5" />
-            </div>
+        {/* STAR breakdown */}
+        <div style={card}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>STAR BREAKDOWN</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            {(["situation", "task", "action", "result"] as const).map(key => (
+              <div key={key} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                  <ScoreRing score={fb.star[key].score} size={40} />
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", textTransform: "uppercase" }}>{key}</span>
+                </div>
+                <p style={{ fontSize: "13px", color: C.text, lineHeight: "1.4", margin: 0 }}>{fb.star[key].feedback}</p>
+              </div>
+            ))}
           </div>
+        </div>
 
-          <div style={S.formGroup}>
-            <label style={S.label}>Certifications</label>
-            <input style={S.input} value={resumeCerts} onChange={e => setResumeCerts(e.target.value)}
-              placeholder="e.g. CBAP, CCBA, PMP, Agile BA Certificate" />
+        {/* Key takeaways */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={{ ...card, borderColor: "rgba(110,231,183,0.2)", background: C.greenBg }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>TOP STRENGTH</div>
+            <p style={{ fontSize: "13px", color: C.text, lineHeight: "1.4", margin: 0 }}>{fb.topStrength}</p>
           </div>
-
-          <div style={{ background: "rgba(217,119,6,0.06)", border: "1px solid rgba(217,119,6,0.15)", borderRadius: "8px", padding: "14px 16px", marginBottom: "20px" }}>
-            <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.6 }}>
-              Claude will use your <strong style={{ color: "#fbbf24" }}>{progress.challenges_completed} completed simulations</strong> and{" "}
-              <strong style={{ color: "#fbbf24" }}>{badges.length} earned badges</strong> as evidence to write achievement bullets. The more challenges you complete, the stronger your resume.
-            </p>
+          <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>TOP FIX</div>
+            <p style={{ fontSize: "13px", color: C.text, lineHeight: "1.4", margin: 0 }}>{fb.topImprovement}</p>
           </div>
+        </div>
 
-          <button onClick={handleResumeDownload} disabled={resumeGenerating} style={{ ...S.btnPrimary, opacity: resumeGenerating ? 0.6 : 1 }}>
-            {resumeGenerating ? "Generating..." : "Generate & Download Resume (.docx)"}
+        {/* Hint + rewrite */}
+        <div style={card}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>WHAT WAS MISSING</div>
+          <p style={{ fontSize: "13px", color: C.text, lineHeight: "1.5", marginBottom: "16px" }}>{fb.missingElement}</p>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>HOW TO SAY IT BETTER</div>
+          <p style={{ fontSize: "13px", color: C.teal, lineHeight: "1.5", background: C.tealBg, padding: "12px", borderRadius: "8px", margin: 0, fontStyle: "italic" }}>&ldquo;{fb.suggestedRewrite}&rdquo;</p>
+        </div>
+
+        <div style={card}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>INTERVIEWER&apos;S PERSPECTIVE</div>
+          <p style={{ fontSize: "13px", color: C.text, lineHeight: "1.5", margin: 0 }}>{fb.interviewerPerspective}</p>
+        </div>
+
+        {/* Hint */}
+        <div style={{ padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: `1px solid ${C.border}` }}>
+          <span style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace" }}>WHAT A GOOD ANSWER LOOKS LIKE: </span>
+          <span style={{ fontSize: "13px", color: C.muted }}>{q.hint}</span>
+        </div>
+
+        <div style={{ display: "flex", gap: "12px" }}>
+          {!isLast && (
+            <button style={btn()} onClick={() => { setCurrentQ(currentQ + 1); setTranscript(""); setStep("practice"); }}>
+              Next question →
+            </button>
+          )}
+          {done && (
+            <button style={btn()} onClick={() => { setStep("setup"); setQuestions([]); setFeedbacks([]); setJdText(""); setCompany(""); setTranscript(""); }}>
+              Start new session
+            </button>
+          )}
+          <button style={btn("ghost")} onClick={() => { setTranscript(""); setStep("practice"); }}>
+            ← Retry this question
           </button>
-          {resumeError && <p style={S.errorText}>{resumeError}</p>}
         </div>
       </div>
     );
   }
 
-  function renderCoverLetter() {
-    const toggleAttempt = (id: string) => {
-      setClSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : prev.length >= 3 ? prev : [...prev, id]);
-    };
+  if (step === "practice") {
+    const q = questions[currentQ];
+    const mins = Math.floor(duration / 60);
+    const secs = duration % 60;
     return (
-      <div>
-        <div style={S.card}>
-          <p style={S.cardTitle}>Cover Letter Generator</p>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "24px", lineHeight: 1.6 }}>
-            Selects your strongest challenge simulations as proof points and writes a cover letter that turns practice into credible evidence.
-          </p>
-
-          <div style={S.formRow}>
-            <div>
-              <label style={S.label}>Job Title</label>
-              <input style={S.input} value={clJobTitle} onChange={e => setClJobTitle(e.target.value)}
-                placeholder="e.g. Business Analyst" />
-            </div>
-            <div>
-              <label style={S.label}>Company Name</label>
-              <input style={S.input} value={clCompany} onChange={e => setClCompany(e.target.value)}
-                placeholder="e.g. Accenture" />
-            </div>
-          </div>
-
-          <div style={S.formGroup}>
-            <label style={S.label}>Tone</label>
-            <div style={{ display: "flex", gap: "10px" }}>
-              {(["professional", "conversational", "executive"] as CoverLetterTone[]).map(t => (
-                <button key={t} onClick={() => setClTone(t)}
-                  style={{
-                    padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontSize: "13px",
-                    background: clTone === t ? "rgba(217,119,6,0.15)" : "rgba(255,255,255,0.04)",
-                    border: clTone === t ? "1px solid #d97706" : "1px solid rgba(255,255,255,0.08)",
-                    color: clTone === t ? "#fbbf24" : "rgba(255,255,255,0.55)",
-                    fontWeight: clTone === t ? "600" : "400",
-                    textTransform: "capitalize" as const,
-                  }}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={S.formGroup}>
-            <label style={S.label}>Select up to 3 Challenges as Evidence</label>
-            {attempts.length === 0 ? (
-              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>Complete some challenges first to use them as evidence.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {attempts.slice(0, 8).map(a => {
-                  const selected = clSelected.includes(a.id);
-                  return (
-                    <button key={a.id} onClick={() => toggleAttempt(a.id)}
-                      style={{
-                        textAlign: "left", padding: "10px 14px", borderRadius: "8px", cursor: "pointer",
-                        background: selected ? "rgba(217,119,6,0.1)" : "rgba(255,255,255,0.03)",
-                        border: selected ? "1px solid #d97706" : "1px solid rgba(255,255,255,0.07)",
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                      }}>
-                      <span>
-                        <span style={{ fontSize: "13px", color: selected ? "#fbbf24" : "rgba(255,255,255,0.65)", fontWeight: selected ? "600" : "400" }}>{a.challenge_title}</span>
-                        <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", marginLeft: "10px" }}>{a.challenge_type} · {a.industry}</span>
-                      </span>
-                      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", fontFamily: "JetBrains Mono, monospace" }}>{a.total_score}/100</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <button onClick={handleCoverLetterDownload} disabled={clGenerating} style={{ ...S.btnPrimary, opacity: clGenerating ? 0.6 : 1 }}>
-            {clGenerating ? "Generating..." : "Generate & Download Cover Letter (.docx)"}
-          </button>
-          {clError && <p style={S.errorText}>{clError}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  function renderJD() {
-    const priorityColor = (p: string) => p === "high" ? "#f87171" : p === "medium" ? "#f59e0b" : "#6ee7b7";
-    return (
-      <div>
-        <div style={S.card}>
-          <p style={S.cardTitle}>Job Description Analyzer</p>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "20px", lineHeight: 1.6 }}>
-            Paste a job description and get an honest fit assessment — matched skills backed by your challenge history, gaps with specific recommendations, and interview questions to expect.
-          </p>
-          <div style={S.formGroup}>
-            <label style={S.label}>Job Description</label>
-            <textarea style={{ ...S.textarea, minHeight: "200px" }} value={jdText} onChange={e => setJdText(e.target.value)}
-              placeholder="Paste the full job description here..." />
-          </div>
-          <button onClick={handleJDAnalyze} disabled={jdGenerating || jdText.trim().length < 50}
-            style={{ ...S.btnPrimary, opacity: (jdGenerating || jdText.trim().length < 50) ? 0.6 : 1 }}>
-            {jdGenerating ? "Analysing..." : "Analyse My Fit"}
-          </button>
-          {jdError && <p style={S.errorText}>{jdError}</p>}
-        </div>
-
-        {jdResult && (
-          <>
-            <div style={S.card}>
-              <div style={{ display: "flex", alignItems: "center", gap: "24px", marginBottom: "20px" }}>
-                <ScoreRing score={jdResult.matchScore} size={88} />
-                <div>
-                  <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.35)", fontFamily: "JetBrains Mono, monospace", marginBottom: "4px" }}>MATCH SCORE</div>
-                  <div style={{ fontSize: "15px", color: "white", fontWeight: "600", lineHeight: 1.5 }}>{jdResult.roleSummary}</div>
-                </div>
-              </div>
-              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", lineHeight: 1.65, background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "14px 16px" }}>
-                {jdResult.fitVerdict}
-              </p>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
-              <div style={S.card}>
-                <p style={{ ...S.cardTitle, color: "#6ee7b7" }}>Matched Skills</p>
-                {jdResult.matchedSkills.map((m, i) => (
-                  <div key={i} style={{ marginBottom: "14px", paddingBottom: "14px", borderBottom: i < jdResult.matchedSkills.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "rgba(255,255,255,0.8)", marginBottom: "4px" }}>{m.skill}</div>
-                    <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{m.evidence}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={S.card}>
-                <p style={{ ...S.cardTitle, color: "#f87171" }}>Skills to Build</p>
-                {jdResult.gapSkills.map((g, i) => (
-                  <div key={i} style={{ marginBottom: "14px", paddingBottom: "14px", borderBottom: i < jdResult.gapSkills.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                      <span style={{ fontSize: "13px", fontWeight: "600", color: "rgba(255,255,255,0.8)" }}>{g.skill}</span>
-                      <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: `${priorityColor(g.priority)}22`, color: priorityColor(g.priority), fontFamily: "JetBrains Mono, monospace", textTransform: "uppercase" as const }}>{g.priority}</span>
-                    </div>
-                    <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{g.recommendation}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={S.card}>
-              <p style={S.cardTitle}>Talking Points for Interview</p>
-              {jdResult.interviewTalkingPoints.map((tp, i) => (
-                <div key={i} style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
-                  <span style={{ color: "#d97706", fontFamily: "JetBrains Mono, monospace", fontSize: "12px", marginTop: "2px", flexShrink: 0 }}>{String(i + 1).padStart(2, "0")}</span>
-                  <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "14px", lineHeight: 1.6, margin: 0 }}>{tp}</p>
-                </div>
-              ))}
-            </div>
-
-            <div style={S.card}>
-              <p style={S.cardTitle}>Questions to Prepare For</p>
-              {jdResult.questionsToExpect.map((q, i) => (
-                <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "12px 14px", marginBottom: "10px", borderLeft: "2px solid rgba(217,119,6,0.4)" }}>
-                  <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", lineHeight: 1.6, margin: 0 }}>{q}</p>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
-
-  function renderInterview() {
-    const categories: { id: InterviewCategory; label: string }[] = [
-      { id: "behavioral", label: "Behavioural (STAR)" },
-      { id: "technical", label: "Technical BA" },
-      { id: "stakeholder", label: "Stakeholder Management" },
-      { id: "process", label: "Process & Methodology" },
-    ];
-
-    return (
-      <div>
-        <div style={S.card}>
-          <p style={S.cardTitle}>Interview Prep — Voice Practice</p>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "20px", lineHeight: 1.6 }}>
-            Spoken communication is one of the biggest gaps for BA professionals. This module forces you to answer out loud — no hiding behind polished writing. Pick a category, get a question, and answer it as if you're in the real interview.
-          </p>
-
-          <div style={S.formGroup}>
-            <label style={S.label}>Question Category</label>
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" as const }}>
-              {categories.map(c => (
-                <button key={c.id} onClick={() => { setInterviewCategory(c.id); setCurrentQuestion(null); setInterviewFeedback(null); }}
-                  style={{
-                    padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontSize: "13px",
-                    background: interviewCategory === c.id ? "rgba(217,119,6,0.15)" : "rgba(255,255,255,0.04)",
-                    border: interviewCategory === c.id ? "1px solid #d97706" : "1px solid rgba(255,255,255,0.08)",
-                    color: interviewCategory === c.id ? "#fbbf24" : "rgba(255,255,255,0.55)",
-                    fontWeight: interviewCategory === c.id ? "600" : "400",
-                  }}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button onClick={pickQuestion} style={S.btnSecondary}>
-            {currentQuestion ? "Get Another Question" : "Get a Question"}
-          </button>
-        </div>
-
-        {currentQuestion && (
-          <div style={S.card}>
-            <div style={{ background: "rgba(217,119,6,0.08)", border: "1px solid rgba(217,119,6,0.2)", borderRadius: "10px", padding: "20px 22px", marginBottom: "24px" }}>
-              <div style={{ fontSize: "11px", color: "#d97706", fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>INTERVIEW QUESTION</div>
-              <p style={{ fontSize: "17px", color: "white", lineHeight: 1.65, margin: 0, fontWeight: "500" }}>{currentQuestion}</p>
-            </div>
-
-            {!speechSupported && (
-              <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
-                <p style={{ color: "#f87171", fontSize: "13px", margin: 0 }}>
-                  Live transcription is not supported in this browser. Use Chrome or Edge for the best experience. Recording will still capture your audio.
-                </p>
-              </div>
-            )}
-
-            <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "20px" }}>
-              {!isRecording ? (
-                <button onClick={startRecording} style={S.btnPrimary}>
-                  Start Answer
-                </button>
-              ) : (
-                <button onClick={stopRecording} style={S.btnDanger}>
-                  Stop Recording
-                </button>
-              )}
-
-              {isRecording && (
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  <WaveformBars />
-                  <span style={{ color: "#f87171", fontFamily: "JetBrains Mono, monospace", fontSize: "14px" }}>{formatTime(recordingTime)}</span>
-                </div>
-              )}
-
-              {!isRecording && recordingTime > 0 && (
-                <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.35)", fontFamily: "JetBrains Mono, monospace" }}>
-                  {formatTime(recordingTime)} · {wordCount} words
-                </span>
-              )}
-            </div>
-
-            {(transcript || interimTranscript) && (
-              <div style={{ background: "#0a0d14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "14px 16px", marginBottom: "20px", minHeight: "80px" }}>
-                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontFamily: "JetBrains Mono, monospace", marginBottom: "8px" }}>LIVE TRANSCRIPT</div>
-                <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "14px", lineHeight: 1.65, margin: 0 }}>
-                  {transcript}
-                  {interimTranscript && <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>{interimTranscript}</span>}
-                </p>
-              </div>
-            )}
-
-            {!isRecording && recordingTime > 0 && !interviewFeedback && (
-              <button onClick={submitInterviewAnswer} disabled={interviewGenerating}
-                style={{ ...S.btnPrimary, opacity: interviewGenerating ? 0.6 : 1 }}>
-                {interviewGenerating ? "Analysing your answer..." : "Get AI Coaching Feedback"}
-              </button>
-            )}
-
-            {interviewError && <p style={S.errorText}>{interviewError}</p>}
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        {roleContext && (
+          <div style={{ fontSize: "13px", color: C.muted, padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
+            {roleContext}
           </div>
         )}
 
-        {interviewFeedback && (
-          <>
-            <div style={S.card}>
-              <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "24px" }}>
-                <ScoreRing score={interviewFeedback.overallScore} size={88} />
-                <div>
-                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontFamily: "JetBrains Mono, monospace", marginBottom: "6px" }}>OVERALL INTERVIEW SCORE</div>
-                  <div style={{ fontSize: "14px", color: "#10b981", fontWeight: "600", marginBottom: "4px" }}>Top Strength: <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: "400" }}>{interviewFeedback.topStrength}</span></div>
-                  <div style={{ fontSize: "14px", color: "#f59e0b", fontWeight: "600" }}>Top Fix: <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: "400" }}>{interviewFeedback.topImprovement}</span></div>
-                </div>
-              </div>
+        {/* Progress */}
+        <div style={{ display: "flex", gap: "8px" }}>
+          {questions.map((_, i) => (
+            <div key={i} style={{
+              height: "4px", flex: 1, borderRadius: "2px",
+              background: feedbacks[i] ? C.green : i === currentQ ? C.teal : C.border,
+            }} />
+          ))}
+        </div>
+        <div style={{ fontSize: "12px", color: C.muted }}>Question {currentQ + 1} of {questions.length}</div>
 
-              <div style={{ marginBottom: "20px" }}>
-                <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", fontFamily: "JetBrains Mono, monospace", marginBottom: "14px", letterSpacing: "0.06em" }}>STAR FRAMEWORK</div>
-                <StarBar label="SITUATION" score={interviewFeedback.star.situation.score} feedback={interviewFeedback.star.situation.feedback} />
-                <StarBar label="TASK" score={interviewFeedback.star.task.score} feedback={interviewFeedback.star.task.feedback} />
-                <StarBar label="ACTION" score={interviewFeedback.star.action.score} feedback={interviewFeedback.star.action.feedback} />
-                <StarBar label="RESULT" score={interviewFeedback.star.result.score} feedback={interviewFeedback.star.result.feedback} />
-              </div>
-
-              <div style={{ marginBottom: "20px" }}>
-                <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", fontFamily: "JetBrains Mono, monospace", marginBottom: "14px", letterSpacing: "0.06em" }}>DELIVERY</div>
-                <StarBar label="PACING" score={interviewFeedback.delivery.pacing.score} feedback={`${interviewFeedback.delivery.pacing.wpm} wpm. ${interviewFeedback.delivery.pacing.feedback}`} />
-                <StarBar label="CONFIDENCE" score={interviewFeedback.delivery.confidence.score} feedback={interviewFeedback.delivery.confidence.feedback} />
-              </div>
-
-              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "14px 16px", marginBottom: "14px" }}>
-                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontFamily: "JetBrains Mono, monospace", marginBottom: "8px" }}>WHAT WAS MISSING</div>
-                <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "14px", lineHeight: 1.65, margin: 0 }}>{interviewFeedback.missingElement}</p>
-              </div>
-
-              <div style={{ background: "rgba(217,119,6,0.07)", border: "1px solid rgba(217,119,6,0.18)", borderRadius: "8px", padding: "14px 16px", marginBottom: "14px" }}>
-                <div style={{ fontSize: "11px", color: "#d97706", fontFamily: "JetBrains Mono, monospace", marginBottom: "8px" }}>SUGGESTED REWRITE</div>
-                <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "14px", lineHeight: 1.65, margin: 0, fontStyle: "italic" }}>&ldquo;{interviewFeedback.suggestedRewrite}&rdquo;</p>
-              </div>
-
-              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "14px 16px" }}>
-                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontFamily: "JetBrains Mono, monospace", marginBottom: "8px" }}>INTERVIEWER PERSPECTIVE</div>
-                <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "14px", lineHeight: 1.65, margin: 0 }}>{interviewFeedback.interviewerPerspective}</p>
-              </div>
-            </div>
-
-            <button onClick={pickQuestion} style={S.btnSecondary}>Practice Another Question</button>
-          </>
-        )}
-      </div>
-    );
-  }
-
-  function renderLinkedIn() {
-    const styles: { id: LinkedInStyle; label: string; desc: string }[] = [
-      { id: "concise", label: "Concise", desc: "150-180 words, scannable, mobile-first" },
-      { id: "detailed", label: "Detailed", desc: "280-320 words, comprehensive, narrative" },
-      { id: "confident", label: "Confident", desc: "Under 200 words, bold opener, punchy" },
-    ];
-    return (
-      <div>
-        <div style={S.card}>
-          <p style={S.cardTitle}>LinkedIn Summary Generator</p>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "24px", lineHeight: 1.6 }}>
-            Written from your actual portal profile — your BA level, challenge history, skill scores, and earned badges. No generic templates. Reads like a real person, not a keyword farm.
-          </p>
-
-          <div style={{ marginBottom: "24px" }}>
-            <label style={S.label}>Style</label>
-            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" as const }}>
-              {styles.map(s => (
-                <button key={s.id} onClick={() => setLiStyle(s.id)}
-                  style={{
-                    flex: 1, minWidth: "160px", padding: "14px 16px", borderRadius: "8px", cursor: "pointer", textAlign: "left",
-                    background: liStyle === s.id ? "rgba(217,119,6,0.12)" : "rgba(255,255,255,0.03)",
-                    border: liStyle === s.id ? "1px solid #d97706" : "1px solid rgba(255,255,255,0.08)",
-                  }}>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: liStyle === s.id ? "#fbbf24" : "rgba(255,255,255,0.7)", marginBottom: "4px" }}>{s.label}</div>
-                  <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)" }}>{s.desc}</div>
-                </button>
-              ))}
-            </div>
+        {/* Question */}
+        <div style={{ ...card, borderColor: `${catColour(q.category)}33`, background: `${catColour(q.category)}0d` }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: catColour(q.category), fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>
+            {q.category.toUpperCase()}
           </div>
-
-          <button onClick={handleLinkedIn} disabled={liGenerating} style={{ ...S.btnPrimary, opacity: liGenerating ? 0.6 : 1 }}>
-            {liGenerating ? "Generating..." : "Generate LinkedIn Summary"}
-          </button>
-          {liError && <p style={S.errorText}>{liError}</p>}
+          <p style={{ fontSize: "18px", color: C.text, lineHeight: "1.5", margin: 0, fontWeight: "600" }}>{q.question}</p>
         </div>
 
-        {liResult && (
-          <div style={S.card}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-              <p style={{ ...S.cardTitle, marginBottom: 0 }}>Your LinkedIn Summary</p>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button onClick={copyLinkedIn}
-                  style={{
-                    ...S.btnSecondary, fontSize: "13px", padding: "8px 16px",
-                    background: liCopied ? "rgba(16,185,129,0.12)" : undefined,
-                    border: liCopied ? "1px solid rgba(16,185,129,0.3)" : undefined,
-                    color: liCopied ? "#6ee7b7" : undefined,
-                  }}>
-                  {liCopied ? "Copied!" : "Copy to Clipboard"}
-                </button>
-                <button onClick={handleLinkedIn} style={{ ...S.btnSecondary, fontSize: "13px", padding: "8px 16px" }}>
-                  Regenerate
-                </button>
-              </div>
-            </div>
-
-            <div style={{ background: "#0a0d14", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "20px 22px" }}>
-              {liResult.split("\n\n").map((para, i) => (
-                <p key={i} style={{ color: "rgba(255,255,255,0.78)", fontSize: "15px", lineHeight: 1.75, margin: "0 0 16px 0" }}>{para}</p>
-              ))}
-            </div>
-            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", marginTop: "12px" }}>
-              Tip: Paste this into your LinkedIn &ldquo;About&rdquo; section and personalise the details that only you can add — specific companies, technologies, or projects.
-            </p>
+        {/* Recording controls */}
+        <div style={card}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+            <button
+              onClick={recording ? stopRecording : startRecording}
+              style={{
+                padding: "12px 24px", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer",
+                background: recording ? C.redBg : C.tealBg,
+                border: `1px solid ${recording ? "rgba(239,68,68,0.4)" : C.tealBorder}`,
+                color: recording ? C.red : C.teal,
+                display: "flex", alignItems: "center", gap: "8px",
+              }}>
+              {recording ? <><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: C.red, display: "inline-block" }} /> Stop recording</> : "● Start recording"}
+            </button>
+            {recording && (
+              <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "14px", color: C.red }}>
+                {mins > 0 ? `${mins}m ` : ""}{secs}s
+              </span>
+            )}
           </div>
-        )}
+
+          {transcript && (
+            <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "14px", fontSize: "14px", color: C.text, lineHeight: "1.6", minHeight: "80px", maxHeight: "200px", overflowY: "auto" }}>
+              {transcript}
+            </div>
+          )}
+        </div>
+
+        {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+
+        <div style={{ display: "flex", gap: "12px" }}>
+          {analysing ? (
+            <div style={{ color: C.muted, fontSize: "14px" }}>Analysing your answer…</div>
+          ) : (
+            <button style={btn()} disabled={!transcript.trim()} onClick={submitAnswer}>
+              Get feedback →
+            </button>
+          )}
+          {currentQ > 0 && feedbacks[currentQ - 1] && (
+            <button style={btn("ghost")} onClick={() => { setCurrentQ(currentQ - 1); setStep("answer-review"); }}>
+              ← View previous
+            </button>
+          )}
+        </div>
       </div>
     );
   }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
-
-  const activeToolLabel = navItems.find(n => n.id === activeTool)?.label || "Career Suite";
 
   return (
-    <div style={S.page}>
-      {/* Sidebar */}
-      <aside style={S.sidebar}>
-        <div style={S.sidebarTop}>
-          <div style={S.logo} onClick={() => router.push("/dashboard")}>
-            <div style={S.logoIcon}>CS</div>
-            <span style={S.logoText}>Career Suite</span>
-          </div>
-          <div style={S.logoSub}>BA job search toolkit</div>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+        Paste the job description and get AI-generated interview questions tailored to the role. Practice your answers out loud and get per-answer STAR feedback.
+      </p>
+      <div>
+        <span style={label}>Job description</span>
+        <textarea rows={8} style={textarea(8)} placeholder="Paste the full job description here…"
+          value={jdText} onChange={e => setJdText(e.target.value)} />
+      </div>
+      <div>
+        <span style={label}>Company name (optional)</span>
+        <input type="text" style={input} placeholder="e.g. ANZ Bank, Telstra, KPMG"
+          value={company} onChange={e => setCompany(e.target.value)} />
+      </div>
+      <FileUpload label="Your resume (optional — personalises questions)" onParsed={(text) => setResumeText(text)} />
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <button style={btn()} disabled={jdText.trim().length < 50} onClick={generateQuestions}>
+        Generate my interview questions →
+      </button>
+    </div>
+  );
+}
 
-        <nav style={S.navSection}>
-          {navItems.map(item => (
-            <button key={item.id} onClick={() => setActiveTool(item.id)} style={S.navItem(activeTool === item.id)}>
-              <span style={S.navLabel(activeTool === item.id)}>{item.label}</span>
-              <span style={S.navDesc}>{item.desc}</span>
+// ── Salary Negotiation ──────────────────────────────────────────────────────
+
+function SalaryTool() {
+  const [form, setForm] = useState({ offerAmount: "", currency: "$", jobTitle: "", yearsExp: "", location: "", notes: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<null | {
+    offerAssessment: string;
+    negotiationStrategies: { strategy: string; script: string; when: string }[];
+    counterOfferRange: string;
+    beyondSalary: string[];
+    redFlags: string[];
+    bottomLine: string;
+  }>(null);
+
+  const analyse = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/career/salary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return (
+    <div style={{ textAlign: "center", padding: "60px 0" }}>
+      <div style={{ color: C.teal, fontSize: "15px" }}>Analysing your offer…</div>
+    </div>
+  );
+
+  if (result) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Assessment */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>OFFER ASSESSMENT</div>
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.offerAssessment}</p>
+      </div>
+
+      {/* Counter offer range */}
+      <div style={{ ...card, borderColor: C.tealBorder, background: C.tealBg }}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>COUNTER-OFFER RANGE</div>
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.5", margin: 0 }}>{result.counterOfferRange}</p>
+      </div>
+
+      {/* Strategies */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>NEGOTIATION SCRIPTS</div>
+        {result.negotiationStrategies.map((s, i) => (
+          <div key={i} style={{ marginBottom: "20px", paddingBottom: "20px", borderBottom: i < result.negotiationStrategies.length - 1 ? `1px solid ${C.border}` : "none" }}>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: C.text, marginBottom: "8px" }}>{s.strategy}</div>
+            <div style={{ background: C.tealBg, border: `1px solid ${C.tealBorder}`, borderRadius: "8px", padding: "12px 16px", marginBottom: "8px" }}>
+              <p style={{ fontSize: "14px", color: C.teal, margin: 0, lineHeight: "1.6", fontStyle: "italic" }}>&ldquo;{s.script}&rdquo;</p>
+            </div>
+            <p style={{ fontSize: "12px", color: C.muted, margin: 0 }}>{s.when}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Beyond salary + red flags */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <div style={card}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>ALSO NEGOTIATE</div>
+          {result.beyondSalary.map((b, i) => (
+            <div key={i} style={{ fontSize: "13px", color: C.text, marginBottom: "8px", paddingLeft: "12px", borderLeft: `2px solid ${C.green}` }}>{b}</div>
+          ))}
+        </div>
+        {result.redFlags.length > 0 && (
+          <div style={{ ...card, borderColor: "rgba(239,68,68,0.2)", background: C.redBg }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.red, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>RED FLAGS</div>
+            {result.redFlags.map((r, i) => (
+              <div key={i} style={{ fontSize: "13px", color: C.text, marginBottom: "8px", paddingLeft: "12px", borderLeft: `2px solid ${C.red}` }}>{r}</div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom line */}
+      <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>BOTTOM LINE</div>
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.5", margin: 0 }}>{result.bottomLine}</p>
+      </div>
+
+      <button style={btn("ghost")} onClick={() => { setResult(null); setForm({ offerAmount: "", currency: "$", jobTitle: "", yearsExp: "", location: "", notes: "" }); }}>
+        ← Analyse another offer
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+        Enter your offer details and get an honest assessment plus negotiation scripts you can use word-for-word.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", gap: "12px" }}>
+        <div>
+          <span style={label}>Currency</span>
+          <select style={{ ...input, padding: "12px 10px" }} value={form.currency}
+            onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}>
+            <option>$</option><option>£</option><option>€</option><option>A$</option><option>NZ$</option>
+          </select>
+        </div>
+        <div>
+          <span style={label}>Offer amount (annual)</span>
+          <input type="number" style={input} placeholder="e.g. 95000"
+            value={form.offerAmount} onChange={e => setForm(p => ({ ...p, offerAmount: e.target.value }))} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div>
+          <span style={label}>Job title</span>
+          <input type="text" style={input} placeholder="e.g. Senior Business Analyst"
+            value={form.jobTitle} onChange={e => setForm(p => ({ ...p, jobTitle: e.target.value }))} />
+        </div>
+        <div>
+          <span style={label}>Years of experience</span>
+          <input type="text" style={input} placeholder="e.g. 5"
+            value={form.yearsExp} onChange={e => setForm(p => ({ ...p, yearsExp: e.target.value }))} />
+        </div>
+      </div>
+      <div>
+        <span style={label}>Location / market</span>
+        <input type="text" style={input} placeholder="e.g. Sydney, London, remote"
+          value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} />
+      </div>
+      <div>
+        <span style={label}>Additional context (optional)</span>
+        <textarea rows={3} style={textarea(3)}
+          placeholder="e.g. competing offer, notice period, relocation, contract vs permanent…"
+          value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+      </div>
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+      <button style={btn()} disabled={!form.offerAmount} onClick={analyse}>
+        Analyse offer →
+      </button>
+    </div>
+  );
+}
+
+// ── Main Component ──────────────────────────────────────────────────────────
+
+const TOOLS: { id: Tool; label: string; desc: string }[] = [
+  { id: "advisor", label: "Career Strategy", desc: "Find your BA track" },
+  { id: "resume", label: "Resume Improvement", desc: "Upload & strengthen" },
+  { id: "cover-letter", label: "Cover Letter", desc: "Role-specific letter" },
+  { id: "jd", label: "JD Analyzer", desc: "ATS match & gaps" },
+  { id: "interview", label: "Interview Prep", desc: "Voice practice + feedback" },
+  { id: "salary", label: "Salary Negotiation", desc: "Offer analysis & scripts" },
+];
+
+export default function CareerClient({ fullName }: Props) {
+  const router = useRouter();
+  const [activeTool, setActiveTool] = useState<Tool>("advisor");
+
+  const toolTitles: Record<Tool, string> = {
+    advisor: "Career Strategy Advisor",
+    resume: "Resume Improvement",
+    "cover-letter": "Cover Letter Builder",
+    jd: "JD Analyzer",
+    interview: "Interview Prep",
+    salary: "Salary Negotiation",
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "Inter, system-ui, sans-serif" }}>
+      {/* Top bar */}
+      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button onClick={() => router.push("/dashboard")}
+          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
+          ← Dashboard
+        </button>
+        <span style={{ fontSize: "15px", fontWeight: "700", color: "white" }}>Career Suite</span>
+        <span style={{ fontSize: "13px", color: C.muted }}>{fullName}</span>
+      </div>
+
+      <div style={{ display: "flex", maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", gap: "24px" }}>
+        {/* Sidebar */}
+        <div style={{ width: "200px", flexShrink: 0 }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>TOOLS</div>
+          {TOOLS.map(t => (
+            <button key={t.id} onClick={() => setActiveTool(t.id)}
+              style={{
+                display: "block", width: "100%", textAlign: "left",
+                padding: "10px 14px", borderRadius: "8px", marginBottom: "4px", cursor: "pointer",
+                background: activeTool === t.id ? C.tealBg : "transparent",
+                border: `1px solid ${activeTool === t.id ? C.tealBorder : "transparent"}`,
+                color: activeTool === t.id ? C.teal : C.muted,
+                transition: "all 0.12s",
+              }}>
+              <div style={{ fontSize: "13px", fontWeight: "600" }}>{t.label}</div>
+              <div style={{ fontSize: "11px", marginTop: "2px", opacity: 0.7 }}>{t.desc}</div>
             </button>
           ))}
-        </nav>
-
-        <div style={S.sidebarBottom}>
-          <div style={{ padding: "10px 12px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", marginBottom: "12px" }}>
-            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontFamily: "JetBrains Mono, monospace", marginBottom: "6px" }}>YOUR PROFILE</div>
-            <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{progress.ba_level}</div>
-            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", marginTop: "2px" }}>{progress.challenges_completed} challenges · avg {progress.avg_score}%</div>
-          </div>
-          <button onClick={() => router.push("/dashboard")} style={S.backBtn}>
-            ← Dashboard
-          </button>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main style={S.main}>
-        <div style={S.topBar}>
-          <span style={S.toolTitle}>{activeToolLabel}</span>
-          <div style={S.statsRow}>
-            <span style={S.statChip}>{fullName || "BA Professional"}</span>
-            <span style={S.statChip}>·</span>
-            <span style={S.statChip}>{badges.length} badges</span>
-            <span style={S.statChip}>·</span>
-            <span style={S.statChip}>{attempts.length} simulations</span>
-          </div>
         </div>
 
-        <div style={S.content}>
-          {activeTool === "resume" && renderResume()}
-          {activeTool === "cover-letter" && renderCoverLetter()}
-          {activeTool === "jd" && renderJD()}
-          {activeTool === "interview" && renderInterview()}
-          {activeTool === "linkedin" && renderLinkedIn()}
+        {/* Main content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ fontSize: "22px", fontWeight: "700", color: "white", marginBottom: "24px" }}>
+            {toolTitles[activeTool]}
+          </h1>
+          {activeTool === "advisor" && <AdvisorTool />}
+          {activeTool === "resume" && <ResumeTool fullName={fullName} />}
+          {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} />}
+          {activeTool === "jd" && <JDAnalyzerTool />}
+          {activeTool === "interview" && <InterviewTool />}
+          {activeTool === "salary" && <SalaryTool />}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
