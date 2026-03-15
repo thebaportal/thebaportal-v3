@@ -198,39 +198,39 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
 
 const ADVISOR_QUESTIONS = [
   {
-    question: "What kind of work do you enjoy most?",
+    question: "What does a really good day at work feel like for you?",
     options: [
-      "Working with systems, data, and technical teams",
-      "Understanding customers and shaping products",
-      "Improving business processes and driving strategy",
-      "I am still figuring it out",
+      "I am deep in a problem — pulling apart data, figuring out how a system works, getting to the root of something",
+      "I am with people — running a session, understanding what they actually need, facilitating something that leads to a decision",
+      "I am influencing something — shaping a direction, making the case for a change, having my thinking acted on",
+      "Honestly, I am still working that out",
     ],
   },
   {
-    question: "Which tools or activities feel most familiar to you?",
+    question: "What is drawing you towards Business Analysis?",
     options: [
-      "SQL, APIs, system documentation, data analysis",
-      "User stories, backlog grooming, product planning, wireframes",
-      "Stakeholder workshops, process mapping, business cases",
-      "None of these yet. I am building my skills",
+      "I want to work closer to technology and understand how solutions get built",
+      "I want to help shape products that real people use every day",
+      "I want to work on how organisations change and improve — at a bigger level",
+      "I want a career that makes proper use of the experience I already have",
     ],
   },
   {
-    question: "Where are you in your career right now?",
+    question: "What kind of background are you coming from?",
     options: [
-      "Entry level or aspiring BA",
-      "Mid level BA (2 to 5 years)",
-      "Senior BA (5 or more years)",
-      "Transitioning from another field",
+      "Technical or IT — systems, data, software, or engineering",
+      "Business or operations — supply chain, finance, project management, HR, or similar",
+      "Customer or product-facing — marketing, design, customer success, or similar",
+      "I am at the start of my career and still building my foundation",
     ],
   },
   {
-    question: "What kind of environment appeals to you?",
+    question: "How would you describe where you are right now?",
     options: [
-      "Engineering and technical product teams",
-      "Agile product squads with designers and PMs",
-      "Large organisations or consulting",
-      "I am open to anything right now",
+      "I am working in BA or a closely related role already",
+      "I am transitioning — I have years of experience elsewhere and I am making the move",
+      "I am exploring BA seriously and working out whether it is the right fit",
+      "I am re-entering the workforce or starting fresh from a very different place",
     ],
   },
 ];
@@ -239,25 +239,31 @@ const TRACKS = [
   {
     name: "Technical BA",
     colour: "#818cf8",
-    desc: "Works closely with engineering teams, systems, APIs, and data. Turns complex technical problems into clear business requirements.",
+    desc: "You sit between the business and the technology team. Your job is to make sure developers build the right thing — by translating what the business needs into clear, detailed requirements.",
+    practice: "Writing system specs, mapping how data flows between systems, running testing sessions, working with developers to understand what is technically possible.",
+    fit: "Good fit if you like precision and logic, enjoy solving problems at a technical level, or come from an IT, data, or engineering background.",
   },
   {
     name: "Product BA",
     colour: "#22d3ee",
-    desc: "Embedded in product teams alongside designers and PMs. Shapes features, writes user stories, and keeps the team focused on real outcomes.",
+    desc: "You work inside a product team and help decide what gets built next. You gather input from real users, define what features should do, and keep the team focused on building things that actually matter.",
+    practice: "Talking to users, writing up what a feature should do and why, running prioritisation sessions, working closely with designers and product managers.",
+    fit: "Good fit if you are drawn to customer thinking, like fast-moving environments, or want to work on the experience side of technology.",
   },
   {
     name: "Business & Strategy BA",
     colour: "#fbbf24",
-    desc: "Works at the organisation level on process improvement, stakeholder strategy, change management, and building business cases.",
+    desc: "You work at a higher level — helping organisations figure out how to change, improve, or grow. You influence decisions, build the case for investment, and design how processes should work.",
+    practice: "Facilitating workshops with senior leaders, mapping how a process works today and how it should work in future, building business cases, managing change across teams.",
+    fit: "Good fit if you like the bigger picture, have experience influencing decisions, or come from a business, operations, or strategy background.",
   },
 ];
 
 const LOADING_STEPS = [
-  "Understanding your experience",
-  "Mapping your strengths",
-  "Comparing BA career paths",
-  "Preparing your recommendation",
+  "Reading through your answers",
+  "Looking at where you are coming from",
+  "Weighing up the three paths",
+  "Putting your recommendation together",
 ];
 
 const PORTAL_ACTIONS: Record<string, { label: string; href: string }[]> = {
@@ -402,22 +408,32 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   if (step === "intro") {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <p style={{ fontSize: "20px", fontWeight: "700", color: C.text, margin: 0, lineHeight: "1.4" }}>
-            Let us figure out which BA path fits you.
+            Good to have you here. Let us work out where you fit.
+          </p>
+          <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: 0 }}>
+            I will ask you four honest questions and give you a clear recommendation on which BA direction makes the most sense for where you are coming from. This works whether you have been in BA for years or you are walking in from a completely different industry.
           </p>
           <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-            There are three directions most BAs end up in. I will ask you four quick questions and tell you which one makes the most sense for you and why.
-          </p>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", lineHeight: "1.6", margin: 0 }}>
-            No BA experience needed. Just answer honestly and we will work it out.
+            There are no right or wrong answers here. Just tell me what is genuinely true for you and I will take it from there.
           </p>
         </div>
 
-        <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", fontSize: "15px" }}
-          onClick={() => setStep("paths")}>
-          Let&apos;s go
-        </button>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", fontSize: "15px" }}
+            onClick={() => setStep("paths")}>
+            Show me the three paths first
+          </button>
+          <button style={{ ...btn("ghost"), alignSelf: "flex-start", padding: "12px 28px", fontSize: "15px" }}
+            onClick={() => setStep("question")}>
+            Skip straight to the questions
+          </button>
+        </div>
+
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", lineHeight: "1.6", margin: 0 }}>
+          Takes less than two minutes.
+        </p>
       </div>
     );
   }
@@ -427,25 +443,28 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
         <div>
-          <p style={{ fontSize: "16px", color: C.text, lineHeight: "1.6", margin: "0 0 4px" }}>
-            There are three common paths Business Analysts tend to follow.
+          <p style={{ fontSize: "16px", fontWeight: "600", color: C.text, lineHeight: "1.6", margin: "0 0 6px" }}>
+            Business Analysis has three main directions.
           </p>
           <p style={{ fontSize: "14px", color: C.muted, lineHeight: "1.5", margin: 0 }}>
-            Have a read through them, then we will ask you a few short questions to find your fit.
+            Have a read. You do not need to pick one right now — the questions after this will help narrow it down.
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {TRACKS.map(t => (
             <div key={t.name} style={{
               background: C.panel,
               border: `1px solid ${t.colour}22`,
-              borderLeft: `3px solid ${t.colour}`,
+              borderLeft: `4px solid ${t.colour}`,
               borderRadius: "10px",
-              padding: "18px 20px",
+              padding: "20px 22px",
             }}>
-              <div style={{ fontSize: "15px", fontWeight: "700", color: t.colour, marginBottom: "6px" }}>{t.name}</div>
-              <div style={{ fontSize: "14px", color: C.muted, lineHeight: "1.5" }}>{t.desc}</div>
+              <div style={{ fontSize: "15px", fontWeight: "700", color: t.colour, marginBottom: "10px" }}>{t.name}</div>
+              <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "0 0 12px" }}>{t.desc}</p>
+              <div style={{ fontSize: "12px", fontWeight: "700", color: C.muted, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "6px" }}>In practice</div>
+              <p style={{ fontSize: "13px", color: C.muted, lineHeight: "1.6", margin: "0 0 12px" }}>{t.practice}</p>
+              <div style={{ fontSize: "13px", color: t.colour, lineHeight: "1.5", background: `${t.colour}0d`, padding: "10px 14px", borderRadius: "6px" }}>{t.fit}</div>
             </div>
           ))}
         </div>
@@ -453,7 +472,7 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
         <div style={{ display: "flex", gap: "12px" }}>
           <button style={{ ...btn(), padding: "12px 28px", fontSize: "15px" }}
             onClick={() => setStep("question")}>
-            Find my path
+            OK, find my path
           </button>
           <button style={btn("ghost")} onClick={() => setStep("intro")}>
             Back
@@ -599,7 +618,7 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
             <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT TO BUILD</div>
             {result.gaps.map((g, i) => (
               <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                <span style={{ color: C.amber, flexShrink: 0 }}>→</span>
+                <span style={{ color: C.amber, flexShrink: 0 }}>•</span>
                 <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.4" }}>{g}</span>
               </div>
             ))}
