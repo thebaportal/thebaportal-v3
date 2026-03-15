@@ -196,41 +196,72 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
 
 // ── Career Strategy Advisor ─────────────────────────────────────────────────
 
+const ADVISOR_QUESTIONS = [
+  {
+    question: "What kind of work do you enjoy most?",
+    options: [
+      "Working with systems, data, and technical teams",
+      "Understanding customers and shaping products",
+      "Improving business processes and driving strategy",
+      "I'm still figuring it out",
+    ],
+  },
+  {
+    question: "Which tools or activities feel most familiar to you?",
+    options: [
+      "SQL, APIs, system documentation, data analysis",
+      "User stories, backlog grooming, product planning, wireframes",
+      "Stakeholder workshops, process mapping, business cases",
+      "None of these yet — I'm building my skills",
+    ],
+  },
+  {
+    question: "Where are you in your career right now?",
+    options: [
+      "Entry-level or aspiring BA",
+      "Mid-level BA (2–5 years)",
+      "Senior BA (5+ years)",
+      "Transitioning from another field",
+    ],
+  },
+  {
+    question: "What kind of environment do you want to work in?",
+    options: [
+      "Engineering-heavy, technical product teams",
+      "Agile product squads with designers and PMs",
+      "Large organisations or consulting",
+      "I'm open to anything right now",
+    ],
+  },
+];
+
+const TRACKS = [
+  {
+    name: "Technical BA",
+    colour: "#818cf8",
+    desc: "Works closely with engineering teams, systems, APIs, and data. Bridges the gap between business needs and technical delivery.",
+  },
+  {
+    name: "Product BA",
+    colour: "#22d3ee",
+    desc: "Embedded in product teams alongside designers and PMs. Shapes features, owns user stories, and focuses on outcomes over output.",
+  },
+  {
+    name: "Business & Strategy BA",
+    colour: "#fbbf24",
+    desc: "Operates at the organisation level — process improvement, stakeholder strategy, change management, and business case development.",
+  },
+];
+
 function AdvisorTool() {
-  const [step, setStep] = useState<"questions" | "loading" | "result">("questions");
-  const [answers, setAnswers] = useState({ background: "", currentRole: "", whatLove: "", whatAvoid: "", goal: "" });
+  const [step, setStep] = useState<"intro" | "question" | "loading" | "result">("intro");
+  const [qIndex, setQIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [result, setResult] = useState<null | {
     primaryTrack: string; fitScore: number; whyThisTrack: string; secondaryTrack: string | null;
     strengths: string[]; gaps: string[]; nextSteps: string[]; roleTypesToTarget: string[]; watchOut: string;
   }>(null);
   const [error, setError] = useState("");
-
-  const fields = [
-    { key: "background", label: "Your BA background", placeholder: "What's your experience so far? Include years, industries, types of projects." },
-    { key: "currentRole", label: "Current role or area", placeholder: "What are you doing now? If you're transitioning, what from?" },
-    { key: "whatLove", label: "What you love about BA work", placeholder: "What energises you most in this kind of work?" },
-    { key: "whatAvoid", label: "What you want to avoid", placeholder: "Any types of work, environments, or tasks you'd prefer to steer clear of?" },
-    { key: "goal", label: "Your goal in 2–3 years", placeholder: "Where do you want to be? What does success look like?" },
-  ] as const;
-
-  const submit = async () => {
-    setStep("loading");
-    setError("");
-    try {
-      const res = await fetch("/api/career/career-advisor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Failed");
-      setResult(data);
-      setStep("result");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setStep("questions");
-    }
-  };
 
   const trackColour = (track: string) => {
     if (track.includes("Technical")) return "#818cf8";
@@ -238,28 +269,176 @@ function AdvisorTool() {
     return C.amber;
   };
 
+  const selectOption = async (option: string) => {
+    const updated = [...selectedAnswers, option];
+    setSelectedAnswers(updated);
+
+    if (qIndex < ADVISOR_QUESTIONS.length - 1) {
+      setQIndex(qIndex + 1);
+    } else {
+      // All questions answered — submit
+      setStep("loading");
+      setError("");
+      const answers = {
+        background: updated[2] || "",   // career stage
+        currentRole: updated[3] || "",  // environment
+        whatLove: updated[0] || "",     // enjoyment
+        whatAvoid: "",
+        goal: updated[1] || "",         // tools/activities
+      };
+      try {
+        const res = await fetch("/api/career/career-advisor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Failed");
+        setResult(data);
+        setStep("result");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+        setStep("question");
+      }
+    }
+  };
+
+  const restart = () => {
+    setStep("intro");
+    setQIndex(0);
+    setSelectedAnswers([]);
+    setResult(null);
+    setError("");
+  };
+
+  // ── Intro screen ──
+  if (step === "intro") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div>
+          <p style={{ fontSize: "17px", color: C.text, lineHeight: "1.7", margin: "0 0 6px" }}>
+            There are three common paths Business Analysts tend to follow.
+          </p>
+          <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+            Let&apos;s figure out which one fits you best.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {TRACKS.map(t => (
+            <div key={t.name} style={{
+              background: C.panel,
+              border: `1px solid ${t.colour}22`,
+              borderLeft: `3px solid ${t.colour}`,
+              borderRadius: "10px",
+              padding: "18px 20px",
+            }}>
+              <div style={{ fontSize: "15px", fontWeight: "700", color: t.colour, marginBottom: "6px" }}>{t.name}</div>
+              <div style={{ fontSize: "14px", color: C.muted, lineHeight: "1.5" }}>{t.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <button style={{ ...btn(), alignSelf: "flex-start" }} onClick={() => setStep("question")}>
+          Find my path →
+        </button>
+      </div>
+    );
+  }
+
+  // ── Loading screen ──
   if (step === "loading") {
     return (
       <div style={{ textAlign: "center", padding: "60px 0" }}>
-        <div style={{ color: C.teal, fontSize: "15px", marginBottom: "8px" }}>Analysing your profile…</div>
+        <div style={{ color: C.teal, fontSize: "16px", marginBottom: "8px" }}>Working out your path…</div>
         <div style={{ color: C.muted, fontSize: "13px" }}>This takes a few seconds</div>
       </div>
     );
   }
 
+  // ── Question screen ──
+  if (step === "question") {
+    const q = ADVISOR_QUESTIONS[qIndex];
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* Progress dots */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {ADVISOR_QUESTIONS.map((_, i) => (
+            <div key={i} style={{
+              width: i === qIndex ? "24px" : "8px",
+              height: "8px",
+              borderRadius: "4px",
+              background: i < qIndex ? C.green : i === qIndex ? C.teal : C.border,
+              transition: "all 0.2s",
+            }} />
+          ))}
+          <span style={{ fontSize: "12px", color: C.muted, marginLeft: "8px" }}>
+            {qIndex + 1} of {ADVISOR_QUESTIONS.length}
+          </span>
+        </div>
+
+        {/* Question */}
+        <p style={{ fontSize: "20px", fontWeight: "600", color: C.text, lineHeight: "1.5", margin: 0 }}>
+          {q.question}
+        </p>
+
+        {/* Options */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {q.options.map((opt, i) => (
+            <button key={i} onClick={() => selectOption(opt)}
+              style={{
+                textAlign: "left",
+                padding: "16px 20px",
+                borderRadius: "10px",
+                fontSize: "15px",
+                color: C.text,
+                background: "rgba(255,255,255,0.03)",
+                border: `1px solid ${C.border}`,
+                cursor: "pointer",
+                transition: "all 0.12s",
+                fontFamily: "Inter, system-ui, sans-serif",
+                lineHeight: "1.4",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = C.tealBg;
+                (e.currentTarget as HTMLButtonElement).style.borderColor = C.tealBorder;
+                (e.currentTarget as HTMLButtonElement).style.color = C.teal;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = C.border;
+                (e.currentTarget as HTMLButtonElement).style.color = C.text;
+              }}>
+              {opt}
+            </button>
+          ))}
+        </div>
+
+        {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
+
+        {qIndex > 0 && (
+          <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
+            onClick={() => { setQIndex(qIndex - 1); setSelectedAnswers(prev => prev.slice(0, -1)); }}>
+            ← Back
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── Result screen ──
   if (step === "result" && result) {
     const tc = trackColour(result.primaryTrack);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-        {/* Track recommendation */}
         <div style={{ ...card, border: `1px solid ${tc}33`, background: `${tc}0d` }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
             <ScoreRing score={result.fitScore} size={64} />
             <div>
-              <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "4px" }}>YOUR TRACK</div>
+              <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "4px" }}>YOUR PATH</div>
               <div style={{ fontSize: "22px", fontWeight: "700", color: tc }}>{result.primaryTrack}</div>
               {result.secondaryTrack && (
-                <div style={{ fontSize: "12px", color: C.muted, marginTop: "2px" }}>Secondary fit: {result.secondaryTrack}</div>
+                <div style={{ fontSize: "12px", color: C.muted, marginTop: "2px" }}>Also consider: {result.secondaryTrack}</div>
               )}
             </div>
           </div>
@@ -267,7 +446,6 @@ function AdvisorTool() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          {/* Strengths */}
           <div style={card}>
             <div style={{ fontSize: "11px", fontWeight: "700", color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT YOU BRING</div>
             {result.strengths.map((s, i) => (
@@ -277,8 +455,6 @@ function AdvisorTool() {
               </div>
             ))}
           </div>
-
-          {/* Gaps */}
           <div style={card}>
             <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT TO BUILD</div>
             {result.gaps.map((g, i) => (
@@ -290,7 +466,6 @@ function AdvisorTool() {
           </div>
         </div>
 
-        {/* Next steps */}
         <div style={card}>
           <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>NEXT STEPS</div>
           {result.nextSteps.map((s, i) => (
@@ -301,7 +476,6 @@ function AdvisorTool() {
           ))}
         </div>
 
-        {/* Roles + watch out */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
           <div style={card}>
             <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>ROLES TO TARGET</div>
@@ -310,42 +484,19 @@ function AdvisorTool() {
             ))}
           </div>
           <div style={{ ...card, border: "1px solid rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WATCH OUT FOR</div>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WORTH KNOWING</div>
             <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: 0 }}>{result.watchOut}</p>
           </div>
         </div>
 
-        <button style={btn("ghost")} onClick={() => { setStep("questions"); setResult(null); }}>
+        <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={restart}>
           ← Start over
         </button>
       </div>
     );
   }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Answer five questions and get a personalised recommendation on which BA track suits you best — with concrete next steps.
-      </p>
-      {fields.map(f => (
-        <div key={f.key}>
-          <span style={label}>{f.label}</span>
-          <textarea
-            rows={3}
-            style={textarea(3)}
-            placeholder={f.placeholder}
-            value={answers[f.key]}
-            onChange={e => setAnswers(prev => ({ ...prev, [f.key]: e.target.value }))}
-          />
-        </div>
-      ))}
-      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
-      <button style={btn()} onClick={submit}
-        disabled={!answers.background.trim() || !answers.goal.trim()}>
-        Get my career strategy →
-      </button>
-    </div>
-  );
+  return null;
 }
 
 // ── Resume Improvement ──────────────────────────────────────────────────────
