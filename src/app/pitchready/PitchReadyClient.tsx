@@ -359,7 +359,7 @@ export default function PitchReadyClient({ userName }: Props) {
   // Studio state
   const [studioPhase, setStudioPhase] = useState<StudioPhase>("setup");
   const [studioSetup, setStudioSetup] = useState<StudioSetup>({
-    scenario: null, audience: "", difficulty: "Professional", timeLimit: 300, focus: "clarity",
+    scenario: null, audience: "", difficulty: "Professional", timeLimit: 300, focus: "all",
   });
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -529,6 +529,7 @@ export default function PitchReadyClient({ userName }: Props) {
           audience: studioSetup.scenario.audience,
           duration: recordingTime,
           wordCount,
+          focus: studioSetup.focus,
         }),
       });
       clearTimeout(timeout);
@@ -998,6 +999,7 @@ export default function PitchReadyClient({ userName }: Props) {
   // ════════════════════════════════════════════════════════════════════════════
   if (view === "studio" || view === "feedback" && studioPhase === "processing") {
     const focusOptions = [
+      { value: "all", label: "All aspects (recommended)" },
       { value: "clarity", label: "Clarity" },
       { value: "confidence", label: "Confidence" },
       { value: "structure", label: "Structure" },

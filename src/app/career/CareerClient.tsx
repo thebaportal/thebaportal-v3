@@ -1472,7 +1472,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 
         {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
 
-        <div style={{ display: "flex", gap: "12px" }}>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           {analysing ? (
             <div style={{ color: C.muted, fontSize: "14px" }}>Analysing your answer…</div>
           ) : (
@@ -1485,6 +1485,10 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
               View previous
             </button>
           )}
+          <button style={{ ...btn("ghost"), marginLeft: "auto" }}
+            onClick={() => { setStep("setup"); setQuestions([]); setFeedbacks([]); setCurrentQ(0); setTranscript(""); setJdText(""); setCompany(""); setResumeText(""); }}>
+            End session
+          </button>
         </div>
       </div>
     );
@@ -1493,7 +1497,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Paste the job description below. I will put together questions based on the role and give you feedback on each answer you record.
+        Paste the job description and I will put together questions for this specific role. Upload your resume too and I will tailor the questions to your background.
       </p>
       <div>
         <span style={label}>Job description</span>
@@ -1501,11 +1505,11 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
           value={jdText} onChange={e => setJdText(e.target.value)} />
       </div>
       <div>
-        <span style={label}>Company name (optional)</span>
-        <input type="text" style={input} placeholder="e.g. ANZ Bank, Telstra, KPMG"
+        <span style={label}>Company name</span>
+        <input type="text" style={input} placeholder="Add the company name if it is not in the job description"
           value={company} onChange={e => setCompany(e.target.value)} />
       </div>
-      <FileUpload label="Your resume (optional — personalises questions)" onParsed={(text) => setResumeText(text)} />
+      <FileUpload label="Your resume (optional — personalises questions to your background)" onParsed={(text) => setResumeText(text)} />
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
       <button style={btn()} disabled={jdText.trim().length < 50} onClick={generateQuestions}>
         Generate my interview questions
@@ -1518,6 +1522,7 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 
 function SalaryTool() {
   const [form, setForm] = useState({ offerAmount: "", currency: "$", jobTitle: "", yearsExp: "", location: "", notes: "" });
+  const [offerLetterText, setOfferLetterText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<null | {
@@ -1536,7 +1541,7 @@ function SalaryTool() {
       const res = await fetch("/api/career/salary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, offerLetterText }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Failed");
@@ -1606,17 +1611,26 @@ function SalaryTool() {
         <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.5", margin: 0 }}>{result.bottomLine}</p>
       </div>
 
-      <button style={btn("ghost")} onClick={() => { setResult(null); setForm({ offerAmount: "", currency: "$", jobTitle: "", yearsExp: "", location: "", notes: "" }); }}>
+      <button style={btn("ghost")} onClick={() => { setResult(null); setOfferLetterText(""); setForm({ offerAmount: "", currency: "$", jobTitle: "", yearsExp: "", location: "", notes: "" }); }}>
         Analyse another offer
       </button>
     </div>
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Enter your offer details and I will give you an honest read on it, plus scripts you can use in the actual conversation.
+        Upload your offer letter and I will read it for you, or fill in the details below. Either way works.
       </p>
+
+      <FileUpload label="Offer letter (optional — Word or PDF)" onParsed={(text) => setOfferLetterText(text)} />
+
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ flex: 1, height: "1px", background: C.border }} />
+        <span style={{ fontSize: "12px", color: C.muted }}>or enter the details manually</span>
+        <div style={{ flex: 1, height: "1px", background: C.border }} />
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", gap: "12px" }}>
         <div>
           <span style={label}>Currency</span>
@@ -1655,7 +1669,7 @@ function SalaryTool() {
           value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
       </div>
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
-      <button style={btn()} disabled={!form.offerAmount} onClick={analyse}>
+      <button style={btn()} disabled={!form.offerAmount && !offerLetterText} onClick={analyse}>
         Analyse my offer
       </button>
     </div>

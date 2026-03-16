@@ -30,7 +30,7 @@ JOB DESCRIPTION:
 ${jdText.slice(0, 2500)}
 ${resumeSection}
 
-Generate 8 interview questions across these categories. Make them specific to this role — not generic. Include questions that probe the candidate's actual background where a resume is provided.
+Generate 8 to 12 interview questions across these categories. Make them specific to this role — not generic. Include questions that probe the candidate's actual background where a resume is provided.
 
 Return ONLY valid JSON — no text outside it:
 {
@@ -48,7 +48,7 @@ Return ONLY valid JSON — no text outside it:
   try {
     const response = await ai.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 800,
+      max_tokens: 1400,
       messages: [{ role: "user", content: prompt }],
     });
 

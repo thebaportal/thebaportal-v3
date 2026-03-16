@@ -15,12 +15,13 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { transcript, scenario, audience, duration, wordCount } = await req.json() as {
+  const { transcript, scenario, audience, duration, wordCount, focus } = await req.json() as {
     transcript: string;
     scenario: string;
     audience: string;
     duration: number;
     wordCount: number;
+    focus?: string;
   };
 
   if (!transcript || transcript.trim().length < 20) {
@@ -33,13 +34,17 @@ export async function POST(req: Request) {
 
 You analyse spoken transcripts from practice sessions and produce structured coaching reports in JSON format. Your tone is confident, encouraging, and professional — like a coach who genuinely wants the speaker to improve before the real meeting.`;
 
+  const focusNote = focus && focus !== "all"
+    ? `\nFOCUS AREA: The learner has asked for extra coaching emphasis on ${focus}. Give this dimension more detailed and specific feedback than the others.`
+    : "";
+
   const userPrompt = `Analyse this practice transcript and return a coaching report as JSON.
 
 SCENARIO: ${scenario}
 AUDIENCE: ${audience}
 DURATION: ${duration} seconds
 WORD COUNT: ${wordCount}
-WORDS PER MINUTE: ${wpm}
+WORDS PER MINUTE: ${wpm}${focusNote}
 
 TRANSCRIPT:
 ${transcript}

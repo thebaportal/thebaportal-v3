@@ -15,19 +15,23 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { offerAmount, currency, jobTitle, yearsExp, location, notes } = await req.json();
-  if (!offerAmount) {
-    return Response.json({ error: "Offer amount is required." }, { status: 400 });
+  const { offerAmount, currency, jobTitle, yearsExp, location, notes, offerLetterText } = await req.json();
+  if (!offerAmount && !offerLetterText) {
+    return Response.json({ error: "Offer amount or offer letter is required." }, { status: 400 });
   }
+
+  const offerLetterSection = offerLetterText
+    ? `\nOFFER LETTER (full text extracted):\n${offerLetterText.slice(0, 3000)}`
+    : "";
 
   const prompt = `You are a BA career coach helping a client evaluate and negotiate a job offer. Give them practical, honest advice — not platitudes.
 
 OFFER DETAILS:
 - Job title: ${jobTitle || "Business Analyst"}
-- Offer amount: ${currency || ""}${offerAmount}
+- Offer amount: ${currency || ""}${offerAmount || "See offer letter"}
 - Years of experience: ${yearsExp || "Not specified"}
 - Location/market: ${location || "Not specified"}
-- Additional context: ${notes || "None"}
+- Additional context: ${notes || "None"}${offerLetterSection}
 
 Analyse this offer and give concrete negotiation strategies. Be honest if the offer is strong or if they have limited leverage. Don't use filler language.
 
