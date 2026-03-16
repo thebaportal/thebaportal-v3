@@ -407,33 +407,26 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   // ── Intro ──
   if (step === "intro") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <p style={{ fontSize: "20px", fontWeight: "700", color: C.text, margin: 0, lineHeight: "1.4" }}>
-            Good to have you here. Let us work out where you fit.
+      <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: "560px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <p style={{ fontSize: "22px", fontWeight: "700", color: C.text, margin: 0, lineHeight: "1.3" }}>
+            Good to have you here.
           </p>
-          <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: 0 }}>
-            I will ask you four honest questions and give you a clear recommendation on which BA direction makes the most sense for where you are coming from. This works whether you have been in BA for years or you are walking in from a completely different industry.
-          </p>
-          <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-            There are no right or wrong answers here. Just tell me what is genuinely true for you and I will take it from there.
+          <p style={{ fontSize: "16px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
+            Four questions. One clear recommendation. Works wherever you are coming from.
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", fontSize: "15px" }}
-            onClick={() => setStep("paths")}>
-            Show me the three paths first
-          </button>
-          <button style={{ ...btn("ghost"), alignSelf: "flex-start", padding: "12px 28px", fontSize: "15px" }}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <button style={{ ...btn(), padding: "14px 28px", fontSize: "15px", alignSelf: "flex-start" }}
             onClick={() => setStep("question")}>
-            Skip straight to the questions
+            Let us go
+          </button>
+          <button style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", padding: "0", textAlign: "left", textDecoration: "underline" }}
+            onClick={() => setStep("paths")}>
+            Show me the three BA paths first
           </button>
         </div>
-
-        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", lineHeight: "1.6", margin: 0 }}>
-          Takes less than two minutes.
-        </p>
       </div>
     );
   }
@@ -441,40 +434,32 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   // ── Paths overview ──
   if (step === "paths") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        <div>
-          <p style={{ fontSize: "16px", fontWeight: "600", color: C.text, lineHeight: "1.6", margin: "0 0 6px" }}>
-            Business Analysis has three main directions.
-          </p>
-          <p style={{ fontSize: "14px", color: C.muted, lineHeight: "1.5", margin: 0 }}>
-            Have a read. You do not need to pick one right now — the questions after this will help narrow it down.
-          </p>
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "28px", maxWidth: "560px" }}>
+        <p style={{ fontSize: "16px", color: C.muted, margin: 0, lineHeight: "1.6" }}>
+          Three directions. The questions will help identify which one fits you best.
+        </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {TRACKS.map(t => (
             <div key={t.name} style={{
-              background: C.panel,
-              border: `1px solid ${t.colour}22`,
-              borderLeft: `4px solid ${t.colour}`,
-              borderRadius: "10px",
-              padding: "20px 22px",
+              borderLeft: `3px solid ${t.colour}`,
+              paddingLeft: "16px",
+              paddingTop: "4px",
+              paddingBottom: "4px",
             }}>
-              <div style={{ fontSize: "15px", fontWeight: "700", color: t.colour, marginBottom: "10px" }}>{t.name}</div>
-              <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "0 0 12px" }}>{t.desc}</p>
-              <div style={{ fontSize: "12px", fontWeight: "700", color: C.muted, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "6px" }}>In practice</div>
-              <p style={{ fontSize: "13px", color: C.muted, lineHeight: "1.6", margin: "0 0 12px" }}>{t.practice}</p>
-              <div style={{ fontSize: "13px", color: t.colour, lineHeight: "1.5", background: `${t.colour}0d`, padding: "10px 14px", borderRadius: "6px" }}>{t.fit}</div>
+              <div style={{ fontSize: "15px", fontWeight: "700", color: t.colour, marginBottom: "4px" }}>{t.name}</div>
+              <div style={{ fontSize: "14px", color: C.muted, lineHeight: "1.5" }}>{t.desc}</div>
             </div>
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: "12px" }}>
-          <button style={{ ...btn(), padding: "12px 28px", fontSize: "15px" }}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <button style={{ ...btn(), padding: "14px 28px", fontSize: "15px", alignSelf: "flex-start" }}
             onClick={() => setStep("question")}>
-            OK, find my path
+            Start the questions
           </button>
-          <button style={btn("ghost")} onClick={() => setStep("intro")}>
+          <button style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", padding: "0", textAlign: "left", textDecoration: "underline" }}
+            onClick={() => setStep("intro")}>
             Back
           </button>
         </div>
@@ -1759,50 +1744,44 @@ export default function CareerClient({ fullName }: Props) {
 
         {/* ── Home ── */}
         {activeTool === "home" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "48px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "40px", maxWidth: "580px" }}>
 
-            {/* Hero */}
+            {/* Alex opener */}
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "17px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
                 <div>
-                  <div style={{ fontSize: "16px", fontWeight: "700", color: C.text }}>Alex</div>
+                  <div style={{ fontSize: "15px", fontWeight: "700", color: C.text }}>Alex</div>
                   <div style={{ fontSize: "12px", color: C.muted }}>Career Advisor</div>
                 </div>
               </div>
               <div>
-                <h1 style={{ fontSize: "32px", fontWeight: "700", color: "white", margin: "0 0 16px", lineHeight: "1.2" }}>
-                  Let us get you a BA role.
-                </h1>
-                <p style={{ fontSize: "17px", color: C.text, lineHeight: "1.7", margin: "0 0 10px" }}>
-                  This is your career toolkit. Everything here is built for one purpose — helping you move from where you are right now to a Business Analysis role that fits how you work.
+                <p style={{ fontSize: "22px", fontWeight: "700", color: "white", margin: "0 0 10px", lineHeight: "1.3" }}>
+                  Where would you like to start?
                 </p>
-                <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-                  Work through the steps below in order, or jump to whatever is most urgent for you right now.
+                <p style={{ fontSize: "15px", color: C.muted, margin: 0, lineHeight: "1.6" }}>
+                  Pick the step that is most useful to you right now.
                 </p>
               </div>
             </div>
 
-            {/* Journey steps */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Step cards — compact */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {JOURNEY.map(group => (
-                <div key={group.step} style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `4px solid ${group.colour}`, borderRadius: "12px", padding: "28px 32px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
-                    <div style={{ flex: 1, minWidth: "200px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-                        <span style={{ fontSize: "11px", fontWeight: "700", color: group.colour, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em" }}>STEP {group.step}</span>
-                      </div>
-                      <div style={{ fontSize: "18px", fontWeight: "700", color: "white", marginBottom: "10px" }}>{group.label}</div>
-                      <p style={{ fontSize: "14px", color: C.muted, lineHeight: "1.6", margin: 0 }}>{group.description}</p>
+                <div key={group.step} style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${group.colour}`, borderRadius: "10px", padding: "18px 22px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: "700", color: group.colour, letterSpacing: "0.07em", marginBottom: "4px" }}>STEP {group.step}</div>
+                      <div style={{ fontSize: "15px", fontWeight: "600", color: "white" }}>{group.label}</div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "180px" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {group.tools.map(t => (
                         <button key={t.id} onClick={() => setActiveTool(t.id)}
                           style={{
-                            padding: "11px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: "600",
-                            cursor: "pointer", fontFamily: "Inter, system-ui, sans-serif", textAlign: "left",
-                            background: `${group.colour}15`, border: `1px solid ${group.colour}33`,
-                            color: group.colour, transition: "all 0.12s",
+                            padding: "9px 18px", borderRadius: "7px", fontSize: "13px", fontWeight: "600",
+                            cursor: "pointer", fontFamily: "Inter, system-ui, sans-serif",
+                            background: `${group.colour}18`, border: `1px solid ${group.colour}35`,
+                            color: group.colour,
                           }}>
                           {t.action}
                         </button>
