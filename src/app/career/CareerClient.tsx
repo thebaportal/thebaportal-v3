@@ -1682,177 +1682,152 @@ function SalaryTool() {
 const JOURNEY = [
   {
     step: 1,
+    colour: "#22d3ee",
     label: "Find your direction",
+    description: "Before you update a single line of your resume, you need to know which BA path you are heading towards. This shapes everything else.",
     tools: [
-      { id: "advisor" as Tool, label: "Career Strategy", desc: "Find your BA track" },
+      { id: "advisor" as Tool, label: "Career Strategy Advisor", action: "Start here" },
     ],
   },
   {
     step: 2,
+    colour: "#818cf8",
     label: "Strengthen your profile",
+    description: "Get your documents ready for the roles you want. Resume, cover letters, and keyword matching — all in one place.",
     tools: [
-      { id: "resume" as Tool, label: "Resume Improvement", desc: "Upload and strengthen" },
-      { id: "cover-letter" as Tool, label: "Cover Letter", desc: "Written for the role" },
-      { id: "jd" as Tool, label: "JD Analyzer", desc: "See how well you match" },
+      { id: "resume" as Tool, label: "Resume Improvement", action: "Improve my resume" },
+      { id: "cover-letter" as Tool, label: "Cover Letter Builder", action: "Write a cover letter" },
+      { id: "jd" as Tool, label: "JD Analyzer", action: "Analyse a job description" },
     ],
   },
   {
     step: 3,
+    colour: "#a855f7",
     label: "Prepare for interviews",
+    description: "Practice answering real interview questions out loud and get detailed feedback on every answer before the real thing.",
     tools: [
-      { id: "interview" as Tool, label: "Interview Prep", desc: "Practice answering out loud" },
+      { id: "interview" as Tool, label: "Interview Prep", action: "Start practising" },
     ],
   },
   {
     step: 4,
+    colour: "#fbbf24",
     label: "Handle the offer",
+    description: "Know what your offer is worth and what to say to push it higher. Scripts you can use word for word in the actual conversation.",
     tools: [
-      { id: "salary" as Tool, label: "Salary Negotiation", desc: "Offer analysis and scripts" },
+      { id: "salary" as Tool, label: "Salary Negotiation", action: "Analyse my offer" },
     ],
   },
 ];
 
-const TOOL_TITLES: Record<string, string> = {
-  home: "Career Suite",
-  advisor: "Career Strategy Advisor",
-  resume: "Resume Improvement",
-  "cover-letter": "Cover Letter Builder",
-  jd: "JD Analyzer",
-  interview: "Interview Prep",
-  salary: "Salary Negotiation",
-};
+function stepForTool(id: Tool) {
+  return JOURNEY.find(g => g.tools.some(t => t.id === id)) ?? null;
+}
 
 export default function CareerClient({ fullName }: Props) {
   const router = useRouter();
   const [activeTool, setActiveTool] = useState<Tool>("home");
 
+  const currentStep = activeTool !== "home" ? stepForTool(activeTool) : null;
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "Inter, system-ui, sans-serif" }}>
+
       {/* Top bar */}
-      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button onClick={() => router.push("/dashboard")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
-          ← Dashboard
+      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
+        <button onClick={() => activeTool === "home" ? router.push("/dashboard") : setActiveTool("home")}
+          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", padding: 0 }}>
+          {activeTool === "home" ? "← Dashboard" : "← Career Suite"}
         </button>
-        <span style={{ fontSize: "15px", fontWeight: "700", color: "white" }}>Career Suite</span>
+        <span style={{ fontSize: "14px", fontWeight: "700", color: "white" }}>
+          {activeTool === "home" ? "Career Suite" : JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? "Career Suite"}
+        </span>
         <span style={{ fontSize: "13px", color: C.muted }}>{fullName}</span>
       </div>
 
-      <div style={{ display: "flex", maxWidth: "1140px", margin: "0 auto", padding: "32px 24px", gap: "28px" }}>
-        {/* Sidebar — journey structure */}
-        <div style={{ width: "210px", flexShrink: 0 }}>
-          {/* Alex mini block */}
-          <div style={{ ...card, padding: "14px 16px", marginBottom: "20px", cursor: "pointer", borderColor: activeTool === "home" ? C.tealBorder : C.border, background: activeTool === "home" ? C.tealBg : C.panel }}
-            onClick={() => setActiveTool("home")}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: "700", color: activeTool === "home" ? C.teal : C.text }}>Career Suite</div>
-                <div style={{ fontSize: "11px", color: C.muted }}>Overview</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Journey steps */}
-          {JOURNEY.map(group => (
-            <div key={group.step} style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "700", color: C.muted, flexShrink: 0 }}>{group.step}</div>
-                <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.06em", textTransform: "uppercase" }}>{group.label}</div>
-              </div>
-              {group.tools.map(t => (
-                <button key={t.id} onClick={() => setActiveTool(t.id)}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    padding: "9px 12px 9px 28px", borderRadius: "7px", marginBottom: "3px", cursor: "pointer",
-                    background: activeTool === t.id ? C.tealBg : "transparent",
-                    border: `1px solid ${activeTool === t.id ? C.tealBorder : "transparent"}`,
-                    color: activeTool === t.id ? C.teal : C.muted,
-                    transition: "all 0.12s",
-                    position: "relative",
-                  }}>
-                  {activeTool === t.id && (
-                    <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: C.teal, fontSize: "10px" }}>▶</span>
-                  )}
-                  <div style={{ fontSize: "13px", fontWeight: "600" }}>{t.label}</div>
-                  <div style={{ fontSize: "11px", marginTop: "1px", opacity: 0.7 }}>{t.desc}</div>
-                </button>
-              ))}
-            </div>
-          ))}
+      {/* Step indicator strip — only when inside a tool */}
+      {currentStep && (
+        <div style={{ background: `${currentStep.colour}0d`, borderBottom: `1px solid ${currentStep.colour}22`, padding: "10px 32px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: `${currentStep.colour}22`, border: `1px solid ${currentStep.colour}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700", color: currentStep.colour, flexShrink: 0 }}>{currentStep.step}</div>
+          <span style={{ fontSize: "13px", color: currentStep.colour, fontWeight: "600" }}>Step {currentStep.step} of 4</span>
+          <span style={{ fontSize: "13px", color: C.muted }}>{currentStep.label}</span>
         </div>
+      )}
 
-        {/* Main content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {activeTool !== "home" && (
-            <h1 style={{ fontSize: "22px", fontWeight: "700", color: "white", marginBottom: "24px" }}>
-              {TOOL_TITLES[activeTool]}
-            </h1>
-          )}
+      {/* Page content */}
+      <div style={{ maxWidth: "820px", margin: "0 auto", padding: "48px 32px" }}>
 
-          {/* Home landing */}
-          {activeTool === "home" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-              {/* Alex intro */}
-              <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)", padding: "28px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "19px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: "700", color: C.text, marginBottom: "2px" }}>Alex</div>
-                    <div style={{ fontSize: "11px", color: C.muted, marginBottom: "14px" }}>Career Advisor</div>
-                    <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.7", margin: "0 0 8px" }}>
-                      I will help you move from where you are today to a BA role that fits how you work.
-                    </p>
-                    <p style={{ fontSize: "14px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-                      Each tool here tackles a different part of that process. You do not need to use everything at once. Start where you are.
-                    </p>
-                  </div>
+        {/* ── Home ── */}
+        {activeTool === "home" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "48px" }}>
+
+            {/* Hero */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: "700", color: C.text }}>Alex</div>
+                  <div style={{ fontSize: "12px", color: C.muted }}>Career Advisor</div>
                 </div>
               </div>
-
-              {/* Intro text */}
               <div>
-                <h1 style={{ fontSize: "26px", fontWeight: "700", color: "white", margin: "0 0 12px" }}>Career Suite</h1>
-                <p style={{ fontSize: "16px", color: C.muted, lineHeight: "1.7", margin: "0 0 8px" }}>
-                  This section helps you move from learning Business Analysis to landing a BA role.
+                <h1 style={{ fontSize: "32px", fontWeight: "700", color: "white", margin: "0 0 16px", lineHeight: "1.2" }}>
+                  Let us get you a BA role.
+                </h1>
+                <p style={{ fontSize: "17px", color: C.text, lineHeight: "1.7", margin: "0 0 10px" }}>
+                  This is your career toolkit. Everything here is built for one purpose — helping you move from where you are right now to a Business Analysis role that fits how you work.
                 </p>
-                <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: "0 0 6px" }}>
-                  You can improve your resume, prepare for interviews, analyse job descriptions, and practice real conversations.
-                </p>
-                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", lineHeight: "1.5", margin: 0 }}>
-                  Most people begin with Career Strategy or Resume Improvement.
+                <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
+                  Work through the steps below in order, or jump to whatever is most urgent for you right now.
                 </p>
               </div>
+            </div>
 
-              {/* Journey step cards */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {JOURNEY.map(group => (
-                  <div key={group.step} style={card}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: C.tealBg, border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", color: C.teal, flexShrink: 0 }}>{group.step}</div>
-                      <div style={{ fontSize: "15px", fontWeight: "700", color: C.text }}>{group.label}</div>
+            {/* Journey steps */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {JOURNEY.map(group => (
+                <div key={group.step} style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `4px solid ${group.colour}`, borderRadius: "12px", padding: "28px 32px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: "200px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "700", color: group.colour, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em" }}>STEP {group.step}</span>
+                      </div>
+                      <div style={{ fontSize: "18px", fontWeight: "700", color: "white", marginBottom: "10px" }}>{group.label}</div>
+                      <p style={{ fontSize: "14px", color: C.muted, lineHeight: "1.6", margin: 0 }}>{group.description}</p>
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "180px" }}>
                       {group.tools.map(t => (
                         <button key={t.id} onClick={() => setActiveTool(t.id)}
-                          style={{ ...btn(), fontSize: "13px", padding: "8px 16px" }}>
-                          {t.label}
+                          style={{
+                            padding: "11px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: "600",
+                            cursor: "pointer", fontFamily: "Inter, system-ui, sans-serif", textAlign: "left",
+                            background: `${group.colour}15`, border: `1px solid ${group.colour}33`,
+                            color: group.colour, transition: "all 0.12s",
+                          }}>
+                          {t.action}
                         </button>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
 
-          {activeTool === "advisor" && <AdvisorTool onNavigate={setActiveTool} />}
-          {activeTool === "resume" && <ResumeTool fullName={fullName} onNavigate={setActiveTool} />}
-          {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} onNavigate={setActiveTool} />}
-          {activeTool === "jd" && <JDAnalyzerTool />}
-          {activeTool === "interview" && <InterviewTool onNavigate={setActiveTool} />}
-          {activeTool === "salary" && <SalaryTool />}
-        </div>
+          </div>
+        )}
+
+        {/* ── Tools ── */}
+        {activeTool !== "home" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+            {activeTool === "advisor" && <AdvisorTool onNavigate={setActiveTool} />}
+            {activeTool === "resume" && <ResumeTool fullName={fullName} onNavigate={setActiveTool} />}
+            {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} onNavigate={setActiveTool} />}
+            {activeTool === "jd" && <JDAnalyzerTool />}
+            {activeTool === "interview" && <InterviewTool onNavigate={setActiveTool} />}
+            {activeTool === "salary" && <SalaryTool />}
+          </div>
+        )}
+
       </div>
     </div>
   );
