@@ -1709,9 +1709,22 @@ function stepForTool(id: Tool) {
   return JOURNEY.find(g => g.tools.some(t => t.id === id)) ?? null;
 }
 
+const WHERE_OPTIONS = [
+  { label: "I need to figure out my direction in BA", tool: "advisor" as Tool },
+  { label: "I know my direction and need to strengthen my resume or cover letter", tool: "resume" as Tool },
+  { label: "I have interviews coming up and need to prepare", tool: "interview" as Tool },
+  { label: "I have an offer and need help negotiating", tool: "salary" as Tool },
+];
+
 export default function CareerClient({ fullName }: Props) {
   const router = useRouter();
   const [activeTool, setActiveTool] = useState<Tool>("home");
+  const [homeState, setHomeState] = useState<"welcome" | "question">("welcome");
+
+  const navigateHome = () => {
+    setActiveTool("home");
+    setHomeState("welcome");
+  };
 
   const currentStep = activeTool !== "home" ? stepForTool(activeTool) : null;
 
@@ -1720,9 +1733,9 @@ export default function CareerClient({ fullName }: Props) {
 
       {/* Top bar */}
       <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
-        <button onClick={() => activeTool === "home" ? router.push("/dashboard") : setActiveTool("home")}
+        <button onClick={() => activeTool === "home" ? router.push("/dashboard") : navigateHome()}
           style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", padding: 0 }}>
-          {activeTool === "home" ? "← Dashboard" : "← Career Suite"}
+          {activeTool === "home" ? "Back to Dashboard" : "Back to Career Suite"}
         </button>
         <span style={{ fontSize: "14px", fontWeight: "700", color: "white" }}>
           {activeTool === "home" ? "Career Suite" : JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? "Career Suite"}
@@ -1740,64 +1753,77 @@ export default function CareerClient({ fullName }: Props) {
       )}
 
       {/* Page content */}
-      <div style={{ maxWidth: "820px", margin: "0 auto", padding: "48px 32px" }}>
+      <div style={{ maxWidth: "720px", margin: "0 auto", padding: "64px 32px" }}>
 
-        {/* ── Home ── */}
-        {activeTool === "home" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "40px", maxWidth: "580px" }}>
-
-            {/* Alex opener */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "17px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
-                <div>
-                  <div style={{ fontSize: "15px", fontWeight: "700", color: C.text }}>Alex</div>
-                  <div style={{ fontSize: "12px", color: C.muted }}>Career Advisor</div>
-                </div>
-              </div>
+        {/* ── Home: Welcome ── */}
+        {activeTool === "home" && homeState === "welcome" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
               <div>
-                <p style={{ fontSize: "22px", fontWeight: "700", color: "white", margin: "0 0 10px", lineHeight: "1.3" }}>
-                  Where would you like to start?
-                </p>
-                <p style={{ fontSize: "15px", color: C.muted, margin: 0, lineHeight: "1.6" }}>
-                  Pick the step that is most useful to you right now.
-                </p>
+                <div style={{ fontSize: "16px", fontWeight: "700", color: C.text }}>Alex</div>
+                <div style={{ fontSize: "12px", color: C.muted }}>Career Advisor</div>
               </div>
             </div>
 
-            {/* Step cards — compact */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <p style={{ fontSize: "32px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.2" }}>
+                So glad you made it here.
+              </p>
+              <p style={{ fontSize: "17px", color: C.muted, margin: 0, lineHeight: "1.7", maxWidth: "520px" }}>
+                Get ready for a focused session with me. We will work out exactly where you are and what to do next.
+              </p>
+            </div>
+
+            <button
+              style={{ ...btn(), padding: "16px 36px", fontSize: "16px", alignSelf: "flex-start" }}
+              onClick={() => setHomeState("question")}>
+              Let us begin
+            </button>
+          </div>
+        )}
+
+        {/* ── Home: Orienting Question ── */}
+        {activeTool === "home" && homeState === "question" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+            <p style={{ fontSize: "22px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.4" }}>
+              Where are you right now?
+            </p>
+
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {JOURNEY.map(group => (
-                <div key={group.step} style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${group.colour}`, borderRadius: "10px", padding: "18px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-                    <div>
-                      <div style={{ fontSize: "11px", fontWeight: "700", color: group.colour, letterSpacing: "0.07em", marginBottom: "4px" }}>STEP {group.step}</div>
-                      <div style={{ fontSize: "15px", fontWeight: "600", color: "white" }}>{group.label}</div>
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {group.tools.map(t => (
-                        <button key={t.id} onClick={() => setActiveTool(t.id)}
-                          style={{
-                            padding: "9px 18px", borderRadius: "7px", fontSize: "13px", fontWeight: "600",
-                            cursor: "pointer", fontFamily: "Inter, system-ui, sans-serif",
-                            background: `${group.colour}18`, border: `1px solid ${group.colour}35`,
-                            color: group.colour,
-                          }}>
-                          {t.action}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+              {WHERE_OPTIONS.map((opt, i) => (
+                <button key={i} onClick={() => setActiveTool(opt.tool)}
+                  style={{
+                    textAlign: "left", padding: "20px 24px", borderRadius: "10px",
+                    fontSize: "16px", color: C.text, background: "rgba(255,255,255,0.03)",
+                    border: `1px solid ${C.border}`, cursor: "pointer", transition: "all 0.12s",
+                    fontFamily: "Inter, system-ui, sans-serif", lineHeight: "1.4",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = C.tealBg;
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = C.tealBorder;
+                    (e.currentTarget as HTMLButtonElement).style.color = C.teal;
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = C.border;
+                    (e.currentTarget as HTMLButtonElement).style.color = C.text;
+                  }}>
+                  {opt.label}
+                </button>
               ))}
             </div>
 
+            <button style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", textDecoration: "underline", padding: 0, textAlign: "left" }}
+              onClick={() => setHomeState("welcome")}>
+              Back
+            </button>
           </div>
         )}
 
         {/* ── Tools ── */}
         {activeTool !== "home" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+          <div>
             {activeTool === "advisor" && <AdvisorTool onNavigate={setActiveTool} />}
             {activeTool === "resume" && <ResumeTool fullName={fullName} onNavigate={setActiveTool} />}
             {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} onNavigate={setActiveTool} />}
