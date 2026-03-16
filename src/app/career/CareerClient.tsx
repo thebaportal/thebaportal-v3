@@ -915,8 +915,12 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
 
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
 
-      <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px" }}
-        disabled={!resumeText} onClick={() => fetchQuestions(resumeText)}>
+      {resumeText && !nameInput.trim() && (
+        <p style={{ fontSize: "13px", color: C.amber, margin: 0 }}>Please enter your name above so we can put it on the improved resume.</p>
+      )}
+
+      <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", opacity: (!resumeText || !nameInput.trim()) ? 0.4 : 1 }}
+        disabled={!resumeText || !nameInput.trim()} onClick={() => fetchQuestions(resumeText)}>
         Review my resume
       </button>
     </div>
