@@ -1771,33 +1771,43 @@ export default function CareerClient({ fullName }: Props) {
 
         {/* ── Home: Welcome ── */}
         {activeTool === "home" && homeState === "welcome" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "480px" }}>
 
-            {/* Alex — compact inline identifier */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
-              <span style={{ fontSize: "14px", fontWeight: "600", color: C.text }}>Alex</span>
-              <span style={{ fontSize: "13px", color: C.muted }}>Career Advisor</span>
+            {/* Alex — avatar stacked with name below */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: "50%",
+                background: "linear-gradient(135deg, #0891b2, #6366f1)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "18px", fontWeight: "700", color: "white",
+              }}>A</div>
+              <div>
+                <div style={{ fontSize: "15px", fontWeight: "700", color: C.text, lineHeight: "1.3" }}>Alex</div>
+                <div style={{ fontSize: "12px", color: C.muted }}>Career Advisor</div>
+              </div>
             </div>
 
-            {/* Greeting */}
-            <p style={{ fontSize: "20px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.4" }}>
-              So glad you made it here.
-            </p>
-
-            {/* One line explanation */}
-            <p style={{ fontSize: "15px", color: C.muted, margin: 0, lineHeight: "1.6" }}>
-              I will help you work out where you are and what to focus on next. It only takes a few minutes.
-            </p>
-
-            {/* Immediate CTA */}
-            <div style={{ paddingTop: "4px" }}>
-              <button
-                style={{ ...btn(), padding: "12px 24px", fontSize: "15px" }}
-                onClick={() => setHomeState("question")}>
-                Let us get started
-              </button>
+            {/* Greeting + explanation */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <p style={{ fontSize: "22px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.3" }}>
+                So glad you made it here.
+              </p>
+              <p style={{ fontSize: "15px", color: C.muted, margin: 0, lineHeight: "1.65" }}>
+                I will help you work out where you are and what to focus on next. It only takes a few minutes.
+              </p>
             </div>
+
+            {/* CTA — solid, prominent */}
+            <button
+              onClick={() => setHomeState("question")}
+              style={{
+                alignSelf: "flex-start", padding: "13px 28px",
+                background: C.teal, border: "none", borderRadius: "8px",
+                fontSize: "15px", fontWeight: "700", color: "#0a0d14",
+                cursor: "pointer", fontFamily: "Inter, system-ui, sans-serif",
+              }}>
+              Let us get started
+            </button>
           </div>
         )}
 
