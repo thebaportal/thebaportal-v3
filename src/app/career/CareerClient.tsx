@@ -1817,13 +1817,34 @@ export default function CareerClient({ fullName }: Props) {
           {/* ── Home ── */}
           {activeTool === "home" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "520px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-                  Let us figure this out together.
-                </h2>
-                <p className="type-body" style={{ margin: 0 }}>
-                  Start with what feels closest to where you are right now.
-                </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+                {/* Avatar */}
+                <div style={{ position: "relative", width: 56, height: 56 }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #0e7490 0%, #6366f1 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "22px", fontWeight: 800, color: "#fff",
+                    letterSpacing: "-0.02em",
+                    boxShadow: "0 0 0 3px var(--bg), 0 0 0 5px rgba(31,191,159,0.25)",
+                  }}>A</div>
+                  <div style={{
+                    position: "absolute", bottom: 2, right: 2,
+                    width: 12, height: 12, borderRadius: "50%",
+                    background: "var(--teal)", border: "2px solid var(--bg)",
+                  }} />
+                </div>
+
+                {/* Message */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.3 }}>
+                    Hey, I&apos;m Alex, your career strategist.
+                  </h2>
+                  <p className="type-body" style={{ margin: 0, maxWidth: "400px" }}>
+                    We have got a few simple questions to work through together. No pressure. Just start with what feels closest to you.
+                  </p>
+                </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {WHERE_OPTIONS.map((opt, i) => (
