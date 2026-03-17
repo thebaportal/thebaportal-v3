@@ -1767,33 +1767,37 @@ export default function CareerClient({ fullName }: Props) {
       )}
 
       {/* Page content */}
-      <div style={{ maxWidth: "720px", margin: "0 auto", padding: "64px 32px" }}>
+      <div style={{ maxWidth: "640px", padding: "32px 32px" }}>
 
         {/* ── Home: Welcome ── */}
         {activeTool === "home" && homeState === "welcome" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
-              <div>
-                <div style={{ fontSize: "16px", fontWeight: "700", color: C.text }}>Alex</div>
-                <div style={{ fontSize: "12px", color: C.muted }}>Career Advisor</div>
-              </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
+            {/* Alex — compact inline identifier */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #0891b2, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700", color: "white", flexShrink: 0 }}>A</div>
+              <span style={{ fontSize: "14px", fontWeight: "600", color: C.text }}>Alex</span>
+              <span style={{ fontSize: "13px", color: C.muted }}>Career Advisor</span>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <p style={{ fontSize: "32px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.2" }}>
-                So glad you made it here.
-              </p>
-              <p style={{ fontSize: "17px", color: C.muted, margin: 0, lineHeight: "1.7", maxWidth: "520px" }}>
-                Get ready for a focused session with me. We will work out exactly where you are and what to do next.
-              </p>
-            </div>
+            {/* Greeting */}
+            <p style={{ fontSize: "20px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.4" }}>
+              So glad you made it here.
+            </p>
 
-            <button
-              style={{ ...btn(), padding: "16px 36px", fontSize: "16px", alignSelf: "flex-start" }}
-              onClick={() => setHomeState("question")}>
-              Let us begin
-            </button>
+            {/* One line explanation */}
+            <p style={{ fontSize: "15px", color: C.muted, margin: 0, lineHeight: "1.6" }}>
+              I will help you work out where you are and what to focus on next. It only takes a few minutes.
+            </p>
+
+            {/* Immediate CTA */}
+            <div style={{ paddingTop: "4px" }}>
+              <button
+                style={{ ...btn(), padding: "12px 24px", fontSize: "15px" }}
+                onClick={() => setHomeState("question")}>
+                Let us get started
+              </button>
+            </div>
           </div>
         )}
 
