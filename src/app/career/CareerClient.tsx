@@ -1819,10 +1819,10 @@ export default function CareerClient({ fullName }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "520px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-                  Good to have you in the Career Suite.
+                  Let us figure this out together.
                 </h2>
                 <p className="type-body" style={{ margin: 0 }}>
-                  Pick what you need right now and we will get straight into it.
+                  Start with what feels closest to where you are right now.
                 </p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
