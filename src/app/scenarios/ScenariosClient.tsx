@@ -40,14 +40,14 @@ const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1497366216548-37526070
 const industries  = ["All", "Banking/Finance", "Healthcare", "Energy/Oil & Gas", "Technology/SaaS", "Insurance"];
 const typeFilters = ["All Types", "Discovery", "Requirements", "Solution Analysis", "UAT", "Incident", "Facilitation"];
 
-const navItems = [
+const navItems: { icon: React.ElementType; label: string; href: string; active?: boolean; locked?: boolean }[] = [
   { icon: LayoutDashboard,    label: "Dashboard",    href: "/dashboard"               },
   { icon: BookOpen,           label: "Challenges",   href: "/scenarios", active: true },
   { icon: TrendingUp,         label: "Progress",     href: "/progress"                },
   { icon: GraduationCap,      label: "Learning",     href: "/learning"                },
   { icon: Target,             label: "Exam Prep",    href: "/exam"                   },
-  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career",    locked: true },
-  { icon: Trophy,             label: "Portfolio",    href: "/portfolio", locked: true },
+  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career" },
+  { icon: Trophy,             label: "Portfolio",    href: "/portfolio" },
 ];
 
 function DropdownItem({ icon, label, onClick, teal = false }: { icon: React.ReactNode; label: string; onClick: () => void; teal?: boolean }) {

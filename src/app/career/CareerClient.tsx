@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  LayoutDashboard, BookOpen, TrendingUp, GraduationCap,
+  Target, Mic, BriefcaseBusiness, Trophy, Settings,
+} from "lucide-react";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -1730,6 +1734,17 @@ const WHERE_OPTIONS = [
   { label: "I have an offer and need help negotiating", tool: "salary" as Tool },
 ];
 
+const CAREER_NAV = [
+  { icon: LayoutDashboard,   label: "Dashboard",    href: "/dashboard"   },
+  { icon: BookOpen,          label: "Challenges",   href: "/scenarios"   },
+  { icon: TrendingUp,        label: "Progress",     href: "/progress"    },
+  { icon: GraduationCap,     label: "Learning",     href: "/learning"    },
+  { icon: Target,            label: "Exam Prep",    href: "/exam"        },
+  { icon: Mic,               label: "PitchReady",   href: "/pitchready"  },
+  { icon: BriefcaseBusiness, label: "Career Suite", href: "/career", active: true },
+  { icon: Trophy,            label: "Portfolio",    href: "/portfolio"   },
+];
+
 export default function CareerClient({ fullName }: Props) {
   const router = useRouter();
   const [activeTool, setActiveTool] = useState<Tool>("home");
@@ -1741,127 +1756,148 @@ export default function CareerClient({ fullName }: Props) {
   };
 
   const currentStep = activeTool !== "home" ? stepForTool(activeTool) : null;
+  const activeToolLabel = JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool)?.label;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
 
-      {/* Top bar */}
-      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
-        <button onClick={() => activeTool === "home" ? router.push("/dashboard") : navigateHome()}
-          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", padding: 0 }}>
-          {activeTool === "home" ? "Back to Dashboard" : "Back to Career Suite"}
-        </button>
-        <span style={{ fontSize: "14px", fontWeight: "700", color: "white" }}>
-          {activeTool === "home" ? "Career Suite" : JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? "Career Suite"}
-        </span>
-        <span style={{ fontSize: "13px", color: C.muted }}>{fullName}</span>
-      </div>
-
-      {/* Step indicator strip — only when inside a tool */}
-      {currentStep && (
-        <div style={{ background: `${currentStep.colour}0d`, borderBottom: `1px solid ${currentStep.colour}22`, padding: "10px 32px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: `${currentStep.colour}22`, border: `1px solid ${currentStep.colour}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700", color: currentStep.colour, flexShrink: 0 }}>{currentStep.step}</div>
-          <span style={{ fontSize: "13px", color: currentStep.colour, fontWeight: "600" }}>Step {currentStep.step} of 4</span>
-          <span style={{ fontSize: "13px", color: C.muted }}>{currentStep.label}</span>
+      {/* ── Sidebar ── */}
+      <aside className="w-64 flex-shrink-0 flex flex-col" style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}>
+        <div className="px-5 pt-6 pb-5" style={{ borderBottom: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "var(--teal-soft)", border: "1px solid var(--teal-border)" }}>
+              <BookOpen className="w-4 h-4" style={{ color: "var(--teal)" }} />
+            </div>
+            <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "15px", color: "var(--text-1)", letterSpacing: "-0.03em" }}>
+              The<span style={{ color: "var(--teal)" }}>BA</span>Portal
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Page content */}
-      <div style={{ maxWidth: "640px", padding: "32px 32px" }}>
-
-        {/* ── Home: Welcome ── */}
-        {activeTool === "home" && homeState === "welcome" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "480px" }}>
-
-            {/* Alex — avatar stacked with name below */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: "50%",
-                background: "linear-gradient(135deg, #0891b2, #6366f1)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "18px", fontWeight: "700", color: "white",
-              }}>A</div>
-              <div>
-                <div style={{ fontSize: "15px", fontWeight: "700", color: C.text, lineHeight: "1.3" }}>Alex</div>
-                <div style={{ fontSize: "12px", color: C.muted }}>Career Advisor</div>
-              </div>
-            </div>
-
-            {/* Greeting + explanation */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <p style={{ fontSize: "22px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.3" }}>
-                So glad you made it here.
-              </p>
-              <p style={{ fontSize: "15px", color: C.muted, margin: 0, lineHeight: "1.65" }}>
-                I will help you work out where you are and what to focus on next. It only takes a few minutes.
-              </p>
-            </div>
-
-            {/* CTA — solid, prominent */}
-            <button
-              onClick={() => setHomeState("question")}
-              style={{
-                alignSelf: "flex-start", padding: "13px 28px",
-                background: C.teal, border: "none", borderRadius: "8px",
-                fontSize: "15px", fontWeight: "700", color: "#0a0d14",
-                cursor: "pointer", fontFamily: "Inter, system-ui, sans-serif",
-              }}>
-              Let us get started
+        <nav className="flex-1 px-3 py-5 overflow-y-auto" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          <div className="type-label px-3 pb-3">Platform</div>
+          {CAREER_NAV.map(item => (
+            <button key={item.href} onClick={() => router.push(item.href)} className="sidebar-item"
+              style={item.active ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid var(--teal-border)" } : {}}>
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.active && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--teal)", flexShrink: 0 }} />}
             </button>
-          </div>
-        )}
+          ))}
+          <div className="type-label px-3 pt-5 pb-3">Account</div>
+          <button className="sidebar-item" onClick={() => router.push("/settings")}>
+            <Settings className="w-4 h-4 flex-shrink-0" />
+            <span>Settings</span>
+          </button>
+        </nav>
+      </aside>
 
-        {/* ── Home: Orienting Question ── */}
-        {activeTool === "home" && homeState === "question" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-            <p style={{ fontSize: "22px", fontWeight: "700", color: "white", margin: 0, lineHeight: "1.4" }}>
-              Where are you right now?
-            </p>
+      {/* ── Main ── */}
+      <main className="flex-1 overflow-y-auto">
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {WHERE_OPTIONS.map((opt, i) => (
-                <button key={i} onClick={() => setActiveTool(opt.tool)}
-                  style={{
-                    textAlign: "left", padding: "20px 24px", borderRadius: "10px",
-                    fontSize: "16px", color: C.text, background: "rgba(255,255,255,0.03)",
-                    border: `1px solid ${C.border}`, cursor: "pointer", transition: "all 0.12s",
-                    fontFamily: "Inter, system-ui, sans-serif", lineHeight: "1.4",
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = C.tealBg;
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = C.tealBorder;
-                    (e.currentTarget as HTMLButtonElement).style.color = C.teal;
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = C.border;
-                    (e.currentTarget as HTMLButtonElement).style.color = C.text;
-                  }}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            <button style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", textDecoration: "underline", padding: 0, textAlign: "left" }}
-              onClick={() => setHomeState("welcome")}>
-              Back
-            </button>
-          </div>
-        )}
-
-        {/* ── Tools ── */}
-        {activeTool !== "home" && (
+        {/* Header */}
+        <header className="px-8 py-5 flex items-center justify-between sticky top-0 z-20"
+          style={{ background: "rgba(9,9,11,0.88)", backdropFilter: "blur(24px)", borderBottom: "1px solid var(--border)" }}>
           <div>
-            {activeTool === "advisor" && <AdvisorTool onNavigate={setActiveTool} />}
-            {activeTool === "resume" && <ResumeTool fullName={fullName} onNavigate={setActiveTool} />}
-            {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} onNavigate={setActiveTool} />}
-            {activeTool === "jd" && <JDAnalyzerTool />}
-            {activeTool === "interview" && <InterviewTool onNavigate={setActiveTool} />}
-            {activeTool === "salary" && <SalaryTool />}
+            <h1 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "22px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+              {activeTool === "home" ? "Career Suite" : activeToolLabel ?? "Career Suite"}
+            </h1>
+            {currentStep && (
+              <p className="type-meta" style={{ marginTop: "4px", color: currentStep.colour }}>
+                Step {currentStep.step} of 4 · {currentStep.label}
+              </p>
+            )}
           </div>
-        )}
+          {activeTool !== "home" && (
+            <button className="btn-ghost" onClick={navigateHome}>Back to Career Suite</button>
+          )}
+        </header>
 
-      </div>
+        {/* Content */}
+        <div className="px-8 py-8" style={{ maxWidth: "680px" }}>
+
+          {/* ── Home: Welcome ── */}
+          {activeTool === "home" && homeState === "welcome" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "460px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: "50%",
+                  background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "16px", fontWeight: "700", color: "var(--teal)",
+                }}>A</div>
+                <div>
+                  <div style={{ fontSize: "15px", fontWeight: "700", color: "var(--text-1)" }}>Alex</div>
+                  <div className="type-meta">Career Advisor</div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <h2 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
+                  So glad you made it here.
+                </h2>
+                <p className="type-body" style={{ margin: 0 }}>
+                  I will help you work out where you are and what to focus on next. It only takes a few minutes.
+                </p>
+              </div>
+
+              <button className="btn-teal" style={{ alignSelf: "flex-start" }}
+                onClick={() => setHomeState("question")}>
+                Let us get started
+              </button>
+            </div>
+          )}
+
+          {/* ── Home: Orienting Question ── */}
+          {activeTool === "home" && homeState === "question" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "520px" }}>
+              <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
+                Where are you right now?
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {WHERE_OPTIONS.map((opt, i) => (
+                  <button key={i} onClick={() => setActiveTool(opt.tool)}
+                    className="portal-card"
+                    style={{
+                      textAlign: "left", padding: "16px 20px", cursor: "pointer",
+                      fontSize: "15px", color: "var(--text-2)", transition: "all 0.15s",
+                      fontFamily: "inherit", width: "100%",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--teal-border)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--teal)";
+                      (e.currentTarget as HTMLButtonElement).style.background = "var(--teal-soft)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)";
+                      (e.currentTarget as HTMLButtonElement).style.background = "var(--card)";
+                    }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <button className="btn-ghost" style={{ alignSelf: "flex-start" }}
+                onClick={() => setHomeState("welcome")}>
+                Back
+              </button>
+            </div>
+          )}
+
+          {/* ── Tools ── */}
+          {activeTool !== "home" && (
+            <div>
+              {activeTool === "advisor" && <AdvisorTool onNavigate={setActiveTool} />}
+              {activeTool === "resume" && <ResumeTool fullName={fullName} onNavigate={setActiveTool} />}
+              {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} onNavigate={setActiveTool} />}
+              {activeTool === "jd" && <JDAnalyzerTool />}
+              {activeTool === "interview" && <InterviewTool onNavigate={setActiveTool} />}
+              {activeTool === "salary" && <SalaryTool />}
+            </div>
+          )}
+
+        </div>
+      </main>
     </div>
   );
 }

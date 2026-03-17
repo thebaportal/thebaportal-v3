@@ -739,14 +739,14 @@ const MODULES: Module[] = [
     ] },
 ];
 
-const navItems = [
+const navItems: { icon: React.ElementType; label: string; href: string; active?: boolean; locked?: boolean }[] = [
   { icon: LayoutDashboard,    label: "Dashboard",    href: "/dashboard" },
   { icon: BookOpen,           label: "Challenges",   href: "/scenarios" },
   { icon: TrendingUp,         label: "Progress",     href: "/progress" },
   { icon: GraduationCap,      label: "Learning",     href: "/learning", active: true },
   { icon: Target,             label: "Exam Prep",    href: "/exam"                  },
-  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career",   locked: true },
-  { icon: Trophy,             label: "Portfolio",    href: "/portfolio",locked: true },
+  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career" },
+  { icon: Trophy,             label: "Portfolio",    href: "/portfolio" },
 ];
 
 // ─── Badge Toast ──────────────────────────────────────────────────────────────
