@@ -1748,12 +1748,8 @@ const CAREER_NAV = [
 export default function CareerClient({ fullName }: Props) {
   const router = useRouter();
   const [activeTool, setActiveTool] = useState<Tool>("home");
-  const [homeState, setHomeState] = useState<"welcome" | "question">("welcome");
 
-  const navigateHome = () => {
-    setActiveTool("home");
-    setHomeState("welcome");
-  };
+  const navigateHome = () => setActiveTool("home");
 
   const currentStep = activeTool !== "home" ? stepForTool(activeTool) : null;
   const activeToolLabel = JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool)?.label;
@@ -1816,44 +1812,17 @@ export default function CareerClient({ fullName }: Props) {
         {/* Content */}
         <div className="px-8 py-8" style={{ maxWidth: "680px" }}>
 
-          {/* ── Home: Welcome ── */}
-          {activeTool === "home" && homeState === "welcome" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "460px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: "50%",
-                  background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "16px", fontWeight: "700", color: "var(--teal)",
-                }}>A</div>
-                <div>
-                  <div style={{ fontSize: "15px", fontWeight: "700", color: "var(--text-1)" }}>Alex</div>
-                  <div className="type-meta">Career Advisor</div>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <h2 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-                  So glad you made it here.
+          {/* ── Home ── */}
+          {activeTool === "home" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "520px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
+                  Good to have you in the Career Suite.
                 </h2>
                 <p className="type-body" style={{ margin: 0 }}>
-                  I will help you work out where you are and what to focus on next. It only takes a few minutes.
+                  Pick what you need right now and we will get straight into it.
                 </p>
               </div>
-
-              <button className="btn-teal" style={{ alignSelf: "flex-start" }}
-                onClick={() => setHomeState("question")}>
-                Let us get started
-              </button>
-            </div>
-          )}
-
-          {/* ── Home: Orienting Question ── */}
-          {activeTool === "home" && homeState === "question" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "520px" }}>
-              <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-                Where are you right now?
-              </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {WHERE_OPTIONS.map((opt, i) => (
                   <button key={i} onClick={() => setActiveTool(opt.tool)}
@@ -1877,10 +1846,6 @@ export default function CareerClient({ fullName }: Props) {
                   </button>
                 ))}
               </div>
-              <button className="btn-ghost" style={{ alignSelf: "flex-start" }}
-                onClick={() => setHomeState("welcome")}>
-                Back
-              </button>
             </div>
           )}
 
