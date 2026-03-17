@@ -1795,9 +1795,11 @@ export default function CareerClient({ fullName }: Props) {
         <header className="px-8 py-5 flex items-center justify-between sticky top-0 z-20"
           style={{ background: "rgba(9,9,11,0.88)", backdropFilter: "blur(24px)", borderBottom: "1px solid var(--border)" }}>
           <div>
-            <h1 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "22px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
-              {activeTool === "home" ? "Career Suite" : activeToolLabel ?? "Career Suite"}
-            </h1>
+            {activeTool !== "home" && (
+              <h1 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "22px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+                {activeToolLabel ?? "Career Suite"}
+              </h1>
+            )}
             {currentStep && (
               <p className="type-meta" style={{ marginTop: "4px", color: currentStep.colour }}>
                 Step {currentStep.step} of 4 · {currentStep.label}
