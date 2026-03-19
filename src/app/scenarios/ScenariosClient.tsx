@@ -19,6 +19,10 @@ const typeConfig: Record<string, { label: string; color: string; bg: string }> =
   "uat":                 { label: "UAT",               color: "#1fbf9f", bg: "rgba(31,191,159,0.12)"  },
   "production-incident": { label: "Incident",          color: "#f87171", bg: "rgba(248,113,113,0.12)" },
   "facilitation":        { label: "Facilitation",      color: "#facc15", bg: "rgba(250,204,21,0.12)"  },
+  "change-management":   { label: "Change Management", color: "#4ade80", bg: "rgba(74,222,128,0.12)"  },
+  "elicitation":         { label: "Elicitation",       color: "#c084fc", bg: "rgba(192,132,252,0.12)" },
+  "data-migration":      { label: "Data Migration",    color: "#f59e0b", bg: "rgba(245,158,11,0.12)"  },
+  "erp-implementation":  { label: "ERP Implementation",color: "#64748b", bg: "rgba(100,116,139,0.12)" },
 };
 
 const difficultyConfig: Record<string, { label: string; color: string }> = {
@@ -34,11 +38,14 @@ const challengeImages: Record<string, { url: string; credit: string }> = {
   "saas-uat-001":               { url: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=80", credit: "Product team" },
   "insurance-incident-001":     { url: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&q=80", credit: "Claims office" },
   "saas-facilitation-001":      { url: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80", credit: "Strategy session" },
+  "retail-change-mgmt-001":    { url: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80", credit: "Retail operations" },
+  "fintech-data-migration-001":{ url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", credit: "Data analytics" },
+  "manufacturing-erp-001":     { url: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80", credit: "Manufacturing operations" },
 };
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80";
-const industries  = ["All", "Banking/Finance", "Healthcare", "Energy/Oil & Gas", "Technology/SaaS", "Insurance"];
-const typeFilters = ["All Types", "Discovery", "Requirements", "Solution Analysis", "UAT", "Incident", "Facilitation"];
+const industries  = ["All", "Banking/Finance", "Healthcare", "Energy/Oil & Gas", "Technology/SaaS", "Insurance", "Retail", "Manufacturing"];
+const typeFilters = ["All Types", "Discovery", "Requirements", "Solution Analysis", "UAT", "Incident", "Facilitation", "Change Management", "Elicitation", "Data Migration", "ERP Implementation"];
 
 const navItems: { icon: React.ElementType; label: string; href: string; active?: boolean; locked?: boolean }[] = [
   { icon: LayoutDashboard,    label: "Dashboard",    href: "/dashboard"               },

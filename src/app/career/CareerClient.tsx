@@ -307,15 +307,23 @@ function AlexAvatar({ size = 44 }: { size?: number }) {
 }
 
 // Animated loading steps
-function AdvisorLoading() {
+function AdvisorLoading({ onAnimComplete }: { onAnimComplete: () => void }) {
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrent(prev => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev));
-    }, 1600);
+      setCurrent(prev => {
+        const next = prev + 1;
+        if (next >= LOADING_STEPS.length - 1) {
+          clearInterval(timer);
+          setTimeout(onAnimComplete, 700);
+          return LOADING_STEPS.length - 1;
+        }
+        return next;
+      });
+    }, 2000);
     return () => clearInterval(timer);
-  }, []);
+  }, [onAnimComplete]);
 
   return (
     <div style={{ padding: "48px 0", display: "flex", flexDirection: "column", gap: "32px" }}>
@@ -359,6 +367,8 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
     roleTypesToTarget: string[];
     watchOut: string;
   }>(null);
+  const [pendingResult, setPendingResult] = useState<typeof result>(null);
+  const [animComplete, setAnimComplete] = useState(false);
   const [error, setError] = useState("");
 
   const trackColour = (track: string) => {
@@ -391,8 +401,7 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
         });
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data.error || "Failed");
-        setResult(data);
-        setStep("result");
+        setPendingResult(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
         setStep("question");
@@ -400,11 +409,20 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
     }
   };
 
+  useEffect(() => {
+    if (pendingResult && animComplete) {
+      setResult(pendingResult);
+      setStep("result");
+    }
+  }, [pendingResult, animComplete]);
+
   const restart = () => {
     setStep("intro");
     setQIndex(0);
     setSelectedAnswers([]);
     setResult(null);
+    setPendingResult(null);
+    setAnimComplete(false);
     setError("");
   };
 
@@ -473,7 +491,7 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 
   // ── Loading ──
   if (step === "loading") {
-    return <AdvisorLoading />;
+    return <AdvisorLoading onAnimComplete={() => setAnimComplete(true)} />;
   }
 
   // ── Questions ──
