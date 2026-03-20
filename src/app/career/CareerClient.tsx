@@ -698,6 +698,8 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (tool: Tool) => void }) {
   const [step, setStep] = useState<"upload" | "loading" | "intro" | "question" | "building" | "done">("upload");
   const [resumeText, setResumeText] = useState("");
+  const [inputMode, setInputMode] = useState<"upload" | "paste">("upload");
+  const [pastedText, setPastedText] = useState("");
   const cleanedProfileName = fullName.replace(/[^a-zA-Z0-9 ]/g, "").trim();
   const [nameInput, setNameInput] = useState(cleanedProfileName.includes(" ") ? cleanedProfileName : "");
   const [questions, setQuestions] = useState<string[]>([]);
@@ -716,7 +718,8 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText: text }),
       });
-      const data = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json().catch(() => ({}));
       if (!res.ok || data.error) throw new Error(data.error || "Failed");
       setQuestions(data.questions || []);
       setImpression(data.firstImpression || "");
@@ -801,7 +804,7 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
         </div>
       )}
       <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
-        onClick={() => { setStep("upload"); setResumeText(""); setQuestions([]); setAnswers([]); setQIdx(0); setNameInput(cleanedProfileName.includes(" ") ? cleanedProfileName : ""); }}>
+        onClick={() => { setStep("upload"); setResumeText(""); setPastedText(""); setInputMode("upload"); setQuestions([]); setAnswers([]); setQIdx(0); setNameInput(cleanedProfileName.includes(" ") ? cleanedProfileName : ""); }}>
         Review another resume
       </button>
     </div>
@@ -891,19 +894,51 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
   }
 
   // Upload screen
+  const activeResumeText = inputMode === "paste" ? pastedText : resumeText;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <p style={{ fontSize: "16px", color: C.text, lineHeight: "1.7", margin: 0 }}>
-          Upload your current resume and I will review it with you.
+          Share your current resume and I will review it with you.
         </p>
         <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
           I will ask a few short questions to better understand your experience, your achievements, and the kind of role you are targeting. From there I will help you strengthen your resume and send back an improved version in Word format so you can make any final edits yourself.
         </p>
       </div>
 
-      <FileUpload label="Your current resume" onParsed={(text) => setResumeText(text)} />
+      {/* Mode toggle */}
+      <div style={{ display: "flex", gap: "8px" }}>
+        {(["upload", "paste"] as const).map(mode => (
+          <button key={mode} onClick={() => setInputMode(mode)} style={{
+            padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600",
+            cursor: "pointer", fontFamily: "Inter, system-ui, sans-serif",
+            background: inputMode === mode ? C.tealBg : "transparent",
+            border: `1px solid ${inputMode === mode ? C.tealBorder : "rgba(255,255,255,0.1)"}`,
+            color: inputMode === mode ? C.teal : C.muted,
+          }}>
+            {mode === "upload" ? "Upload file" : "Paste text"}
+          </button>
+        ))}
+      </div>
+
+      {inputMode === "upload" ? (
+        <FileUpload label="Your current resume" onParsed={(text) => setResumeText(text)} />
+      ) : (
+        <div>
+          <span style={label}>Paste your resume text</span>
+          <textarea
+            rows={12}
+            style={textarea(12)}
+            placeholder="Copy and paste your resume text here…"
+            value={pastedText}
+            onChange={e => setPastedText(e.target.value)}
+          />
+          {pastedText.length > 0 && pastedText.length < 100 && (
+            <p style={{ fontSize: "12px", color: C.amber, marginTop: "6px" }}>Keep going — paste the full resume so I can give you proper feedback.</p>
+          )}
+        </div>
+      )}
 
       <div>
         <span style={{ ...label, marginBottom: "8px", display: "block" }}>Your full name (used on the improved resume)</span>
@@ -922,12 +957,12 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
 
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
 
-      {resumeText && !nameInput.trim() && (
+      {activeResumeText && !nameInput.trim() && (
         <p style={{ fontSize: "13px", color: C.amber, margin: 0 }}>Please enter your name above so we can put it on the improved resume.</p>
       )}
 
-      <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", opacity: (!resumeText || !nameInput.trim()) ? 0.4 : 1 }}
-        disabled={!resumeText || !nameInput.trim()} onClick={() => fetchQuestions(resumeText)}>
+      <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", opacity: (!activeResumeText || activeResumeText.length < 100 || !nameInput.trim()) ? 0.4 : 1 }}
+        disabled={!activeResumeText || activeResumeText.length < 100 || !nameInput.trim()} onClick={() => fetchQuestions(activeResumeText)}>
         Review my resume
       </button>
     </div>
@@ -1745,11 +1780,20 @@ function stepForTool(id: Tool) {
   return JOURNEY.find(g => g.tools.some(t => t.id === id)) ?? null;
 }
 
-const WHERE_OPTIONS = [
-  { label: "I need to figure out my direction in BA", tool: "advisor" as Tool },
-  { label: "I know my direction and need to strengthen my resume or cover letter", tool: "resume" as Tool },
-  { label: "I have interviews coming up and need to prepare", tool: "interview" as Tool },
-  { label: "I have an offer and need help negotiating", tool: "salary" as Tool },
+type WhereOpt = { label: string } & ({ tool: Tool } | { href: string });
+
+const WHERE_OPTIONS: WhereOpt[] = [
+  { label: "I am new to Business Analysis and don't know where to start", tool: "advisor" },
+  { label: "I am trying to transition into a BA role from another field", tool: "advisor" },
+  { label: "I feel stuck and I am not getting interviews", tool: "resume" },
+  { label: "I need help improving my resume to get callbacks", tool: "resume" },
+  { label: "I found a job posting and want help tailoring my application", tool: "cover-letter" },
+  { label: "Paste a job description and let's break it down together", tool: "jd" },
+  { label: "I have interviews but struggle to answer confidently", tool: "interview" },
+  { label: "I want to practice real BA interview scenarios", href: "/scenarios" },
+  { label: "I need help building real project experience or a portfolio", href: "/portfolio" },
+  { label: "I want to move into a higher paying or senior BA role", tool: "salary" },
+  { label: "I have an offer and need help negotiating", tool: "salary" },
 ];
 
 const CAREER_NAV = [
@@ -1857,16 +1901,16 @@ export default function CareerClient({ fullName }: Props) {
                 {/* Message */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.3 }}>
-                    Hey, I&apos;m Alex, your career strategist.
+                    Hey, I&apos;m Alex. What&apos;s going on for you right now?
                   </h2>
                   <p className="type-body" style={{ margin: 0, maxWidth: "400px" }}>
-                    We have got a few simple questions to work through together. No pressure. Just start with what feels closest to you.
+                    Pick the option that feels closest and we will work through it together.
                   </p>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {WHERE_OPTIONS.map((opt, i) => (
-                  <button key={i} onClick={() => setActiveTool(opt.tool)}
+                  <button key={i} onClick={() => { if ('tool' in opt) setActiveTool(opt.tool); else router.push(opt.href); }}
                     className="portal-card"
                     style={{
                       textAlign: "left", padding: "16px 20px", cursor: "pointer",
