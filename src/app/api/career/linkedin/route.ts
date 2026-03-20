@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-const ai = new Anthropic();
+
 
 export async function POST(req: Request) {
   const cookieStore = cookies();
@@ -13,6 +13,7 @@ export async function POST(req: Request) {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
+  const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const { style, fullName, progress, skills, badges, attempts } = await req.json();
 

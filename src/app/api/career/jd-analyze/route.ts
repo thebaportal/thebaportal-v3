@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export const maxDuration = 26;
-const ai = new Anthropic();
+
 
 export async function POST(req: Request) {
   const cookieStore = cookies();
@@ -14,6 +14,7 @@ export async function POST(req: Request) {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
+  const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const { jdText, resumeText } = await req.json();
 

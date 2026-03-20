@@ -7,7 +7,7 @@ import {
 } from "docx";
 
 export const maxDuration = 26;
-const ai = new Anthropic();
+
 const DARK = "1e2d3d";
 const MID = "475569";
 
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
+  const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const { resumeText, jdText, questions, answers, fullName } = await req.json();
   if (!resumeText || resumeText.length < 100) {
