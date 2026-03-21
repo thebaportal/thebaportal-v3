@@ -200,136 +200,204 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
 
 // ── Career Strategy Advisor ─────────────────────────────────────────────────
 
-const ADVISOR_QUESTIONS = [
-  {
-    question: "What does a really good day at work feel like for you?",
-    options: [
-      "I am deep in a problem — pulling apart data, figuring out how a system works, getting to the root of something",
-      "I am with people — running a session, understanding what they actually need, facilitating something that leads to a decision",
-      "I am influencing something — shaping a direction, making the case for a change, having my thinking acted on",
-      "Honestly, I am still working that out",
-    ],
-  },
-  {
-    question: "What is drawing you towards Business Analysis?",
-    options: [
-      "I want to work closer to technology and understand how solutions get built",
-      "I want to help shape products that real people use every day",
-      "I want to work on how organisations change and improve — at a bigger level",
-      "I want a career that makes proper use of the experience I already have",
-    ],
-  },
-  {
-    question: "What kind of background are you coming from?",
-    options: [
-      "Technical or IT — systems, data, software, or engineering",
-      "Business or operations — supply chain, finance, project management, HR, or similar",
-      "Customer or product-facing — marketing, design, customer success, or similar",
-      "I am at the start of my career and still building my foundation",
-    ],
-  },
-  {
-    question: "How would you describe where you are right now?",
-    options: [
-      "I am working in BA or a closely related role already",
-      "I am transitioning — I have years of experience elsewhere and I am making the move",
-      "I am exploring BA seriously and working out whether it is the right fit",
-      "I am re-entering the workforce or starting fresh from a very different place",
-    ],
-  },
-];
-
-const TRACKS = [
-  {
-    name: "Technical BA",
-    colour: "#818cf8",
-    desc: "You sit between the business and the technology team. Your job is to make sure developers build the right thing — by translating what the business needs into clear, detailed requirements.",
-    practice: "Writing system specs, mapping how data flows between systems, running testing sessions, working with developers to understand what is technically possible.",
-    fit: "Good fit if you like precision and logic, enjoy solving problems at a technical level, or come from an IT, data, or engineering background.",
-  },
-  {
-    name: "Product BA",
-    colour: "#22d3ee",
-    desc: "You work inside a product team and help decide what gets built next. You gather input from real users, define what features should do, and keep the team focused on building things that actually matter.",
-    practice: "Talking to users, writing up what a feature should do and why, running prioritisation sessions, working closely with designers and product managers.",
-    fit: "Good fit if you are drawn to customer thinking, like fast-moving environments, or want to work on the experience side of technology.",
-  },
-  {
-    name: "Business & Strategy BA",
-    colour: "#fbbf24",
-    desc: "You work at a higher level — helping organisations figure out how to change, improve, or grow. You influence decisions, build the case for investment, and design how processes should work.",
-    practice: "Facilitating workshops with senior leaders, mapping how a process works today and how it should work in future, building business cases, managing change across teams.",
-    fit: "Good fit if you like the bigger picture, have experience influencing decisions, or come from a business, operations, or strategy background.",
-  },
-];
-
-const LOADING_STEPS = [
-  "Reading through your answers",
-  "Looking at where you are coming from",
-  "Weighing up the three paths",
-  "Putting your recommendation together",
-];
-
-const PORTAL_ACTIONS: Record<string, { label: string; href: string }[]> = {
-  "Technical BA": [
-    { label: "Try a BA challenge simulation", href: "/scenarios" },
-    { label: "Explore the learning path", href: "/learning" },
-  ],
-  "Product BA": [
-    { label: "Try a BA challenge simulation", href: "/scenarios" },
-    { label: "Explore the learning path", href: "/learning" },
-    { label: "Build your portfolio", href: "/portfolio" },
-  ],
-  "Business & Strategy BA": [
-    { label: "Try a BA challenge simulation", href: "/scenarios" },
-    { label: "Practice with PitchReady", href: "/pitchready" },
-    { label: "Explore the learning path", href: "/learning" },
-  ],
-};
-
-// Alex avatar — consistent across intro and result
-function AlexAvatar({ size = 44 }: { size?: number }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      <div style={{
-        width: size, height: size, borderRadius: "50%",
-        background: "linear-gradient(135deg, #0891b2, #6366f1)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: Math.round(size * 0.4) + "px", fontWeight: "700", color: "white",
-        flexShrink: 0,
-      }}>A</div>
-      <div>
-        <div style={{ fontSize: "14px", fontWeight: "700", color: C.text }}>Alex</div>
-        <div style={{ fontSize: "11px", color: C.muted }}>Career Advisor</div>
-      </div>
-    </div>
-  );
+interface FlowQuestion {
+  question: string;
+  options: string[];
 }
 
+interface FlowConfig {
+  id: string;
+  title: string;
+  subtitle: string;
+  questions: FlowQuestion[];
+  loadingSteps: string[];
+}
+
+const FLOW_CONFIG: Record<string, FlowConfig> = {
+  new_to_ba: {
+    id: "new_to_ba",
+    title: "Let's find your BA direction",
+    subtitle: "Four questions to work out which path fits how you think.",
+    loadingSteps: [
+      "Reading how you approach problems",
+      "Matching to BA paths",
+      "Working out your best fit",
+      "Putting your recommendation together",
+    ],
+    questions: [
+      {
+        question: "How do you naturally approach a problem?",
+        options: [
+          "I want to understand who is affected and what they actually need",
+          "I want to find the data and let the facts tell the story",
+          "I want to map out how the current process works and where it breaks",
+          "I want to understand the technology involved and how a solution would work",
+        ],
+      },
+      {
+        question: "Which sounds most like you on a good day at work?",
+        options: [
+          "In a room with different people, helping them reach a decision",
+          "Deep in a document or spreadsheet, making sense of complex information",
+          "Sketching out how something works end to end and finding the gaps",
+          "Figuring out what a product or feature should do for real users",
+        ],
+      },
+      {
+        question: "What pulls you toward Business Analysis most?",
+        options: [
+          "The bridge between business problems and the technology that solves them",
+          "Helping shape products that real people use every day",
+          "Working on how organisations change and improve at a bigger level",
+          "A role that is both analytical and people-focused at the same time",
+        ],
+      },
+      {
+        question: "How ready are you to actually start?",
+        options: [
+          "I am ready to start now and can commit time weekly",
+          "I am interested but still exploring whether BA is right for me",
+          "I want to understand it fully before I do anything",
+          "I am not sure I am ready yet",
+        ],
+      },
+    ],
+  },
+
+  transition_to_ba: {
+    id: "transition_to_ba",
+    title: "Let's map your experience into BA",
+    subtitle: "You have real background. Four questions to find where you fit.",
+    loadingSteps: [
+      "Looking at your background",
+      "Identifying your transferable strengths",
+      "Matching you to a BA role type",
+      "Building your positioning advice",
+    ],
+    questions: [
+      {
+        question: "What best describes your professional background?",
+        options: [
+          "Technology or IT — systems, software, data, or engineering",
+          "Business or operations — finance, supply chain, project management, HR, or similar",
+          "Customer or product-facing — marketing, design, customer success, or similar",
+          "Mixed or non-traditional background",
+        ],
+      },
+      {
+        question: "In your previous work, which of these did you actually do?",
+        options: [
+          "Regularly spoke to stakeholders to understand what they needed and turned it into something actionable",
+          "Documented how processes worked, identified what was broken, and helped improve it",
+          "Worked with data, reporting, or analysis to help the business make better decisions",
+          "Sat between a technical team and the rest of the business and kept both sides aligned",
+        ],
+      },
+      {
+        question: "How clearly can you explain your experience as BA work?",
+        options: [
+          "I can clearly explain it and map it to BA responsibilities already",
+          "I have the experience but I struggle to articulate it in BA language",
+          "I am not sure which parts of my work actually count as BA",
+          "I have not thought about it this way before",
+        ],
+      },
+      {
+        question: "What does your current evidence look like?",
+        options: [
+          "I have real examples I could use in interviews — I just have not framed them as BA work yet",
+          "I have relevant experience but it is buried in job titles that do not say analyst",
+          "I do not have much concrete evidence yet — I need to build some before I apply",
+          "I have done study or certification but have not applied it in a real setting",
+        ],
+      },
+    ],
+  },
+
+  feeling_stuck: {
+    id: "feeling_stuck",
+    title: "Let's figure out what is blocking you",
+    subtitle: "Four questions to diagnose the real issue and find your next move.",
+    loadingSteps: [
+      "Reading through your answers",
+      "Identifying the main blocker",
+      "Working out the right next move",
+      "Putting your diagnosis together",
+    ],
+    questions: [
+      {
+        question: "When you think about your BA career right now, which feels most true?",
+        options: [
+          "I am not sure which direction or type of BA role is actually right for me",
+          "I know what I want but I am not getting responses or interview invitations",
+          "I am getting interviews but not converting them into offers",
+          "I know what I should be doing but I keep losing momentum and putting it off",
+        ],
+      },
+      {
+        question: "If you had to pick ONE main thing holding you back right now, what is it?",
+        options: [
+          "I do not have enough real examples or evidence to prove I can do BA work",
+          "My resume or LinkedIn is not positioning me well enough",
+          "My interview performance lets me down once I am in the room",
+          "I do not feel ready — something is stopping me from moving forward",
+        ],
+      },
+      {
+        question: "How targeted is your job search right now?",
+        options: [
+          "I have a clear picture of what I want and I am applying selectively",
+          "I am applying to everything BA-related and hoping something lands",
+          "I have not started applying yet — I am still building my foundation",
+          "I have paused because something does not feel right",
+        ],
+      },
+      {
+        question: "What have you already tried that has not worked?",
+        options: [
+          "I updated my resume but I am still not getting responses",
+          "I have been applying for months with very few calls back",
+          "I have had interviews but keep getting rejected at the final stage",
+          "I have not properly tried yet — I feel stuck before I have even started",
+        ],
+      },
+    ],
+  },
+};
+
+// CTA routing from result screen
+const CTA_ROUTES: Record<string, { label: string; href: string }> = {
+  resume:    { label: "Go to Resume Improvement", href: "/career?cat=land&intent=improve_resume" },
+  portfolio: { label: "Start a BA Challenge", href: "/scenarios" },
+  jd:        { label: "Analyse a Job Description", href: "/career?cat=land&intent=analyze_job_description" },
+  interview: { label: "Go to Interview Prep", href: "/career?cat=grow&intent=interview_preparation" },
+  advisor:   { label: "Explore your direction", href: "/career?cat=explore" },
+};
+
 // Animated loading steps
-function AdvisorLoading({ onAnimComplete }: { onAnimComplete: () => void }) {
+function AdvisorLoading({ onAnimComplete, steps }: { onAnimComplete: () => void; steps: string[] }) {
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrent(prev => {
         const next = prev + 1;
-        if (next >= LOADING_STEPS.length - 1) {
+        if (next >= steps.length - 1) {
           clearInterval(timer);
           setTimeout(onAnimComplete, 700);
-          return LOADING_STEPS.length - 1;
+          return steps.length - 1;
         }
         return next;
       });
     }, 2000);
     return () => clearInterval(timer);
-  }, [onAnimComplete]);
+  }, [onAnimComplete, steps.length]);
 
   return (
     <div style={{ padding: "48px 0", display: "flex", flexDirection: "column", gap: "32px" }}>
       <p style={{ fontSize: "15px", color: C.muted, margin: 0 }}>Working through your answers…</p>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {LOADING_STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <div key={i} style={{
             display: "flex", alignItems: "center", gap: "12px",
             opacity: i <= current ? 1 : 0.3,
@@ -349,72 +417,199 @@ function AdvisorLoading({ onAnimComplete }: { onAnimComplete: () => void }) {
   );
 }
 
+// ── Result type definitions ──────────────────────────────────────────────────
+
+type NewToBaResult = {
+  flowId: "new_to_ba";
+  recommendedTrack: string;
+  whyItFits: string;
+  readinessInsight: string;
+  whatToLearnFirst: string;
+  nextAction: string;
+};
+
+type TransitionResult = {
+  flowId: "transition_to_ba";
+  transferableStrengths: string;
+  bestFitRole: string;
+  howToPosition: string;
+  biggestGap: string;
+  confidenceReframe: string;
+  nextAction: string;
+  ctaTool: string;
+};
+
+type StuckResult = {
+  flowId: "feeling_stuck";
+  rootProblem: string;
+  confidenceLevel: "High" | "Medium" | "Low";
+  plainEnglishDiagnosis: string;
+  nextAction: string;
+  ctaTool: string;
+};
+
+type AdvisorResult = NewToBaResult | TransitionResult | StuckResult;
+
+// ── Result renderers ─────────────────────────────────────────────────────────
+
+function ResultNewToBa({ result, onBack, onNavigate }: { result: NewToBaResult; onBack?: () => void; onNavigate?: (tool: Tool) => void }) {
+  const router = useRouter();
+  const trackColour = result.recommendedTrack.includes("Technical") ? "#818cf8"
+    : result.recommendedTrack.includes("Product") ? C.teal : C.amber;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Track header */}
+      <div style={{ ...card, border: `1px solid ${trackColour}33`, background: `${trackColour}0d` }}>
+        <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR RECOMMENDED PATH</div>
+        <div style={{ fontSize: "24px", fontWeight: 800, color: trackColour, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>{result.recommendedTrack}</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "12px 0 0" }}>{result.whyItFits}</p>
+      </div>
+
+      {/* Readiness */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHERE YOU ARE RIGHT NOW</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.readinessInsight}</p>
+      </div>
+
+      {/* What to learn first */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT TO LEARN FIRST</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whatToLearnFirst}</p>
+      </div>
+
+      {/* Next action CTA */}
+      <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR FIRST ACTION</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "0 0 14px" }}>{result.nextAction}</p>
+        <button style={{ ...btn(), fontSize: "13px", padding: "10px 20px" }} onClick={() => router.push("/scenarios")}>
+          Start a BA Challenge
+        </button>
+      </div>
+
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={onBack}>Start over</button>
+    </div>
+  );
+}
+
+function ResultTransition({ result, onBack }: { result: TransitionResult; onBack?: () => void }) {
+  const router = useRouter();
+  const cta = CTA_ROUTES[result.ctaTool];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Transferable strengths */}
+      <div style={{ ...card, borderColor: "rgba(110,231,183,0.25)", background: "rgba(16,185,129,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT YOU ALREADY BRING</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.transferableStrengths}</p>
+      </div>
+
+      {/* Best fit role */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR BEST-FIT ROLE</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.bestFitRole}</p>
+      </div>
+
+      {/* How to position */}
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>HOW TO POSITION YOURSELF</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.howToPosition}</p>
+      </div>
+
+      {/* Biggest gap */}
+      <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>GAP TO CLOSE</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.biggestGap}</p>
+      </div>
+
+      {/* Confidence reframe */}
+      {result.confidenceReframe && (
+        <div style={{ padding: "14px 18px", borderLeft: `3px solid ${C.teal}`, background: "rgba(8,145,178,0.05)", borderRadius: "0 8px 8px 0" }}>
+          <p style={{ fontSize: "14px", color: C.teal, lineHeight: "1.6", margin: 0, fontStyle: "italic" }}>{result.confidenceReframe}</p>
+        </div>
+      )}
+
+      {/* Next action CTA */}
+      <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR NEXT STEP</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "0 0 14px" }}>{result.nextAction}</p>
+        {cta && (
+          <button style={{ ...btn(), fontSize: "13px", padding: "10px 20px" }} onClick={() => router.push(cta.href)}>
+            {cta.label}
+          </button>
+        )}
+      </div>
+
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={onBack}>Start over</button>
+    </div>
+  );
+}
+
+function ResultStuck({ result, onBack }: { result: StuckResult; onBack?: () => void }) {
+  const router = useRouter();
+  const cta = CTA_ROUTES[result.ctaTool];
+
+  const problemColour = ({
+    "No Direction": "#818cf8",
+    "No Evidence": C.amber,
+    "Weak Positioning": C.amber,
+    "Interview Performance": "#a855f7",
+    "Confidence/Momentum": C.teal,
+    "Wrong Targeting": C.red,
+  } as Record<string, string>)[result.rootProblem] ?? C.muted;
+
+  const confidenceColour = result.confidenceLevel === "High" ? C.green : result.confidenceLevel === "Medium" ? C.amber : C.red;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Diagnosis header */}
+      <div style={{ ...card, border: `1px solid ${problemColour}33`, background: `${problemColour}0d` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
+          <div>
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "4px" }}>ROOT ISSUE IDENTIFIED</div>
+            <div style={{ fontSize: "22px", fontWeight: 800, color: problemColour, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>{result.rootProblem}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "4px" }}>CONFIDENCE LEVEL</div>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: confidenceColour }}>{result.confidenceLevel}</div>
+          </div>
+        </div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.plainEnglishDiagnosis}</p>
+      </div>
+
+      {/* Next action */}
+      <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>THIS WEEK — DO THIS</div>
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.6", margin: "0 0 16px", fontWeight: 500 }}>{result.nextAction}</p>
+        {cta && (
+          <button style={{ ...btn(), fontSize: "13px", padding: "10px 20px" }} onClick={() => router.push(cta.href)}>
+            {cta.label}
+          </button>
+        )}
+      </div>
+
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={onBack}>Start over</button>
+    </div>
+  );
+}
+
+// ── AdvisorTool ───────────────────────────────────────────────────────────────
+
 function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
   onNavigate?: (tool: Tool) => void;
   intent?: string;
   intentHeading?: { heading: string; subtext: string } | null;
   onBack?: () => void;
 }) {
-  const router = useRouter();
-  const [step, setStep] = useState<"intro" | "paths" | "question" | "loading" | "result">(
-    () => (intent && intent !== "") ? "question" : "intro"
-  );
+  const flowConfig = (intent && FLOW_CONFIG[intent]) ? FLOW_CONFIG[intent] : null;
+
+  const [step, setStep] = useState<"question" | "loading" | "result">("question");
   const [qIndex, setQIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
-  const [result, setResult] = useState<null | {
-    primaryTrack: string;
-    trackScores: Record<string, number>;
-    whyThisFits: string;
-    whereYouAreNow: string;
-    whatNextFocus: string;
-    secondaryTrack: string | null;
-    strengths: string[];
-    gaps: string[];
-    nextSteps: string[];
-    roleTypesToTarget: string[];
-    watchOut: string;
-  }>(null);
-  const [pendingResult, setPendingResult] = useState<typeof result>(null);
+  const [result, setResult] = useState<AdvisorResult | null>(null);
+  const [pendingResult, setPendingResult] = useState<AdvisorResult | null>(null);
   const [animComplete, setAnimComplete] = useState(false);
   const [error, setError] = useState("");
-
-  const trackColour = (track: string) => {
-    if (track.includes("Technical")) return "#818cf8";
-    if (track.includes("Product")) return C.teal;
-    return C.amber;
-  };
-
-  const selectOption = async (option: string) => {
-    const updated = [...selectedAnswers, option];
-    setSelectedAnswers(updated);
-
-    if (qIndex < ADVISOR_QUESTIONS.length - 1) {
-      setQIndex(qIndex + 1);
-    } else {
-      setStep("loading");
-      setError("");
-      const answers = {
-        background: updated[2] || "",
-        currentRole: updated[3] || "",
-        whatLove: updated[0] || "",
-        whatAvoid: "",
-        goal: updated[1] || "",
-      };
-      try {
-        const res = await fetch("/api/career/career-advisor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || "Failed");
-        setPendingResult(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-        setStep("question");
-      }
-    }
-  };
 
   useEffect(() => {
     if (pendingResult && animComplete) {
@@ -423,8 +618,47 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
     }
   }, [pendingResult, animComplete]);
 
+  // No valid flow — fallback message
+  if (!flowConfig) {
+    return (
+      <div style={{ padding: "40px 0" }}>
+        <p style={{ color: C.muted, fontSize: "15px" }}>Please select an option from the menu to continue.</p>
+        {onBack && <button style={{ ...btn("ghost"), marginTop: "16px" }} onClick={onBack}>← Back</button>}
+      </div>
+    );
+  }
+
+  const questions = flowConfig.questions;
+
+  const selectOption = async (option: string) => {
+    const updated = [...selectedAnswers, option];
+    setSelectedAnswers(updated);
+
+    if (qIndex < questions.length - 1) {
+      setQIndex(qIndex + 1);
+    } else {
+      setStep("loading");
+      setError("");
+      try {
+        const res = await fetch("/api/career/career-advisor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ flowId: flowConfig.id, answers: updated }),
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) throw new Error(data.error || "Failed");
+        setPendingResult(data as AdvisorResult);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+        setStep("question");
+        setQIndex(questions.length - 1);
+      }
+    }
+  };
+
   const restart = () => {
-    setStep("intro");
+    setStep("question");
     setQIndex(0);
     setSelectedAnswers([]);
     setResult(null);
@@ -433,285 +667,88 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
     setError("");
   };
 
-  // ── Intro ──
-  if (step === "intro") {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: "560px" }}>
-        {onBack && (
-          <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", alignSelf: "flex-start" }}>
-            ← Back
-          </button>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <p style={{ fontSize: "22px", fontWeight: "700", color: C.text, margin: 0, lineHeight: "1.3" }}>
-            Find your path in BA.
-          </p>
-          <p style={{ fontSize: "16px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-            Four questions. One clear recommendation. Works wherever you are coming from.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <button style={{ ...btn(), padding: "14px 28px", fontSize: "15px", alignSelf: "flex-start" }}
-            onClick={() => setStep("question")}>
-            Let us go
-          </button>
-          <button style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", padding: "0", textAlign: "left", textDecoration: "underline" }}
-            onClick={() => setStep("paths")}>
-            Show me the three BA paths first
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Paths overview ──
-  if (step === "paths") {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "28px", maxWidth: "560px" }}>
-        <p style={{ fontSize: "16px", color: C.muted, margin: 0, lineHeight: "1.6" }}>
-          Three directions. The questions will help identify which one fits you best.
-        </p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {TRACKS.map(t => (
-            <div key={t.name} style={{
-              borderLeft: `3px solid ${t.colour}`,
-              paddingLeft: "16px",
-              paddingTop: "4px",
-              paddingBottom: "4px",
-            }}>
-              <div style={{ fontSize: "15px", fontWeight: "700", color: t.colour, marginBottom: "4px" }}>{t.name}</div>
-              <div style={{ fontSize: "14px", color: C.muted, lineHeight: "1.5" }}>{t.desc}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <button style={{ ...btn(), padding: "14px 28px", fontSize: "15px", alignSelf: "flex-start" }}
-            onClick={() => setStep("question")}>
-            Start the questions
-          </button>
-          <button style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: "13px", padding: "0", textAlign: "left", textDecoration: "underline" }}
-            onClick={() => setStep("intro")}>
-            Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Loading ──
   if (step === "loading") {
-    return <AdvisorLoading onAnimComplete={() => setAnimComplete(true)} />;
+    return <AdvisorLoading onAnimComplete={() => setAnimComplete(true)} steps={flowConfig.loadingSteps} />;
   }
 
-  // ── Questions ──
-  if (step === "question") {
-    const q = ADVISOR_QUESTIONS[qIndex];
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          {intentHeading && qIndex === 0 && (
-          <div style={{ marginBottom: "4px" }}>
+  if (step === "result" && result) {
+    if (result.flowId === "new_to_ba") return <ResultNewToBa result={result} onBack={restart} onNavigate={onNavigate} />;
+    if (result.flowId === "transition_to_ba") return <ResultTransition result={result} onBack={restart} />;
+    if (result.flowId === "feeling_stuck") return <ResultStuck result={result} onBack={restart} />;
+  }
+
+  // ── Question step ──
+  const q = questions[qIndex];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {/* Intent heading — shown on first question only */}
+      {intentHeading && qIndex === 0 && (
+        <div>
+          {onBack && (
             <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
               ← Back
             </button>
-            <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>{intentHeading.heading}</div>
-            <div style={{ fontSize: "14px", color: C.muted, marginTop: "6px", lineHeight: 1.5 }}>{intentHeading.subtext}</div>
-          </div>
-        )}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          {ADVISOR_QUESTIONS.map((_, i) => (
-            <div key={i} style={{
-              width: i === qIndex ? "24px" : "8px",
-              height: "8px", borderRadius: "4px",
-              background: i < qIndex ? C.green : i === qIndex ? C.teal : C.border,
-              transition: "all 0.2s",
-            }} />
-          ))}
-          <span style={{ fontSize: "12px", color: C.muted, marginLeft: "8px" }}>
-            {qIndex + 1} of {ADVISOR_QUESTIONS.length}
-          </span>
+          )}
+          <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>{intentHeading.heading}</div>
+          <div style={{ fontSize: "14px", color: C.muted, marginTop: "6px", lineHeight: 1.5 }}>{intentHeading.subtext}</div>
         </div>
+      )}
 
-        <p style={{ fontSize: "20px", fontWeight: "600", color: C.text, lineHeight: "1.5", margin: 0 }}>
-          {q.question}
-        </p>
+      {/* Progress dots */}
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        {questions.map((_, i) => (
+          <div key={i} style={{
+            width: i === qIndex ? "24px" : "8px",
+            height: "8px", borderRadius: "4px",
+            background: i < qIndex ? C.green : i === qIndex ? C.teal : C.border,
+            transition: "all 0.2s",
+          }} />
+        ))}
+        <span style={{ fontSize: "12px", color: C.muted, marginLeft: "8px" }}>
+          {qIndex + 1} of {questions.length}
+        </span>
+      </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {q.options.map((opt, i) => (
-            <button key={i} onClick={() => selectOption(opt)}
-              style={{
-                textAlign: "left", padding: "16px 20px", borderRadius: "10px",
-                fontSize: "15px", color: C.text, background: "rgba(255,255,255,0.03)",
-                border: `1px solid ${C.border}`, cursor: "pointer", transition: "all 0.12s",
-                fontFamily: "Inter, system-ui, sans-serif", lineHeight: "1.4",
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = C.tealBg;
-                (e.currentTarget as HTMLButtonElement).style.borderColor = C.tealBorder;
-                (e.currentTarget as HTMLButtonElement).style.color = C.teal;
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = C.border;
-                (e.currentTarget as HTMLButtonElement).style.color = C.text;
-              }}>
-              {opt}
-            </button>
-          ))}
-        </div>
+      {/* Question */}
+      <p style={{ fontSize: "20px", fontWeight: 600, color: C.text, lineHeight: "1.5", margin: 0 }}>
+        {q.question}
+      </p>
 
-        {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
-
-        {qIndex > 0 && (
-          <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
-            onClick={() => { setQIndex(qIndex - 1); setSelectedAnswers(prev => prev.slice(0, -1)); }}>
-            Back
+      {/* Options */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {q.options.map((opt, i) => (
+          <button key={i} onClick={() => selectOption(opt)}
+            style={{
+              textAlign: "left", padding: "16px 20px", borderRadius: "10px",
+              fontSize: "15px", color: C.text, background: "rgba(255,255,255,0.03)",
+              border: `1px solid ${C.border}`, cursor: "pointer", transition: "all 0.12s",
+              fontFamily: "Inter, system-ui, sans-serif", lineHeight: "1.4",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = C.tealBg;
+              (e.currentTarget as HTMLButtonElement).style.borderColor = C.tealBorder;
+              (e.currentTarget as HTMLButtonElement).style.color = C.teal;
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = C.border;
+              (e.currentTarget as HTMLButtonElement).style.color = C.text;
+            }}>
+            {opt}
           </button>
-        )}
+        ))}
       </div>
-    );
-  }
 
-  // ── Result ──
-  if (step === "result" && result) {
-    const tc = trackColour(result.primaryTrack);
-    const scores = result.trackScores || {};
-    const portalActions = PORTAL_ACTIONS[result.primaryTrack] || PORTAL_ACTIONS["Product BA"];
+      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
 
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-
-        {/* Recommendation header */}
-        <div style={{ ...card, border: `1px solid ${tc}33`, background: `${tc}0d` }}>
-          <div style={{ marginBottom: "20px" }}>
-            <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "6px" }}>YOUR PATH</div>
-            <div style={{ fontSize: "24px", fontWeight: "700", color: tc }}>{result.primaryTrack}</div>
-            {result.secondaryTrack && (
-              <div style={{ fontSize: "13px", color: C.muted, marginTop: "4px" }}>Also worth considering: {result.secondaryTrack}</div>
-            )}
-          </div>
-
-          {/* Three structured explanation sections */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div>
-              <div style={{ fontSize: "11px", fontWeight: "700", color: tc, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "6px" }}>WHY THIS PATH FITS YOU</div>
-              <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whyThisFits}</p>
-            </div>
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "16px" }}>
-              <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "6px" }}>WHERE YOU ARE STARTING FROM</div>
-              <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whereYouAreNow}</p>
-            </div>
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "16px" }}>
-              <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "6px" }}>WHAT THIS MEANS FOR YOUR NEXT STEP</div>
-              <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whatNextFocus}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* All three track scores */}
-        <div style={card}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>PATH MATCH SCORES</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {TRACKS.map(t => {
-              const score = scores[t.name] ?? 0;
-              return (
-                <div key={t.name}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <span style={{ fontSize: "13px", fontWeight: t.name === result.primaryTrack ? "700" : "400", color: t.name === result.primaryTrack ? t.colour : C.muted }}>{t.name}</span>
-                    <span style={{ fontSize: "13px", fontWeight: "700", color: t.colour, fontFamily: "JetBrains Mono, monospace" }}>{score}</span>
-                  </div>
-                  <div style={{ height: "6px", borderRadius: "3px", background: C.border, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${score}%`, background: t.colour, borderRadius: "3px", transition: "width 0.6s ease" }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Strengths and gaps */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          <div style={card}>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT YOU BRING</div>
-            {result.strengths.map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                <span style={{ color: C.green, flexShrink: 0 }}>✓</span>
-                <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.4" }}>{s}</span>
-              </div>
-            ))}
-          </div>
-          <div style={card}>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT TO BUILD</div>
-            {result.gaps.map((g, i) => (
-              <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                <span style={{ color: C.amber, flexShrink: 0 }}>•</span>
-                <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.4" }}>{g}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Next steps */}
-        <div style={card}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>NEXT STEPS</div>
-          {result.nextSteps.map((s, i) => (
-            <div key={i} style={{ display: "flex", gap: "12px", marginBottom: "12px", alignItems: "flex-start" }}>
-              <span style={{ background: C.tealBg, border: `1px solid ${C.tealBorder}`, borderRadius: "50%", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700", color: C.teal, flexShrink: 0 }}>{i + 1}</span>
-              <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.5" }}>{s}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Portal activity buttons */}
-        <div style={card}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "14px" }}>START PRACTISING NOW</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-            {portalActions.map((a, i) => (
-              <button key={i} onClick={() => router.push(a.href)}
-                style={{ ...btn(i === 0 ? "teal" : "ghost"), fontSize: "13px", padding: "9px 16px" }}>
-                {a.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Roles and watch out */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          <div style={card}>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>ROLES TO TARGET</div>
-            {result.roleTypesToTarget.map((r, i) => (
-              <div key={i} style={{ fontSize: "14px", color: C.text, marginBottom: "8px", paddingLeft: "14px", borderLeft: `2px solid ${C.border}` }}>{r}</div>
-            ))}
-          </div>
-          <div style={{ ...card, border: "1px solid rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WORTH KNOWING</div>
-            <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: 0 }}>{result.watchOut}</p>
-          </div>
-        </div>
-
-        {/* Next step nudge */}
-        {onNavigate && (
-          <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>YOUR NEXT STEP</div>
-            <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: "0 0 14px" }}>
-              Now that you know your direction, the best thing you can do is strengthen your resume so it speaks the language of that track.
-            </p>
-            <button style={{ ...btn(), fontSize: "13px", padding: "9px 18px" }} onClick={() => onNavigate("resume")}>
-              Go to Resume Improvement
-            </button>
-          </div>
-        )}
-
-        <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={restart}>
-          Start over
+      {qIndex > 0 && (
+        <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
+          onClick={() => { setQIndex(qIndex - 1); setSelectedAnswers(prev => prev.slice(0, -1)); }}>
+          Back
         </button>
-      </div>
-    );
-  }
-
-  return null;
+      )}
+    </div>
+  );
 }
 
 // ── Resume Improvement ──────────────────────────────────────────────────────
