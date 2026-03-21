@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, TrendingUp, GraduationCap,
   Target, Mic, BriefcaseBusiness, Trophy, Settings,
@@ -349,9 +349,16 @@ function AdvisorLoading({ onAnimComplete }: { onAnimComplete: () => void }) {
   );
 }
 
-function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
+function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
+  onNavigate?: (tool: Tool) => void;
+  intent?: string;
+  intentHeading?: { heading: string; subtext: string } | null;
+  onBack?: () => void;
+}) {
   const router = useRouter();
-  const [step, setStep] = useState<"intro" | "paths" | "question" | "loading" | "result">("intro");
+  const [step, setStep] = useState<"intro" | "paths" | "question" | "loading" | "result">(
+    () => (intent && intent !== "") ? "question" : "intro"
+  );
   const [qIndex, setQIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [result, setResult] = useState<null | {
@@ -430,9 +437,14 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
   if (step === "intro") {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: "560px" }}>
+        {onBack && (
+          <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", alignSelf: "flex-start" }}>
+            ← Back
+          </button>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           <p style={{ fontSize: "22px", fontWeight: "700", color: C.text, margin: 0, lineHeight: "1.3" }}>
-            Good to have you here.
+            Find your path in BA.
           </p>
           <p style={{ fontSize: "16px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
             Four questions. One clear recommendation. Works wherever you are coming from.
@@ -499,6 +511,15 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
     const q = ADVISOR_QUESTIONS[qIndex];
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {intentHeading && qIndex === 0 && (
+          <div style={{ marginBottom: "4px" }}>
+            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
+              ← Back
+            </button>
+            <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>{intentHeading.heading}</div>
+            <div style={{ fontSize: "14px", color: C.muted, marginTop: "6px", lineHeight: 1.5 }}>{intentHeading.subtext}</div>
+          </div>
+        )}
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           {ADVISOR_QUESTIONS.map((_, i) => (
             <div key={i} style={{
@@ -695,7 +716,12 @@ function AdvisorTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 
 // ── Resume Improvement ──────────────────────────────────────────────────────
 
-function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (tool: Tool) => void }) {
+function ResumeTool({ fullName, onNavigate, intentHeading, onBack }: {
+  fullName: string;
+  onNavigate?: (tool: Tool) => void;
+  intentHeading?: { heading: string; subtext: string } | null;
+  onBack?: () => void;
+}) {
   const [step, setStep] = useState<"upload" | "loading" | "intro" | "question" | "building" | "done">("upload");
   const [resumeText, setResumeText] = useState("");
   const [inputMode, setInputMode] = useState<"upload" | "paste">("upload");
@@ -898,14 +924,26 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <p style={{ fontSize: "16px", color: C.text, lineHeight: "1.7", margin: 0 }}>
-          Share your current resume and I will review it with you.
-        </p>
-        <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
-          I will ask a few short questions to better understand your experience, your achievements, and the kind of role you are targeting. From there I will help you strengthen your resume and send back an improved version in Word format so you can make any final edits yourself.
-        </p>
-      </div>
+      {intentHeading ? (
+        <div>
+          {onBack && (
+            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+              ← Back
+            </button>
+          )}
+          <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>{intentHeading.heading}</div>
+          <div style={{ fontSize: "14px", color: C.muted, marginTop: "6px", lineHeight: 1.5 }}>{intentHeading.subtext}</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <p style={{ fontSize: "16px", color: C.text, lineHeight: "1.7", margin: 0 }}>
+            Share your current resume and I will review it with you.
+          </p>
+          <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.7", margin: 0 }}>
+            I will ask a few short questions to better understand your experience, your achievements, and the kind of role you are targeting. From there I will help you strengthen your resume and send back an improved version in Word format so you can make any final edits yourself.
+          </p>
+        </div>
+      )}
 
       {/* Mode toggle */}
       <div style={{ display: "flex", gap: "8px" }}>
@@ -971,7 +1009,12 @@ function ResumeTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (
 
 // ── Cover Letter Builder ────────────────────────────────────────────────────
 
-function CoverLetterTool({ fullName, onNavigate }: { fullName: string; onNavigate?: (tool: Tool) => void }) {
+function CoverLetterTool({ fullName, onNavigate, intentHeading, onBack }: {
+  fullName: string;
+  onNavigate?: (tool: Tool) => void;
+  intentHeading?: { heading: string; subtext: string } | null;
+  onBack?: () => void;
+}) {
   const [step, setStep] = useState<"setup" | "questions" | "loading" | "done">("setup");
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
@@ -1081,9 +1124,21 @@ function CoverLetterTool({ fullName, onNavigate }: { fullName: string; onNavigat
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Upload your resume and paste the job description. I will ask a couple of quick questions so the letter speaks directly to that role.
-      </p>
+      {intentHeading ? (
+        <div>
+          {onBack && (
+            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+              ← Back
+            </button>
+          )}
+          <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em", marginBottom: "6px" }}>{intentHeading.heading}</div>
+          <div style={{ fontSize: "14px", color: C.muted, lineHeight: 1.5 }}>{intentHeading.subtext}</div>
+        </div>
+      ) : (
+        <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+          Upload your resume and paste the job description. I will ask a couple of quick questions so the letter speaks directly to that role.
+        </p>
+      )}
       <FileUpload label="Your resume" onParsed={(text) => setResumeText(text)} />
       <div>
         <span style={label}>Job description</span>
@@ -1100,7 +1155,10 @@ function CoverLetterTool({ fullName, onNavigate }: { fullName: string; onNavigat
 
 // ── JD Analyzer ─────────────────────────────────────────────────────────────
 
-function JDAnalyzerTool() {
+function JDAnalyzerTool({ intentHeading, onBack }: {
+  intentHeading?: { heading: string; subtext: string } | null;
+  onBack?: () => void;
+}) {
   const [jdText, setJdText] = useState("");
   const [resumeText, setResumeText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1238,6 +1296,17 @@ function JDAnalyzerTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {intentHeading && (
+        <div>
+          {onBack && (
+            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+              ← Back
+            </button>
+          )}
+          <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em", marginBottom: "6px" }}>{intentHeading.heading}</div>
+          <div style={{ fontSize: "14px", color: C.muted, lineHeight: 1.5, marginBottom: "4px" }}>{intentHeading.subtext}</div>
+        </div>
+      )}
       <div>
         <span style={label}>Job description</span>
         <textarea rows={10} style={textarea(10)} placeholder="Paste the full job description here…"
@@ -1275,7 +1344,11 @@ interface InterviewFeedback {
   suggestedRewrite: string; interviewerPerspective: string;
 }
 
-function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
+function InterviewTool({ onNavigate, intentHeading, onBack }: {
+  onNavigate?: (tool: Tool) => void;
+  intentHeading?: { heading: string; subtext: string } | null;
+  onBack?: () => void;
+}) {
   const [step, setStep] = useState<"setup" | "generating" | "practice" | "answer-review">("setup");
   const [jdText, setJdText] = useState("");
   const [company, setCompany] = useState("");
@@ -1567,9 +1640,21 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Paste the job description and I will put together questions for this specific role. Upload your resume too and I will tailor the questions to your background.
-      </p>
+      {intentHeading ? (
+        <div>
+          {onBack && (
+            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+              ← Back
+            </button>
+          )}
+          <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em", marginBottom: "6px" }}>{intentHeading.heading}</div>
+          <div style={{ fontSize: "14px", color: C.muted, lineHeight: 1.5 }}>{intentHeading.subtext}</div>
+        </div>
+      ) : (
+        <p style={{ fontSize: "14px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+          Describe the role and I will generate realistic interview questions tailored to it. You will answer by speaking or typing, and I will give you detailed feedback on every answer.
+        </p>
+      )}
       <div>
         <span style={label}>Job description</span>
         <textarea rows={8} style={textarea(8)} placeholder="Paste the full job description here…"
@@ -1591,7 +1676,10 @@ function InterviewTool({ onNavigate }: { onNavigate?: (tool: Tool) => void }) {
 
 // ── Salary Negotiation ──────────────────────────────────────────────────────
 
-function SalaryTool() {
+function SalaryTool({ intentHeading, onBack }: {
+  intentHeading?: { heading: string; subtext: string } | null;
+  onBack?: () => void;
+}) {
   const [form, setForm] = useState({ offerAmount: "", currency: "$", jobTitle: "", yearsExp: "", location: "", notes: "" });
   const [offerLetterText, setOfferLetterText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1690,9 +1778,21 @@ function SalaryTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Upload your offer letter and I will read it for you, or fill in the details below. Either way works.
-      </p>
+      {intentHeading ? (
+        <div>
+          {onBack && (
+            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "var(--text-3)", padding: "0", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+              ← Back
+            </button>
+          )}
+          <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em", marginBottom: "6px" }}>{intentHeading.heading}</div>
+          <div style={{ fontSize: "14px", color: C.muted, lineHeight: 1.5 }}>{intentHeading.subtext}</div>
+        </div>
+      ) : (
+        <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
+          Upload your offer letter and I will read it for you, or fill in the details below. Either way works.
+        </p>
+      )}
 
       <FileUpload label="Offer letter (optional — Word or PDF)" onParsed={(text) => setOfferLetterText(text)} />
 
@@ -1817,26 +1917,89 @@ const CATEGORIES: { id: Category; num: number; title: string; description: strin
   },
 ];
 
-type CategoryOpt = { label: string } & ({ tool: Tool } | { href: string });
+interface CategoryOption { label: string; intent: string; }
 
-const CATEGORY_OPTIONS: Record<Category, CategoryOpt[]> = {
+const CATEGORY_OPTIONS: Record<Category, CategoryOption[]> = {
   explore: [
-    { label: "I am new to Business Analysis and do not know where to start", tool: "advisor" },
-    { label: "I am trying to transition into a BA role from another field", tool: "advisor" },
-    { label: "I feel stuck and do not know what direction fits me", tool: "advisor" },
+    { label: "I am new to Business Analysis and do not know where to start", intent: "new_to_ba" },
+    { label: "I am trying to transition into a BA role from another field", intent: "transition_to_ba" },
+    { label: "I feel stuck and do not know what direction fits me", intent: "feeling_stuck" },
   ],
   land: [
-    { label: "I am not getting interviews and need to understand why", tool: "resume" },
-    { label: "I need help improving my resume to get callbacks", tool: "resume" },
-    { label: "I found a job and want to tailor my application", tool: "cover-letter" },
-    { label: "Analyze a job description and tell me what they really want", tool: "jd" },
+    { label: "I am not getting interviews and need to understand why", intent: "not_getting_interviews" },
+    { label: "I need help improving my resume to get callbacks", intent: "improve_resume" },
+    { label: "I found a job and want to tailor my application", intent: "tailor_application" },
+    { label: "Analyze a job description and tell me what they really want", intent: "analyze_job_description" },
   ],
   grow: [
-    { label: "I have interviews coming up and need to prepare", tool: "interview" },
-    { label: "I want to practice interview answers and get feedback", href: "/scenarios" },
-    { label: "I have an offer and need help negotiating", tool: "salary" },
-    { label: "I want to move into a higher paying or more senior BA role", tool: "salary" },
+    { label: "I have interviews coming up and need to prepare", intent: "interview_preparation" },
+    { label: "I want to practice interview answers and get feedback", intent: "practice_answers" },
+    { label: "I have an offer and need help negotiating", intent: "negotiate_offer" },
+    { label: "I want to move into a higher paying or more senior BA role", intent: "move_to_senior_role" },
   ],
+};
+
+// Maps each intent to which Tool renders it (null = external redirect)
+const INTENT_TO_TOOL: Record<string, Tool | null> = {
+  new_to_ba: "advisor",
+  transition_to_ba: "advisor",
+  feeling_stuck: "advisor",
+  not_getting_interviews: "resume",
+  improve_resume: "resume",
+  tailor_application: "cover-letter",
+  analyze_job_description: "jd",
+  interview_preparation: "interview",
+  practice_answers: null,
+  negotiate_offer: "salary",
+  move_to_senior_role: "salary",
+};
+
+// Intent-aware headings shown to users at the top of each tool
+const INTENT_HEADINGS: Record<string, { heading: string; subtext: string }> = {
+  new_to_ba: {
+    heading: "Let's build your BA foundation",
+    subtext: "Four quick questions to work out which direction in BA fits you.",
+  },
+  transition_to_ba: {
+    heading: "Let's map your experience into a BA role",
+    subtext: "You have real background. We will work out how to position it for BA.",
+  },
+  feeling_stuck: {
+    heading: "Let's work out what direction fits you",
+    subtext: "Four questions. No wrong answers. We will figure it out together.",
+  },
+  not_getting_interviews: {
+    heading: "Let's figure out why you are not getting interviews",
+    subtext: "Share your resume and I will tell you what is holding you back and what to fix.",
+  },
+  improve_resume: {
+    heading: "Let's strengthen your resume",
+    subtext: "Share your resume and I will work through it with you step by step.",
+  },
+  tailor_application: {
+    heading: "Let's tailor your application to this role",
+    subtext: "Share your resume and the job description and I will write a cover letter that speaks directly to this role.",
+  },
+  analyze_job_description: {
+    heading: "Let's break down this job description",
+    subtext: "Paste the JD and I will tell you what they really want, the likely business problem, and how to position yourself.",
+  },
+  interview_preparation: {
+    heading: "Let's get you ready for interviews",
+    subtext: "I will generate real BA interview questions tailored to your role and give you detailed feedback on every answer.",
+  },
+  practice_answers: {
+    heading: "Practice real BA scenarios",
+    subtext: "Work through realistic stakeholder challenges and get feedback on your approach.",
+  },
+  negotiate_offer: {
+    heading: "Let's negotiate your offer",
+    subtext: "Share the details of your offer and I will tell you what it is worth, what to ask for, and exactly what to say.",
+  },
+  move_to_senior_role: {
+    heading: "Let's map your path to a senior BA role",
+    subtext: "Share where you are now and I will help you understand your market value and what to target next.",
+  },
 };
 
 const CAREER_NAV = [
@@ -1852,18 +2015,29 @@ const CAREER_NAV = [
 
 export default function CareerClient({ fullName }: Props) {
   const router = useRouter();
-  const [activeTool, setActiveTool] = useState<Tool>("home");
-  const [homeStep, setHomeStep] = useState<"entry" | "category">("entry");
-  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const searchParams = useSearchParams();
 
-  const navigateHome = () => {
-    setActiveTool("home");
-    setHomeStep("entry");
-    setActiveCategory(null);
-  };
+  const cat = searchParams.get("cat") as Category | null;
+  const intent = searchParams.get("intent");
 
-  const currentStep = activeTool !== "home" ? stepForTool(activeTool) : null;
-  const activeToolLabel = JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool)?.label;
+  // Derive the active tool from the intent
+  const activeTool: Tool | null = intent ? (INTENT_TO_TOOL[intent] ?? null) : null;
+
+  // If practice_answers, redirect externally on mount
+  useEffect(() => {
+    if (intent === "practice_answers") {
+      router.push("/scenarios");
+    }
+  }, [intent, router]);
+
+  const goToCategory = (c: Category) => router.push(`/career?cat=${c}`);
+  const goToIntent = (c: Category, i: string) => router.push(`/career?cat=${c}&intent=${i}`);
+  const goBackToCategory = () => cat ? router.push(`/career?cat=${cat}`) : router.push("/career");
+  const goHome = () => router.push("/career");
+
+  const currentToolInfo = activeTool ? JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool) : null;
+  const activeCat = cat ? CATEGORIES.find(c => c.id === cat) : null;
+  const intentHeading = intent ? INTENT_HEADINGS[intent] : null;
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
@@ -1906,19 +2080,14 @@ export default function CareerClient({ fullName }: Props) {
         <header className="px-8 py-5 flex items-center justify-between sticky top-0 z-20"
           style={{ background: "rgba(9,9,11,0.88)", backdropFilter: "blur(24px)", borderBottom: "1px solid var(--border)" }}>
           <div>
-            {activeTool !== "home" && (
+            {(activeTool || cat) && (
               <h1 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "22px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
-                {activeToolLabel ?? "Career Suite"}
+                {currentToolInfo?.label ?? activeCat?.title ?? "Career Suite"}
               </h1>
             )}
-            {currentStep && (
-              <p className="type-meta" style={{ marginTop: "4px", color: currentStep.colour }}>
-                Step {currentStep.step} of 4 · {currentStep.label}
-              </p>
-            )}
           </div>
-          {activeTool !== "home" && (
-            <button className="btn-ghost" onClick={navigateHome}>Back to Career Suite</button>
+          {(activeTool || cat) && (
+            <button className="btn-ghost" onClick={goHome}>Back to Career Suite</button>
           )}
         </header>
 
@@ -1926,7 +2095,7 @@ export default function CareerClient({ fullName }: Props) {
         <div className="px-8 py-8" style={{ maxWidth: "680px" }}>
 
           {/* ── Home: Entry ── */}
-          {activeTool === "home" && homeStep === "entry" && (
+          {!cat && !intent && (
             <div style={{ display: "flex", flexDirection: "column", gap: "28px", maxWidth: "560px" }}>
               <div>
                 <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-1)", margin: 0, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.03em" }}>
@@ -1937,38 +2106,38 @@ export default function CareerClient({ fullName }: Props) {
                 </p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {CATEGORIES.map((cat) => (
-                  <button key={cat.id}
-                    onClick={() => { setActiveCategory(cat.id); setHomeStep("category"); }}
+                {CATEGORIES.map((c) => (
+                  <button key={c.id}
+                    onClick={() => goToCategory(c.id)}
                     style={{
                       display: "flex", alignItems: "center", gap: "18px",
                       background: "var(--surface)", border: `1px solid var(--border)`,
-                      borderLeft: `4px solid ${cat.colour}`,
+                      borderLeft: `4px solid ${c.colour}`,
                       borderRadius: "14px", padding: "20px 24px", cursor: "pointer",
                       textAlign: "left", transition: "all 0.15s", width: "100%",
                       fontFamily: "inherit",
                     }}
                     onMouseEnter={e => {
-                      (e.currentTarget as HTMLButtonElement).style.background = cat.bg;
-                      (e.currentTarget as HTMLButtonElement).style.borderColor = cat.border;
-                      (e.currentTarget as HTMLButtonElement).style.borderLeftColor = cat.colour;
+                      (e.currentTarget as HTMLButtonElement).style.background = c.bg;
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = c.border;
+                      (e.currentTarget as HTMLButtonElement).style.borderLeftColor = c.colour;
                     }}
                     onMouseLeave={e => {
                       (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)";
                       (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
-                      (e.currentTarget as HTMLButtonElement).style.borderLeftColor = cat.colour;
+                      (e.currentTarget as HTMLButtonElement).style.borderLeftColor = c.colour;
                     }}
                   >
                     <div style={{
                       width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                      background: cat.bg, border: `1px solid ${cat.border}`,
+                      background: c.bg, border: `1px solid ${c.border}`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "15px", fontWeight: 800, color: cat.colour,
+                      fontSize: "15px", fontWeight: 800, color: c.colour,
                       fontFamily: "JetBrains Mono, monospace",
-                    }}>{cat.num}</div>
+                    }}>{c.num}</div>
                     <div>
-                      <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{cat.title}</div>
-                      <div style={{ fontSize: "14px", color: "var(--text-3)", marginTop: "4px", lineHeight: 1.4 }}>{cat.description}</div>
+                      <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{c.title}</div>
+                      <div style={{ fontSize: "14px", color: "var(--text-3)", marginTop: "4px", lineHeight: 1.4 }}>{c.description}</div>
                     </div>
                   </button>
                 ))}
@@ -1977,70 +2146,103 @@ export default function CareerClient({ fullName }: Props) {
           )}
 
           {/* ── Home: Category ── */}
-          {activeTool === "home" && homeStep === "category" && activeCategory && (() => {
-            const cat = CATEGORIES.find(c => c.id === activeCategory)!;
-            const opts = CATEGORY_OPTIONS[activeCategory];
-            return (
-              <div style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "560px" }}>
-                <div>
-                  <button
-                    onClick={() => setHomeStep("entry")}
-                    style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      fontSize: "13px", color: "var(--text-3)", padding: "0",
-                      fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px",
-                    }}>
-                    ← Back
-                  </button>
-                  <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", margin: "14px 0 6px", fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>
-                    {cat.title}
-                  </h2>
-                  <p style={{ fontSize: "14px", color: "var(--text-3)", margin: 0 }}>
-                    What fits your situation?
-                  </p>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {opts.map((opt, i) => (
-                    <button key={i}
-                      onClick={() => { if ('tool' in opt) setActiveTool(opt.tool); else router.push(opt.href); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "14px",
-                        background: "var(--surface)", border: `1px solid var(--border)`,
-                        borderRadius: "10px", padding: "16px 18px", cursor: "pointer",
-                        textAlign: "left", transition: "all 0.15s", width: "100%",
-                        fontSize: "15px", color: "var(--text-2)", fontFamily: "inherit",
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = cat.bg;
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = cat.border;
-                        (e.currentTarget as HTMLButtonElement).style.color = cat.colour;
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)";
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
-                        (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)";
-                      }}>
-                      <div style={{
-                        width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                        background: cat.colour, opacity: 0.7,
-                      }} />
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+          {cat && !intent && activeCat && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "560px" }}>
+              <div>
+                <button
+                  onClick={goHome}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    fontSize: "13px", color: "var(--text-3)", padding: "0",
+                    fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px",
+                  }}>
+                  ← Back
+                </button>
+                <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", margin: "14px 0 6px", fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>
+                  {activeCat.title}
+                </h2>
+                <p style={{ fontSize: "14px", color: "var(--text-3)", margin: 0 }}>
+                  What fits your situation?
+                </p>
               </div>
-            );
-          })()}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {CATEGORY_OPTIONS[cat].map((opt) => (
+                  <button key={opt.intent}
+                    onClick={() => goToIntent(cat, opt.intent)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "14px",
+                      background: "var(--surface)", border: `1px solid var(--border)`,
+                      borderRadius: "10px", padding: "16px 18px", cursor: "pointer",
+                      textAlign: "left", transition: "all 0.15s", width: "100%",
+                      fontSize: "15px", color: "var(--text-2)", fontFamily: "inherit",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = activeCat.bg;
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = activeCat.border;
+                      (e.currentTarget as HTMLButtonElement).style.color = activeCat.colour;
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)";
+                    }}>
+                    <div style={{
+                      width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                      background: activeCat.colour, opacity: 0.7,
+                    }} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Tools ── */}
-          {activeTool !== "home" && (
+          {activeTool && intent && (
             <div>
-              {activeTool === "advisor" && <AdvisorTool onNavigate={setActiveTool} />}
-              {activeTool === "resume" && <ResumeTool fullName={fullName} onNavigate={setActiveTool} />}
-              {activeTool === "cover-letter" && <CoverLetterTool fullName={fullName} onNavigate={setActiveTool} />}
-              {activeTool === "jd" && <JDAnalyzerTool />}
-              {activeTool === "interview" && <InterviewTool onNavigate={setActiveTool} />}
-              {activeTool === "salary" && <SalaryTool />}
+              {activeTool === "advisor" && (
+                <AdvisorTool
+                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  intent={intent}
+                  intentHeading={intentHeading}
+                  onBack={goBackToCategory}
+                />
+              )}
+              {activeTool === "resume" && (
+                <ResumeTool
+                  fullName={fullName}
+                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  intentHeading={intentHeading}
+                  onBack={goBackToCategory}
+                />
+              )}
+              {activeTool === "cover-letter" && (
+                <CoverLetterTool
+                  fullName={fullName}
+                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  intentHeading={intentHeading}
+                  onBack={goBackToCategory}
+                />
+              )}
+              {activeTool === "jd" && (
+                <JDAnalyzerTool
+                  intentHeading={intentHeading}
+                  onBack={goBackToCategory}
+                />
+              )}
+              {activeTool === "interview" && (
+                <InterviewTool
+                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  intentHeading={intentHeading}
+                  onBack={goBackToCategory}
+                />
+              )}
+              {activeTool === "salary" && (
+                <SalaryTool
+                  intentHeading={intentHeading}
+                  onBack={goBackToCategory}
+                />
+              )}
             </div>
           )}
 

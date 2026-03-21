@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -22,5 +23,9 @@ export default async function CareerPage() {
     .eq("id", user.id)
     .single();
 
-  return <CareerClient fullName={profile?.full_name ?? ""} />;
+  return (
+    <Suspense fallback={null}>
+      <CareerClient fullName={profile?.full_name ?? ""} />
+    </Suspense>
+  );
 }
