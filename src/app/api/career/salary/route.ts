@@ -55,7 +55,7 @@ Return ONLY valid JSON — no text outside it:
   try {
     const response = await ai.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1000,
+      max_tokens: 1600,
       messages: [{ role: "user", content: prompt }],
     });
 
