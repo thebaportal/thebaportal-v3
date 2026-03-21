@@ -1106,10 +1106,14 @@ function JDAnalyzerTool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<null | {
-    jobTitle: string; company: string; atsScore: number | null;
-    rows: { requirement: string; candidateMatch: string; strength: "strong" | "partial" | "gap" }[];
-    mustHaves: string[]; missingKeywords: string[]; keywordSuggestions: string[];
-    verdict: string; topTip: string;
+    jobTitle: string;
+    company: string;
+    whatThisRoleIsAbout: string;
+    whatTheyCareAbout: string[];
+    businessProblem: string;
+    howToPosition: string;
+    resumeAlignment: { strengths: string[]; gaps: string[]; improvements: string[] } | null;
+    interviewFocus: string[];
   }>(null);
 
   const analyse = async () => {
@@ -1121,8 +1125,9 @@ function JDAnalyzerTool() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jdText, resumeText }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || "Analysis failed");
       setResult(data.analysis);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
@@ -1131,94 +1136,101 @@ function JDAnalyzerTool() {
     }
   };
 
-  const strengthColour = (s: "strong" | "partial" | "gap") =>
-    s === "strong" ? C.green : s === "partial" ? C.amber : C.red;
-
   if (loading) return (
-    <div style={{ textAlign: "center", padding: "60px 0" }}>
-      <div style={{ color: C.teal, fontSize: "15px" }}>Analysing job description…</div>
+    <div style={{ padding: "60px 0" }}>
+      <div style={{ color: C.teal, fontSize: "15px" }}>Reading the job description…</div>
+      <div style={{ color: C.muted, fontSize: "13px", marginTop: "8px" }}>This usually takes around 10 seconds.</div>
     </div>
   );
 
   if (result) return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-        <div>
-          <div style={{ fontSize: "20px", fontWeight: "700", color: C.text }}>{result.jobTitle}</div>
-          <div style={{ fontSize: "13px", color: C.muted }}>{result.company}</div>
-        </div>
-        {result.atsScore !== null && (
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <ScoreRing score={result.atsScore} size={64} />
-            <div>
-              <div style={{ fontSize: "11px", color: C.muted, fontFamily: "JetBrains Mono, monospace" }}>ATS MATCH</div>
-              <div style={{ fontSize: "13px", color: C.muted }}>keyword score</div>
-            </div>
-          </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Role header */}
+      <div style={{ marginBottom: "4px" }}>
+        <div style={{ fontSize: "22px", fontWeight: 800, color: C.text, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>{result.jobTitle}</div>
+        {result.company && result.company !== "Not specified" && (
+          <div style={{ fontSize: "14px", color: C.muted, marginTop: "4px" }}>{result.company}</div>
         )}
       </div>
 
-      {/* Two-column match table */}
-      <div style={card}>
-        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>REQUIREMENTS vs YOUR PROFILE</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: "0", borderRadius: "8px", overflow: "hidden", border: `1px solid ${C.border}` }}>
-          {/* Header */}
-          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.04)", fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace" }}>THEY WANT</div>
-          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.04)", fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", borderLeft: `1px solid ${C.border}` }}>YOU BRING</div>
-          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.04)", fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", textAlign: "center", borderLeft: `1px solid ${C.border}` }}>FIT</div>
-          {/* Rows */}
-          {result.rows.map((row, i) => (
-            <>
-              <div key={`r-${i}`} style={{ padding: "12px 14px", fontSize: "13px", color: C.text, lineHeight: "1.4", borderTop: `1px solid ${C.border}` }}>{row.requirement}</div>
-              <div key={`c-${i}`} style={{ padding: "12px 14px", fontSize: "13px", color: C.muted, lineHeight: "1.4", borderTop: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}` }}>{row.candidateMatch}</div>
-              <div key={`s-${i}`} style={{ padding: "12px 14px", fontSize: "12px", fontWeight: "700", color: strengthColour(row.strength), textAlign: "center", borderTop: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}`, textTransform: "uppercase", letterSpacing: "0.05em" }}>{row.strength}</div>
-            </>
+      {/* Section 1 */}
+      <div style={{ ...card }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>WHAT THIS ROLE IS REALLY ABOUT</div>
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whatThisRoleIsAbout}</p>
+      </div>
+
+      {/* Section 2 */}
+      <div style={{ ...card }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>WHAT THEY CARE ABOUT MOST</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {result.whatTheyCareAbout.map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+              <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.teal, flexShrink: 0, marginTop: "7px" }} />
+              <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.5" }}>{item}</span>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Must haves + verdict */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-        <div style={card}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>MUST HAVES</div>
-          {result.mustHaves.map((m, i) => (
-            <div key={i} style={{ fontSize: "13px", color: C.text, marginBottom: "8px", paddingLeft: "12px", borderLeft: `2px solid ${C.amber}` }}>{m}</div>
-          ))}
-        </div>
-        <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>TOP TIP</div>
-          <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.5", margin: "0 0 12px" }}>{result.topTip}</p>
-        </div>
+      {/* Section 3 */}
+      <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>THE LIKELY BUSINESS PROBLEM</div>
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.businessProblem}</p>
       </div>
 
-      {/* Missing keywords */}
-      {result.missingKeywords && result.missingKeywords.length > 0 && (
-        <div style={card}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: C.red, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>MISSING ATS KEYWORDS</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
-            {result.missingKeywords.map((k, i) => (
-              <span key={i} style={{ background: C.redBg, border: "1px solid rgba(239,68,68,0.3)", borderRadius: "4px", padding: "4px 10px", fontSize: "12px", color: C.red, fontFamily: "JetBrains Mono, monospace" }}>{k}</span>
-            ))}
+      {/* Section 4 */}
+      <div style={{ ...card, borderColor: C.tealBorder, background: C.tealBg }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>HOW YOU SHOULD POSITION YOURSELF</div>
+        <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.howToPosition}</p>
+      </div>
+
+      {/* Section 5 — Resume alignment (only if resume was provided) */}
+      {result.resumeAlignment && (
+        <div style={{ ...card }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "16px" }}>RESUME ALIGNMENT</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {result.resumeAlignment.strengths.length > 0 && (
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: C.green, marginBottom: "8px" }}>What you have that they want</div>
+                {result.resumeAlignment.strengths.map((s, i) => (
+                  <div key={i} style={{ fontSize: "14px", color: C.text, paddingLeft: "12px", borderLeft: `2px solid ${C.green}`, marginBottom: "6px", lineHeight: "1.4" }}>{s}</div>
+                ))}
+              </div>
+            )}
+            {result.resumeAlignment.gaps.length > 0 && (
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: C.red, marginBottom: "8px" }}>Gaps to address</div>
+                {result.resumeAlignment.gaps.map((g, i) => (
+                  <div key={i} style={{ fontSize: "14px", color: C.text, paddingLeft: "12px", borderLeft: `2px solid ${C.red}`, marginBottom: "6px", lineHeight: "1.4" }}>{g}</div>
+                ))}
+              </div>
+            )}
+            {result.resumeAlignment.improvements.length > 0 && (
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: C.amber, marginBottom: "8px" }}>Specific improvements to make</div>
+                {result.resumeAlignment.improvements.map((imp, i) => (
+                  <div key={i} style={{ fontSize: "14px", color: C.text, paddingLeft: "12px", borderLeft: `2px solid ${C.amber}`, marginBottom: "6px", lineHeight: "1.4" }}>{imp}</div>
+                ))}
+              </div>
+            )}
           </div>
-          {result.keywordSuggestions && result.keywordSuggestions.length > 0 && (
-            <>
-              <div style={{ fontSize: "11px", fontWeight: "700", color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>ADD THESE PHRASES TO YOUR RESUME</div>
-              {result.keywordSuggestions.map((s, i) => (
-                <div key={i} style={{ fontSize: "13px", color: C.text, marginBottom: "6px", fontFamily: "JetBrains Mono, monospace" }}>&quot;{s}&quot;</div>
-              ))}
-            </>
-          )}
         </div>
       )}
 
-      {/* Verdict */}
-      <div style={card}>
-        <div style={{ fontSize: "11px", fontWeight: "700", color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>VERDICT</div>
-        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.verdict}</p>
+      {/* Section 6 */}
+      <div style={{ ...card }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "#a855f7", fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "12px" }}>LIKELY INTERVIEW FOCUS</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {result.interviewFocus.map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+              <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#a855f7", flexShrink: 0, marginTop: "7px" }} />
+              <span style={{ fontSize: "14px", color: C.text, lineHeight: "1.5" }}>{item}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <button style={btn("ghost")} onClick={() => { setResult(null); setJdText(""); setResumeText(""); }}>
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={() => { setResult(null); setJdText(""); setResumeText(""); }}>
         Analyse another role
       </button>
     </div>
@@ -1226,18 +1238,20 @@ function JDAnalyzerTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <p style={{ fontSize: "15px", color: C.muted, lineHeight: "1.6", margin: 0 }}>
-        Paste the job description. If you upload your resume as well, I will score how well your keywords match and show you exactly what is missing.
-      </p>
       <div>
         <span style={label}>Job description</span>
         <textarea rows={10} style={textarea(10)} placeholder="Paste the full job description here…"
           value={jdText} onChange={e => setJdText(e.target.value)} />
       </div>
-      <FileUpload label="Your resume (optional, used for ATS score)" onParsed={(text) => setResumeText(text)} />
+      <div>
+        <span style={label}>Your resume <span style={{ color: C.muted, fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional — paste for personalised alignment advice)</span></span>
+        <textarea rows={6} style={textarea(6)} placeholder="Paste your resume text here…"
+          value={resumeText} onChange={e => setResumeText(e.target.value)} />
+      </div>
       {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
-      <button style={btn()} disabled={jdText.trim().length < 50} onClick={analyse}>
-        Run the analysis
+      <button style={{ ...btn(), alignSelf: "flex-start", padding: "12px 28px", opacity: jdText.trim().length < 50 ? 0.4 : 1 }}
+        disabled={jdText.trim().length < 50} onClick={analyse}>
+        Analyze this role
       </button>
     </div>
   );
@@ -1780,21 +1794,50 @@ function stepForTool(id: Tool) {
   return JOURNEY.find(g => g.tools.some(t => t.id === id)) ?? null;
 }
 
-type WhereOpt = { label: string } & ({ tool: Tool } | { href: string });
+type Category = "explore" | "land" | "grow";
 
-const WHERE_OPTIONS: WhereOpt[] = [
-  { label: "I am new to Business Analysis and don't know where to start", tool: "advisor" },
-  { label: "I am trying to transition into a BA role from another field", tool: "advisor" },
-  { label: "I feel stuck and I am not getting interviews", tool: "resume" },
-  { label: "I need help improving my resume to get callbacks", tool: "resume" },
-  { label: "I found a job posting and want help tailoring my application", tool: "cover-letter" },
-  { label: "Paste a job description and let's break it down together", tool: "jd" },
-  { label: "I have interviews but struggle to answer confidently", tool: "interview" },
-  { label: "I want to practice real BA interview scenarios", href: "/scenarios" },
-  { label: "I need help building real project experience or a portfolio", href: "/portfolio" },
-  { label: "I want to move into a higher paying or senior BA role", tool: "salary" },
-  { label: "I have an offer and need help negotiating", tool: "salary" },
+const CATEGORIES: { id: Category; num: number; title: string; description: string; colour: string; bg: string; border: string }[] = [
+  {
+    id: "explore", num: 1,
+    title: "Explore my path",
+    description: "I am figuring out my direction in Business Analysis",
+    colour: "#22d3ee", bg: "rgba(8,145,178,0.08)", border: "rgba(8,145,178,0.2)",
+  },
+  {
+    id: "land", num: 2,
+    title: "Land a job",
+    description: "I want to get interviews or apply to roles",
+    colour: "#6ee7b7", bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.2)",
+  },
+  {
+    id: "grow", num: 3,
+    title: "Grow or negotiate",
+    description: "I want to level up, prepare for interviews, or negotiate offers",
+    colour: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.2)",
+  },
 ];
+
+type CategoryOpt = { label: string } & ({ tool: Tool } | { href: string });
+
+const CATEGORY_OPTIONS: Record<Category, CategoryOpt[]> = {
+  explore: [
+    { label: "I am new to Business Analysis and do not know where to start", tool: "advisor" },
+    { label: "I am trying to transition into a BA role from another field", tool: "advisor" },
+    { label: "I feel stuck and do not know what direction fits me", tool: "advisor" },
+  ],
+  land: [
+    { label: "I am not getting interviews and need to understand why", tool: "resume" },
+    { label: "I need help improving my resume to get callbacks", tool: "resume" },
+    { label: "I found a job and want to tailor my application", tool: "cover-letter" },
+    { label: "Analyze a job description and tell me what they really want", tool: "jd" },
+  ],
+  grow: [
+    { label: "I have interviews coming up and need to prepare", tool: "interview" },
+    { label: "I want to practice interview answers and get feedback", href: "/scenarios" },
+    { label: "I have an offer and need help negotiating", tool: "salary" },
+    { label: "I want to move into a higher paying or more senior BA role", tool: "salary" },
+  ],
+};
 
 const CAREER_NAV = [
   { icon: LayoutDashboard,   label: "Dashboard",    href: "/dashboard"   },
@@ -1810,8 +1853,14 @@ const CAREER_NAV = [
 export default function CareerClient({ fullName }: Props) {
   const router = useRouter();
   const [activeTool, setActiveTool] = useState<Tool>("home");
+  const [homeStep, setHomeStep] = useState<"entry" | "category">("entry");
+  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
 
-  const navigateHome = () => setActiveTool("home");
+  const navigateHome = () => {
+    setActiveTool("home");
+    setHomeStep("entry");
+    setActiveCategory(null);
+  };
 
   const currentStep = activeTool !== "home" ? stepForTool(activeTool) : null;
   const activeToolLabel = JOURNEY.flatMap(g => g.tools).find(t => t.id === activeTool)?.label;
@@ -1876,63 +1925,112 @@ export default function CareerClient({ fullName }: Props) {
         {/* Content */}
         <div className="px-8 py-8" style={{ maxWidth: "680px" }}>
 
-          {/* ── Home ── */}
-          {activeTool === "home" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "520px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-                {/* Avatar */}
-                <div style={{ position: "relative", width: 56, height: 56 }}>
-                  <div style={{
-                    width: 56, height: 56, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #0e7490 0%, #6366f1 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "22px", fontWeight: 800, color: "#fff",
-                    letterSpacing: "-0.02em",
-                    boxShadow: "0 0 0 3px var(--bg), 0 0 0 5px rgba(31,191,159,0.25)",
-                  }}>A</div>
-                  <div style={{
-                    position: "absolute", bottom: 2, right: 2,
-                    width: 12, height: 12, borderRadius: "50%",
-                    background: "var(--teal)", border: "2px solid var(--bg)",
-                  }} />
-                </div>
-
-                {/* Message */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.3 }}>
-                    Hey, I&apos;m Alex. What&apos;s going on for you right now?
-                  </h2>
-                  <p className="type-body" style={{ margin: 0, maxWidth: "400px" }}>
-                    Pick the option that feels closest and we will work through it together.
-                  </p>
-                </div>
+          {/* ── Home: Entry ── */}
+          {activeTool === "home" && homeStep === "entry" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "28px", maxWidth: "560px" }}>
+              <div>
+                <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-1)", margin: 0, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.03em" }}>
+                  What do you need help with right now?
+                </h1>
+                <p style={{ marginTop: "10px", fontSize: "15px", color: "var(--text-3)", margin: "10px 0 0", lineHeight: 1.5 }}>
+                  Pick one and I will guide you step by step.
+                </p>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {WHERE_OPTIONS.map((opt, i) => (
-                  <button key={i} onClick={() => { if ('tool' in opt) setActiveTool(opt.tool); else router.push(opt.href); }}
-                    className="portal-card"
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {CATEGORIES.map((cat) => (
+                  <button key={cat.id}
+                    onClick={() => { setActiveCategory(cat.id); setHomeStep("category"); }}
                     style={{
-                      textAlign: "left", padding: "16px 20px", cursor: "pointer",
-                      fontSize: "15px", color: "var(--text-2)", transition: "all 0.15s",
-                      fontFamily: "inherit", width: "100%",
+                      display: "flex", alignItems: "center", gap: "18px",
+                      background: "var(--surface)", border: `1px solid var(--border)`,
+                      borderLeft: `4px solid ${cat.colour}`,
+                      borderRadius: "14px", padding: "20px 24px", cursor: "pointer",
+                      textAlign: "left", transition: "all 0.15s", width: "100%",
+                      fontFamily: "inherit",
                     }}
                     onMouseEnter={e => {
-                      (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--teal-border)";
-                      (e.currentTarget as HTMLButtonElement).style.color = "var(--teal)";
-                      (e.currentTarget as HTMLButtonElement).style.background = "var(--teal-soft)";
+                      (e.currentTarget as HTMLButtonElement).style.background = cat.bg;
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = cat.border;
+                      (e.currentTarget as HTMLButtonElement).style.borderLeftColor = cat.colour;
                     }}
                     onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)";
                       (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
-                      (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)";
-                      (e.currentTarget as HTMLButtonElement).style.background = "var(--card)";
-                    }}>
-                    {opt.label}
+                      (e.currentTarget as HTMLButtonElement).style.borderLeftColor = cat.colour;
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                      background: cat.bg, border: `1px solid ${cat.border}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "15px", fontWeight: 800, color: cat.colour,
+                      fontFamily: "JetBrains Mono, monospace",
+                    }}>{cat.num}</div>
+                    <div>
+                      <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{cat.title}</div>
+                      <div style={{ fontSize: "14px", color: "var(--text-3)", marginTop: "4px", lineHeight: 1.4 }}>{cat.description}</div>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
           )}
+
+          {/* ── Home: Category ── */}
+          {activeTool === "home" && homeStep === "category" && activeCategory && (() => {
+            const cat = CATEGORIES.find(c => c.id === activeCategory)!;
+            const opts = CATEGORY_OPTIONS[activeCategory];
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "560px" }}>
+                <div>
+                  <button
+                    onClick={() => setHomeStep("entry")}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      fontSize: "13px", color: "var(--text-3)", padding: "0",
+                      fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px",
+                    }}>
+                    ← Back
+                  </button>
+                  <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", margin: "14px 0 6px", fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.02em" }}>
+                    {cat.title}
+                  </h2>
+                  <p style={{ fontSize: "14px", color: "var(--text-3)", margin: 0 }}>
+                    What fits your situation?
+                  </p>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {opts.map((opt, i) => (
+                    <button key={i}
+                      onClick={() => { if ('tool' in opt) setActiveTool(opt.tool); else router.push(opt.href); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "14px",
+                        background: "var(--surface)", border: `1px solid var(--border)`,
+                        borderRadius: "10px", padding: "16px 18px", cursor: "pointer",
+                        textAlign: "left", transition: "all 0.15s", width: "100%",
+                        fontSize: "15px", color: "var(--text-2)", fontFamily: "inherit",
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLButtonElement).style.background = cat.bg;
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = cat.border;
+                        (e.currentTarget as HTMLButtonElement).style.color = cat.colour;
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLButtonElement).style.background = "var(--surface)";
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                        (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)";
+                      }}>
+                      <div style={{
+                        width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                        background: cat.colour, opacity: 0.7,
+                      }} />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Tools ── */}
           {activeTool !== "home" && (
