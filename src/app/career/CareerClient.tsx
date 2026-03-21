@@ -2002,6 +2002,16 @@ const INTENT_HEADINGS: Record<string, { heading: string; subtext: string }> = {
   },
 };
 
+// When a tool result screen recommends "next step → another tool", map to the right URL
+const TOOL_TO_URL: Partial<Record<Tool, string>> = {
+  advisor:        "/career?cat=explore&intent=new_to_ba",
+  resume:         "/career?cat=land&intent=improve_resume",
+  "cover-letter": "/career?cat=land&intent=tailor_application",
+  jd:             "/career?cat=land&intent=analyze_job_description",
+  interview:      "/career?cat=grow&intent=interview_preparation",
+  salary:         "/career?cat=grow&intent=negotiate_offer",
+};
+
 const CAREER_NAV = [
   { icon: LayoutDashboard,   label: "Dashboard",    href: "/dashboard"   },
   { icon: BookOpen,          label: "Challenges",   href: "/scenarios"   },
@@ -2202,7 +2212,7 @@ export default function CareerClient({ fullName }: Props) {
             <div>
               {activeTool === "advisor" && (
                 <AdvisorTool
-                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  onNavigate={(tool) => { const url = TOOL_TO_URL[tool]; if (url) router.push(url); }}
                   intent={intent}
                   intentHeading={intentHeading}
                   onBack={goBackToCategory}
@@ -2211,7 +2221,7 @@ export default function CareerClient({ fullName }: Props) {
               {activeTool === "resume" && (
                 <ResumeTool
                   fullName={fullName}
-                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  onNavigate={(tool) => { const url = TOOL_TO_URL[tool]; if (url) router.push(url); }}
                   intentHeading={intentHeading}
                   onBack={goBackToCategory}
                 />
@@ -2219,7 +2229,7 @@ export default function CareerClient({ fullName }: Props) {
               {activeTool === "cover-letter" && (
                 <CoverLetterTool
                   fullName={fullName}
-                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  onNavigate={(tool) => { const url = TOOL_TO_URL[tool]; if (url) router.push(url); }}
                   intentHeading={intentHeading}
                   onBack={goBackToCategory}
                 />
@@ -2232,7 +2242,7 @@ export default function CareerClient({ fullName }: Props) {
               )}
               {activeTool === "interview" && (
                 <InterviewTool
-                  onNavigate={(tool) => router.push(`/career?cat=${cat}&intent=${tool}`)}
+                  onNavigate={(tool) => { const url = TOOL_TO_URL[tool]; if (url) router.push(url); }}
                   intentHeading={intentHeading}
                   onBack={goBackToCategory}
                 />
