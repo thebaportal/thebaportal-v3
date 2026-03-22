@@ -203,6 +203,7 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
 interface FlowQuestion {
   question: string;
   options: string[];
+  optionValues?: string[]; // stable keys for branchMap lookup (set only on branching Q1)
 }
 
 interface FlowConfig {
@@ -210,6 +211,7 @@ interface FlowConfig {
   title: string;
   subtitle: string;
   questions: FlowQuestion[];
+  branchMap?: Record<string, FlowQuestion>; // branchMap[q1Value] overrides Q2
   loadingSteps: string[];
 }
 
@@ -370,8 +372,8 @@ const FLOW_CONFIG: Record<string, FlowConfig> = {
     subtitle: "Four questions to work out where you are, what is holding you back, and what your next step looks like.",
     loadingSteps: [
       "Looking at where you are now",
-      "Identifying what is holding you back",
-      "Mapping the gap to senior level",
+      "Reading your specific situation",
+      "Mapping the gap to the next level",
       "Working out your next move",
     ],
     questions: [
@@ -383,35 +385,75 @@ const FLOW_CONFIG: Record<string, FlowConfig> = {
           "Contracting or freelancing and want to move into a higher-value tier",
           "Recently promoted or stepping into a lead BA role for the first time",
         ],
+        optionValues: ["junior_mid", "overlooked_senior", "contractor_tier", "new_lead"],
       },
       {
-        question: "What does your current work actually look like day to day?",
+        // Fallback Q2 — overridden by branchMap in practice
+        question: "What does your current situation look like?",
         options: [
-          "Mostly execution — writing requirements, attending meetings, delivering what I am told",
-          "A mix — I own some things independently but still take direction on most",
-          "Strategic — I lead workstreams, influence decisions, and shape how the work gets done",
-          "Varies a lot — depends on the project and who I am working with",
+          "I have clear strengths but I am not sure how to demonstrate them",
+          "I know what I want but I am not sure how to get there",
+          "I have tried to move up but keep hitting the same wall",
+          "I am not sure what the next level actually requires",
         ],
       },
       {
-        question: "What do you think is the main thing holding you back from moving up?",
+        question: "What do you need most right now to move up with confidence?",
         options: [
-          "I do not have the visibility — the right people do not know what I can do",
-          "I struggle to position myself strategically rather than just as a delivery person",
-          "I have not built a strong enough portfolio of senior-level work",
-          "I am not sure what senior actually looks like in practice and what I am missing",
+          "Clear proof that I am operating at the next level",
+          "Stronger positioning and visibility with the right people",
+          "Better understanding of what the next level actually requires",
+          "A practical plan to make the move happen",
         ],
       },
       {
-        question: "What does moving up mean for you specifically?",
+        question: "What kind of move are you actually aiming for?",
         options: [
-          "A formal job title change and salary increase at my current employer",
-          "Moving to a new employer at a more senior level",
-          "Taking on a lead or principal BA role with people or programme responsibility",
-          "Moving into consulting, contracting, or advisory work at a higher rate",
+          "A formal title and pay increase where I am",
+          "A move to a new employer at a more senior level",
+          "A lead or principal BA role with broader responsibility",
+          "Higher value consulting, contracting, or advisory work",
         ],
       },
     ],
+    branchMap: {
+      junior_mid: {
+        question: "What is the main gap between where you are now and being taken seriously for more?",
+        options: [
+          "I have not had the chance to lead anything — I am always in a support role",
+          "I do not have a portfolio that proves I can handle senior-level responsibilities",
+          "I do not know how to have the conversation about moving up with my manager",
+          "I am not sure what a senior BA actually looks like in my organisation",
+        ],
+      },
+      overlooked_senior: {
+        question: "Why do you think you keep getting passed over for more senior opportunities?",
+        options: [
+          "I do not have enough visibility — decision-makers do not know what I actually deliver",
+          "I am seen as a reliable deliverer but not as someone who shapes strategy or direction",
+          "I cannot clearly articulate what makes me different from other experienced BAs",
+          "The opportunity does not exist where I am — I need to move to a different employer",
+        ],
+      },
+      contractor_tier: {
+        question: "What is stopping you from commanding a higher rate or landing better-paying clients?",
+        options: [
+          "I have not positioned myself clearly enough in a specific niche or domain",
+          "My rate feels anchored to what I earned as a permanent employee",
+          "I find it hard to articulate the premium value I bring versus a cheaper option",
+          "I do not have strong enough case studies or a track record that speaks for itself",
+        ],
+      },
+      new_lead: {
+        question: "What is the biggest challenge you are facing in the lead role so far?",
+        options: [
+          "Letting go of delivery work and trusting others to execute",
+          "Getting influence and buy-in without direct authority over the team",
+          "Shifting from managing the work to shaping its direction and scope",
+          "Being taken seriously as a leader when people still see me as the BA who got promoted",
+        ],
+      },
+    },
   },
 };
 
@@ -707,6 +749,7 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
   const [step, setStep] = useState<"question" | "loading" | "result" | "error">("question");
   const [qIndex, setQIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [q1Key, setQ1Key] = useState<string>("");
   const [result, setResult] = useState<AdvisorResult | null>(null);
   const [pendingResult, setPendingResult] = useState<AdvisorResult | null>(null);
   const [animComplete, setAnimComplete] = useState(false);
@@ -731,44 +774,7 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
 
   const questions = flowConfig.questions;
 
-  const selectOption = async (option: string) => {
-    const updated = [...selectedAnswers, option];
-    setSelectedAnswers(updated);
-
-    if (qIndex < questions.length - 1) {
-      setQIndex(qIndex + 1);
-    } else {
-      setStep("loading");
-      setError("");
-      try {
-        const res = await fetch("/api/career/career-advisor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ flowId: flowConfig.id, answers: updated }),
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data: any = await res.json().catch(() => ({}));
-        if (!res.ok || data.error) throw new Error(data.error || "Something went wrong. Please try again.");
-        if (!data.flowId) throw new Error("No response from the advisor. Please try again.");
-        setPendingResult(data as AdvisorResult);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-        setStep("error");
-      }
-    }
-  };
-
-  const restart = () => {
-    setStep("question");
-    setQIndex(0);
-    setSelectedAnswers([]);
-    setResult(null);
-    setPendingResult(null);
-    setAnimComplete(false);
-    setError("");
-  };
-
-  const retryLastQuestion = async () => {
+  const submitAnswers = async (answers: string[]) => {
     setStep("loading");
     setError("");
     setAnimComplete(false);
@@ -777,7 +783,11 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
       const res = await fetch("/api/career/career-advisor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ flowId: flowConfig.id, answers: selectedAnswers }),
+        body: JSON.stringify({
+          flowId: flowConfig.id,
+          answers,
+          ...(flowConfig.branchMap ? { q1Value: q1Key } : {}),
+        }),
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = await res.json().catch(() => ({}));
@@ -789,6 +799,30 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
       setStep("error");
     }
   };
+
+  const selectOption = (optLabel: string, optValue?: string) => {
+    const updated = [...selectedAnswers, optLabel];
+    setSelectedAnswers(updated);
+    if (qIndex === 0 && optValue) setQ1Key(optValue);
+    if (qIndex >= questions.length - 1) {
+      submitAnswers(updated);
+    } else {
+      setQIndex(qIndex + 1);
+    }
+  };
+
+  const restart = () => {
+    setStep("question");
+    setQIndex(0);
+    setSelectedAnswers([]);
+    setQ1Key("");
+    setResult(null);
+    setPendingResult(null);
+    setAnimComplete(false);
+    setError("");
+  };
+
+  const retryLastQuestion = () => submitAnswers(selectedAnswers);
 
   if (step === "error") {
     return (
@@ -820,7 +854,11 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
   }
 
   // ── Question step ──
-  const q = questions[qIndex];
+  // Q2 is branched per Q1 answer when branchMap is present; all other questions come from questions[]
+  const q = (qIndex === 1 && flowConfig.branchMap && q1Key)
+    ? (flowConfig.branchMap[q1Key] ?? questions[qIndex])
+    : questions[qIndex];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Intent heading — shown on first question only */}
@@ -859,7 +897,7 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
       {/* Options */}
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {q.options.map((opt, i) => (
-          <button key={i} onClick={() => selectOption(opt)}
+          <button key={i} onClick={() => selectOption(opt, q.optionValues?.[i])}
             style={{
               textAlign: "left", padding: "16px 20px", borderRadius: "10px",
               fontSize: "15px", color: C.text, background: "rgba(255,255,255,0.03)",
@@ -2396,6 +2434,7 @@ export default function CareerClient({ fullName }: Props) {
             <div>
               {activeTool === "advisor" && (
                 <AdvisorTool
+                  key={intent}
                   onNavigate={(tool) => { const url = TOOL_TO_URL[tool]; if (url) router.push(url); }}
                   intent={intent}
                   intentHeading={intentHeading}

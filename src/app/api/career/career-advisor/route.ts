@@ -3,7 +3,29 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 26;
 
-function buildPrompt(flowId: string, answers: string[]): string {
+const VALID_Q1_VALUES = ["junior_mid", "overlooked_senior", "contractor_tier", "new_lead"] as const;
+type Q1Value = typeof VALID_Q1_VALUES[number];
+
+const BRANCH_CONTEXT: Record<Q1Value, { branchLabel: string; branchGuidance: string }> = {
+  junior_mid: {
+    branchLabel: "Main gap to being taken seriously for more",
+    branchGuidance: "They are a junior or mid-level BA who wants to step up. Their answer names the specific gap holding them back from being given more responsibility. Focus on concrete capability proof — what they need to build or demonstrate to be seen differently.",
+  },
+  overlooked_senior: {
+    branchLabel: "Why they keep getting passed over",
+    branchGuidance: "They have experience but keep being overlooked. Their answer explains the likely reason — visibility, being seen as a deliverer not a strategist, poor differentiation, or needing to move externally. Be direct and honest about what needs to change.",
+  },
+  contractor_tier: {
+    branchLabel: "What is stopping them from commanding a higher rate",
+    branchGuidance: "They are contracting or freelancing and want higher-value work. Their answer names the specific barrier to commanding higher rates or landing better clients. Focus on niche positioning, premium value articulation, and building a visible track record.",
+  },
+  new_lead: {
+    branchLabel: "Biggest challenge in the new lead role",
+    branchGuidance: "They have recently moved into a lead BA role. Their answer describes the hardest part of that transition. Focus on the mindset shift from delivery to leadership — what great lead BAs do differently and how to navigate the specific challenge they named.",
+  },
+};
+
+function buildPrompt(flowId: string, answers: string[], q1Value?: string): string {
   const a = (i: number) => answers[i] || "Not answered";
 
   // IMPORTANT rule injected into every prompt
@@ -110,24 +132,34 @@ Return ONLY valid JSON — no text outside it:
   }
 
   if (flowId === "move_to_senior_role") {
-    return `You are a BA career advisor helping someone who wants to move into a more senior or higher-paying BA role. Tell them exactly where they are, what is actually holding them back, and the one thing to do next.
+    const isValidQ1 = VALID_Q1_VALUES.includes(q1Value as Q1Value);
+    if (!isValidQ1) {
+      console.warn(`[career-advisor] move_to_senior_role: invalid or missing q1Value: ${q1Value}`);
+    }
+    const branch = isValidQ1
+      ? BRANCH_CONTEXT[q1Value as Q1Value]
+      : { branchLabel: "Current situation", branchGuidance: "Use all 4 answers to understand their situation and give the most relevant advice you can." };
 
-Where they are in their career right now: ${a(0)}
-What their day-to-day work actually looks like: ${a(1)}
-What they think is holding them back: ${a(2)}
-What moving up means specifically for them: ${a(3)}
+    return `You are a BA career advisor. Tell this person exactly where they are, what is actually holding them back, and the one specific thing to do next.
 
-Use all 4 answers. Be direct. If they are closer to senior than they think, say so. If there is a real gap, name it.
+Career situation: ${a(0)}
+${branch.branchLabel}: ${a(1)}
+What they need most to move up with confidence: ${a(2)}
+The kind of move they are aiming for: ${a(3)}
+
+Context for interpreting their second answer: ${branch.branchGuidance}
+
+Reason over all 4 answers together. Be direct. If they are closer to their goal than they think, say so. If there is a real gap, name it.
 
 ${noQNumbers}
 
 Return ONLY valid JSON — no text outside it:
 {
   "flowId": "move_to_senior_role",
-  "whereYouAre": "<2 sentences. Honest read of their current position based on where they said they are and what their day-to-day looks like. Reference what they actually said.>",
-  "realBlocker": "<the actual thing holding them back, based on their day-to-day work and the blocker they named — and whether those two things tell the same story or a different one. Be specific. 2 sentences.>",
-  "whatSeniorActuallyMeans": "<1-2 sentences on what their specific target (what moving up means to them) actually requires in practice — what does a senior BA doing that work do differently from what they described day to day?>",
-  "closingTheGap": "<one concrete change. E.g. 'Stop taking execution tasks you could delegate. Start leading the requirements conversations rather than attending them.' Be direct.>",
+  "whereYouAre": "<2 sentences. Honest read of their current position based on their career situation and what their second answer reveals. Reference what they actually said.>",
+  "realBlocker": "<the actual thing holding them back, grounded in their second answer and the branch context above. Be specific about what this person needs to change. 2 sentences.>",
+  "whatSeniorActuallyMeans": "<1-2 sentences on what their specific target actually requires in practice — what does someone operating at that level do differently from what their answers suggest they are doing now?>",
+  "closingTheGap": "<one concrete change. Be direct. E.g. 'Stop taking execution tasks you could delegate. Start leading the requirements conversations rather than attending them.'>",
   "nextAction": "<one thing to do this week. Specific and time-bound. Reference TheBAPortal challenge simulations where relevant.>",
   "ctaTool": "portfolio" or "resume" or "jd"
 }`;
@@ -141,7 +173,7 @@ export async function POST(req: Request) {
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
   const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const { flowId, answers } = await req.json();
+  const { flowId, answers, q1Value } = await req.json();
 
   if (!flowId || !["new_to_ba", "transition_to_ba", "feeling_stuck", "move_to_senior_role"].includes(flowId)) {
     return Response.json({ error: "Invalid flowId." }, { status: 400 });
@@ -150,8 +182,13 @@ export async function POST(req: Request) {
     return Response.json({ error: "All 4 answers are required." }, { status: 400 });
   }
 
+  if (flowId === "move_to_senior_role" && !VALID_Q1_VALUES.includes(q1Value as Q1Value)) {
+    console.warn(`[career-advisor] move_to_senior_role called with invalid q1Value: ${q1Value}`);
+  }
+  console.log(`[career-advisor] flowId=${flowId} q1Value=${q1Value ?? "n/a"} answers=${answers.length}`);
+
   try {
-    const prompt = buildPrompt(flowId, answers);
+    const prompt = buildPrompt(flowId, answers, q1Value);
     const response = await ai.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1600,
