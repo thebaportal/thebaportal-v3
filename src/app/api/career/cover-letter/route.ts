@@ -1,6 +1,5 @@
+import { getCareerUser } from "@/lib/career-auth";
 import Anthropic from "@anthropic-ai/sdk";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import {
   Document, Packer, Paragraph, TextRun,
   AlignmentType, BorderStyle,
@@ -16,13 +15,7 @@ function spacer(after = 200): Paragraph {
 }
 
 export async function POST(req: Request) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (n) => cookieStore.get(n)?.value } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCareerUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
   const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
