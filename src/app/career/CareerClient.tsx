@@ -363,6 +363,56 @@ const FLOW_CONFIG: Record<string, FlowConfig> = {
       },
     ],
   },
+
+  move_to_senior_role: {
+    id: "move_to_senior_role",
+    title: "Let's map your path to a senior BA role",
+    subtitle: "Four questions to work out where you are, what is holding you back, and what your next step looks like.",
+    loadingSteps: [
+      "Looking at where you are now",
+      "Identifying what is holding you back",
+      "Mapping the gap to senior level",
+      "Working out your next move",
+    ],
+    questions: [
+      {
+        question: "Where are you right now in your BA career?",
+        options: [
+          "Junior or mid-level BA, ready to take on more but not sure how to prove it",
+          "Experienced BA who keeps getting overlooked for senior roles",
+          "Contracting or freelancing and want to move into a higher-value tier",
+          "Recently promoted or stepping into a lead BA role for the first time",
+        ],
+      },
+      {
+        question: "What does your current work actually look like day to day?",
+        options: [
+          "Mostly execution — writing requirements, attending meetings, delivering what I am told",
+          "A mix — I own some things independently but still take direction on most",
+          "Strategic — I lead workstreams, influence decisions, and shape how the work gets done",
+          "Varies a lot — depends on the project and who I am working with",
+        ],
+      },
+      {
+        question: "What do you think is the main thing holding you back from moving up?",
+        options: [
+          "I do not have the visibility — the right people do not know what I can do",
+          "I struggle to position myself strategically rather than just as a delivery person",
+          "I have not built a strong enough portfolio of senior-level work",
+          "I am not sure what senior actually looks like in practice and what I am missing",
+        ],
+      },
+      {
+        question: "What does moving up mean for you specifically?",
+        options: [
+          "A formal job title change and salary increase at my current employer",
+          "Moving to a new employer at a more senior level",
+          "Taking on a lead or principal BA role with people or programme responsibility",
+          "Moving into consulting, contracting, or advisory work at a higher rate",
+        ],
+      },
+    ],
+  },
 };
 
 // CTA routing from result screen
@@ -448,7 +498,17 @@ type StuckResult = {
   ctaTool: string;
 };
 
-type AdvisorResult = NewToBaResult | TransitionResult | StuckResult;
+type SeniorRoleResult = {
+  flowId: "move_to_senior_role";
+  whereYouAre: string;
+  realBlocker: string;
+  whatSeniorActuallyMeans: string;
+  closingTheGap: string;
+  nextAction: string;
+  ctaTool: string;
+};
+
+type AdvisorResult = NewToBaResult | TransitionResult | StuckResult | SeniorRoleResult;
 
 // ── Result renderers ─────────────────────────────────────────────────────────
 
@@ -593,6 +653,47 @@ function ResultStuck({ result, onBack }: { result: StuckResult; onBack?: () => v
   );
 }
 
+function ResultSeniorRole({ result, onBack }: { result: SeniorRoleResult; onBack?: () => void }) {
+  const router = useRouter();
+  const cta = CTA_ROUTES[result.ctaTool];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ ...card, borderColor: "rgba(168,85,247,0.25)", background: "rgba(168,85,247,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "#a855f7", fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHERE YOU ARE RIGHT NOW</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whereYouAre}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT IS ACTUALLY HOLDING YOU BACK</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.realBlocker}</p>
+      </div>
+
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT SENIOR ACTUALLY LOOKS LIKE</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whatSeniorActuallyMeans}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: "rgba(110,231,183,0.25)", background: "rgba(16,185,129,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>HOW TO CLOSE THE GAP</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.closingTheGap}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR NEXT STEP THIS WEEK</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "0 0 14px" }}>{result.nextAction}</p>
+        {cta && (
+          <button style={{ ...btn(), fontSize: "13px", padding: "10px 20px" }} onClick={() => router.push(cta.href)}>
+            {cta.label}
+          </button>
+        )}
+      </div>
+
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={onBack}>Start over</button>
+    </div>
+  );
+}
+
 // ── AdvisorTool ───────────────────────────────────────────────────────────────
 
 function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
@@ -715,6 +816,7 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
     if (result.flowId === "new_to_ba") return <ResultNewToBa result={result} onBack={restart} onNavigate={onNavigate} />;
     if (result.flowId === "transition_to_ba") return <ResultTransition result={result} onBack={restart} />;
     if (result.flowId === "feeling_stuck") return <ResultStuck result={result} onBack={restart} />;
+    if (result.flowId === "move_to_senior_role") return <ResultSeniorRole result={result} onBack={restart} />;
   }
 
   // ── Question step ──
@@ -2026,7 +2128,7 @@ const INTENT_TO_TOOL: Record<string, Tool | null> = {
   interview_preparation: "interview",
   practice_answers: null,
   negotiate_offer: "salary",
-  move_to_senior_role: "salary",
+  move_to_senior_role: "advisor",
 };
 
 // Intent-aware headings shown to users at the top of each tool
@@ -2073,7 +2175,7 @@ const INTENT_HEADINGS: Record<string, { heading: string; subtext: string }> = {
   },
   move_to_senior_role: {
     heading: "Let's map your path to a senior BA role",
-    subtext: "Share where you are now and I will help you understand your market value and what to target next.",
+    subtext: "Four questions to work out where you are, what is holding you back, and what your next step looks like.",
   },
 };
 
@@ -2279,6 +2381,13 @@ export default function CareerClient({ fullName }: Props) {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ── Redirect placeholder (practice_answers → /scenarios) ── */}
+          {intent === "practice_answers" && (
+            <div style={{ padding: "60px 0", color: C.muted, fontSize: "15px" }}>
+              Taking you to BA Challenges…
             </div>
           )}
 

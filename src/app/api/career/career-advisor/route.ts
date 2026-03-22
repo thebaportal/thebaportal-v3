@@ -100,6 +100,28 @@ Return ONLY valid JSON — no text outside it:
 }`;
   }
 
+  if (flowId === "move_to_senior_role") {
+    return `You are a BA career advisor helping someone who wants to move into a more senior or higher-paying BA role. Tell them exactly where they are, what is actually holding them back, and the one thing to do next.
+
+Q1 – Where they are in their career right now: ${a(0)}
+Q2 – What their day-to-day work actually looks like: ${a(1)}
+Q3 – What they think is holding them back: ${a(2)}
+Q4 – What moving up means specifically for them: ${a(3)}
+
+Use all 4 answers. Be direct. If they are closer to senior than they think, say so. If there is a real gap, name it.
+
+Return ONLY valid JSON — no text outside it:
+{
+  "flowId": "move_to_senior_role",
+  "whereYouAre": "<2 sentences. Honest read of their current position based on Q1 and Q2. Reference what they actually said.>",
+  "realBlocker": "<the actual thing holding them back, based on Q2 and Q3 together. Be specific. 2 sentences.>",
+  "whatSeniorActuallyMeans": "<1-2 sentences on what their Q4 target actually requires in practice — what does a senior BA in that context do differently from what they described in Q2?>",
+  "closingTheGap": "<one concrete change. E.g. 'Stop taking execution tasks you could delegate. Start leading the requirements conversations rather than attending them.' Be direct.>",
+  "nextAction": "<one thing to do this week. Specific and time-bound. Reference TheBAPortal challenge simulations where relevant.>",
+  "ctaTool": "portfolio" or "resume" or "jd"
+}`;
+  }
+
   throw new Error(`Unknown flowId: ${flowId}`);
 }
 
@@ -110,7 +132,7 @@ export async function POST(req: Request) {
 
   const { flowId, answers } = await req.json();
 
-  if (!flowId || !["new_to_ba", "transition_to_ba", "feeling_stuck"].includes(flowId)) {
+  if (!flowId || !["new_to_ba", "transition_to_ba", "feeling_stuck", "move_to_senior_role"].includes(flowId)) {
     return Response.json({ error: "Invalid flowId." }, { status: 400 });
   }
   if (!answers || !Array.isArray(answers) || answers.length < 4) {
