@@ -603,7 +603,7 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
 }) {
   const flowConfig = (intent && FLOW_CONFIG[intent]) ? FLOW_CONFIG[intent] : null;
 
-  const [step, setStep] = useState<"question" | "loading" | "result">("question");
+  const [step, setStep] = useState<"question" | "loading" | "result" | "error">("question");
   const [qIndex, setQIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [result, setResult] = useState<AdvisorResult | null>(null);
@@ -647,12 +647,12 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data: any = await res.json().catch(() => ({}));
-        if (!res.ok || data.error) throw new Error(data.error || "Failed");
+        if (!res.ok || data.error) throw new Error(data.error || "Something went wrong. Please try again.");
+        if (!data.flowId) throw new Error("No response from the advisor. Please try again.");
         setPendingResult(data as AdvisorResult);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-        setStep("question");
-        setQIndex(questions.length - 1);
+        setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        setStep("error");
       }
     }
   };
@@ -666,6 +666,46 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
     setAnimComplete(false);
     setError("");
   };
+
+  const retryLastQuestion = async () => {
+    setStep("loading");
+    setError("");
+    setAnimComplete(false);
+    setPendingResult(null);
+    try {
+      const res = await fetch("/api/career/career-advisor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flowId: flowConfig.id, answers: selectedAnswers }),
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || "Something went wrong. Please try again.");
+      if (!data.flowId) throw new Error("No response from the advisor. Please try again.");
+      setPendingResult(data as AdvisorResult);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setStep("error");
+    }
+  };
+
+  if (step === "error") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "40px 0" }}>
+        <div style={{ ...card, borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.06)" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: C.red, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "10px" }}>SOMETHING WENT WRONG</div>
+          <p style={{ fontSize: "15px", color: C.text, lineHeight: "1.6", margin: "0 0 20px" }}>{error}</p>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button style={btn()} onClick={retryLastQuestion}>Try again</button>
+            <button style={btn("ghost")} onClick={restart}>Start over</button>
+          </div>
+        </div>
+        {onBack && (
+          <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={onBack}>← Back</button>
+        )}
+      </div>
+    );
+  }
 
   if (step === "loading") {
     return <AdvisorLoading onAnimComplete={() => setAnimComplete(true)} steps={flowConfig.loadingSteps} />;
@@ -738,8 +778,6 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
           </button>
         ))}
       </div>
-
-      {error && <div style={{ color: C.red, fontSize: "13px" }}>{error}</div>}
 
       {qIndex > 0 && (
         <button style={{ ...btn("ghost"), alignSelf: "flex-start" }}
