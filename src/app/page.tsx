@@ -380,11 +380,11 @@ function PricingCard({ plan, price, period, features, cta, href, featured }: {
 
 // ── Platform Dropdown ─────────────────────────────────────────────────────────
 const PLATFORM_ITEMS = [
-  { label: "Challenges",    desc: "Simulate real BA scenarios",        href: "/scenarios",  color: "#38bdf8", icon: "🎯" },
-  { label: "Career Suite",  desc: "Advisor, resume, cover letters",    href: "/career",     color: "#1fbf9f", icon: "💼" },
-  { label: "PitchReady",    desc: "Nail your BA interview answers",    href: "/pitchready", color: "#a78bfa", icon: "🎤" },
-  { label: "Learning",      desc: "Six-module SDLC case story",        href: "/learning",   color: "#fb923c", icon: "📚" },
-  { label: "Exam Prep",     desc: "CBAP / CCBA practice questions",    href: "/exam",       color: "#facc15", icon: "📝" },
+  { label: "Challenges",   desc: "Simulate real BA scenarios with AI stakeholders", href: "/scenarios",  color: "#38bdf8", icon: "🎯" },
+  { label: "Learning",     desc: "Six-module SDLC case story from first principles", href: "/learning",   color: "#fb923c", icon: "📚" },
+  { label: "PitchReady",   desc: "Nail your BA interview answers under pressure",    href: "/pitchready", color: "#a78bfa", icon: "🎤" },
+  { label: "Exam Prep",    desc: "CBAP, CCBA and PMI-PBA practice questions",        href: "/exam",       color: "#facc15", icon: "📝" },
+  { label: "Career Suite", desc: "Advisor, resume, cover letters and salary guide",  href: "/career",     color: "#1fbf9f", icon: "💼" },
 ];
 
 function PlatformDropdown() {
@@ -405,7 +405,8 @@ function PlatformDropdown() {
         onClick={() => setOpen(o => !o)}
         style={{
           display: "flex", alignItems: "center", gap: 5,
-          fontSize: 14, fontWeight: 500, color: open ? "var(--t1)" : "var(--t2)",
+          fontSize: 14, fontWeight: 500,
+          color: open ? "var(--t1)" : "var(--t2)",
           background: "none", border: "none", cursor: "pointer", padding: 0,
           transition: "color .15s",
         }}
@@ -413,43 +414,57 @@ function PlatformDropdown() {
         onMouseLeave={e => { if (!open) e.currentTarget.style.color = "var(--t2)"; }}
       >
         Platform
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-          style={{ transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+          style={{ transition: "transform .22s ease", transform: open ? "rotate(180deg)" : "rotate(0deg)", marginTop: 1 }}>
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
 
       {open && (
         <div style={{
-          position: "absolute", top: "calc(100% + 14px)", left: "50%", transform: "translateX(-50%)",
-          background: "rgba(13,13,18,0.98)", border: "1px solid rgba(255,255,255,0.10)",
-          borderRadius: 16, padding: "8px", minWidth: 280,
-          boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
-          backdropFilter: "blur(24px)",
+          position: "absolute", top: "calc(100% + 16px)", left: "50%", transform: "translateX(-50%)",
+          background: "rgba(10,10,15,0.98)",
+          border: "1px solid rgba(255,255,255,0.09)",
+          borderRadius: 18, padding: "6px",
+          width: 312,
+          boxShadow: "0 32px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.03)",
+          backdropFilter: "blur(32px)",
+          WebkitBackdropFilter: "blur(32px)",
           zIndex: 300,
-          animation: "fade-up .18s ease both",
+          animation: "slide-down-fade .18s ease both",
         }}>
-          {/* arrow */}
-          <div style={{ position: "absolute", top: -6, left: "50%", transform: "translateX(-50%)", width: 12, height: 6, overflow: "hidden" }}>
-            <div style={{ width: 10, height: 10, background: "rgba(255,255,255,0.10)", transform: "rotate(45deg)", margin: "3px auto 0", borderTop: "1px solid rgba(255,255,255,0.10)", borderLeft: "1px solid rgba(255,255,255,0.10)" }} />
+          {/* caret */}
+          <div style={{ position: "absolute", top: -5, left: "50%", transform: "translateX(-50%)", width: 10, height: 5, overflow: "hidden" }}>
+            <div style={{ width: 8, height: 8, background: "rgba(255,255,255,0.09)", transform: "rotate(45deg) translateY(3px)", margin: "0 auto", borderTop: "1px solid rgba(255,255,255,0.09)", borderLeft: "1px solid rgba(255,255,255,0.09)" }} />
           </div>
+
+          <div style={{ padding: "10px 14px 8px" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--t4)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>The Platform</div>
+          </div>
+
           {PLATFORM_ITEMS.map(item => (
             <Link key={item.label} href={item.href}
               onClick={() => setOpen(false)}
               style={{
-                display: "flex", alignItems: "center", gap: 12, padding: "10px 12px",
-                borderRadius: 10, textDecoration: "none",
+                display: "flex", alignItems: "center", gap: 14,
+                padding: "12px 14px", borderRadius: 12,
+                textDecoration: "none", marginBottom: 2,
                 transition: "background .15s",
               }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.05)"}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = `${item.color}09`; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
             >
-              <div style={{ width: 34, height: 34, borderRadius: 9, background: `${item.color}12`, border: `1px solid ${item.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 11,
+                background: `${item.color}12`, border: `1px solid ${item.color}22`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18, flexShrink: 0,
+              }}>
                 {item.icon}
               </div>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--t1)", marginBottom: 1 }}>{item.label}</div>
-                <div style={{ fontSize: 11.5, color: "var(--t3)" }}>{item.desc}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 3, letterSpacing: "-0.01em" }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.4 }}>{item.desc}</div>
               </div>
             </Link>
           ))}
@@ -463,6 +478,7 @@ function PlatformDropdown() {
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [billingAnnual, setBillingAnnual] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Reveal refs
   const statsReveal = useReveal();
@@ -526,6 +542,13 @@ export default function LandingPage() {
       .a3{animation:fade-up .7s .24s ease both;}
       .a4{animation:fade-up .7s .36s ease both;}
       .a5{animation:fade-up .7s .50s ease both;}
+      @keyframes slide-down-fade{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+      @keyframes slide-in-left{from{transform:translateX(-100%);}to{transform:translateX(0);}}
+      .mob-only{display:none !important;}
+      @media(max-width:768px){
+        .mob-only{display:flex !important;}
+        .dsk-nav{display:none !important;}
+      }
     `;
     document.head.appendChild(style);
   }, []);
@@ -548,27 +571,92 @@ export default function LandingPage() {
             <LogoMark />
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 30 }}>
+          {/* Desktop nav links */}
+          <div className="dsk-nav" style={{ alignItems: "center", gap: 30 }}>
             <PlatformDropdown />
-            {[["Pricing", "#pricing"]].map(([l, href]) => (
+            {[["How it Works", "#how-it-works"], ["Pricing", "#pricing"]].map(([l, href]) => (
               <Link key={l} href={href} style={{ fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
               >{l}</Link>
             ))}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+
+          {/* Desktop CTAs */}
+          <div className="dsk-nav" style={{ alignItems: "center", gap: 10 }}>
             <Link href="/login" style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
               onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
               onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
             >Sign in</Link>
-            <Link href="/signup" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s, box-shadow .15s", letterSpacing: "0.01em" }}
+            <Link href="/signup" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
-            >Try a Challenge Free</Link>
+            >Start Practicing Free</Link>
           </div>
+
+          {/* Mobile hamburger */}
+          <button className="mob-only" onClick={() => setMobileNavOpen(true)}
+            style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 5, width: 38, height: 38, background: "none", border: "1px solid var(--border)", borderRadius: 9, cursor: "pointer" }}>
+            {[0,1,2].map(i => <span key={i} style={{ width: 16, height: 1.5, background: "var(--t2)", borderRadius: 2, display: "block" }} />)}
+          </button>
         </div>
       </nav>
+
+      {/* ── MOBILE NAV OVERLAY ──────────────────────────────────────────── */}
+      {mobileNavOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex" }}>
+          <div onClick={() => setMobileNavOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
+          <div style={{ position: "relative", width: "85%", maxWidth: 320, height: "100%", background: "var(--bg-1)", borderRight: "1px solid var(--border)", padding: "22px 18px", display: "flex", flexDirection: "column", overflowY: "auto", animation: "slide-in-left .22s ease both" }}>
+
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+              <Link href="/" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "var(--t1)" }}>
+                <LogoMark size={24} />
+                The<span style={{ color: "var(--teal)" }}>BA</span>Portal
+              </Link>
+              <button onClick={() => setMobileNavOpen(false)} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* Platform items */}
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--t4)", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 10, paddingLeft: 4 }}>Platform</div>
+              {PLATFORM_ITEMS.map(item => (
+                <Link key={item.label} href={item.href} onClick={() => setMobileNavOpen(false)}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px", borderRadius: 10, textDecoration: "none", marginBottom: 2, transition: "background .15s" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
+                >
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: `${item.color}12`, border: `1px solid ${item.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>{item.icon}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>{item.label}</div>
+                </Link>
+              ))}
+            </div>
+
+            <div style={{ height: 1, background: "var(--border)", margin: "10px 0" }} />
+
+            {/* Secondary links */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 20 }}>
+              {[["How it Works", "#how-it-works"], ["Pricing", "#pricing"]].map(([label, href]) => (
+                <Link key={label} href={href} onClick={() => setMobileNavOpen(false)}
+                  style={{ padding: "11px 10px", fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", borderRadius: 10, transition: "color .15s" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = "var(--t1)"}
+                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = "var(--t2)"}
+                >{label}</Link>
+              ))}
+            </div>
+
+            {/* Auth CTAs */}
+            <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+              <Link href="/login" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--t1)", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", textDecoration: "none" }}>Sign in</Link>
+              <Link href="/signup" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
+                Start Practicing Free <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── HERO ────────────────────────────────────────────────────────── */}
       <section style={{ minHeight: "100vh", paddingTop: 62, display: "flex", alignItems: "center", position: "relative", overflow: "hidden" }}>
@@ -606,7 +694,7 @@ export default function LandingPage() {
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 40px rgba(31,191,159,.36)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)"; }}
                 >
-                  Start a Challenge Free <ArrowRight size={16} />
+                  Start Practicing Free <ArrowRight size={16} />
                 </Link>
                 <Link href="/scenarios" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "15px 22px", borderRadius: "var(--radius)", background: "rgba(255,255,255,.04)", border: "1px solid var(--border)", transition: "all .2s", textDecoration: "none" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--t1)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(255,255,255,.14)"; }}
@@ -662,28 +750,49 @@ export default function LandingPage() {
       </section>
 
       {/* ── HOW IT WORKS ────────────────────────────────────────────────── */}
-      <section style={{ padding: "0 0 100px" }}>
+      <section id="how-it-works" style={{ padding: "0 0 100px" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
           <div ref={hiwReveal.ref} style={{ ...hiwReveal.style, textAlign: "center", marginBottom: 64 }}>
-            <Eyebrow>The Platform</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(30px, 4vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>How TheBAPortal works</h2>
-            <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 500, margin: "0 auto", lineHeight: 1.68 }}>Four steps that mirror exactly what real BA work looks like on the job.</p>
+            <Eyebrow>Your Journey</Eyebrow>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(30px, 4vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>From first challenge to career-ready</h2>
+            <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 520, margin: "0 auto", lineHeight: 1.68 }}>Every tool on the platform has a role. Here is how they connect into a single progression.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 2, background: "var(--border)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+
+          {/* Journey steps */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, position: "relative" }}>
+            {/* Connector line */}
+            <div style={{ position: "absolute", top: 44, left: "calc(12.5% + 10px)", right: "calc(12.5% + 10px)", height: 1, background: "linear-gradient(to right, transparent 0%, rgba(31,191,159,0.25) 15%, rgba(31,191,159,0.25) 85%, transparent 100%)", pointerEvents: "none", zIndex: 0 }} />
+
             {[
-              { num: "1", title: "Choose a Scenario",      desc: "Pick from real BA scenarios across banking, healthcare, energy, tech, and insurance. Each one is a genuine business problem.", iconColor: "#38bdf8", iconBg: "rgba(56,189,248,.1)",  icon: <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="20" height="20"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> },
-              { num: "2", title: "Interview Stakeholders", desc: "Conduct live AI conversations with 2–4 stakeholders who have competing priorities, hidden agendas, and real information to uncover.", iconColor: "#a78bfa", iconBg: "rgba(167,139,250,.1)", icon: <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="20" height="20"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> },
-              { num: "3", title: "Write the Deliverable",  desc: "Produce a Problem Statement, Requirements Doc, UAT Assessment, or Incident Report. No templates handed to you.", iconColor: "#fb923c", iconBg: "rgba(251,146,60,.1)",  icon: <svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" width="20" height="20"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> },
-              { num: "4", title: "Get Scored",             desc: "Alex Rivera evaluates across 4 dimensions. Detailed, specific, unsparing feedback — exactly what you need to improve.", iconColor: "#1fbf9f", iconBg: "rgba(31,191,159,.1)",  icon: <svg viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round" width="20" height="20"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
-            ].map(s => (
-              <div key={s.num} style={{ background: "var(--bg-1)", padding: "36px 28px", position: "relative", overflow: "hidden", transition: "background .2s" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-1)")}
-              >
-                <div style={{ position: "absolute", bottom: -8, right: 12, fontFamily: "var(--font-display)", fontSize: 88, fontWeight: 800, color: "rgba(255,255,255,.025)", lineHeight: 1, pointerEvents: "none" }}>{s.num}</div>
-                <div style={{ width: 44, height: 44, borderRadius: "var(--radius-sm)", background: s.iconBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>{s.icon}</div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.01em" }}>{s.title}</div>
-                <div style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65 }}>{s.desc}</div>
+              { num: "01", phase: "Practice",  color: "#38bdf8", title: "Run real scenarios",      desc: "Interview AI stakeholders, write deliverables, get scored by Alex Rivera across 4 dimensions.", tools: ["Challenges"] },
+              { num: "02", phase: "Learn",     color: "#fb923c", title: "Build the theory",        desc: "Follow Vela — a Lagos fintech — through the full SDLC. Six modules, each ending with a challenge.", tools: ["Learning"] },
+              { num: "03", phase: "Prepare",   color: "#a78bfa", title: "Get interview-ready",     desc: "Practise your answers under pressure and pass your BA certification with BABOK-aligned questions.", tools: ["PitchReady", "Exam Prep"] },
+              { num: "04", phase: "Advance",   color: "#1fbf9f", title: "Land the role",           desc: "Personalised career plan, resume bullets, cover letters, salary benchmarks — all from Alex Rivera.", tools: ["Career Suite"] },
+            ].map((step, i) => (
+              <div key={step.num} style={{ position: "relative", zIndex: 1 }}>
+                <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "28px 24px", height: "100%", transition: "border-color .2s, background .2s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${step.color}30`; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
+                >
+                  {/* Step badge */}
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${step.color}12`, border: `2px solid ${step.color}28`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: step.color }}>
+                    {step.num}
+                  </div>
+                  {/* Arrow connector (except last) */}
+                  {i < 3 && (
+                    <div style={{ position: "absolute", top: 44, right: -8, width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(31,191,159,0.35)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </div>
+                  )}
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: step.color, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 8 }}>{step.phase}</div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{step.title}</div>
+                  <div style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.65, marginBottom: 18 }}>{step.desc}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {step.tools.map(tool => (
+                      <span key={tool} style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 6, background: `${step.color}10`, color: step.color, border: `1px solid ${step.color}20` }}>{tool}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -921,8 +1030,8 @@ export default function LandingPage() {
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </div>
           <div style={{ display: "flex", gap: 24 }}>
-            {["Challenges","Features","Career Suite","Pricing"].map(l => (
-              <Link key={l} href={l === "Challenges" ? "#challenges" : l === "Features" ? "#features" : l === "Career Suite" ? "/career" : "#pricing"} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
+            {[["Challenges","#challenges"],["How it Works","#how-it-works"],["Career Suite","/career"],["Pricing","#pricing"]].map(([l, href]) => (
+              <Link key={l} href={href} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t2)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t3)")}
               >{l}</Link>
