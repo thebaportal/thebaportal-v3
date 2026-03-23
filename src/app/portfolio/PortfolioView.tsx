@@ -196,84 +196,112 @@ export default function PortfolioView({ fullName, baLevel, joinedYear, attempts,
       {/* Body */}
       <div style={{ maxWidth: "860px", margin: "0 auto", padding: "40px 32px" }}>
 
-        {/* Challenge Evidence */}
+        {/* Case Studies */}
         {visibleAttempts.length > 0 && (
           <section style={{ marginBottom: "48px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginBottom: "20px" }}>
               <h2 style={{ fontSize: "13px", fontWeight: "700", letterSpacing: "0.08em", color: "#0891b2", margin: 0, textTransform: "uppercase" }}>
-                Challenge Evidence
+                Case Studies
               </h2>
-              <span style={{ fontSize: "12px", color: "#94a3b8" }}>{visibleAttempts.length} simulation{visibleAttempts.length !== 1 ? "s" : ""} completed</span>
+              <span style={{ fontSize: "12px", color: "#94a3b8" }}>{visibleAttempts.length} completed</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {visibleAttempts.map(a => (
-                <div key={a.id} className="pv-card" style={{
-                  background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "24px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginBottom: "14px" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                        <span style={{
-                          fontSize: "10px", fontWeight: "700", letterSpacing: "0.07em", textTransform: "uppercase",
-                          color: typeColor(a.challenge_type),
-                          background: `${typeColor(a.challenge_type)}12`,
-                          borderRadius: "4px", padding: "2px 8px",
-                        }}>{a.challenge_type}</span>
-                        <span style={{
-                          fontSize: "10px", fontWeight: "600", color: "#64748b",
-                          background: "#f1f5f9", borderRadius: "4px", padding: "2px 8px",
-                        }}>{a.industry}</span>
-                        <span style={{
-                          fontSize: "10px", fontWeight: "600", color: "#64748b",
-                          background: "#f1f5f9", borderRadius: "4px", padding: "2px 8px",
-                          textTransform: "capitalize",
-                        }}>{a.difficulty_mode}</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {visibleAttempts.map(a => {
+                const scoreColor = a.total_score >= 80 ? "#16a34a" : a.total_score >= 60 ? "#d97706" : "#dc2626";
+                const scoreLabel = a.total_score >= 80 ? "Strong pass" : a.total_score >= 60 ? "Pass" : "Developing";
+                const skills = [
+                  { label: "Problem Framing", score: a.score_problem_framing },
+                  { label: "Root Cause Analysis", score: a.score_root_cause },
+                  { label: "Evidence-Based Reasoning", score: a.score_evidence_use },
+                  { label: "Recommendations", score: a.score_recommendation },
+                ];
+                return (
+                  <div key={a.id} className="pv-card" style={{
+                    background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "28px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  }}>
+                    {/* Header */}
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginBottom: "20px" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
+                          <span style={{
+                            fontSize: "10px", fontWeight: "700", letterSpacing: "0.07em", textTransform: "uppercase",
+                            color: typeColor(a.challenge_type), background: `${typeColor(a.challenge_type)}12`,
+                            borderRadius: "4px", padding: "2px 8px",
+                          }}>{a.challenge_type}</span>
+                          <span style={{ fontSize: "10px", fontWeight: "600", color: "#64748b", background: "#f1f5f9", borderRadius: "4px", padding: "2px 8px" }}>{a.industry}</span>
+                          <span style={{ fontSize: "10px", fontWeight: "600", color: "#64748b", background: "#f1f5f9", borderRadius: "4px", padding: "2px 8px", textTransform: "capitalize" }}>{a.difficulty_mode}</span>
+                        </div>
+                        <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: "0 0 6px", lineHeight: 1.3 }}>{a.challenge_title}</h3>
+                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>Completed {fmtDate(a.completed_at)}</span>
                       </div>
-                      <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", margin: "0 0 4px", lineHeight: 1.3 }}>
-                        {a.challenge_title}
-                      </h3>
-                      <span style={{ fontSize: "12px", color: "#94a3b8" }}>{fmtDate(a.completed_at)}</span>
+                      <ScoreRing score={a.total_score} />
                     </div>
-                    <ScoreRing score={a.total_score} />
-                  </div>
 
-                  {/* Score breakdown */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px", marginBottom: prefs.showSubmissions && a.submission_text ? "16px" : "0" }}>
-                    {[
-                      { label: "Problem Framing", score: a.score_problem_framing },
-                      { label: "Root Cause", score: a.score_root_cause },
-                      { label: "Evidence Use", score: a.score_evidence_use },
-                      { label: "Recommendation", score: a.score_recommendation },
-                    ].map(s => (
-                      <div key={s.label} style={{ background: "#f8fafc", borderRadius: "8px", padding: "10px 12px" }}>
-                        <div style={{ fontSize: "10px", color: "#94a3b8", fontWeight: "600", marginBottom: "4px" }}>{s.label}</div>
-                        <div style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>{s.score}<span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: "400" }}>/25</span></div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {prefs.showSubmissions && a.submission_text && (
-                    <div style={{
-                      background: "#f8fafc", borderRadius: "8px", padding: "14px 16px",
-                      borderLeft: "3px solid #0891b2",
-                    }}>
-                      <div style={{ fontSize: "10px", color: "#0891b2", fontWeight: "700", letterSpacing: "0.07em", marginBottom: "8px" }}>
-                        SUBMITTED WORK — EXCERPT
-                      </div>
-                      <p style={{ fontSize: "13px", color: "#475569", lineHeight: 1.75, margin: 0 }}>
-                        {a.submission_text.slice(0, 320)}{a.submission_text.length > 320 ? "…" : ""}
+                    {/* Context */}
+                    <div style={{ marginBottom: "18px" }}>
+                      <div style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "6px" }}>CONTEXT</div>
+                      <p style={{ fontSize: "13px", color: "#475569", lineHeight: 1.7, margin: 0 }}>
+                        A {a.difficulty_mode} {a.challenge_type} scenario in the {a.industry} sector. This simulation presented a real business problem requiring structured analysis under realistic constraints.
                       </p>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Approach */}
+                    {prefs.showSubmissions && a.submission_text && (
+                      <div style={{ marginBottom: "18px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "6px" }}>APPROACH</div>
+                        <div style={{ background: "#f8fafc", borderRadius: "8px", padding: "14px 16px", borderLeft: "3px solid #0891b2" }}>
+                          <p style={{ fontSize: "13px", color: "#475569", lineHeight: 1.75, margin: 0 }}>
+                            {a.submission_text.slice(0, 420)}{a.submission_text.length > 420 ? "…" : ""}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Outcome */}
+                    <div style={{ marginBottom: "18px" }}>
+                      <div style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "8px" }}>OUTCOME</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
+                        <span style={{ fontSize: "15px", fontWeight: "800", color: scoreColor }}>{a.total_score}/100</span>
+                        <span style={{ fontSize: "12px", fontWeight: "600", color: scoreColor, background: `${scoreColor}12`, borderRadius: "4px", padding: "2px 8px" }}>{scoreLabel}</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px" }}>
+                        {skills.map(s => (
+                          <div key={s.label} style={{ background: "#f8fafc", borderRadius: "8px", padding: "10px 12px" }}>
+                            <div style={{ fontSize: "10px", color: "#94a3b8", fontWeight: "600", marginBottom: "4px" }}>{s.label}</div>
+                            <div style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>{s.score}<span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: "400" }}>/25</span></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Skills */}
+                    <div>
+                      <div style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "8px" }}>SKILLS DEMONSTRATED</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                        {skills.map(s => (
+                          <span key={s.label} style={{
+                            fontSize: "11px", fontWeight: "600", color: "#0891b2",
+                            background: "rgba(8,145,178,0.08)", border: "1px solid rgba(8,145,178,0.2)",
+                            borderRadius: "20px", padding: "3px 10px",
+                          }}>{s.label}</span>
+                        ))}
+                        <span style={{
+                          fontSize: "11px", fontWeight: "600", color: "#64748b",
+                          background: "#f1f5f9", border: "1px solid #e2e8f0",
+                          borderRadius: "20px", padding: "3px 10px", textTransform: "capitalize",
+                        }}>{a.industry}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
 
         {/* Badges */}
-        {prefs.showBadges && badges.length > 0 && (
+        {!isPublic && prefs.showBadges && badges.length > 0 && (
           <section style={{ marginBottom: "48px" }}>
             <h2 style={{ fontSize: "13px", fontWeight: "700", letterSpacing: "0.08em", color: "#0891b2", margin: "0 0 20px", textTransform: "uppercase" }}>
               Badges Earned
@@ -310,7 +338,7 @@ export default function PortfolioView({ fullName, baLevel, joinedYear, attempts,
         )}
 
         {/* Module Completions */}
-        {prefs.showModules && (
+        {!isPublic && prefs.showModules && (
           <section style={{ marginBottom: "48px" }}>
             <h2 style={{ fontSize: "13px", fontWeight: "700", letterSpacing: "0.08em", color: "#0891b2", margin: "0 0 20px", textTransform: "uppercase" }}>
               Learning Modules

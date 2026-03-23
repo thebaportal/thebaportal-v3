@@ -129,7 +129,7 @@ export default function PortfolioClient({ fullName, handle, portfolioUrl, joined
             <span style={S.controlLabel}>Sections</span>
             <div style={S.toggleGroup}>
               <button style={S.toggle(prefs.showSubmissions)} onClick={() => updatePrefs({ showSubmissions: !prefs.showSubmissions })}>
-                Submission Excerpts
+                Case Studies
               </button>
               <button style={S.toggle(prefs.showBadges)} onClick={() => updatePrefs({ showBadges: !prefs.showBadges })}>
                 Badges
@@ -167,16 +167,16 @@ export default function PortfolioClient({ fullName, handle, portfolioUrl, joined
 
       {/* Empty state */}
       {hasNoContent && (
-        <div style={{ padding: "48px 32px", textAlign: "center" }}>
-          <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.4)", marginBottom: "8px" }}>
-            Your portfolio is empty right now.
+        <div style={{ padding: "64px 32px", textAlign: "center", maxWidth: "480px", margin: "0 auto" }}>
+          <p style={{ fontSize: "18px", fontWeight: "700", color: "rgba(255,255,255,0.75)", marginBottom: "10px", lineHeight: 1.4 }}>
+            Your first case study is one challenge away.
           </p>
-          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.25)", marginBottom: "24px" }}>
-            Complete challenges and earn badges to build your portfolio.
+          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.35)", marginBottom: "28px", lineHeight: 1.6 }}>
+            Complete a BA scenario and it appears here automatically — structured, scored, and ready to share with any recruiter.
           </p>
           <button onClick={() => router.push("/scenarios")}
-            style={{ background: "rgba(8,145,178,0.15)", border: "1px solid rgba(8,145,178,0.3)", borderRadius: "8px", padding: "11px 24px", color: "#22d3ee", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>
-            Start a Challenge
+            style={{ background: "rgba(8,145,178,0.15)", border: "1px solid rgba(8,145,178,0.3)", borderRadius: "8px", padding: "12px 28px", color: "#22d3ee", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>
+            Start your first challenge
           </button>
         </div>
       )}
