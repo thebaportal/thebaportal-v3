@@ -1,484 +1,263 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Briefcase, Clock, ExternalLink, ChevronRight, Globe, Users, Zap } from "lucide-react";
-import AppSidebar from "@/components/AppSidebar";
+import { useState, useMemo } from "react";
+import Link from "next/link";
+import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase } from "lucide-react";
+
+interface PrepLink { label: string; href: string }
+
+interface JobListing {
+  id: string;
+  title: string;
+  company: string | null;
+  location: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  description: string | null;
+  url: string;
+  posted_at: string;
+  work_type: "remote" | "hybrid" | "onsite";
+  level: "entry" | "junior" | "mid" | "senior";
+  quality_score: number;
+  prep_links: PrepLink[] | null;
+}
 
 interface Props {
-  profile: { full_name: string | null; subscription_tier: string | null } | null;
-  user: { email: string };
+  initialJobs: JobListing[];
+  isLoggedIn: boolean;
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface PrepLink {
-  label: string;
-  href: string;
-  color: string;
+function daysAgo(dateStr: string): string {
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days}d ago`;
 }
 
-interface Listing {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  workType: "remote" | "hybrid" | "onsite";
-  level: "entry" | "junior" | "intermediate";
-  industry: string;
-  description: string;
-  posted: string;
-  applyUrl: string;
-  prep: PrepLink[];
+function formatSalary(min: number | null, max: number | null): string | null {
+  if (!min && !max) return null;
+  const fmt = (n: number) => n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`;
+  if (min && max) return `${fmt(min)} – ${fmt(max)}`;
+  if (min) return `From ${fmt(min)}`;
+  return `Up to ${fmt(max!)}`;
 }
 
-interface Volunteer {
-  id: string;
-  title: string;
-  org: string;
-  location: string;
-  commitment: string;
-  description: string;
-  skills: string[];
-  prep: PrepLink[];
-}
+const WORK_TYPE_LABELS: Record<string, string> = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };
+const LEVEL_LABELS: Record<string, string>     = { entry: "Entry", junior: "Junior", mid: "Mid", senior: "Senior" };
+const WORK_TYPE_BG:   Record<string, string>   = { remote: "rgba(31,191,159,0.12)", hybrid: "rgba(139,92,246,0.12)", onsite: "rgba(59,130,246,0.12)" };
+const WORK_TYPE_TEXT: Record<string, string>   = { remote: "#1fbf9f", hybrid: "#a78bfa", onsite: "#60a5fa" };
 
-// ── Data ─────────────────────────────────────────────────────────────────────
-const JOBS: Listing[] = [
-  {
-    id: "td-junior-ba",
-    title: "Junior Business Analyst",
-    company: "TD Bank",
-    location: "Toronto, ON",
-    workType: "hybrid",
-    level: "entry",
-    industry: "Banking / Finance",
-    description: "Support business analysis across retail banking initiatives. Gather and document requirements, facilitate stakeholder workshops, and produce BRDs under senior BA guidance.",
-    posted: "Active",
-    applyUrl: "https://jobs.td.com",
-    prep: [
-      { label: "Banking Discovery Challenge", href: "/scenarios/banking-discovery-001", color: "#38bdf8" },
-      { label: "Career Advisor", href: "/career", color: "#1fbf9f" },
-      { label: "PitchReady", href: "/pitchready", color: "#a78bfa" },
-    ],
-  },
-  {
-    id: "shopify-associate-ba",
-    title: "Associate Business Analyst",
-    company: "Shopify",
-    location: "Ottawa, ON",
-    workType: "remote",
-    level: "entry",
-    industry: "Technology / SaaS",
-    description: "Work with product and engineering teams to translate merchant needs into clear requirements. Own discovery conversations, write user stories, and support UAT cycles.",
-    posted: "Active",
-    applyUrl: "https://www.shopify.com/careers",
-    prep: [
-      { label: "CRM UAT Challenge", href: "/scenarios/saas-uat-001", color: "#1fbf9f" },
-      { label: "Learning: Module 3 — Requirements", href: "/learning", color: "#fb923c" },
-      { label: "PitchReady", href: "/pitchready", color: "#a78bfa" },
-    ],
-  },
-  {
-    id: "deloitte-ba-analyst",
-    title: "Business Analyst (Consulting)",
-    company: "Deloitte Canada",
-    location: "Toronto / Montreal",
-    workType: "hybrid",
-    level: "junior",
-    industry: "Consulting",
-    description: "Join Deloitte's technology consulting practice. Engage with clients across financial services, government, and healthcare to define solutions and drive digital transformation.",
-    posted: "Active",
-    applyUrl: "https://www2.deloitte.com/ca/en/careers.html",
-    prep: [
-      { label: "Healthcare Requirements Challenge", href: "/scenarios/healthcare-requirements-001", color: "#a78bfa" },
-      { label: "Stakeholder Interview Practice", href: "/pitchready", color: "#a78bfa" },
-      { label: "Career Advisor", href: "/career", color: "#1fbf9f" },
-    ],
-  },
-  {
-    id: "cibc-junior-ba",
-    title: "Junior Business Analyst",
-    company: "CIBC",
-    location: "Toronto, ON",
-    workType: "hybrid",
-    level: "entry",
-    industry: "Banking / Finance",
-    description: "Support the delivery of digital banking features by bridging business and technology. Document as-is and to-be processes, identify gaps, and track requirements through delivery.",
-    posted: "Active",
-    applyUrl: "https://careers.cibc.com",
-    prep: [
-      { label: "Banking Discovery Challenge", href: "/scenarios/banking-discovery-001", color: "#38bdf8" },
-      { label: "Learning: Module 1 — BA Foundations", href: "/learning", color: "#fb923c" },
-      { label: "Portfolio Builder", href: "/portfolio", color: "#1fbf9f" },
-    ],
-  },
-  {
-    id: "ontario-bsa",
-    title: "Business Systems Analyst",
-    company: "Government of Ontario",
-    location: "Toronto, ON",
-    workType: "hybrid",
-    level: "junior",
-    industry: "Government / Public Sector",
-    description: "Analyse business processes and information systems for Ontario ministries. Support procurement and implementation of enterprise technology solutions.",
-    posted: "Active",
-    applyUrl: "https://www.ontario.ca/page/careers-government-ontario",
-    prep: [
-      { label: "Requirements Elicitation Challenge", href: "/scenarios", color: "#facc15" },
-      { label: "Exam Prep (BABOK)", href: "/exam", color: "#facc15" },
-      { label: "Career Advisor", href: "/career", color: "#1fbf9f" },
-    ],
-  },
-  {
-    id: "cgi-ba",
-    title: "Junior Business Analyst",
-    company: "CGI Group",
-    location: "Ottawa / Montreal / Toronto",
-    workType: "hybrid",
-    level: "entry",
-    industry: "IT Consulting",
-    description: "Assist senior consultants on government and enterprise IT projects. Participate in requirements workshops, produce functional specs, and support testing phases.",
-    posted: "Active",
-    applyUrl: "https://www.cgi.com/canada/en-ca/careers",
-    prep: [
-      { label: "ERP Implementation Challenge", href: "/scenarios/manufacturing-erp-001", color: "#64748b" },
-      { label: "Learning: Full SDLC Story", href: "/learning", color: "#fb923c" },
-      { label: "PitchReady", href: "/pitchready", color: "#a78bfa" },
-    ],
-  },
-];
+export default function OpportunitiesClient({ initialJobs, isLoggedIn }: Props) {
+  const [keyword, setKeyword]   = useState("");
+  const [workType, setWorkType] = useState<string>("all");
+  const [level, setLevel]       = useState<string>("all");
 
-const VOLUNTEER: Volunteer[] = [
-  {
-    id: "united-way-ba",
-    title: "Business Analyst Volunteer",
-    org: "United Way Greater Toronto Area",
-    location: "Toronto / Remote",
-    commitment: "4–6 hrs/week",
-    description: "Support the digital team with requirements gathering and process documentation for community programme delivery. Real stakeholder conversations with programme managers and frontline staff.",
-    skills: ["Requirements gathering", "Process mapping", "Stakeholder interviews"],
-    prep: [
-      { label: "Discovery Challenge", href: "/scenarios/banking-discovery-001", color: "#38bdf8" },
-      { label: "Learning: Stakeholder Management", href: "/learning", color: "#fb923c" },
-    ],
-  },
-  {
-    id: "pathways-tech-volunteer",
-    title: "Technology & Systems Volunteer",
-    org: "Pathways to Education Canada",
-    location: "Toronto, ON",
-    commitment: "3–5 hrs/week",
-    description: "Help document and improve Pathways' student tracking and case management systems. Work directly with programme coordinators to analyse current workflows and identify improvements.",
-    skills: ["Process analysis", "Documentation", "System analysis"],
-    prep: [
-      { label: "Healthcare Requirements Challenge", href: "/scenarios/healthcare-requirements-001", color: "#a78bfa" },
-      { label: "Portfolio Builder", href: "/portfolio", color: "#1fbf9f" },
-    ],
-  },
-  {
-    id: "code-for-canada",
-    title: "Civic Tech Business Analyst",
-    org: "Code for Canada",
-    location: "Remote",
-    commitment: "5–8 hrs/week",
-    description: "Collaborate with government partners to improve digital public services. Define problems, run discovery sprints, and produce artefacts that shape real government products.",
-    skills: ["Service design", "Discovery sprints", "Government digital"],
-    prep: [
-      { label: "Learning: Full SDLC Story", href: "/learning", color: "#fb923c" },
-      { label: "PitchReady", href: "/pitchready", color: "#a78bfa" },
-    ],
-  },
-  {
-    id: "technovation-ba",
-    title: "BA Mentor — Youth Tech Programme",
-    org: "Technovation Girls Canada",
-    location: "Remote",
-    commitment: "2–3 hrs/week",
-    description: "Mentor student teams building tech solutions for social challenges. Guide them through problem definition, requirements gathering, and solution scoping — genuine BA practice in a low-stakes environment.",
-    skills: ["Mentoring", "Problem framing", "Requirements"],
-    prep: [
-      { label: "Career Advisor — New to BA", href: "/career", color: "#1fbf9f" },
-      { label: "Learning: Module 1", href: "/learning", color: "#fb923c" },
-    ],
-  },
-];
-
-// ── Config ────────────────────────────────────────────────────────────────────
-const workTypeConfig = {
-  remote:  { label: "Remote",  color: "#1fbf9f", bg: "rgba(31,191,159,0.1)"   },
-  hybrid:  { label: "Hybrid",  color: "#38bdf8", bg: "rgba(56,189,248,0.1)"   },
-  onsite:  { label: "Onsite",  color: "#fb923c", bg: "rgba(251,146,60,0.1)"   },
-};
-const levelConfig = {
-  entry:        { label: "Entry Level", color: "#22c55e" },
-  junior:       { label: "Junior",      color: "#eab308" },
-  intermediate: { label: "Intermediate",color: "#ef4444" },
-};
-
-// ── Main Component ─────────────────────────────────────────────────────────────
-export default function OpportunitiesClient({ profile, user }: Props) {
-  const router = useRouter();
-  const [activeTab, setActiveTab]         = useState<"jobs" | "volunteer">("jobs");
-  const [workFilter, setWorkFilter]       = useState("All");
-  const [levelFilter, setLevelFilter]     = useState("All");
-
-  const filteredJobs = JOBS.filter(j => {
-    const matchWork  = workFilter  === "All" || j.workType === workFilter.toLowerCase();
-    const matchLevel = levelFilter === "All" || j.level    === levelFilter.toLowerCase();
-    return matchWork && matchLevel;
-  });
+  const filtered = useMemo(() => initialJobs.filter(job => {
+    if (workType !== "all" && job.work_type !== workType) return false;
+    if (level    !== "all" && job.level     !== level)    return false;
+    if (keyword) {
+      const k = keyword.toLowerCase();
+      if (
+        !job.title.toLowerCase().includes(k) &&
+        !(job.company  ?? "").toLowerCase().includes(k) &&
+        !(job.location ?? "").toLowerCase().includes(k)
+      ) return false;
+    }
+    return true;
+  }), [initialJobs, keyword, workType, level]);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
-      <AppSidebar activeHref="/opportunities" profile={profile} user={user} />
+    <div style={{ background: "#07070a", color: "#f2f2f8", minHeight: "100vh", fontFamily: "'Open Sans',sans-serif", WebkitFontSmoothing: "antialiased" }}>
 
-      <main className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="px-8 py-5 flex items-center gap-4 sticky top-0 z-20"
-          style={{ background: "rgba(9,9,11,0.88)", backdropFilter: "blur(24px)", borderBottom: "1px solid var(--border)" }}>
-          <button onClick={() => router.push("/dashboard")} className="btn-ghost p-2" style={{ borderRadius: "10px" }}>
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div className="flex-1">
-            <h1 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "22px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
-              Opportunities
-            </h1>
-            <p className="type-body" style={{ marginTop: "4px" }}>
-              Canada-first roles and volunteer experience — with a direct line to your practice
+      {/* Nav */}
+      <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, height: 58, display: "flex", alignItems: "center", padding: "0 28px", background: "rgba(7,7,10,0.92)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 800, color: "#f2f2f8", letterSpacing: "-0.01em" }}>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontSize: 9, fontWeight: 600, color: "#1fbf9f" }}>BA</div>
+            The<span style={{ color: "#1fbf9f" }}>BA</span>Portal
+          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {isLoggedIn ? (
+              <Link href="/dashboard" style={{ fontSize: 13, fontWeight: 700, color: "#041a13", background: "#1fbf9f", padding: "7px 16px", borderRadius: 8, textDecoration: "none", fontFamily: "'Inter',sans-serif" }}>Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/login"  style={{ fontSize: 13, color: "#505068", textDecoration: "none" }}>Sign in</Link>
+                <Link href="/signup" style={{ fontSize: 13, fontWeight: 700, color: "#041a13", background: "#1fbf9f", padding: "7px 16px", borderRadius: 8, textDecoration: "none", fontFamily: "'Inter',sans-serif" }}>Get Started</Link>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "108px 28px 0" }}>
+
+        {/* Hero */}
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#1fbf9f", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>Live Job Board</div>
+          <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#f2f2f8", lineHeight: 1.05, marginBottom: 16 }}>
+            Business Analyst Jobs in Canada
+          </h1>
+          <p style={{ fontSize: 16, color: "#9090a8", lineHeight: 1.68, maxWidth: 520, marginBottom: 0 }}>
+            Fresh listings refreshed every 2 hours from across Canada. Find your next role, then use TheBAPortal to get ready for it.
+          </p>
+          {initialJobs.length === 0 && (
+            <p style={{ marginTop: 12, fontSize: 13, color: "#505068", fontFamily: "monospace" }}>
+              First sync triggered — refresh in 10 seconds to see listings.
             </p>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div style={{ marginBottom: 32, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ position: "relative", maxWidth: 480 }}>
+            <Search size={14} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#505068", pointerEvents: "none" }} />
+            <input
+              type="text"
+              placeholder="Search by title, company, or city…"
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              style={{ width: "100%", paddingLeft: 38, paddingRight: 14, paddingTop: 10, paddingBottom: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#f2f2f8", fontSize: 14, fontFamily: "'Open Sans',sans-serif", outline: "none", boxSizing: "border-box" }}
+            />
           </div>
-          <div style={{ fontSize: "11px", color: "var(--text-4)", fontFamily: "var(--font-mono)", padding: "4px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)" }}>
-            Manually curated · Updated monthly
-          </div>
-        </header>
-
-        <div className="px-8 py-8" style={{ maxWidth: "960px" }}>
-
-          {/* Intro banner */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "20px", padding: "28px 32px", marginBottom: "32px", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(31,191,159,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-            <div className="flex items-start gap-5">
-              <div style={{ width: 48, height: 48, borderRadius: "14px", background: "var(--teal-soft)", border: "1px solid var(--teal-border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Globe className="w-5 h-5" style={{ color: "var(--teal)" }} />
-              </div>
-              <div>
-                <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "16px", color: "var(--text-1)", marginBottom: "6px" }}>
-                  From practice to employment
-                </div>
-                <p className="type-body" style={{ maxWidth: "520px" }}>
-                  Every listing below includes a recommended preparation path — specific challenges, modules, and tools on this platform that will make you a stronger candidate for that exact role.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: "4px", marginBottom: "24px", padding: "4px", background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", width: "fit-content" }}>
-            {([["jobs", "Jobs", JOBS.length], ["volunteer", "Volunteer & Experience", VOLUNTEER.length]] as const).map(([tab, label, count]) => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                style={{ padding: "8px 18px", borderRadius: "9px", fontSize: "13px", fontWeight: 600, cursor: "pointer", border: "none", transition: "all 0.15s", display: "flex", alignItems: "center", gap: "7px",
-                  background: activeTab === tab ? "var(--teal-soft)" : "transparent",
-                  color: activeTab === tab ? "var(--teal)" : "var(--text-3)",
-                }}>
-                {label}
-                <span style={{ fontSize: "11px", padding: "1px 6px", borderRadius: "5px",
-                  background: activeTab === tab ? "rgba(31,191,159,0.15)" : "rgba(255,255,255,0.05)",
-                  color: activeTab === tab ? "var(--teal)" : "var(--text-4)",
-                }}>{count}</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#505068", fontFamily: "monospace", marginRight: 4 }}>Type:</span>
+            {(["all", "remote", "hybrid", "onsite"] as const).map(t => (
+              <button key={t} onClick={() => setWorkType(t)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 13, fontFamily: "'Inter',sans-serif", fontWeight: 600, cursor: "pointer", border: "none", background: workType === t ? "#1fbf9f" : "rgba(255,255,255,0.06)", color: workType === t ? "#041a13" : "#9090a8", transition: "all 0.15s" }}>
+                {t === "all" ? "All" : WORK_TYPE_LABELS[t]}
+              </button>
+            ))}
+            <span style={{ fontSize: 12, color: "#505068", fontFamily: "monospace", marginLeft: 12, marginRight: 4 }}>Level:</span>
+            {(["all", "entry", "mid", "senior"] as const).map(l => (
+              <button key={l} onClick={() => setLevel(l)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 13, fontFamily: "'Inter',sans-serif", fontWeight: 600, cursor: "pointer", border: "none", background: level === l ? "#1fbf9f" : "rgba(255,255,255,0.06)", color: level === l ? "#041a13" : "#9090a8", transition: "all 0.15s" }}>
+                {l === "all" ? "All" : LEVEL_LABELS[l]}
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Filters — jobs only */}
-          {activeTab === "jobs" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "24px", alignItems: "center" }}>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Filter</span>
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                {["All", "Remote", "Hybrid", "Onsite"].map(v => (
-                  <button key={v} onClick={() => setWorkFilter(v)}
-                    style={{ padding: "5px 12px", borderRadius: "7px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: "1px solid transparent", transition: "all 0.15s",
-                      background: workFilter === v ? "var(--teal-soft)" : "rgba(255,255,255,0.04)",
-                      color: workFilter === v ? "var(--teal)" : "var(--text-3)",
-                      borderColor: workFilter === v ? "var(--teal-border)" : "transparent",
-                    }}>{v}</button>
-                ))}
-              </div>
-              <div style={{ width: 1, height: 18, background: "var(--border)" }} />
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                {["All", "Entry", "Junior"].map(v => (
-                  <button key={v} onClick={() => setLevelFilter(v)}
-                    style={{ padding: "5px 12px", borderRadius: "7px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: "1px solid transparent", transition: "all 0.15s",
-                      background: levelFilter === v ? "rgba(167,139,250,0.12)" : "rgba(255,255,255,0.04)",
-                      color: levelFilter === v ? "#a78bfa" : "var(--text-3)",
-                      borderColor: levelFilter === v ? "rgba(167,139,250,0.22)" : "transparent",
-                    }}>{v}</button>
-                ))}
-              </div>
-              {(workFilter !== "All" || levelFilter !== "All") && (
-                <button onClick={() => { setWorkFilter("All"); setLevelFilter("All"); }}
-                  style={{ padding: "5px 10px", borderRadius: "7px", fontSize: "12px", fontWeight: 600, cursor: "pointer", background: "rgba(248,113,113,0.07)", color: "#f87171", border: "1px solid rgba(248,113,113,0.15)" }}>
-                  Clear
-                </button>
-              )}
-              <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--text-4)" }}>
-                {filteredJobs.length} of {JOBS.length} roles
-              </span>
-            </motion.div>
-          )}
+        <div style={{ marginBottom: 24 }}>
+          <span style={{ fontFamily: "monospace", fontSize: 12, color: "#505068" }}>
+            {filtered.length} role{filtered.length !== 1 ? "s" : ""} found
+          </span>
+        </div>
 
-          {/* Jobs list */}
-          {activeTab === "jobs" && (
-            <div className="space-y-4">
-              {filteredJobs.length === 0 ? (
-                <div className="py-16 flex flex-col items-center justify-center">
-                  <p className="type-card" style={{ color: "var(--text-3)" }}>No roles match those filters</p>
-                  <button onClick={() => { setWorkFilter("All"); setLevelFilter("All"); }} style={{ marginTop: "10px", fontSize: "13px", color: "var(--teal)", background: "none", border: "none", cursor: "pointer" }}>Clear filters</button>
+        {/* Job cards */}
+        {filtered.length === 0 ? (
+          <div style={{ padding: "60px 0", textAlign: "center", color: "#505068" }}>
+            <Briefcase size={32} style={{ margin: "0 auto 16px", display: "block", opacity: 0.3 }} />
+            <p style={{ fontSize: 15 }}>No jobs match your filters.</p>
+            <button onClick={() => { setKeyword(""); setWorkType("all"); setLevel("all"); }} style={{ marginTop: 12, fontSize: 13, color: "#1fbf9f", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 64 }}>
+            {filtered.map(job => {
+              const salary = formatSalary(job.salary_min, job.salary_max);
+              const prep   = job.prep_links ?? [];
+              return (
+                <div
+                  key={job.id}
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "24px 28px", transition: "border-color 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(31,191,159,0.25)")}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 700, color: "#f2f2f8", marginBottom: 6, lineHeight: 1.3 }}>{job.title}</h2>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                        {job.company && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "#9090a8" }}>
+                            <Building2 size={12} style={{ color: "#505068" }} />{job.company}
+                          </span>
+                        )}
+                        {job.location && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "#9090a8" }}>
+                            <MapPin size={12} style={{ color: "#505068" }} />{job.location}
+                          </span>
+                        )}
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#505068" }}>
+                          <Clock size={11} style={{ color: "#505068" }} />{daysAgo(job.posted_at)}
+                        </span>
+                      </div>
+                    </div>
+                    {salary && (
+                      <div style={{ flexShrink: 0, fontFamily: "'Inter',sans-serif", fontSize: 14, fontWeight: 700, color: "#1fbf9f", whiteSpace: "nowrap" }}>{salary}</div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace", padding: "3px 10px", borderRadius: 20, background: WORK_TYPE_BG[job.work_type], color: WORK_TYPE_TEXT[job.work_type] }}>
+                      {WORK_TYPE_LABELS[job.work_type]}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace", padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,0.06)", color: "#9090a8" }}>
+                      {LEVEL_LABELS[job.level] ?? job.level}
+                    </span>
+                  </div>
+
+                  {job.description && (
+                    <p style={{ fontSize: 13, color: "#505068", lineHeight: 1.6, marginBottom: 16, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                      {job.description.replace(/<[^>]+>/g, "").slice(0, 260)}
+                    </p>
+                  )}
+
+                  {prep.length > 0 && (
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, marginBottom: 16 }}>
+                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "#505068", textTransform: "uppercase", letterSpacing: "0.08em" }}>Recommended prep</span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                        {prep.map((p, i) => (
+                          <Link
+                            key={i}
+                            href={p.href}
+                            style={{ fontSize: 12, fontFamily: "'Inter',sans-serif", fontWeight: 600, padding: "4px 12px", borderRadius: 20, background: "rgba(31,191,159,0.08)", color: "#1fbf9f", textDecoration: "none", border: "1px solid rgba(31,191,159,0.18)", transition: "background 0.15s" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(31,191,159,0.16)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "rgba(31,191,159,0.08)")}
+                          >
+                            {p.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#f2f2f8", background: "rgba(255,255,255,0.07)", padding: "8px 18px", borderRadius: 10, textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)", fontFamily: "'Inter',sans-serif", transition: "all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+                  >
+                    View and Apply <ExternalLink size={12} />
+                  </a>
                 </div>
-              ) : (
-                filteredJobs.map((job, i) => (
-                  <JobCard key={job.id} job={job} index={i} />
-                ))
-              )}
-            </div>
-          )}
+              );
+            })}
+          </div>
+        )}
 
-          {/* Volunteer list */}
-          {activeTab === "volunteer" && (
-            <div className="space-y-4">
-              {VOLUNTEER.map((vol, i) => (
-                <VolunteerCard key={vol.id} vol={vol} index={i} />
-              ))}
-            </div>
-          )}
+        {!isLoggedIn && filtered.length > 0 && (
+          <div style={{ marginBottom: 64, padding: "40px", borderRadius: 20, background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.12)", textAlign: "center" }}>
+            <h3 style={{ fontFamily: "'Inter',sans-serif", fontSize: 20, fontWeight: 800, color: "#f2f2f8", marginBottom: 10 }}>
+              Get ready for your next BA role
+            </h3>
+            <p style={{ fontSize: 14, color: "#9090a8", marginBottom: 24, maxWidth: 420, margin: "0 auto 24px" }}>
+              Practice stakeholder interviews, write real deliverables, and prep for interviews — all in one place.
+            </p>
+            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 12, background: "#1fbf9f", color: "#041a13", fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "'Inter',sans-serif" }}>
+              Start practicing free
+            </Link>
+          </div>
+        )}
+      </div>
 
-          <div style={{ height: "48px" }} />
+      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "28px", textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "24px", flexWrap: "wrap" }}>
+          {[["Home", "/"], ["Pricing", "/pricing"], ["FAQ", "/faq"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Contact", "/contact"]].map(([l, h]) => (
+            <Link key={l} href={h} style={{ fontSize: "12px", color: "#2a2a38", textDecoration: "none" }}>{l}</Link>
+          ))}
         </div>
-      </main>
+      </footer>
     </div>
-  );
-}
-
-// ── Job Card ─────────────────────────────────────────────────────────────────
-function JobCard({ job, index }: { job: Listing; index: number }) {
-  const router = useRouter();
-  const wt = workTypeConfig[job.workType];
-  const lv = levelConfig[job.level];
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }}
-      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px", padding: "24px 28px", transition: "border-color 0.2s" }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)")}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}>
-
-      {/* Top row */}
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap mb-2">
-            <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 9px", borderRadius: "5px", background: wt.bg, color: wt.color }}>{wt.label}</span>
-            <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 9px", borderRadius: "5px", background: `${lv.color}12`, color: lv.color }}>{lv.label}</span>
-            <span style={{ fontSize: "11px", fontWeight: 600, padding: "3px 9px", borderRadius: "5px", background: "rgba(255,255,255,0.04)", color: "var(--text-3)", border: "1px solid var(--border)" }}>{job.industry}</span>
-          </div>
-          <h3 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "16px", color: "var(--text-1)", marginBottom: "4px" }}>{job.title}</h3>
-          <div className="flex items-center gap-3">
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-2)" }}>{job.company}</span>
-            <span style={{ color: "var(--text-4)" }}>·</span>
-            <span className="flex items-center gap-1 type-meta"><MapPin className="w-3 h-3" />{job.location}</span>
-            <span style={{ color: "var(--text-4)" }}>·</span>
-            <span className="flex items-center gap-1 type-meta"><Clock className="w-3 h-3" />{job.posted}</span>
-          </div>
-        </div>
-        <a href={job.applyUrl} target="_blank" rel="noopener noreferrer"
-          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "10px", fontSize: "13px", fontWeight: 600, color: "var(--teal)", background: "var(--teal-soft)", border: "1px solid var(--teal-border)", textDecoration: "none", flexShrink: 0, transition: "background 0.15s" }}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(31,191,159,0.18)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "var(--teal-soft)")}>
-          Apply <ExternalLink className="w-3 h-3" />
-        </a>
-      </div>
-
-      {/* Description */}
-      <p className="type-body" style={{ fontSize: "13px", marginBottom: "18px", lineHeight: 1.65 }}>{job.description}</p>
-
-      {/* Recommended prep */}
-      <div style={{ padding: "14px 16px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-3.5 h-3.5" style={{ color: "var(--teal)" }} />
-          <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Recommended preparation</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {job.prep.map(p => (
-            <button key={p.label} onClick={() => router.push(p.href)}
-              style={{ display: "flex", alignItems: "center", gap: "5px", padding: "5px 11px", borderRadius: "7px", fontSize: "12px", fontWeight: 600, cursor: "pointer", background: `${p.color}10`, color: p.color, border: `1px solid ${p.color}20`, transition: "background 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = `${p.color}1e`)}
-              onMouseLeave={e => (e.currentTarget.style.background = `${p.color}10`)}>
-              {p.label} <ChevronRight className="w-3 h-3" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Volunteer Card ─────────────────────────────────────────────────────────────
-function VolunteerCard({ vol, index }: { vol: Volunteer; index: number }) {
-  const router = useRouter();
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }}
-      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px", padding: "24px 28px", transition: "border-color 0.2s" }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)")}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}>
-
-      {/* Top row */}
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap mb-2">
-            <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 9px", borderRadius: "5px", background: "rgba(167,139,250,0.1)", color: "#a78bfa" }}>Volunteer</span>
-            <span style={{ fontSize: "11px", fontWeight: 600, padding: "3px 9px", borderRadius: "5px", background: "rgba(255,255,255,0.04)", color: "var(--text-3)", border: "1px solid var(--border)" }}>Experience Building</span>
-          </div>
-          <h3 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "16px", color: "var(--text-1)", marginBottom: "4px" }}>{vol.title}</h3>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-2)" }}>{vol.org}</span>
-            <span style={{ color: "var(--text-4)" }}>·</span>
-            <span className="flex items-center gap-1 type-meta"><MapPin className="w-3 h-3" />{vol.location}</span>
-            <span style={{ color: "var(--text-4)" }}>·</span>
-            <span className="flex items-center gap-1 type-meta"><Clock className="w-3 h-3" />{vol.commitment}</span>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: 600, color: "#a78bfa", background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.16)", flexShrink: 0 }}>
-          <Users className="w-3.5 h-3.5" /> Volunteer Role
-        </div>
-      </div>
-
-      <p className="type-body" style={{ fontSize: "13px", marginBottom: "14px", lineHeight: 1.65 }}>{vol.description}</p>
-
-      {/* Skills */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {vol.skills.map(s => (
-          <span key={s} style={{ fontSize: "11px", fontWeight: 600, padding: "3px 9px", borderRadius: "6px", background: "rgba(255,255,255,0.04)", color: "var(--text-3)", border: "1px solid var(--border)" }}>{s}</span>
-        ))}
-      </div>
-
-      {/* Recommended prep */}
-      <div style={{ padding: "14px 16px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-3.5 h-3.5" style={{ color: "var(--teal)" }} />
-          <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Recommended preparation</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {vol.prep.map(p => (
-            <button key={p.label} onClick={() => router.push(p.href)}
-              style={{ display: "flex", alignItems: "center", gap: "5px", padding: "5px 11px", borderRadius: "7px", fontSize: "12px", fontWeight: 600, cursor: "pointer", background: `${p.color}10`, color: p.color, border: `1px solid ${p.color}20`, transition: "background 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = `${p.color}1e`)}
-              onMouseLeave={e => (e.currentTarget.style.background = `${p.color}10`)}>
-              {p.label} <ChevronRight className="w-3 h-3" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </motion.div>
   );
 }

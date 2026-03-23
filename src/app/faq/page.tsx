@@ -153,7 +153,12 @@ export default function FAQPage() {
         </div>
 
         <div style={{ marginTop: "64px", padding: "40px", borderRadius: "20px", background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.12)", textAlign: "center" }}>
-          <p style={{ fontSize: "16px", color: "#9090a8", marginBottom: "20px" }}>Still have questions?</p>
+          <p style={{ fontSize: "16px", color: "#9090a8", marginBottom: "8px" }}>Still have questions?</p>
+          <p style={{ fontSize: "14px", color: "#505068", marginBottom: "24px" }}>
+            Email us at{" "}
+            <a href="mailto:hello@thebaportal.com" style={{ color: "#1fbf9f", textDecoration: "none" }}>hello@thebaportal.com</a>
+            {" "}and we will get back to you within one business day.
+          </p>
           <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 28px", borderRadius: "12px", background: "#1fbf9f", color: "#041a13", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: "'Inter',sans-serif" }}>
             Start free — no credit card required
           </Link>

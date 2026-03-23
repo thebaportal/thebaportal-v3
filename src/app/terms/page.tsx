@@ -69,9 +69,6 @@ export default function TermsPage() {
           <div style={{ fontFamily: "monospace", fontSize: 11, color: "#1fbf9f", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>Legal</div>
           <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#f2f2f8", marginBottom: "14px", lineHeight: 1.05 }}>Terms of Service</h1>
           <p style={{ fontSize: "14px", color: "#505068", fontFamily: "monospace" }}>Last updated: March 2026</p>
-          <p style={{ fontSize: "15px", color: "#9090a8", lineHeight: 1.7, marginTop: "16px", padding: "16px 20px", borderRadius: "10px", background: "rgba(251,146,60,0.05)", border: "1px solid rgba(251,146,60,0.12)" }}>
-            <strong style={{ color: "#fb923c" }}>Note:</strong> This document is a working draft and should be reviewed by a qualified lawyer before you rely on it as a legally binding agreement.
-          </p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "36px" }}>

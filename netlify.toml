@@ -6,6 +6,9 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
 
+[functions]
+  directory = "netlify/functions"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
