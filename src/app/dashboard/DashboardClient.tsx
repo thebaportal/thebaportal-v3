@@ -157,6 +157,7 @@ function DropdownItem({ icon, label, onClick, teal = false }: { icon: React.Reac
 export default function DashboardClient({ profile, user, upgradeSuccess, stats }: DashboardClientProps) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
+  const [rightColOpen, setRightColOpen] = useState(false);
 
   const isPro     = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
   const firstName = profile?.full_name?.split(" ")[0] || "there";
@@ -361,8 +362,16 @@ export default function DashboardClient({ profile, user, upgradeSuccess, stats }
             </div>
 
             <div className="space-y-4">
-              <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "17px", color: "var(--text-1)", letterSpacing: "-0.02em" }}>Skills & Badges</h2>
+              <button
+                className="w-full flex items-center justify-between lg:cursor-default"
+                onClick={() => setRightColOpen(o => !o)}
+                style={{ background: "none", border: "none", padding: 0, textAlign: "left" }}
+              >
+                <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "17px", color: "var(--text-1)", letterSpacing: "-0.02em" }}>Skills & Badges</h2>
+                <ChevronUp className="w-4 h-4 lg:hidden" style={{ color: "var(--text-3)", flexShrink: 0, transform: rightColOpen ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.2s ease" }} />
+              </button>
 
+              <div className={`space-y-4 ${rightColOpen ? "block" : "hidden"} lg:block`}>
               <div className="portal-card-static p-5" style={{ borderRadius: "16px" }}>
                 <p className="type-meta" style={{ marginBottom: "16px" }}>Skill Progress</p>
                 {[
@@ -415,6 +424,7 @@ export default function DashboardClient({ profile, user, upgradeSuccess, stats }
                   </div>
                 </div>
               )}
+              </div>{/* end collapsible */}
             </div>
           </div>
 
