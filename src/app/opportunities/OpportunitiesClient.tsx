@@ -125,7 +125,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
             Business Analyst Jobs in Canada
           </h1>
           <p style={{ fontSize: 16, color: "#9090a8", lineHeight: 1.68, maxWidth: 520, marginBottom: 0 }}>
-            Fresh listings refreshed every 2 hours from across Canada. Find your next role, then use TheBAPortal to get ready for it.
+            Business Analyst roles from across Canada, with a direct prep path for every listing.
           </p>
           {syncError && (
             <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#f87171", fontFamily: "monospace", padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)" }}>

@@ -477,9 +477,10 @@ function PlatformDropdown() {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled]         = useState(false);
   const [billingAnnual, setBillingAnnual] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn]       = useState(false);
 
   // Reveal refs
   const statsReveal = useReveal();
@@ -492,6 +493,15 @@ export default function LandingPage() {
   const pricingHeadReveal = useReveal();
   const pricingReveal = useReveal();
   const finalReveal = useReveal();
+
+  useEffect(() => {
+    // Check session so nav reflects logged-in state
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      createClient().auth.getSession().then(({ data }) => {
+        setIsLoggedIn(!!data.session);
+      });
+    });
+  }, []);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 30);
@@ -585,14 +595,23 @@ export default function LandingPage() {
 
           {/* Desktop CTAs */}
           <div className="dsk-nav" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link href="/login" style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
-            >Sign in</Link>
-            <Link href="/signup" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
-            >Start Practicing Free</Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
+              >Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/login" style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
+                >Sign in</Link>
+                <Link href="/signup" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
+                >Start Practicing Free</Link>
+              </>
+            )}
           </div>
 
           {/* Mobile hamburger */}

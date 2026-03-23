@@ -197,29 +197,34 @@ export async function runRefresh(): Promise<RefreshResult> {
     });
   }
 
-  console.log(`[refreshJobs] After cleaning → ${rows.length} rows to upsert (${skippedStale} skipped as stale)`);
+  // Deduplicate by dedup_key — Adzuna can return the same listing on multiple
+  // pages. PostgreSQL throws "ON CONFLICT DO UPDATE command cannot affect row
+  // a second time" if the same key appears twice in one upsert batch.
+  const seen = new Set<string>();
+  const dedupedRows = rows.filter(r => {
+    if (seen.has(r.dedup_key)) return false;
+    seen.add(r.dedup_key);
+    return true;
+  });
 
-  if (rows.length === 0) {
-    console.warn("[refreshJobs] All jobs were stale — nothing to insert");
+  console.log(`[refreshJobs] After cleaning → ${dedupedRows.length} unique rows to upsert (${rows.length - dedupedRows.length} cross-page dupes removed, ${skippedStale} stale skipped)`);
+
+  if (dedupedRows.length === 0) {
+    console.warn("[refreshJobs] All jobs were stale or duplicate — nothing to insert");
     return { ok: true, fetched: allJobs.length, upserted: 0 };
   }
 
   // ── 4. Upsert to Supabase ─────────────────────────────────────────────────
-  // Use service role key — bypasses RLS and has full schema access.
-  // db schema is explicitly set to "public" to avoid any ambiguity.
   console.log("[refreshJobs] Creating Supabase service-role client...");
   const supabase = createClient(SUPABASE_URL!, SERVICE_KEY!, {
     db: { schema: "public" },
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  console.log(`[refreshJobs] Upserting ${rows.length} rows into public.job_listings...`);
+  console.log(`[refreshJobs] Upserting ${dedupedRows.length} rows into public.job_listings...`);
   const { error: upsertError } = await supabase
     .from("job_listings")
-    .upsert(rows, { onConflict: "dedup_key" });
+    .upsert(dedupedRows, { onConflict: "dedup_key" });
 
   if (upsertError) {
     console.error("[refreshJobs] Supabase upsert FAILED");
@@ -230,7 +235,7 @@ export async function runRefresh(): Promise<RefreshResult> {
     return { ok: false, fetched: allJobs.length, upserted: 0, error: upsertError.message };
   }
 
-  console.log(`[refreshJobs] Upsert succeeded — ${rows.length} rows written`);
+  console.log(`[refreshJobs] Upsert succeeded — ${dedupedRows.length} rows written`);
 
   // ── 5. Prune stale listings ───────────────────────────────────────────────
   const stale = new Date();
@@ -247,5 +252,5 @@ export async function runRefresh(): Promise<RefreshResult> {
   }
 
   console.log("[refreshJobs] ── DONE ──────────────────────────────────────");
-  return { ok: true, fetched: allJobs.length, upserted: rows.length };
+  return { ok: true, fetched: allJobs.length, upserted: dedupedRows.length };
 }

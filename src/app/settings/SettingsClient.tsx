@@ -49,18 +49,31 @@ export default function SettingsClient({ userId, email, fullName, isPro }: Props
   const [name, setName]               = useState(fullName);
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
+  const [saveError, setSaveError]     = useState("");
   const [signingOut, setSigningOut]   = useState(false);
 
   const initials = (name || email).slice(0, 2).toUpperCase();
 
   async function handleSaveProfile() {
     setSaving(true);
+    setSaveError("");
     try {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
-      await supabase.from("profiles").update({ full_name: name }).eq("id", userId);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: name })
+        .eq("id", userId);
+      if (error) {
+        console.error("[Settings] profile update failed:", error.message, error.code);
+        setSaveError(error.message);
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2400);
+    } catch (e) {
+      setSaveError("Unexpected error — please try again.");
+      console.error("[Settings] handleSaveProfile threw:", e);
     } finally {
       setSaving(false);
     }
@@ -147,6 +160,11 @@ export default function SettingsClient({ userId, email, fullName, isPro }: Props
                 <button onClick={handleSaveProfile} disabled={saving || saved} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 24px", borderRadius: "var(--radius-sm)", border: "none", cursor: saving ? "wait" : "pointer", background: saved ? "rgba(31,191,159,.15)" : "var(--teal)", color: saved ? "var(--teal)" : "#041a13", fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", transition: "all .2s" }}>
                   {saved ? <><IconCheck /> Saved</> : saving ? "Saving…" : "Save Changes"}
                 </button>
+                {saveError && (
+                  <div style={{ marginTop: 10, fontSize: 13, color: "#f87171", padding: "8px 12px", borderRadius: "var(--radius-sm)", background: "rgba(248,113,113,.06)", border: "1px solid rgba(248,113,113,.15)" }}>
+                    {saveError}
+                  </div>
+                )}
               </div>
             </Section>
           )}
@@ -213,12 +231,7 @@ export default function SettingsClient({ userId, email, fullName, isPro }: Props
                     ))}
                   </div>
                 ) : (
-                  <div style={{ marginTop: 8 }}>
-                    <Link href="/signup?plan=pro" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: "var(--radius-sm)", background: "var(--teal)", color: "#041a13", fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", textDecoration: "none" }}>
-                      ⚡ Upgrade to Pro
-                    </Link>
-                    <div style={{ marginTop: 10, fontSize: 12, color: "var(--t3)" }}>$19/mo billed annually · Cancel anytime</div>
-                  </div>
+                  <UpgradeButton />
                 )}
               </div>
 
@@ -280,26 +293,90 @@ function ToggleRow({ label, sub, defaultOn }: { label: string; sub: string; defa
 }
 
 function PasswordResetButton({ email }: { email: string }) {
-  const [state, setState] = useState<"idle" | "loading" | "sent">("idle");
+  const [state, setState]   = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [errMsg, setErrMsg] = useState("");
 
   async function handleReset() {
     setState("loading");
+    setErrMsg("");
     try {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
-      await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
       });
+      if (error) {
+        console.error("[Settings] resetPasswordForEmail failed:", error.message);
+        setErrMsg(error.message);
+        setState("error");
+        return;
+      }
       setState("sent");
-    } catch {
-      setState("idle");
+    } catch (e) {
+      setErrMsg("Unexpected error — please try again.");
+      console.error("[Settings] handleReset threw:", e);
+      setState("error");
     }
   }
 
   return (
-    <button onClick={handleReset} disabled={state !== "idle"} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 22px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", cursor: state === "idle" ? "pointer" : "not-allowed", background: state === "sent" ? "rgba(31,191,159,.08)" : "var(--bg-2)", color: state === "sent" ? "var(--teal)" : "var(--t1)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", transition: "all .2s", opacity: state === "loading" ? 0.6 : 1 }}>
-      {state === "sent" ? <><IconCheck /> Reset email sent</> : state === "loading" ? "Sending…" : "Send Password Reset Email"}
-    </button>
+    <div>
+      <button onClick={handleReset} disabled={state === "loading" || state === "sent"} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 22px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", cursor: (state === "loading" || state === "sent") ? "not-allowed" : "pointer", background: state === "sent" ? "rgba(31,191,159,.08)" : "var(--bg-2)", color: state === "sent" ? "var(--teal)" : "var(--t1)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", transition: "all .2s", opacity: state === "loading" ? 0.6 : 1 }}>
+        {state === "sent" ? <><IconCheck /> Reset email sent — check your inbox</> : state === "loading" ? "Sending…" : "Send Password Reset Email"}
+      </button>
+      {state === "error" && (
+        <div style={{ marginTop: 10, fontSize: 13, color: "#f87171", padding: "8px 12px", borderRadius: "var(--radius-sm)", background: "rgba(248,113,113,.06)", border: "1px solid rgba(248,113,113,.15)" }}>
+          {errMsg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UpgradeButton() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
+
+  async function handleUpgrade() {
+    setLoading(true);
+    setError("");
+    try {
+      const res  = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ billing: "annual" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setError(data.message ?? data.error ?? "Checkout failed — please try again.");
+        return;
+      }
+      router.push(data.url);
+    } catch (e) {
+      setError("Unexpected error — please try again.");
+      console.error("[Settings] handleUpgrade threw:", e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <button
+        onClick={handleUpgrade}
+        disabled={loading}
+        style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: "var(--radius-sm)", background: "var(--teal)", color: "#041a13", fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "opacity .15s" }}
+      >
+        {loading ? "Redirecting…" : "⚡ Upgrade to Pro"}
+      </button>
+      <div style={{ marginTop: 10, fontSize: 12, color: "var(--t3)" }}>$19/mo billed annually · Cancel anytime</div>
+      {error && (
+        <div style={{ marginTop: 10, fontSize: 13, color: "#f87171", padding: "8px 12px", borderRadius: "var(--radius-sm)", background: "rgba(248,113,113,.06)", border: "1px solid rgba(248,113,113,.15)" }}>
+          {error}
+        </div>
+      )}
+    </div>
   );
 }
 
