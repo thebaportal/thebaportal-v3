@@ -1024,8 +1024,8 @@ export default function LandingPage() {
             <LogoMark size={26} />
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </div>
-          <div style={{ display: "flex", gap: 24 }}>
-            {[["Challenges","#challenges"],["How it Works","#how-it-works"],["Career Suite","/career"],["Pricing","#pricing"]].map(([l, href]) => (
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            {[["Challenges","#challenges"],["How it Works","#how-it-works"],["Pricing","#pricing"],["FAQ","/faq"],["Privacy","/privacy"],["Terms","/terms"]].map(([l, href]) => (
               <Link key={l} href={href} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t2)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t3)")}

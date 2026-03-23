@@ -5,18 +5,19 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, LayoutDashboard, TrendingUp, GraduationCap,
   Target, BriefcaseBusiness, Trophy, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X, Mic,
+  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { icon: LayoutDashboard,    label: "Dashboard",    href: "/dashboard" },
-  { icon: BookOpen,           label: "Challenges",   href: "/scenarios" },
-  { icon: TrendingUp,         label: "Progress",     href: "/progress" },
-  { icon: GraduationCap,      label: "Learning",     href: "/learning" },
-  { icon: Mic,                label: "PitchReady",   href: "/pitchready" },
-  { icon: Target,             label: "Exam Prep",    href: "/exam" },
-  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career" },
-  { icon: Trophy,             label: "Portfolio",    href: "/portfolio" },
+  { icon: LayoutDashboard,    label: "Dashboard",      href: "/dashboard" },
+  { icon: BookOpen,           label: "Challenges",     href: "/scenarios" },
+  { icon: TrendingUp,         label: "Progress",       href: "/progress" },
+  { icon: GraduationCap,      label: "Learning",       href: "/learning" },
+  { icon: Mic,                label: "PitchReady",     href: "/pitchready" },
+  { icon: Target,             label: "Exam Prep",      href: "/exam" },
+  { icon: BriefcaseBusiness,  label: "Career Suite",   href: "/career" },
+  { icon: Globe2,             label: "Opportunities",  href: "/opportunities" },
+  { icon: Trophy,             label: "Portfolio",      href: "/portfolio" },
 ];
 
 interface AppSidebarProps {
