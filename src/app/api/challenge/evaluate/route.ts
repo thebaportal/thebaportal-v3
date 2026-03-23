@@ -234,6 +234,7 @@ Evaluate this submission now. Return only the JSON object.`;
     }
 
     // Save to database if user is logged in
+    let _dbSaveError: string | null = null;
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -255,12 +256,15 @@ Evaluate this submission now. Return only the JSON object.`;
           submissionText: submission,
           questionCount: questionCount || 0,
         }, supabase);
+      } else {
+        _dbSaveError = "no_user: getUser() returned null";
       }
     } catch (dbError) {
-      console.error("DB save error (non-fatal):", dbError);
+      _dbSaveError = dbError instanceof Error ? dbError.message : String(dbError);
+      console.error("DB save error:", _dbSaveError);
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, _dbSaveError });
 
   } catch (error) {
     console.error("Evaluate error:", error);
