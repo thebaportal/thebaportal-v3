@@ -47,10 +47,10 @@ export default function PricingPage() {
       } else if (data.error === "not_authenticated") {
         router.push("/login?redirectTo=/pricing");
       } else {
-        alert("Something went wrong. Please try again.");
+        alert(`Checkout error: ${data.message || data.error || "Unknown error"}`);
       }
-    } catch {
-      alert("Something went wrong. Please try again.");
+    } catch (err) {
+      alert(`Network error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
