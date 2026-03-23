@@ -378,6 +378,87 @@ function PricingCard({ plan, price, period, features, cta, href, featured }: {
   );
 }
 
+// ── Platform Dropdown ─────────────────────────────────────────────────────────
+const PLATFORM_ITEMS = [
+  { label: "Challenges",    desc: "Simulate real BA scenarios",        href: "/scenarios",  color: "#38bdf8", icon: "🎯" },
+  { label: "Career Suite",  desc: "Advisor, resume, cover letters",    href: "/career",     color: "#1fbf9f", icon: "💼" },
+  { label: "PitchReady",    desc: "Nail your BA interview answers",    href: "/pitchready", color: "#a78bfa", icon: "🎤" },
+  { label: "Learning",      desc: "Six-module SDLC case story",        href: "/learning",   color: "#fb923c", icon: "📚" },
+  { label: "Exam Prep",     desc: "CBAP / CCBA practice questions",    href: "/exam",       color: "#facc15", icon: "📝" },
+];
+
+function PlatformDropdown() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 5,
+          fontSize: 14, fontWeight: 500, color: open ? "var(--t1)" : "var(--t2)",
+          background: "none", border: "none", cursor: "pointer", padding: 0,
+          transition: "color .15s",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.color = "var(--t2)"; }}
+      >
+        Platform
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+          style={{ transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 14px)", left: "50%", transform: "translateX(-50%)",
+          background: "rgba(13,13,18,0.98)", border: "1px solid rgba(255,255,255,0.10)",
+          borderRadius: 16, padding: "8px", minWidth: 280,
+          boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
+          backdropFilter: "blur(24px)",
+          zIndex: 300,
+          animation: "fade-up .18s ease both",
+        }}>
+          {/* arrow */}
+          <div style={{ position: "absolute", top: -6, left: "50%", transform: "translateX(-50%)", width: 12, height: 6, overflow: "hidden" }}>
+            <div style={{ width: 10, height: 10, background: "rgba(255,255,255,0.10)", transform: "rotate(45deg)", margin: "3px auto 0", borderTop: "1px solid rgba(255,255,255,0.10)", borderLeft: "1px solid rgba(255,255,255,0.10)" }} />
+          </div>
+          {PLATFORM_ITEMS.map(item => (
+            <Link key={item.label} href={item.href}
+              onClick={() => setOpen(false)}
+              style={{
+                display: "flex", alignItems: "center", gap: 12, padding: "10px 12px",
+                borderRadius: 10, textDecoration: "none",
+                transition: "background .15s",
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.05)"}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
+            >
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: `${item.color}12`, border: `1px solid ${item.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+                {item.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--t1)", marginBottom: 1 }}>{item.label}</div>
+                <div style={{ fontSize: 11.5, color: "var(--t3)" }}>{item.desc}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
@@ -468,8 +549,9 @@ export default function LandingPage() {
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: 30 }}>
-            {["Challenges","Features","Pricing"].map(l => (
-              <Link key={l} href={l === "Challenges" ? "#challenges" : l === "Features" ? "#features" : "#pricing"} style={{ fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
+            <PlatformDropdown />
+            {[["Pricing", "#pricing"]].map(([l, href]) => (
+              <Link key={l} href={href} style={{ fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
               >{l}</Link>
