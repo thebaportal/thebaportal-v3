@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase, RefreshCw, AlertTriangle } from "lucide-react";
 
 interface PrepLink { label: string; href: string }
 
@@ -25,6 +26,7 @@ interface JobListing {
 interface Props {
   initialJobs: JobListing[];
   isLoggedIn: boolean;
+  syncError?: string;
 }
 
 function daysAgo(dateStr: string): string {
@@ -47,10 +49,34 @@ const LEVEL_LABELS: Record<string, string>     = { entry: "Entry", junior: "Juni
 const WORK_TYPE_BG:   Record<string, string>   = { remote: "rgba(31,191,159,0.12)", hybrid: "rgba(139,92,246,0.12)", onsite: "rgba(59,130,246,0.12)" };
 const WORK_TYPE_TEXT: Record<string, string>   = { remote: "#1fbf9f", hybrid: "#a78bfa", onsite: "#60a5fa" };
 
-export default function OpportunitiesClient({ initialJobs, isLoggedIn }: Props) {
-  const [keyword, setKeyword]   = useState("");
-  const [workType, setWorkType] = useState<string>("all");
-  const [level, setLevel]       = useState<string>("all");
+export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError }: Props) {
+  const router = useRouter();
+  const [keyword, setKeyword]     = useState("");
+  const [workType, setWorkType]   = useState<string>("all");
+  const [level, setLevel]         = useState<string>("all");
+  const [syncing, setSyncing]     = useState(false);
+  const [syncMsg, setSyncMsg]     = useState<string | null>(null);
+
+  const triggerSync = useCallback(async () => {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res  = await fetch("/api/jobs/sync");
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setSyncMsg(`Sync failed: ${data.error ?? "unknown error"}`);
+      } else if (data.skipped) {
+        setSyncMsg(`Already synced ${data.minsAgo} minutes ago — refresh the page to see latest listings.`);
+      } else {
+        setSyncMsg(`Sync complete — ${data.upserted} jobs loaded. Refreshing...`);
+        setTimeout(() => router.refresh(), 1200);
+      }
+    } catch (e) {
+      setSyncMsg(`Sync failed: ${String(e)}`);
+    } finally {
+      setSyncing(false);
+    }
+  }, [router]);
 
   const filtered = useMemo(() => initialJobs.filter(job => {
     if (workType !== "all" && job.work_type !== workType) return false;
@@ -68,6 +94,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn }: Props) 
 
   return (
     <div style={{ background: "#07070a", color: "#f2f2f8", minHeight: "100vh", fontFamily: "'Open Sans',sans-serif", WebkitFontSmoothing: "antialiased" }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Nav */}
       <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, height: 58, display: "flex", alignItems: "center", padding: "0 28px", background: "rgba(7,7,10,0.92)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -100,10 +127,10 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn }: Props) 
           <p style={{ fontSize: 16, color: "#9090a8", lineHeight: 1.68, maxWidth: 520, marginBottom: 0 }}>
             Fresh listings refreshed every 2 hours from across Canada. Find your next role, then use TheBAPortal to get ready for it.
           </p>
-          {initialJobs.length === 0 && (
-            <p style={{ marginTop: 12, fontSize: 13, color: "#505068", fontFamily: "monospace" }}>
-              First sync triggered — refresh in 10 seconds to see listings.
-            </p>
+          {syncError && (
+            <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#f87171", fontFamily: "monospace", padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)" }}>
+              <AlertTriangle size={13} /> Sync error: {syncError}
+            </div>
           )}
         </div>
 
@@ -141,14 +168,46 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn }: Props) 
           </span>
         </div>
 
+        {/* Sync status message */}
+        {syncMsg && (
+          <div style={{ marginBottom: 16, fontSize: 13, color: syncMsg.includes("failed") ? "#f87171" : "#1fbf9f", fontFamily: "monospace", padding: "10px 14px", borderRadius: 8, background: syncMsg.includes("failed") ? "rgba(248,113,113,0.06)" : "rgba(31,191,159,0.06)", border: `1px solid ${syncMsg.includes("failed") ? "rgba(248,113,113,0.15)" : "rgba(31,191,159,0.15)"}` }}>
+            {syncMsg}
+          </div>
+        )}
+
         {/* Job cards */}
         {filtered.length === 0 ? (
           <div style={{ padding: "60px 0", textAlign: "center", color: "#505068" }}>
             <Briefcase size={32} style={{ margin: "0 auto 16px", display: "block", opacity: 0.3 }} />
-            <p style={{ fontSize: 15 }}>No jobs match your filters.</p>
-            <button onClick={() => { setKeyword(""); setWorkType("all"); setLevel("all"); }} style={{ marginTop: 12, fontSize: 13, color: "#1fbf9f", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-              Clear filters
-            </button>
+            {initialJobs.length === 0 ? (
+              // Table is genuinely empty
+              <>
+                <p style={{ fontSize: 15, marginBottom: 8 }}>
+                  {syncError ? "Sync failed — jobs could not be loaded." : "No jobs loaded yet."}
+                </p>
+                <p style={{ fontSize: 13, color: "#3a3a50", marginBottom: 20 }}>
+                  {syncError
+                    ? "Check that all four env vars are set in Netlify (ADZUNA_APP_ID, ADZUNA_APP_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET)."
+                    : "The job board syncs every 2 hours. You can trigger it manually now."}
+                </p>
+                <button
+                  onClick={triggerSync}
+                  disabled={syncing}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", background: "rgba(31,191,159,0.1)", color: "#1fbf9f", border: "1px solid rgba(31,191,159,0.2)", fontFamily: "'Inter',sans-serif", opacity: syncing ? 0.6 : 1 }}
+                >
+                  <RefreshCw size={13} style={{ animation: syncing ? "spin 1s linear infinite" : "none" }} />
+                  {syncing ? "Syncing…" : "Sync jobs now"}
+                </button>
+              </>
+            ) : (
+              // Jobs exist but filters show nothing
+              <>
+                <p style={{ fontSize: 15 }}>No jobs match your filters.</p>
+                <button onClick={() => { setKeyword(""); setWorkType("all"); setLevel("all"); }} style={{ marginTop: 12, fontSize: 13, color: "#1fbf9f", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                  Clear filters
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 64 }}>
