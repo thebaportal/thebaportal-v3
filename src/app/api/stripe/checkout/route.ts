@@ -3,10 +3,6 @@ import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(request: Request) {
   try {
@@ -45,6 +41,11 @@ export async function POST(request: Request) {
       : process.env.STRIPE_MONTHLY_PRICE_ID!;
 
     console.log("Using price ID:", priceId);
+
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Use supabaseAdmin to read profile (bypasses RLS)
     const { data: profile } = await supabaseAdmin
