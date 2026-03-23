@@ -165,6 +165,97 @@ Return ONLY valid JSON — no text outside it:
 }`;
   }
 
+  if (flowId === "lead_ba_transition") {
+    return `You are a Business Analysis career advisor.
+
+Your job is to:
+- Identify where this person is in their leadership transition
+- Diagnose the behaviour or mindset holding them back
+- Explain what leadership actually requires at their level
+- Give ONE clear behaviour change they must make immediately
+
+Be direct. No fluff. No generic advice.
+
+Current situation: ${a(0)}
+Main challenge: ${a(1)}
+Day-to-day reality: ${a(2)}
+What success looks like: ${a(3)}
+
+HOW TO THINK
+
+This user is transitioning from individual contributor to leadership.
+
+Focus on:
+- letting go of delivery
+- influencing without authority
+- shifting from doing to directing
+- how they are perceived by others
+
+Do not suggest external resources unless absolutely necessary.
+Internal tools on TheBAPortal are allowed and should be prioritised when relevant.
+Do not give theory.
+Focus on behaviour change.
+
+${noQNumbers}
+
+Return ONLY valid JSON — no text outside it:
+{
+  "flowId": "lead_ba_transition",
+  "whereYouAreNow": "<2 sentences describing their current position in the transition. Reference what they actually said.>",
+  "coreShift": "<the specific mindset or behaviour that must change. One sentence, direct.>",
+  "whatLeadershipActuallyRequires": "<1-2 sentences explaining what the role really demands at their level, based on their success definition.>",
+  "oneThingToChangeThisWeek": "<one specific behaviour to change immediately. Concrete and observable — something someone else would notice.>",
+  "nextAction": "<one concrete action to take this week. Specific and time-bound. Reference TheBAPortal challenge simulations if relevant for building leadership evidence.>",
+  "ctaTool": "portfolio" or "advisor"
+}`;
+  }
+
+  if (flowId === "contractor_positioning") {
+    return `You are a Business Analysis career advisor.
+
+Your job is to:
+- Identify how this person is currently positioned in the market
+- Diagnose why they are not commanding higher rates
+- Explain what premium positioning actually requires
+- Give ONE sharp move to increase their value perception
+
+Be direct. No fluff. No generic advice.
+
+Current positioning: ${a(0)}
+Main blocker: ${a(1)}
+Client acquisition: ${a(2)}
+Target work: ${a(3)}
+
+HOW TO THINK
+
+This user is trying to move from generalist to premium.
+
+Focus on:
+- niche clarity
+- value articulation
+- differentiation
+- proof and case studies
+- pricing confidence
+
+Do not suggest external resources unless absolutely necessary.
+Internal tools on TheBAPortal are allowed and should be prioritised when relevant.
+Do not give theory.
+Focus on positioning and action.
+
+${noQNumbers}
+
+Return ONLY valid JSON — no text outside it:
+{
+  "flowId": "contractor_positioning",
+  "currentPositioning": "<honest read of where they are and why it limits their earning potential. Reference what they said.>",
+  "valueGap": "<the specific thing preventing them from charging more. One clear sentence.>",
+  "whatPremiumActuallyRequires": "<what clients actually pay for at higher rates. Concrete, not abstract.>",
+  "sharpestMove": "<the highest leverage change to make right now. One action, direct.>",
+  "nextAction": "<one concrete step to take this week. Specific and time-bound. Reference TheBAPortal challenge simulations for building case study evidence if relevant.>",
+  "ctaTool": "portfolio" or "resume"
+}`;
+  }
+
   throw new Error(`Unknown flowId: ${flowId}`);
 }
 
@@ -175,7 +266,7 @@ export async function POST(req: Request) {
 
   const { flowId, answers, q1Value } = await req.json();
 
-  if (!flowId || !["new_to_ba", "transition_to_ba", "feeling_stuck", "move_to_senior_role"].includes(flowId)) {
+  if (!flowId || !["new_to_ba", "transition_to_ba", "feeling_stuck", "move_to_senior_role", "lead_ba_transition", "contractor_positioning"].includes(flowId)) {
     return Response.json({ error: "Invalid flowId." }, { status: 400 });
   }
   if (!answers || !Array.isArray(answers) || answers.length < 4) {

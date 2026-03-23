@@ -455,6 +455,105 @@ const FLOW_CONFIG: Record<string, FlowConfig> = {
       },
     },
   },
+  lead_ba_transition: {
+    id: "lead_ba_transition",
+    title: "Let's map your move into leadership",
+    subtitle: "Four questions to work out where you are in the transition and what you need to do differently.",
+    loadingSteps: [
+      "Reading where you are in the transition",
+      "Diagnosing what is holding you back",
+      "Working out what the role actually requires",
+      "Finding your one behaviour change",
+    ],
+    questions: [
+      {
+        question: "Where are you in the leadership transition right now?",
+        options: [
+          "Just moved into the lead role and still doing most of the delivery myself",
+          "Been in the role a while but keep getting pulled back into execution",
+          "I struggle to influence decisions when I do not have direct authority",
+          "People still relate to me as the senior BA who got promoted, not as a leader",
+        ],
+      },
+      {
+        question: "What is the hardest part of the shift for you?",
+        options: [
+          "Letting go of delivery and trusting others to execute to the right standard",
+          "Getting people to follow my direction without me having formal authority",
+          "Knowing when to step in and when to stay out of the work",
+          "Making the leadership part of my role visible to stakeholders and senior people",
+        ],
+      },
+      {
+        question: "What does your current day actually look like in the lead role?",
+        options: [
+          "Mostly still doing BA delivery work with some oversight of others",
+          "A mix — I lead some things but default to doing when it gets busy",
+          "Lots of meetings but I am not sure how much I am actually influencing",
+          "I am actively shaping the team's approach and challenging direction",
+        ],
+      },
+      {
+        question: "What does success look like to you in the next 6 months?",
+        options: [
+          "Being trusted to shape the direction of BA work without being micromanaged",
+          "Having the team deliver confidently without me being in every detail",
+          "Being seen as a strategic voice in senior conversations",
+          "Building a team where the BA work quality speaks for itself",
+        ],
+      },
+    ],
+  },
+
+  contractor_positioning: {
+    id: "contractor_positioning",
+    title: "Let's sharpen your specialist positioning",
+    subtitle: "Four questions to work out your niche, your value, and how to command a higher rate.",
+    loadingSteps: [
+      "Reading your current positioning",
+      "Diagnosing what is capping your rate",
+      "Working out what premium actually requires",
+      "Finding your sharpest move",
+    ],
+    questions: [
+      {
+        question: "How would you describe your current positioning as a contractor or consultant?",
+        options: [
+          "I am a generalist — I take most BA work that comes my way",
+          "I have a rough niche but I have not defined or committed to it clearly",
+          "I have a clear niche but I struggle to articulate the premium value it brings",
+          "I know my value but I am not attracting the right clients or rates",
+        ],
+      },
+      {
+        question: "What is the main thing stopping you from commanding higher rates?",
+        options: [
+          "I do not have a defined niche or specialisation that justifies a premium",
+          "I struggle to say what makes me worth more than a cheaper option",
+          "I do not have strong enough case studies or visible proof of results",
+          "My rate feels anchored to what I earned as a permanent employee",
+        ],
+      },
+      {
+        question: "What does your current client acquisition look like?",
+        options: [
+          "Mostly word of mouth or repeat clients with no real outbound approach",
+          "I rely on platforms or agencies and take what is available",
+          "I have a network but I am not actively using it to find better work",
+          "I pitch directly to clients but my conversion rate is lower than I want",
+        ],
+      },
+      {
+        question: "What kind of work do you actually want to be doing?",
+        options: [
+          "High value advisory engagements with senior stakeholders",
+          "Specialist BA work in a specific domain or industry I know deeply",
+          "A mix of retained clients and project work at a higher rate",
+          "Building a reputation as the go-to person for a specific problem type",
+        ],
+      },
+    ],
+  },
 };
 
 // CTA routing from result screen
@@ -550,7 +649,27 @@ type SeniorRoleResult = {
   ctaTool: string;
 };
 
-type AdvisorResult = NewToBaResult | TransitionResult | StuckResult | SeniorRoleResult;
+type LeadTransitionResult = {
+  flowId: "lead_ba_transition";
+  whereYouAreNow: string;
+  coreShift: string;
+  whatLeadershipActuallyRequires: string;
+  oneThingToChangeThisWeek: string;
+  nextAction: string;
+  ctaTool: string;
+};
+
+type ContractorResult = {
+  flowId: "contractor_positioning";
+  currentPositioning: string;
+  valueGap: string;
+  whatPremiumActuallyRequires: string;
+  sharpestMove: string;
+  nextAction: string;
+  ctaTool: string;
+};
+
+type AdvisorResult = NewToBaResult | TransitionResult | StuckResult | SeniorRoleResult | LeadTransitionResult | ContractorResult;
 
 // ── Result renderers ─────────────────────────────────────────────────────────
 
@@ -736,6 +855,88 @@ function ResultSeniorRole({ result, onBack }: { result: SeniorRoleResult; onBack
   );
 }
 
+function ResultLeadTransition({ result, onBack }: { result: LeadTransitionResult; onBack?: () => void }) {
+  const router = useRouter();
+  const cta = CTA_ROUTES[result.ctaTool];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ ...card, borderColor: "rgba(168,85,247,0.25)", background: "rgba(168,85,247,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "#a855f7", fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHERE YOU ARE IN THE TRANSITION</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whereYouAreNow}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>THE SHIFT YOU NEED TO MAKE</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.coreShift}</p>
+      </div>
+
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT LEADERSHIP ACTUALLY REQUIRES</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whatLeadershipActuallyRequires}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: "rgba(110,231,183,0.25)", background: "rgba(16,185,129,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>ONE THING TO CHANGE THIS WEEK</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.oneThingToChangeThisWeek}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR NEXT STEP THIS WEEK</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "0 0 14px" }}>{result.nextAction}</p>
+        {cta && (
+          <button style={{ ...btn(), fontSize: "13px", padding: "10px 20px" }} onClick={() => router.push(cta.href)}>
+            {cta.label}
+          </button>
+        )}
+      </div>
+
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={onBack}>Start over</button>
+    </div>
+  );
+}
+
+function ResultContractor({ result, onBack }: { result: ContractorResult; onBack?: () => void }) {
+  const router = useRouter();
+  const cta = CTA_ROUTES[result.ctaTool];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ ...card, borderColor: "rgba(251,191,36,0.2)", background: "rgba(251,191,36,0.05)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.amber, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR CURRENT POSITIONING</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.currentPositioning}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: "rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.red, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT IS CAPPING YOUR RATE</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.valueGap}</p>
+      </div>
+
+      <div style={card}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.muted, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT PREMIUM ACTUALLY REQUIRES</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.whatPremiumActuallyRequires}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: "rgba(110,231,183,0.25)", background: "rgba(16,185,129,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.green, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR SHARPEST MOVE RIGHT NOW</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: 0 }}>{result.sharpestMove}</p>
+      </div>
+
+      <div style={{ ...card, borderColor: C.tealBorder, background: "rgba(8,145,178,0.06)" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: C.teal, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR NEXT STEP THIS WEEK</div>
+        <p style={{ fontSize: "14px", color: C.text, lineHeight: "1.6", margin: "0 0 14px" }}>{result.nextAction}</p>
+        {cta && (
+          <button style={{ ...btn(), fontSize: "13px", padding: "10px 20px" }} onClick={() => router.push(cta.href)}>
+            {cta.label}
+          </button>
+        )}
+      </div>
+
+      <button style={{ ...btn("ghost"), alignSelf: "flex-start" }} onClick={onBack}>Start over</button>
+    </div>
+  );
+}
+
 // ── AdvisorTool ───────────────────────────────────────────────────────────────
 
 function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
@@ -851,6 +1052,8 @@ function AdvisorTool({ onNavigate, intent, intentHeading, onBack }: {
     if (result.flowId === "transition_to_ba") return <ResultTransition result={result} onBack={restart} />;
     if (result.flowId === "feeling_stuck") return <ResultStuck result={result} onBack={restart} />;
     if (result.flowId === "move_to_senior_role") return <ResultSeniorRole result={result} onBack={restart} />;
+    if (result.flowId === "lead_ba_transition") return <ResultLeadTransition result={result} onBack={restart} />;
+    if (result.flowId === "contractor_positioning") return <ResultContractor result={result} onBack={restart} />;
   }
 
   // ── Question step ──
