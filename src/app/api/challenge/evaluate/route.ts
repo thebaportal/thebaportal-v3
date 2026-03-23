@@ -142,7 +142,7 @@ export async function POST(request: Request) {
             scoreRecommendation: 0,
             submissionText: JSON.stringify(findings),
             questionCount: 0,
-          });
+          }, supabase);
         }
       } catch (dbError) {
         console.error("DB save error (non-fatal):", dbError);
@@ -254,7 +254,7 @@ Evaluate this submission now. Return only the JSON object.`;
           scoreRecommendation: result.dimensions.recommendationQuality.score,
           submissionText: submission,
           questionCount: questionCount || 0,
-        });
+        }, supabase);
       }
     } catch (dbError) {
       console.error("DB save error (non-fatal):", dbError);

@@ -164,6 +164,7 @@ export function calculateStreak(attempts: ChallengeAttempt[]): number {
   return streak;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function saveAttempt(params: {
   userId: string;
   challengeId: string;
@@ -178,8 +179,9 @@ export async function saveAttempt(params: {
   scoreRecommendation: number;
   submissionText: string;
   questionCount: number;
-}): Promise<void> {
-  const supabase = await createClient();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+}, supabaseClient?: any): Promise<void> {
+  const supabase = supabaseClient ?? await createClient();
 
   // Save attempt
   const { error: attemptError } = await supabase
@@ -200,7 +202,10 @@ export async function saveAttempt(params: {
       question_count: params.questionCount,
     });
 
-  if (attemptError) { console.error("Error saving attempt:", attemptError); return; }
+  if (attemptError) {
+    console.error("saveAttempt error:", JSON.stringify(attemptError));
+    throw new Error(attemptError.message || "Failed to save attempt");
+  }
 
   // Fetch all attempts to recalculate
   const { data: allAttempts } = await supabase
@@ -212,7 +217,7 @@ export async function saveAttempt(params: {
 
   const completed = allAttempts.length;
   const avgScore = completed > 0
-    ? Math.round(allAttempts.reduce((sum, a) => sum + a.total_score, 0) / completed)
+    ? Math.round(allAttempts.reduce((sum: number, a: { total_score: number }) => sum + a.total_score, 0) / completed)
     : 0;
   const streak = calculateStreak(allAttempts);
   const baLevel = calculateBALevel(completed, avgScore);
@@ -236,7 +241,7 @@ export async function saveAttempt(params: {
     .select("badge_id")
     .eq("user_id", params.userId);
 
-  const earnedIds = new Set(existingBadges?.map(b => b.badge_id) || []);
+  const earnedIds = new Set(existingBadges?.map((b: { badge_id: string }) => b.badge_id) || []);
 
   for (const badge of BADGE_DEFINITIONS) {
     if (!earnedIds.has(badge.id) && badge.check(allAttempts)) {
