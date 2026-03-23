@@ -2126,8 +2126,8 @@ const CATEGORIES: { id: Category; num: number; title: string; description: strin
   },
   {
     id: "grow", num: 3,
-    title: "Grow or negotiate",
-    description: "I want to level up, prepare for interviews, or negotiate offers",
+    title: "Advance my career",
+    description: "I want to grow, get promoted, or increase my earning power as a BA",
     colour: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.2)",
   },
 ];
@@ -2147,10 +2147,10 @@ const CATEGORY_OPTIONS: Record<Category, CategoryOption[]> = {
     { label: "Analyze a job description and tell me what they really want", intent: "analyze_job_description" },
   ],
   grow: [
-    { label: "I have interviews coming up and need to prepare", intent: "interview_preparation" },
-    { label: "I want to practice interview answers and get feedback", intent: "practice_answers" },
-    { label: "I have an offer and need help negotiating", intent: "negotiate_offer" },
-    { label: "I want to move into a higher paying or more senior BA role", intent: "move_to_senior_role" },
+    { label: "I want to move into a more senior or higher paying BA role", intent: "move_to_senior_role" },
+    { label: "I want to step into a leadership role where I guide others and shape direction", intent: "lead_ba_transition" },
+    { label: "I want to position myself as a specialist and earn more as a contractor or consultant", intent: "contractor_positioning" },
+    { label: "I want help negotiating an offer", intent: "offer_negotiation" },
   ],
 };
 
@@ -2167,6 +2167,8 @@ const INTENT_TO_TOOL: Record<string, Tool | null> = {
   practice_answers: null,
   negotiate_offer: "salary",
   move_to_senior_role: "advisor",
+  lead_ba_transition: "advisor",
+  contractor_positioning: "advisor",
 };
 
 // Intent-aware headings shown to users at the top of each tool
@@ -2214,6 +2216,14 @@ const INTENT_HEADINGS: Record<string, { heading: string; subtext: string }> = {
   move_to_senior_role: {
     heading: "Let's map your path to a senior BA role",
     subtext: "Four questions to work out where you are, what is holding you back, and what your next step looks like.",
+  },
+  lead_ba_transition: {
+    heading: "Let's map your move into leadership",
+    subtext: "Four questions to work out where you are in the transition and what you need to do differently.",
+  },
+  contractor_positioning: {
+    heading: "Let's sharpen your specialist positioning",
+    subtext: "Four questions to work out your niche, your value, and how to command a higher rate.",
   },
 };
 
