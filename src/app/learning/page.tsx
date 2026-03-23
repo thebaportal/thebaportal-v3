@@ -26,5 +26,5 @@ export default async function LearningPage() {
 
   const completedLessons = (completions || []).map((r: { lesson_id: string }) => r.lesson_id);
 
-  return <LearningClient profile={profile} completedLessons={completedLessons} />;
+  return <LearningClient profile={profile} user={{ email: user.email || "" }} completedLessons={completedLessons} />;
 }

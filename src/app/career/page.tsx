@@ -19,13 +19,17 @@ export default async function CareerPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, subscription_tier")
     .eq("id", user.id)
     .single();
 
   return (
     <Suspense fallback={null}>
-      <CareerClient fullName={profile?.full_name ?? ""} />
+      <CareerClient
+        fullName={profile?.full_name ?? ""}
+        profile={profile}
+        user={{ email: user.email || "" }}
+      />
     </Suspense>
   );
 }

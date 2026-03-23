@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, ChevronRight, ChevronLeft, Check,
-  LayoutDashboard, TrendingUp, Target, GraduationCap,
-  BriefcaseBusiness, Trophy, Lock, ArrowLeft,
-  Clock, Zap,
+  ChevronRight, ChevronLeft, Check,
+  Lock, ArrowLeft, Clock, Zap,
 } from "lucide-react";
+import AppSidebar from "@/components/AppSidebar";
 
 interface Option { id: string; text: string; feedback: string; }
 interface MCQ { id: string; question: string; options: string[]; correctIndex: number; explanation: string; }
@@ -889,15 +888,6 @@ const MODULES: Module[] = [
     ] },
 ];
 
-const navItems: { icon: React.ElementType; label: string; href: string; active?: boolean; locked?: boolean }[] = [
-  { icon: LayoutDashboard,    label: "Dashboard",    href: "/dashboard" },
-  { icon: BookOpen,           label: "Challenges",   href: "/scenarios" },
-  { icon: TrendingUp,         label: "Progress",     href: "/progress" },
-  { icon: GraduationCap,      label: "Learning",     href: "/learning", active: true },
-  { icon: Target,             label: "Exam Prep",    href: "/exam"                  },
-  { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career" },
-  { icon: Trophy,             label: "Portfolio",    href: "/portfolio" },
-];
 
 // ─── Badge Toast ──────────────────────────────────────────────────────────────
 function BadgeToast({ badge, onClose }: { badge: Badge; onClose: () => void }) {
@@ -1083,11 +1073,12 @@ function KnowledgeCheckPanel({ check, onComplete }: { check: KnowledgeCheck; onC
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 interface Props {
-  profile: { subscription_tier: string; full_name?: string | null } | null;
+  profile: { subscription_tier: string; full_name: string | null } | null;
+  user: { email: string };
   completedLessons: string[];
 }
 
-export default function LearningClient({ profile, completedLessons: initialCompleted }: Props) {
+export default function LearningClient({ profile, user, completedLessons: initialCompleted }: Props) {
   const router = useRouter();
   const isPro = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
 
@@ -1194,31 +1185,7 @@ export default function LearningClient({ profile, completedLessons: initialCompl
   // ── Module grid ─────────────────────────────────────────────────────────────
   if (!selectedModule) return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
-      <aside className="w-64 flex-shrink-0 flex flex-col relative overflow-hidden" style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}>
-        <div className="absolute inset-0 pointer-events-none dot-grid" />
-        <div className="relative px-5 pt-6 pb-5" style={{ borderBottom: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "var(--teal-soft)", border: "1px solid var(--teal-border)" }}>
-              <BookOpen className="w-4 h-4" style={{ color: "var(--teal)" }} />
-            </div>
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "15px", color: "var(--text-1)", letterSpacing: "-0.03em" }}>
-              The<span style={{ color: "var(--teal)" }}>BA</span>Portal
-            </div>
-          </div>
-        </div>
-        <nav className="relative flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-          <div className="type-label px-3 pb-3">Platform</div>
-          {navItems.map(item => (
-            <button key={item.href} onClick={() => !item.locked && router.push(item.href)} className="sidebar-item"
-              style={item.active ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid var(--teal-border)" } : item.locked ? { color: "var(--text-4)", cursor: "not-allowed" } : {}}>
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.active && <div className="teal-dot" />}
-              {item.locked && <span className="type-label" style={{ padding: "2px 6px", borderRadius: "4px", background: "rgba(255,255,255,0.03)", color: "var(--text-4)" }}>SOON</span>}
-            </button>
-          ))}
-        </nav>
-      </aside>
+      <AppSidebar activeHref="/learning" profile={profile} user={user} />
 
       <main className="flex-1 overflow-y-auto">
         <header className="px-8 py-5 flex items-center gap-4 sticky top-0 z-20" style={{ background: "rgba(9,9,11,0.88)", backdropFilter: "blur(24px)", borderBottom: "1px solid var(--border)" }}>

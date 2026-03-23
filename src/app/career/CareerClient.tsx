@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  LayoutDashboard, BookOpen, TrendingUp, GraduationCap,
-  Target, Mic, BriefcaseBusiness, Trophy, Settings,
-} from "lucide-react";
+import AppSidebar from "@/components/AppSidebar";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -13,6 +10,8 @@ type Tool = "home" | "advisor" | "resume" | "cover-letter" | "jd" | "interview" 
 
 interface Props {
   fullName: string;
+  profile: { full_name: string | null; subscription_tier: string | null } | null;
+  user: { email: string };
 }
 
 // ── Colours / style helpers ─────────────────────────────────────────────────
@@ -2440,18 +2439,7 @@ const TOOL_TO_URL: Partial<Record<Tool, string>> = {
   salary:         "/career?cat=grow&intent=negotiate_offer",
 };
 
-const CAREER_NAV = [
-  { icon: LayoutDashboard,   label: "Dashboard",    href: "/dashboard"   },
-  { icon: BookOpen,          label: "Challenges",   href: "/scenarios"   },
-  { icon: TrendingUp,        label: "Progress",     href: "/progress"    },
-  { icon: GraduationCap,     label: "Learning",     href: "/learning"    },
-  { icon: Target,            label: "Exam Prep",    href: "/exam"        },
-  { icon: Mic,               label: "PitchReady",   href: "/pitchready"  },
-  { icon: BriefcaseBusiness, label: "Career Suite", href: "/career", active: true },
-  { icon: Trophy,            label: "Portfolio",    href: "/portfolio"   },
-];
-
-export default function CareerClient({ fullName }: Props) {
+export default function CareerClient({ fullName, profile, user }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -2480,36 +2468,7 @@ export default function CareerClient({ fullName }: Props) {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
 
-      {/* ── Sidebar ── */}
-      <aside className="w-64 flex-shrink-0 flex flex-col" style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}>
-        <div className="px-5 pt-6 pb-5" style={{ borderBottom: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "var(--teal-soft)", border: "1px solid var(--teal-border)" }}>
-              <BookOpen className="w-4 h-4" style={{ color: "var(--teal)" }} />
-            </div>
-            <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "15px", color: "var(--text-1)", letterSpacing: "-0.03em" }}>
-              The<span style={{ color: "var(--teal)" }}>BA</span>Portal
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 px-3 py-5 overflow-y-auto" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          <div className="type-label px-3 pb-3">Platform</div>
-          {CAREER_NAV.map(item => (
-            <button key={item.href} onClick={() => router.push(item.href)} className="sidebar-item"
-              style={item.active ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid var(--teal-border)" } : {}}>
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.active && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--teal)", flexShrink: 0 }} />}
-            </button>
-          ))}
-          <div className="type-label px-3 pt-5 pb-3">Account</div>
-          <button className="sidebar-item" onClick={() => router.push("/settings")}>
-            <Settings className="w-4 h-4 flex-shrink-0" />
-            <span>Settings</span>
-          </button>
-        </nav>
-      </aside>
+      <AppSidebar activeHref="/career" profile={profile} user={user} />
 
       {/* ── Main ── */}
       <main className="flex-1 overflow-y-auto">
