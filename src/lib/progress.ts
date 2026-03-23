@@ -1,5 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
-
 export interface ChallengeAttempt {
   id: string;
   challenge_id: string;
@@ -181,7 +179,7 @@ export async function saveAttempt(params: {
   questionCount: number;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }, supabaseClient?: any): Promise<void> {
-  const supabase = supabaseClient ?? await createClient();
+  const supabase = supabaseClient ?? await (await import("@/lib/supabase/server")).createClient();
 
   // Save attempt
   const { error: attemptError } = await supabase
@@ -256,6 +254,7 @@ export async function saveAttempt(params: {
 }
 
 export async function getUserStats(userId: string) {
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   const [attemptsRes, badgesRes, progressRes] = await Promise.all([
