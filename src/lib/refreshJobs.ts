@@ -167,18 +167,27 @@ export async function runRefresh(): Promise<RefreshResult> {
     return { ok: true, fetched: 0, upserted: 0 };
   }
 
-  // ── 3. Normalise and filter ───────────────────────────────────────────────
+  // ── 3. Normalise, filter, and deduplicate ────────────────────────────────
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 14);
 
-  const rows = [];
+  // Step A — build raw candidate rows
+  type JobRow = {
+    dedup_key: string; adzuna_id: string; title: string; company: string | null;
+    location: string | null; salary_min: number | null; salary_max: number | null;
+    description: string | null; url: string; posted_at: string;
+    work_type: string; level: string; quality_score: number;
+    prep_links: PrepLink[]; updated_at: string;
+  };
+
+  const rawRows: JobRow[] = [];
   let skippedStale = 0;
 
   for (const job of allJobs) {
     if (new Date(job.created) < cutoff) { skippedStale++; continue; }
-    const company  = job.company?.display_name || "";
-    const dedupKey = `${normalizeTitle(job.title)}::${company.toLowerCase().trim()}`;
-    rows.push({
+    const company  = (job.company?.display_name ?? "").trim();
+    const dedupKey = `${normalizeTitle(job.title ?? "")}::${company.toLowerCase()}`;
+    rawRows.push({
       dedup_key:     dedupKey,
       adzuna_id:     job.id,
       title:         job.title,
@@ -197,20 +206,60 @@ export async function runRefresh(): Promise<RefreshResult> {
     });
   }
 
-  // Deduplicate by dedup_key — Adzuna can return the same listing on multiple
-  // pages. PostgreSQL throws "ON CONFLICT DO UPDATE command cannot affect row
-  // a second time" if the same key appears twice in one upsert batch.
-  const seen = new Set<string>();
-  const dedupedRows = rows.filter(r => {
-    if (seen.has(r.dedup_key)) return false;
-    seen.add(r.dedup_key);
-    return true;
-  });
+  console.log(`[refreshJobs] Raw candidates: ${rawRows.length} (${skippedStale} stale skipped out of ${allJobs.length} fetched)`);
 
-  console.log(`[refreshJobs] After cleaning → ${dedupedRows.length} unique rows to upsert (${rows.length - dedupedRows.length} cross-page dupes removed, ${skippedStale} stale skipped)`);
+  // Step B — deduplicate with a Map keyed on dedup_key.
+  // When the same key appears more than once (Adzuna cross-page overlap, or
+  // two listings that normalise to the same key), keep the version with the
+  // highest quality_score. This is deterministic regardless of fetch order.
+  const dedupeMap = new Map<string, JobRow>();
+  let duplicatesFound = 0;
+
+  for (const row of rawRows) {
+    const existing = dedupeMap.get(row.dedup_key);
+    if (existing) {
+      duplicatesFound++;
+      console.log(
+        `[refreshJobs] DUPLICATE key "${row.dedup_key}" ` +
+        `| existing score ${existing.quality_score} vs new score ${row.quality_score} ` +
+        `| keeping ${row.quality_score >= existing.quality_score ? "new" : "existing"}`
+      );
+      if (row.quality_score >= existing.quality_score) {
+        dedupeMap.set(row.dedup_key, row);
+      }
+    } else {
+      dedupeMap.set(row.dedup_key, row);
+    }
+  }
+
+  const dedupedRows = Array.from(dedupeMap.values());
+
+  console.log(
+    `[refreshJobs] After dedup: ${dedupedRows.length} unique rows ` +
+    `(${duplicatesFound} duplicates removed, ${rawRows.length - dedupedRows.length} total collapsed)`
+  );
+
+  // Step C — hard guard: verify no duplicate dedup_key exists before touching DB.
+  // This should never fire after the Map dedup above, but acts as a safety net.
+  const guardCheck = new Set<string>();
+  const guardViolations: string[] = [];
+  for (const row of dedupedRows) {
+    if (guardCheck.has(row.dedup_key)) guardViolations.push(row.dedup_key);
+    else guardCheck.add(row.dedup_key);
+  }
+
+  if (guardViolations.length > 0) {
+    const msg =
+      `GUARD FAILED — ${guardViolations.length} duplicate dedup_key(s) remain after dedup: ` +
+      guardViolations.slice(0, 10).join(", ");
+    console.error(`[refreshJobs] ${msg}`);
+    return { ok: false, fetched: allJobs.length, upserted: 0, error: msg };
+  }
+
+  console.log(`[refreshJobs] Guard passed — all ${dedupedRows.length} dedup_keys are unique`);
 
   if (dedupedRows.length === 0) {
-    console.warn("[refreshJobs] All jobs were stale or duplicate — nothing to insert");
+    console.warn("[refreshJobs] Nothing to insert after dedup");
     return { ok: true, fetched: allJobs.length, upserted: 0 };
   }
 
