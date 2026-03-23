@@ -572,7 +572,7 @@ export default function LandingPage() {
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </Link>
           {/* Desktop nav links */}
-          <div className="dsk-nav" style={{ alignItems: "center", gap: 30 }}>
+          <div className="dsk-nav" style={{ display: "flex", alignItems: "center", gap: 32 }}>
             <PlatformDropdown />
             {[["How it Works", "#how-it-works"], ["Pricing", "#pricing"]].map(([l, href]) => (
               <Link key={l} href={href} style={{ fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
@@ -583,7 +583,7 @@ export default function LandingPage() {
           </div>
 
           {/* Desktop CTAs */}
-          <div className="dsk-nav" style={{ alignItems: "center", gap: 10 }}>
+          <div className="dsk-nav" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Link href="/login" style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
               onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
               onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
