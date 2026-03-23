@@ -387,6 +387,7 @@ export default function LandingPage() {
   const statsReveal = useReveal();
   const hiwReveal = useReveal();
   const challengesHeadReveal = useReveal();
+  const featuresReveal = useReveal();
   const alexReveal = useReveal();
   const industriesHeadReveal = useReveal();
   const industriesGridReveal = useReveal();
@@ -467,8 +468,8 @@ export default function LandingPage() {
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: 30 }}>
-            {["Challenges","Pricing","FAQ"].map(l => (
-              <Link key={l} href={l === "Challenges" ? "#challenges" : l === "Pricing" ? "#pricing" : "#faq"} style={{ fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
+            {["Challenges","Features","Pricing"].map(l => (
+              <Link key={l} href={l === "Challenges" ? "#challenges" : l === "Features" ? "#features" : "#pricing"} style={{ fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
               >{l}</Link>
@@ -630,6 +631,100 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── PLATFORM SUITE ──────────────────────────────────────────────── */}
+      <section style={{ padding: "0 0 100px" }} id="features">
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
+          <div ref={featuresReveal.ref} style={{ ...featuresReveal.style, textAlign: "center", marginBottom: 56 }}>
+            <Eyebrow>Full Platform</Eyebrow>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>Everything you need to grow as a BA</h2>
+            <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 520, margin: "0 auto", lineHeight: 1.68 }}>Challenges are just the start. Pro unlocks a full career development suite built for working Business Analysts.</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+
+            {/* Career Advisor */}
+            <Link href="/career" style={{ textDecoration: "none", display: "block" }}>
+              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(167,139,250,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
+              >
+                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(167,139,250,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(167,139,250,.12)", border: "1px solid rgba(167,139,250,.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Career Advisor Suite</div>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Answer a few questions and get a personalised career plan from Alex Rivera. Whether you are breaking into BA, aiming for senior, or positioning yourself as a contractor — there is a flow built for your situation.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {["New to BA", "Transition into BA", "Move to Senior", "Lead BA", "Contractor Positioning"].map(tag => (
+                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#a78bfa", background: "rgba(167,139,250,.1)", border: "1px solid rgba(167,139,250,.15)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+
+            {/* Portfolio Builder */}
+            <Link href="/portfolio" style={{ textDecoration: "none", display: "block" }}>
+              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(31,191,159,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
+              >
+                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(31,191,159,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(31,191,159,.1)", border: "1px solid rgba(31,191,159,.18)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Portfolio Case Study Builder</div>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Your challenge submissions become real portfolio pieces. AI transforms raw work into structured case studies with resume bullets and interview-ready answers in the SAR format — ready to share or send to recruiters.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {["Case Study Transform", "Resume Bullets", "Interview Answer (SAR)", "Public Portfolio Link"].map(tag => (
+                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#1fbf9f", background: "rgba(31,191,159,.08)", border: "1px solid rgba(31,191,159,.14)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+
+            {/* Exam Prep */}
+            <Link href="/exam" style={{ textDecoration: "none", display: "block" }}>
+              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(251,146,60,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
+              >
+                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(251,146,60,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(251,146,60,.1)", border: "1px solid rgba(251,146,60,.18)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Exam Prep</div>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Practise for the CBAP, CCBA, and PMI-PBA with BABOK-aligned questions and concept explainers. Flashcards, mock tests, and spaced repetition so the knowledge sticks when it counts.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {["CBAP", "CCBA", "PMI-PBA", "BABOK Aligned", "Flashcards"].map(tag => (
+                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#fb923c", background: "rgba(251,146,60,.08)", border: "1px solid rgba(251,146,60,.14)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+
+            {/* Learning Modules */}
+            <Link href="/learning" style={{ textDecoration: "none", display: "block" }}>
+              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
+              >
+                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(56,189,248,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(56,189,248,.1)", border: "1px solid rgba(56,189,248,.18)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Learning Modules</div>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Bite-sized theory that connects directly to practice. Elicitation techniques, requirements writing, stakeholder management, and more — each module ends with a challenge so you apply what you learn immediately.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {["Elicitation", "Requirements Writing", "Stakeholder Mgmt", "Process Modelling"].map(tag => (
+                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#38bdf8", background: "rgba(56,189,248,.08)", border: "1px solid rgba(56,189,248,.14)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── ALEX RIVERA ─────────────────────────────────────────────────── */}
       <section style={{ padding: "0 0 100px" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
@@ -702,11 +797,11 @@ export default function LandingPage() {
           <div ref={pricingReveal.ref} style={{ ...pricingReveal.style, display: "flex", gap: 16, maxWidth: 820, margin: "0 auto" }}>
             <PricingCard
               plan="Free" price="$0" period="forever" href="/signup" cta="Get Started" featured={false}
-              features={["3 free challenges (Banking, Healthcare, Energy)", "Normal difficulty mode", "Full AI stakeholder interviews", "Alex Rivera evaluation & scoring", "Progress tracking"]}
+              features={["3 BA challenge simulations", "Normal difficulty mode", "AI stakeholder interviews", "Alex Rivera evaluation and scoring", "Progress tracking", "Career advisor starter flows"]}
             />
             <PricingCard
-              plan="Pro" price={billingAnnual ? "$19" : "$29"} period={billingAnnual ? "/mo · billed annually" : "/month"} href="/signup?plan=pro" cta="Start Pro Free" featured={true}
-              features={["All 7 challenges + every new release", "Hard & Expert difficulty modes", "Phase B — Requirements Validation", "Full scoring history & analytics", "BA Copilot — coming soon", "Priority support"]}
+              plan="Pro" price={billingAnnual ? "$19" : "$29"} period={billingAnnual ? "/mo · billed annually" : "/month"} href="/pricing" cta="Upgrade to Pro" featured={true}
+              features={["All BA challenge simulations", "Hard and Expert difficulty modes", "Full career advisor suite (5 flows)", "Portfolio case study builder", "Resume bullet and interview answer generator", "Exam prep module", "Advanced analytics", "Priority support"]}
             />
           </div>
         </div>
@@ -744,8 +839,8 @@ export default function LandingPage() {
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </div>
           <div style={{ display: "flex", gap: 24 }}>
-            {["About","Challenges","Pricing","FAQ"].map(l => (
-              <Link key={l} href={l === "Challenges" ? "#challenges" : l === "Pricing" ? "#pricing" : `/${l.toLowerCase()}`} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
+            {["Challenges","Features","Career Suite","Pricing"].map(l => (
+              <Link key={l} href={l === "Challenges" ? "#challenges" : l === "Features" ? "#features" : l === "Career Suite" ? "/career" : "#pricing"} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t2)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t3)")}
               >{l}</Link>
