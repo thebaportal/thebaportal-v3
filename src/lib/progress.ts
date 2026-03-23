@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 
 export interface ChallengeAttempt {
   id: string;
@@ -179,7 +179,7 @@ export async function saveAttempt(params: {
   submissionText: string;
   questionCount: number;
 }): Promise<void> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Save attempt
   const { error: attemptError } = await supabase
@@ -251,7 +251,7 @@ export async function saveAttempt(params: {
 }
 
 export async function getUserStats(userId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [attemptsRes, badgesRes, progressRes] = await Promise.all([
     supabase.from("challenge_attempts").select("*").eq("user_id", userId).order("completed_at", { ascending: false }),
