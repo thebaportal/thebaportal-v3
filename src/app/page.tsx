@@ -673,12 +673,7 @@ export default function LandingPage() {
 
             {/* Left */}
             <div>
-              <div className="a1" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "rgba(31,191,159,.08)", border: "1px solid rgba(31,191,159,.18)", fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--teal)", marginBottom: 30 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--teal)", animation: "pulse-dot 2.2s ease-in-out infinite" }} />
-                Built by practicing Business Analysts
-              </div>
-
-              <h1 className="a2" style={{ fontFamily: "var(--font-display)", fontSize: "clamp(46px, 5.6vw, 74px)", fontWeight: 900, lineHeight: 0.97, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 24 }}>
+              <h1 className="a1" style={{ fontFamily: "var(--font-display)", fontSize: "clamp(46px, 5.6vw, 74px)", fontWeight: 900, lineHeight: 0.97, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 24 }}>
                 Real BA work.<br />
                 Simulated<br />
                 <span style={{ background: "linear-gradient(110deg, var(--teal) 0%, #2ddbb8 38%, #60d4f7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>pressure.</span>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, LayoutDashboard, TrendingUp, GraduationCap,
   Target, BriefcaseBusiness, Trophy, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X,
+  User, ChevronLeft, ChevronRight, Menu, X, Mic,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { icon: BookOpen,           label: "Challenges",   href: "/scenarios" },
   { icon: TrendingUp,         label: "Progress",     href: "/progress" },
   { icon: GraduationCap,      label: "Learning",     href: "/learning" },
+  { icon: Mic,                label: "PitchReady",   href: "/pitchready" },
   { icon: Target,             label: "Exam Prep",    href: "/exam" },
   { icon: BriefcaseBusiness,  label: "Career Suite", href: "/career" },
   { icon: Trophy,             label: "Portfolio",    href: "/portfolio" },

@@ -9,7 +9,6 @@ const freeFeatures = [
   "3 BA challenge simulations",
   "Basic progress tracking",
   "Career advisor (starter flows)",
-  "Community access",
   "Email support",
 ];
 
