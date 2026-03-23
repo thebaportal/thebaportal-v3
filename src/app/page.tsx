@@ -380,11 +380,12 @@ function PricingCard({ plan, price, period, features, cta, href, featured }: {
 
 // ── Platform Dropdown ─────────────────────────────────────────────────────────
 const PLATFORM_ITEMS = [
-  { label: "Challenges",   desc: "Simulate real BA scenarios with AI stakeholders", href: "/scenarios",  color: "#38bdf8", icon: "🎯" },
-  { label: "Learning",     desc: "Six-module SDLC case story from first principles", href: "/learning",   color: "#fb923c", icon: "📚" },
-  { label: "PitchReady",   desc: "Nail your BA interview answers under pressure",    href: "/pitchready", color: "#a78bfa", icon: "🎤" },
-  { label: "Exam Prep",    desc: "CBAP, CCBA and PMI-PBA practice questions",        href: "/exam",       color: "#facc15", icon: "📝" },
-  { label: "Career Suite", desc: "Advisor, resume, cover letters and salary guide",  href: "/career",     color: "#1fbf9f", icon: "💼" },
+  { label: "Challenges",    desc: "Simulate real BA scenarios with AI stakeholders", href: "/scenarios",      color: "#38bdf8", icon: "🎯" },
+  { label: "Learning",      desc: "Six-module SDLC case story from first principles", href: "/learning",      color: "#fb923c", icon: "📚" },
+  { label: "PitchReady",    desc: "Nail your BA interview answers under pressure",    href: "/pitchready",    color: "#a78bfa", icon: "🎤" },
+  { label: "Exam Prep",     desc: "CBAP, CCBA and PMI-PBA practice questions",        href: "/exam",          color: "#facc15", icon: "📝" },
+  { label: "Career Suite",  desc: "Advisor, resume, cover letters and salary guide",  href: "/career",        color: "#1fbf9f", icon: "💼" },
+  { label: "Jobs in Canada", desc: "Fresh BA job listings refreshed every 2 hours",  href: "/opportunities", color: "#34d399", icon: "🌐" },
 ];
 
 function PlatformDropdown() {
@@ -638,7 +639,7 @@ export default function LandingPage() {
 
             {/* Secondary links */}
             <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 20 }}>
-              {[["How it Works", "#how-it-works"], ["Pricing", "#pricing"]].map(([label, href]) => (
+              {[["How it Works", "#how-it-works"], ["Pricing", "#pricing"], ["Contact", "/contact"]].map(([label, href]) => (
                 <Link key={label} href={href} onClick={() => setMobileNavOpen(false)}
                   style={{ padding: "11px 10px", fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", borderRadius: 10, transition: "color .15s" }}
                   onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = "var(--t1)"}
@@ -1025,7 +1026,7 @@ export default function LandingPage() {
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </div>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            {[["Challenges","#challenges"],["How it Works","#how-it-works"],["Pricing","#pricing"],["FAQ","/faq"],["Privacy","/privacy"],["Terms","/terms"]].map(([l, href]) => (
+            {[["Challenges","#challenges"],["How it Works","#how-it-works"],["Jobs","/opportunities"],["Pricing","#pricing"],["FAQ","/faq"],["Contact","/contact"],["Privacy","/privacy"],["Terms","/terms"]].map(([l, href]) => (
               <Link key={l} href={href} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t2)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t3)")}
