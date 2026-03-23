@@ -98,8 +98,8 @@ export async function runRefresh(): Promise<RefreshResult> {
   const envErrors: string[] = [];
   console.log("[refreshJobs] env check → ADZUNA_APP_ID:",    ADZUNA_APP_ID   ? "SET" : "MISSING");
   console.log("[refreshJobs] env check → ADZUNA_APP_KEY:",   ADZUNA_APP_KEY  ? "SET" : "MISSING");
-  console.log("[refreshJobs] env check → SUPABASE_URL:",     SUPABASE_URL    ? "SET" : "MISSING");
-  console.log("[refreshJobs] env check → SERVICE_ROLE_KEY:", SERVICE_KEY     ? "SET" : "MISSING");
+  console.log("[refreshJobs] env check → SUPABASE_URL:",     SUPABASE_URL    ? `SET (${SUPABASE_URL})` : "MISSING");
+  console.log("[refreshJobs] env check → SERVICE_ROLE_KEY:", SERVICE_KEY     ? `SET (length: ${SERVICE_KEY.length})` : "MISSING");
 
   if (!ADZUNA_APP_ID)  envErrors.push("ADZUNA_APP_ID is not set");
   if (!ADZUNA_APP_KEY) envErrors.push("ADZUNA_APP_KEY is not set");
@@ -109,6 +109,22 @@ export async function runRefresh(): Promise<RefreshResult> {
   if (envErrors.length > 0) {
     console.error("[refreshJobs] ABORT — missing env vars:", envErrors);
     return { ok: false, fetched: 0, upserted: 0, envErrors, error: envErrors.join("; ") };
+  }
+
+  // Decode the JWT payload (middle segment) to verify it really is service_role.
+  // This catches "anon key pasted in the wrong field" without logging the secret.
+  try {
+    const payload = JSON.parse(
+      Buffer.from(SERVICE_KEY!.split(".")[1], "base64").toString("utf8")
+    );
+    console.log("[refreshJobs] SERVICE_ROLE_KEY JWT role claim:", payload.role ?? "missing");
+    if (payload.role !== "service_role") {
+      const msg = `SERVICE_ROLE_KEY has role "${payload.role}" — expected "service_role". You likely pasted the anon key by mistake.`;
+      console.error("[refreshJobs]", msg);
+      return { ok: false, fetched: 0, upserted: 0, error: msg };
+    }
+  } catch {
+    console.warn("[refreshJobs] Could not decode SERVICE_ROLE_KEY JWT — proceeding anyway");
   }
 
   // ── 2. Fetch from Adzuna ──────────────────────────────────────────────────
@@ -189,16 +205,28 @@ export async function runRefresh(): Promise<RefreshResult> {
   }
 
   // ── 4. Upsert to Supabase ─────────────────────────────────────────────────
+  // Use service role key — bypasses RLS and has full schema access.
+  // db schema is explicitly set to "public" to avoid any ambiguity.
   console.log("[refreshJobs] Creating Supabase service-role client...");
-  const supabase = createClient(SUPABASE_URL!, SERVICE_KEY!);
+  const supabase = createClient(SUPABASE_URL!, SERVICE_KEY!, {
+    db: { schema: "public" },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 
-  console.log(`[refreshJobs] Upserting ${rows.length} rows into job_listings...`);
+  console.log(`[refreshJobs] Upserting ${rows.length} rows into public.job_listings...`);
   const { error: upsertError } = await supabase
     .from("job_listings")
     .upsert(rows, { onConflict: "dedup_key" });
 
   if (upsertError) {
-    console.error("[refreshJobs] Supabase upsert error:", JSON.stringify(upsertError));
+    console.error("[refreshJobs] Supabase upsert FAILED");
+    console.error("[refreshJobs] error.message:", upsertError.message);
+    console.error("[refreshJobs] error.code:",    upsertError.code);
+    console.error("[refreshJobs] error.details:", upsertError.details);
+    console.error("[refreshJobs] error.hint:",    upsertError.hint);
     return { ok: false, fetched: allJobs.length, upserted: 0, error: upsertError.message };
   }
 
