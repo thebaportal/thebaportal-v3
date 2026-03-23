@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DashboardClient from "./DashboardClient";
-import { getUserStats } from "@/lib/progress";
+import { getUserStats } from "@/lib/progress-server";
 
 export default async function DashboardPage({
   searchParams,

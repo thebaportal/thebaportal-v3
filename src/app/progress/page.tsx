@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProgressClient from "./ProgressClient";
-import { getUserStats } from "@/lib/progress";
+import { getUserStats } from "@/lib/progress-server";
 
 export default async function ProgressPage() {
   const supabase = createClient();

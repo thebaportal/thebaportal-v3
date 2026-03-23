@@ -127,7 +127,7 @@ export async function POST(request: Request) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { saveAttempt } = await import("@/lib/progress");
+          const { saveAttempt } = await import("@/lib/progress-server");
           await saveAttempt({
             userId: user.id,
             challengeId: `${challenge.id}-validation`,
@@ -240,7 +240,7 @@ Evaluate this submission now. Return only the JSON object.`;
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        const { saveAttempt } = await import("@/lib/progress");
+        const { saveAttempt } = await import("@/lib/progress-server");
         await saveAttempt({
           userId: user.id,
           challengeId: challenge.id,
