@@ -24,15 +24,14 @@ export default async function OpportunitiesPage() {
   const fetchJobs = () =>
     db
       .from("job_listings")
-      .select("id, title, company, location, salary_min, salary_max, description, url, posted_at, work_type, level, quality_score, prep_links")
+      .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name")
       .order("quality_score", { ascending: false })
       .order("posted_at",     { ascending: false })
-      .limit(80);
+      .limit(100);
 
   let { data: jobs } = await fetchJobs();
 
-  // If table is empty, run a sync right now and re-fetch.
-  // This handles first-deploy bootstrap without relying on fire-and-forget.
+  // Bootstrap: if table is empty, run a sync and re-fetch
   let syncError: string | undefined;
   if (!jobs || jobs.length === 0) {
     console.log("[OpportunitiesPage] Table empty — running bootstrap sync");
@@ -49,7 +48,7 @@ export default async function OpportunitiesPage() {
 
   return (
     <OpportunitiesClient
-      initialJobs={jobs ?? []}
+      initialJobs={(jobs ?? []) as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
       isLoggedIn={!!user}
       syncError={syncError}
     />

@@ -4,6 +4,8 @@
  * Rate-limited: skips if a sync ran in the last 30 minutes.
  */
 
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { runRefresh } from "@/lib/refreshJobs";

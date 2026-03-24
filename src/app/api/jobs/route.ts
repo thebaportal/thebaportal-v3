@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from("job_listings")
-    .select("id, title, company, location, salary_min, salary_max, description, url, posted_at, work_type, level, quality_score, prep_links")
+    .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name")
     .order("quality_score", { ascending: false })
     .order("posted_at",     { ascending: false })
     .limit(80);
