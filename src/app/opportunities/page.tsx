@@ -6,6 +6,18 @@ import { runRefresh } from "@/lib/refreshJobs";
 
 export const metadata = { title: "BA Jobs in Canada — TheBAPortal" };
 
+/** Return true if a URL is a direct employer link (not an aggregator redirect). */
+function isDirectUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    const AGGREGATORS = ["adzuna", "indeed", "ziprecruiter", "monster", "careerjet", "jobbank"];
+    return !AGGREGATORS.some(a => host.includes(a));
+  } catch {
+    return false;
+  }
+}
+
 export default async function OpportunitiesPage() {
   // Optional auth — no redirect
   const cookieStore = cookies();
@@ -27,14 +39,23 @@ export default async function OpportunitiesPage() {
       .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name")
       .order("quality_score", { ascending: false })
       .order("posted_at",     { ascending: false })
-      .limit(100);
+      .limit(200); // fetch extra; we'll filter down to clean ones
 
-  let { data: jobs } = await fetchJobs();
+  let { data: raw } = await fetchJobs();
 
-  // Bootstrap: if table is empty, run a sync and re-fetch
+  // Strip out aggregator-linked or URL-less rows — these are old Adzuna records
+  // or any future ingestion that didn't produce a direct employer link.
+  const cleanJobs = (raw ?? []).filter(job => {
+    const url = job.apply_url || job.url;
+    return isDirectUrl(url);
+  });
+
+  // Bootstrap: run a fresh sync if there are no clean employer-linked jobs.
+  // This covers both the empty-table case AND the "table full of old Adzuna
+  // garbage" case so BrainWave gets a chance to populate immediately.
   let syncError: string | undefined;
-  if (!jobs || jobs.length === 0) {
-    console.log("[OpportunitiesPage] Table empty — running bootstrap sync");
+  if (cleanJobs.length === 0) {
+    console.log("[OpportunitiesPage] No clean jobs — running bootstrap sync");
     const result = await runRefresh();
     if (!result.ok) {
       syncError = result.error ?? "Sync failed";
@@ -42,13 +63,20 @@ export default async function OpportunitiesPage() {
     } else {
       console.log(`[OpportunitiesPage] Bootstrap sync complete — ${result.upserted} rows`);
       const { data: fresh } = await fetchJobs();
-      jobs = fresh;
+      const freshClean = (fresh ?? []).filter(job => isDirectUrl(job.apply_url || job.url));
+      return (
+        <OpportunitiesClient
+          initialJobs={freshClean as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
+          isLoggedIn={!!user}
+          syncError={undefined}
+        />
+      );
     }
   }
 
   return (
     <OpportunitiesClient
-      initialJobs={(jobs ?? []) as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
+      initialJobs={cleanJobs as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
       isLoggedIn={!!user}
       syncError={syncError}
     />

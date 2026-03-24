@@ -90,7 +90,20 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
     }
   }, [router]);
 
+  const AGGREGATOR_HOSTS = ["adzuna", "indeed", "ziprecruiter", "monster", "careerjet", "jobbank"];
+  function isDirectUrl(url: string | null | undefined): boolean {
+    if (!url) return false;
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      return !AGGREGATOR_HOSTS.some(a => host.includes(a));
+    } catch { return false; }
+  }
+
   const filtered = useMemo(() => initialJobs.filter(job => {
+    // Hard gate: never render a job without a direct employer URL
+    const applyUrl = job.apply_url || job.url;
+    if (!isDirectUrl(applyUrl)) return false;
+
     if (workType !== "all" && job.work_type !== workType) return false;
     if (level    !== "all" && job.level     !== level)    return false;
     if (province !== "all") {
@@ -106,6 +119,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
       ) return false;
     }
     return true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [initialJobs, keyword, workType, level, province]);
 
   return (
