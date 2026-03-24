@@ -664,9 +664,17 @@ export default function LandingPage() {
       // 1. Resolve first paint decisively from local cache
       supabase.auth.getSession().then(({ data }) => applySession(data.session));
 
-      // 2. Subscribe for all future changes (sign in, sign out, token refresh)
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        applySession(session);
+      // 2. Subscribe for future changes — but only drive unauthenticated from
+      //    SIGNED_OUT. Other events (INITIAL_SESSION, TOKEN_REFRESHED) can fire
+      //    with a null session during a refresh cycle and must not override a
+      //    valid session that getSession() already confirmed.
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          applySession(session);
+        } else if (event === "SIGNED_OUT") {
+          applySession(null);
+        }
+        // null session from INITIAL_SESSION / TOKEN_REFRESHED during refresh → ignore
       });
       subscription = data.subscription;
     });
