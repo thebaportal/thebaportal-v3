@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { siteUrl } from "@/lib/siteUrl";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { BookOpen, Loader2, Mail, CheckCircle2 } from "lucide-react";
@@ -53,7 +54,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${siteUrl()}/auth/callback`,
       },
     });
 

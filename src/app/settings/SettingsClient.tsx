@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { siteUrl } from "@/lib/siteUrl";
 
 interface Props {
   userId: string;
@@ -303,7 +304,7 @@ function PasswordResetButton({ email }: { email: string }) {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        redirectTo: `${siteUrl()}/auth/callback?type=recovery`,
       });
       if (error) {
         console.error("[Settings] resetPasswordForEmail failed:", error.message);

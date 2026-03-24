@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { siteUrl } from "@/lib/siteUrl";
 
 function BAPortalLogo({ size = 32 }: { size?: number }) {
   return (
@@ -64,7 +65,7 @@ export default function SignupPage() {
         password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${siteUrl()}/auth/callback`,
         },
       });
       if (authError) { setError(authError.message); return; }

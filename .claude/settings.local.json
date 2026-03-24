@@ -45,7 +45,13 @@
       "Bash(node:*)",
       "Bash(git commit:*)",
       "Bash(grep:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(echo \"=== $f ===\")",
+      "Bash(npm install:*)",
+      "Bash(UPDATE command cannot affect row a second time\" from Adzuna page overlap:*)",
+      "Bash(rm netlify.toml)",
+      "Bash(rm -rf netlify/)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }
