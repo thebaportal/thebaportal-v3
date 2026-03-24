@@ -628,8 +628,8 @@ export default function LandingPage() {
   const [scrolled, setScrolled]         = useState(false);
   const [billingAnnual, setBillingAnnual] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn]       = useState(false);
-  const [navUserName, setNavUserName]     = useState("");
+  const [authState, setAuthState]     = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+  const [navUserName, setNavUserName] = useState("");
 
   // Reveal refs
   const statsReveal = useReveal();
@@ -644,17 +644,34 @@ export default function LandingPage() {
   const finalReveal = useReveal();
 
   useEffect(() => {
+    let subscription: { unsubscribe: () => void } | null = null;
+
     import("@/lib/supabase/client").then(({ createClient }) => {
-      createClient().auth.getSession().then(({ data }) => {
-        setIsLoggedIn(!!data.session);
-        if (data.session?.user) {
-          const name = data.session.user.user_metadata?.full_name
-            ?? data.session.user.email
-            ?? "";
-          setNavUserName(name);
+      const supabase = createClient();
+
+      function applySession(session: { user: { user_metadata?: { full_name?: string }; email?: string } } | null) {
+        if (session?.user) {
+          setAuthState("authenticated");
+          setNavUserName(
+            session.user.user_metadata?.full_name ?? session.user.email ?? ""
+          );
+        } else {
+          setAuthState("unauthenticated");
+          setNavUserName("");
         }
+      }
+
+      // 1. Resolve first paint decisively from local cache
+      supabase.auth.getSession().then(({ data }) => applySession(data.session));
+
+      // 2. Subscribe for all future changes (sign in, sign out, token refresh)
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        applySession(session);
       });
+      subscription = data.subscription;
     });
+
+    return () => { subscription?.unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -750,7 +767,9 @@ export default function LandingPage() {
 
           {/* Desktop auth — fixed width so center nav never shifts */}
           <div className="dsk-nav" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", minWidth: 260 }}>
-            {isLoggedIn ? <UserMenu name={navUserName} /> : <GuestCTAs />}
+            {authState === "loading"          ? <div style={{ width: 260, height: 34 }} /> : null}
+            {authState === "authenticated"    ? <UserMenu name={navUserName} /> : null}
+            {authState === "unauthenticated"  ? <GuestCTAs /> : null}
           </div>
 
           {/* Mobile hamburger */}
@@ -808,7 +827,7 @@ export default function LandingPage() {
 
             {/* Mobile auth CTAs */}
             <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-              {isLoggedIn ? (
+              {authState === "authenticated" ? (
                 <>
                   <Link href="/dashboard" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
                     Dashboard <ArrowRight size={14} />
