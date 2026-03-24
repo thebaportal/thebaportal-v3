@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ChatMessage {
@@ -475,12 +476,160 @@ function PlatformDropdown() {
   );
 }
 
+// ── Nav helpers ───────────────────────────────────────────────────────────────
+
+const AVATAR_COLORS = ["#1fbf9f","#a78bfa","#38bdf8","#fb923c","#f87171","#facc15","#34d399"];
+
+function avatarColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
+function initials(name: string): string {
+  const p = name.trim().split(/\s+/);
+  if (p.length >= 2) return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+// ── GuestCTAs ─────────────────────────────────────────────────────────────────
+function GuestCTAs() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <Link
+        href="/login"
+        style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
+        onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
+      >
+        Sign in
+      </Link>
+      <Link
+        href="/signup"
+        style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em", whiteSpace: "nowrap" }}
+        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
+      >
+        Start Your First Challenge
+      </Link>
+    </div>
+  );
+}
+
+// ── UserMenu ──────────────────────────────────────────────────────────────────
+function UserMenu({ name }: { name: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  const first  = name.split(" ")[0] || "there";
+  const color  = avatarColor(name);
+  const abbr   = initials(name) || "BA";
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  async function handleSignOut() {
+    const { createClient } = await import("@/lib/supabase/client");
+    await createClient().auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
+  const menuItemStyle: React.CSSProperties = {
+    display: "flex", alignItems: "center", width: "100%",
+    padding: "9px 12px", borderRadius: 9,
+    fontSize: 13, fontWeight: 600,
+    textDecoration: "none", transition: "background .12s",
+  };
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "flex", alignItems: "center", gap: 10 }}>
+      {/* "Hi, First" — desktop only */}
+      <span style={{ fontSize: 13, color: "var(--t2)", fontWeight: 500, animation: "fade-in-avatar .25s ease both" }}>
+        Hi, {first}
+      </span>
+
+      {/* Avatar button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: 34, height: 34, borderRadius: "50%",
+          background: `${color}20`,
+          border: `1.5px solid ${color}45`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color,
+          cursor: "pointer",
+          outline: "2px solid transparent", outlineOffset: "2px",
+          transition: "outline-color .15s, outline-offset .15s",
+          animation: "fade-in-avatar .2s ease both",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.outlineColor = "var(--teal)"; }}
+        onMouseLeave={e => { e.currentTarget.style.outlineColor = "transparent"; }}
+        aria-label="Account menu"
+      >
+        {abbr}
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 12px)", right: 0,
+          background: "rgba(10,10,15,0.98)",
+          border: "1px solid rgba(255,255,255,0.09)",
+          borderRadius: 14, padding: "5px",
+          width: 176,
+          boxShadow: "0 24px 64px rgba(0,0,0,.72), 0 0 0 1px rgba(255,255,255,.03)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          zIndex: 300,
+          animation: "slide-down-fade .15s ease both",
+        }}>
+          <Link
+            href="/dashboard"
+            onClick={() => setOpen(false)}
+            style={{ ...menuItemStyle, color: "var(--t1)" }}
+            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.06)"}
+            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            style={{ ...menuItemStyle, color: "var(--t1)" }}
+            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.06)"}
+            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
+          >
+            Settings
+          </Link>
+          <div style={{ height: 1, background: "var(--border)", margin: "4px 6px" }} />
+          <button
+            onClick={handleSignOut}
+            style={{ ...menuItemStyle, color: "#f87171", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = "rgba(248,113,113,0.08)"}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = "transparent"}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [scrolled, setScrolled]         = useState(false);
   const [billingAnnual, setBillingAnnual] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn]       = useState(false);
+  const [navUserName, setNavUserName]     = useState("");
 
   // Reveal refs
   const statsReveal = useReveal();
@@ -495,10 +644,15 @@ export default function LandingPage() {
   const finalReveal = useReveal();
 
   useEffect(() => {
-    // Check session so nav reflects logged-in state
     import("@/lib/supabase/client").then(({ createClient }) => {
       createClient().auth.getSession().then(({ data }) => {
         setIsLoggedIn(!!data.session);
+        if (data.session?.user) {
+          const name = data.session.user.user_metadata?.full_name
+            ?? data.session.user.email
+            ?? "";
+          setNavUserName(name);
+        }
       });
     });
   }, []);
@@ -554,6 +708,7 @@ export default function LandingPage() {
       .a4{animation:fade-up .7s .36s ease both;}
       .a5{animation:fade-up .7s .50s ease both;}
       @keyframes slide-down-fade{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+      @keyframes fade-in-avatar{from{opacity:0;}to{opacity:1;}}
       @keyframes slide-in-left{from{transform:translateX(-100%);}to{transform:translateX(0);}}
       .mob-only{display:none !important;}
       @media(max-width:768px){
@@ -593,25 +748,9 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Desktop CTAs */}
-          <div className="dsk-nav" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {isLoggedIn ? (
-              <Link href="/dashboard" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
-              >Go to Dashboard</Link>
-            ) : (
-              <>
-                <Link href="/login" style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
-                >Sign in</Link>
-                <Link href="/signup" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
-                >Start Practicing Free</Link>
-              </>
-            )}
+          {/* Desktop auth — fixed width so center nav never shifts */}
+          <div className="dsk-nav" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", minWidth: 260 }}>
+            {isLoggedIn ? <UserMenu name={navUserName} /> : <GuestCTAs />}
           </div>
 
           {/* Mobile hamburger */}
@@ -667,12 +806,25 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Auth CTAs */}
+            {/* Mobile auth CTAs */}
             <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link href="/login" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--t1)", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", textDecoration: "none" }}>Sign in</Link>
-              <Link href="/signup" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
-                Start Practicing Free <ArrowRight size={14} />
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link href="/dashboard" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
+                    Dashboard <ArrowRight size={14} />
+                  </Link>
+                  <button onClick={async () => { setMobileNavOpen(false); const { createClient } = await import("@/lib/supabase/client"); await createClient().auth.signOut(); window.location.href = "/"; }} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#f87171", background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", cursor: "pointer" }}>
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--t1)", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", textDecoration: "none" }}>Sign in</Link>
+                  <Link href="/signup" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
+                    Start Your First Challenge <ArrowRight size={14} />
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
