@@ -107,9 +107,11 @@ export function isCanadianLocation(location: string | null | undefined): boolean
 
   // ── Pass 1: explicit "canada" in the string ─────────────────────────────────
   // Covers: "Canada", "Remote Canada", "Toronto, Canada", "Canada Remote", etc.
-  // Guard against multi-country strings like "Canada and United States".
+  // Guard against multi-region strings: "US & Canada", "North America (Canada & US)",
+  // "Remote – Canada or United States", etc.
   if (/\bcanada\b/i.test(loc)) {
-    if (/\b(united\s*states|usa|u\.s\.a?\.?|\busa\b)\b/i.test(loc)) return false;
+    const MULTI_REGION = /\b(united\s*states|usa|u\.s\.a?\.?|\bus\b|north\s*america|worldwide|global|international)\b/i;
+    if (MULTI_REGION.test(loc)) return false;
     return true;
   }
 

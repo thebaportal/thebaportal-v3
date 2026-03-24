@@ -8,7 +8,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { ADAPTERS } from "./ats/adapters";
-import { isBaRelevant } from "./ats/filter";
+import { checkBaRelevance } from "./ats/filter";
 import { isCanadianLocation } from "./ats/location";
 import { normalizeForDedup } from "./ats/clean";
 
@@ -170,14 +170,29 @@ export async function runRefresh(): Promise<RefreshResult> {
   });
   console.log(`[refreshJobs] After Canada filter: ${canadianJobs.length} (${skippedNonCanada} non-Canada removed)`);
 
-  // 5. BA relevance filter
+  // 5. BA relevance filter — with diagnostic logging for borderline rejections
   let skippedIrrelevant = 0;
+  let borderlineRejected = 0;
   const relevantJobs = canadianJobs.filter(job => {
-    const relevant = isBaRelevant(job);
-    if (!relevant) skippedIrrelevant++;
-    return relevant;
+    const result = checkBaRelevance(job);
+    if (!result.relevant) {
+      skippedIrrelevant++;
+      if (result.isBorderline && result.reason === "desc_too_weak") {
+        // Log every borderline failure with exact keyword hit count so we can
+        // tune the BA_BORDERLINE_MIN_MATCHES threshold based on real data.
+        borderlineRejected++;
+        console.log(
+          `[refreshJobs] Borderline rejected (${result.hits}/${result.required} keywords): ` +
+          `"${job.title}" @ ${(job as { company?: string }).company ?? "??"} — loc: ${(job as { location?: string | null }).location ?? "??"}`
+        );
+      }
+    }
+    return result.relevant;
   });
-  console.log(`[refreshJobs] After BA filter: ${relevantJobs.length} relevant (${skippedIrrelevant} irrelevant removed)`);
+  console.log(
+    `[refreshJobs] After BA filter: ${relevantJobs.length} relevant ` +
+    `(${skippedIrrelevant} irrelevant removed, ${borderlineRejected} borderline failed desc threshold)`
+  );
 
   if (relevantJobs.length === 0) {
     console.warn("[refreshJobs] No relevant BA jobs found");

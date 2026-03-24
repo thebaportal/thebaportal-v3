@@ -131,27 +131,50 @@ export const BA_BORDERLINE_MIN_MATCHES = 5;
 
 // ── Filter function ────────────────────────────────────────────────────────────
 
-export function isBaRelevant(
+/**
+ * Full diagnostic result — used internally and for logging.
+ * reason is only set when relevant === false.
+ */
+export interface BaFilterResult {
+  relevant: boolean;
+  isCore:       boolean;
+  isBorderline: boolean;
+  hits:         number;
+  required:     number;
+  reason?: "blacklisted" | "title_no_match" | "desc_too_weak";
+}
+
+export function checkBaRelevance(
   job: Pick<NormalizedJob, "title" | "description">
-): boolean {
+): BaFilterResult {
   const title = job.title.toLowerCase();
   const desc  = (job.description ?? "").toLowerCase();
 
   // Layer 1c — blacklist always wins
-  if (BA_TITLE_BLACKLIST.some(re => re.test(title))) return false;
+  if (BA_TITLE_BLACKLIST.some(re => re.test(title))) {
+    return { relevant: false, isCore: false, isBorderline: false, hits: 0, required: 0, reason: "blacklisted" };
+  }
 
-  // Layer 1a — check for core BA title
   const isCore       = BA_CORE_WHITELIST.some(re => re.test(title));
-
-  // Layer 1b — check for borderline BA title (only if not already core)
   const isBorderline = !isCore && BA_BORDERLINE_WHITELIST.some(re => re.test(title));
 
-  // Title must match something
-  if (!isCore && !isBorderline) return false;
+  if (!isCore && !isBorderline) {
+    return { relevant: false, isCore: false, isBorderline: false, hits: 0, required: 0, reason: "title_no_match" };
+  }
 
-  // Layer 2 — count BA-specific description keywords
-  const hits = BA_DESC_KEYWORDS.filter(kw => desc.includes(kw)).length;
+  const hits     = BA_DESC_KEYWORDS.filter(kw => desc.includes(kw)).length;
   const required = isBorderline ? BA_BORDERLINE_MIN_MATCHES : BA_DESC_MIN_MATCHES;
 
-  return hits >= required;
+  if (hits < required) {
+    return { relevant: false, isCore, isBorderline, hits, required, reason: "desc_too_weak" };
+  }
+
+  return { relevant: true, isCore, isBorderline, hits, required };
+}
+
+/** Convenience wrapper — returns boolean only. */
+export function isBaRelevant(
+  job: Pick<NormalizedJob, "title" | "description">
+): boolean {
+  return checkBaRelevance(job).relevant;
 }
