@@ -7,7 +7,7 @@
  */
 
 import type { JobAdapter, NormalizedJob } from "../types";
-import type { CompanyConfig } from "../companies";
+import type { EmployerSource } from "../registry";
 import { cleanText, cleanTitle } from "../clean";
 
 interface GreenhouseLocation {
@@ -32,7 +32,7 @@ export class GreenhouseAdapter implements JobAdapter {
   readonly name = "Greenhouse";
   readonly source_type = "greenhouse";
 
-  constructor(private readonly companies: CompanyConfig[]) {}
+  constructor(private readonly companies: EmployerSource[]) {}
 
   async fetchJobs(): Promise<NormalizedJob[]> {
     const results: NormalizedJob[] = [];

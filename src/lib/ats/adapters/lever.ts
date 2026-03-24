@@ -7,7 +7,7 @@
  */
 
 import type { JobAdapter, NormalizedJob } from "../types";
-import type { CompanyConfig } from "../companies";
+import type { EmployerSource } from "../registry";
 import { cleanText, cleanTitle } from "../clean";
 
 interface LeverCategories {
@@ -31,7 +31,7 @@ export class LeverAdapter implements JobAdapter {
   readonly name = "Lever";
   readonly source_type = "lever";
 
-  constructor(private readonly companies: CompanyConfig[]) {}
+  constructor(private readonly companies: EmployerSource[]) {}
 
   async fetchJobs(): Promise<NormalizedJob[]> {
     const results: NormalizedJob[] = [];

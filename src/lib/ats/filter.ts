@@ -141,14 +141,15 @@ export interface BaFilterResult {
   isBorderline: boolean;
   hits:         number;
   required:     number;
-  reason?: "blacklisted" | "title_no_match" | "desc_too_weak";
+  reason?: "blacklisted" | "title_no_match" | "desc_too_weak" | "desc_required_for_borderline";
 }
 
 export function checkBaRelevance(
   job: Pick<NormalizedJob, "title" | "description">
 ): BaFilterResult {
-  const title = job.title.toLowerCase();
-  const desc  = (job.description ?? "").toLowerCase();
+  const title      = job.title.toLowerCase();
+  const hasDesc    = !!job.description?.trim();
+  const desc       = hasDesc ? job.description!.toLowerCase() : "";
 
   // Layer 1c — blacklist always wins
   if (BA_TITLE_BLACKLIST.some(re => re.test(title))) {
@@ -160,6 +161,14 @@ export function checkBaRelevance(
 
   if (!isCore && !isBorderline) {
     return { relevant: false, isCore: false, isBorderline: false, hits: 0, required: 0, reason: "title_no_match" };
+  }
+
+  // Null-description handling (Workday list API does not return descriptions).
+  // Core BA titles (e.g. "Business Analyst") are conclusive — pass without desc.
+  // Borderline titles require description evidence — reject if none available.
+  if (!hasDesc) {
+    if (isCore)       return { relevant: true,  isCore, isBorderline: false, hits: 0, required: 0 };
+    if (isBorderline) return { relevant: false, isCore: false, isBorderline, hits: 0, required: BA_BORDERLINE_MIN_MATCHES, reason: "desc_required_for_borderline" };
   }
 
   const hits     = BA_DESC_KEYWORDS.filter(kw => desc.includes(kw)).length;

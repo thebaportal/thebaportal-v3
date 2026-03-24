@@ -7,7 +7,8 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { ADAPTERS } from "./ats/adapters";
+import { buildAdapters } from "./ats/adapters";
+import { fetchActiveEmployerSources } from "./ats/registry";
 import { checkBaRelevance } from "./ats/filter";
 import { isCanadianLocation } from "./ats/location";
 import { normalizeForDedup } from "./ats/clean";
@@ -126,12 +127,28 @@ export async function runRefresh(): Promise<RefreshResult> {
     console.warn("[refreshJobs] Could not decode JWT — proceeding");
   }
 
-  // 2. Run all adapters
+  // 2. Create DB client early — needed for registry fetch and upsert
+  const supabase = createClient(SUPABASE_URL!, SERVICE_KEY!, {
+    db:   { schema: "public" },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // 3. Load employer sources from DB registry
+  const sources = await fetchActiveEmployerSources(supabase);
+  if (sources.length === 0) {
+    console.warn("[refreshJobs] No active employer sources — run the SQL migration and seed the employer_sources table");
+    return { ok: true, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0 };
+  }
+
+  // 4. Build adapters from registry and run them
+  const adapters = buildAdapters(sources);
   const allJobs: NormalizedJob[] = [];
-  for (const adapter of ADAPTERS) {
+
+  for (const adapter of adapters) {
     console.log(`[refreshJobs] Running adapter: ${adapter.name}`);
     try {
       const jobs = await adapter.fetchJobs();
+      console.log(`[refreshJobs] ${adapter.name}: ${jobs.length} raw jobs`);
       allJobs.push(...jobs);
     } catch (err) {
       console.error(`[refreshJobs] Adapter ${adapter.name} threw:`, err);
@@ -283,12 +300,7 @@ export async function runRefresh(): Promise<RefreshResult> {
   }
   console.log(`[refreshJobs] Guard passed — ${dedupedRows.length} unique rows ready`);
 
-  // 8. Upsert to Supabase
-  const supabase = createClient(SUPABASE_URL!, SERVICE_KEY!, {
-    db:   { schema: "public" },
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
+  // 8. Upsert to Supabase (reuse client created at step 2)
   const { error: upsertError } = await supabase
     .from("job_listings")
     .upsert(dedupedRows, { onConflict: "dedup_key" });
