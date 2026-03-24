@@ -33,10 +33,16 @@ export default async function OpportunitiesPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // 14-day fence applied at query time — mirrors the ingestion freshness window.
+  // This ensures stale rows already in the DB are never served, even if the
+  // 30-day prune job hasn't run yet.
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
   const fetchJobs = () =>
     db
       .from("job_listings")
       .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name")
+      .gte("posted_at", fourteenDaysAgo)
       .order("quality_score", { ascending: false })
       .order("posted_at",     { ascending: false })
       .limit(200); // fetch extra; we'll filter down to clean ones

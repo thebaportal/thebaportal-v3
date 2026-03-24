@@ -1,36 +1,55 @@
 /**
  * Two-layer BA relevance filter.
  *
- * Layer 1 — Title: must match at least one whitelist pattern
- *            AND must not match any blacklist pattern.
- * Layer 2 — Description: must contain at least BA_DESC_MIN_MATCHES
- *            keywords from BA_DESC_KEYWORDS.
+ * Layer 1 — Title:
+ *   a) Must match at least one CORE or BORDERLINE whitelist pattern.
+ *   b) Must not match any blacklist pattern.
  *
- * All exported constants are intentionally mutable so they can be
- * tuned without touching the filter logic itself.
+ * Layer 2 — Description keyword count:
+ *   Core titles    → need BA_DESC_MIN_MATCHES (3) hits
+ *   Borderline     → need BA_BORDERLINE_MIN_MATCHES (5) hits
+ *
+ * "Borderline" titles (systems analyst, process analyst, technology analyst,
+ * product analyst) are legitimate BA roles but the title alone is not
+ * conclusive — they also appear in non-BA contexts (IT ops, data, consulting
+ * analyst tracks, etc.). The higher description bar filters those out.
+ *
+ * Description keywords are intentionally strict BA-specific terms.
+ * Generic tech words (agile, scrum, sprint, jira, confluence, workflow) have
+ * been removed — they appear in ~70% of all software job descriptions and
+ * provide no BA signal.
  */
 
 import type { NormalizedJob } from "./types";
 
-// ── Layer 1: Title patterns ───────────────────────────────────────────────────
+// ── Layer 1a: Core BA titles (standard description bar) ───────────────────────
 
-export const BA_TITLE_WHITELIST: RegExp[] = [
+export const BA_CORE_WHITELIST: RegExp[] = [
   /\bbusiness\s+analyst\b/i,
   /\bbusiness\s+systems?\s+analyst\b/i,
   /\bIT\s+business\s+analyst\b/i,
-  /\bsystems?\s+analyst\b/i,
-  /\bprocess\s+analyst\b/i,
-  /\bfunctional\s+analyst\b/i,
-  /\brequirements?\s+analyst\b/i,
-  /\benterprise\s+analyst\b/i,
-  /\btechnology\s+analyst\b/i,
-  /\bproduct\s+analyst\b/i,      // validated by description check
   /\bjr\.?\s+business\s+analyst\b/i,
   /\bsr\.?\s+business\s+analyst\b/i,
   /\blead\s+business\s+analyst\b/i,
   /\bprincipal\s+business\s+analyst\b/i,
   /\bstaff\s+business\s+analyst\b/i,
+  /\brequirements?\s+analyst\b/i,
+  /\benterprise\s+analyst\b/i,
+  /\bfunctional\s+analyst\b/i,
 ];
+
+// ── Layer 1b: Borderline titles (elevated description bar) ────────────────────
+// These titles match legitimate BA roles but also appear in non-BA contexts.
+// They must be backed by a stronger description keyword signal.
+
+export const BA_BORDERLINE_WHITELIST: RegExp[] = [
+  /\bsystems?\s+analyst\b/i,
+  /\bprocess\s+analyst\b/i,
+  /\btechnology\s+analyst\b/i,
+  /\bproduct\s+analyst\b/i,
+];
+
+// ── Layer 1c: Blacklist — always reject ───────────────────────────────────────
 
 export const BA_TITLE_BLACKLIST: RegExp[] = [
   /\bfinancial\s+analyst\b/i,
@@ -41,6 +60,8 @@ export const BA_TITLE_BLACKLIST: RegExp[] = [
   /\bmarket\s+analyst\b/i,
   /\bmarketing\s+analyst\b/i,
   /\bdata\s+scientist\b/i,
+  /\bdata\s+analyst\b/i,
+  /\bdata\s+engineer\b/i,
   /\bsoftware\s+engineer\b/i,
   /\bsoftware\s+developer\b/i,
   /\bfull.?stack\b/i,
@@ -68,44 +89,45 @@ export const BA_TITLE_BLACKLIST: RegExp[] = [
   /\bpricing\s+analyst\b/i,
   /\binsights\s+analyst\b/i,
   /\bperformance\s+analyst\b/i,
+  /\bpeople\s+analyst\b/i,
+  /\bdevops\b/i,
+  /\bmachine\s+learning\b/i,
+  /\bml\s+engineer\b/i,
 ];
 
 // ── Layer 2: Description keywords ─────────────────────────────────────────────
+// Strictly BA-specific. Excludes generic tech words (agile, scrum, sprint,
+// jira, confluence, workflow, epics) that appear across all software roles.
 
 export const BA_DESC_KEYWORDS: string[] = [
   "requirements",
   "stakeholder",
-  "process analysis",
+  "elicitation",
   "user stories",
   "use cases",
+  "acceptance criteria",
   "business requirements",
   "gap analysis",
   "brd",
   "frd",
-  "elicitation",
-  "workflow",
   "functional specification",
-  "agile",
-  "scrum",
+  "process analysis",
   "process improvement",
   "business process",
   "as-is",
   "to-be",
-  "jira",
-  "confluence",
   "business analysis",
   "process mapping",
-  "acceptance criteria",
-  "data flow",
-  "epics",
-  "sprint",
   "current state",
   "future state",
   "data mapping",
 ];
 
-/** Minimum description keyword hits required to pass Layer 2 */
-export const BA_DESC_MIN_MATCHES = 2;
+/** Minimum BA keyword hits for a core BA title (e.g. "Business Analyst") */
+export const BA_DESC_MIN_MATCHES = 3;
+
+/** Minimum BA keyword hits for a borderline title (e.g. "Systems Analyst") */
+export const BA_BORDERLINE_MIN_MATCHES = 5;
 
 // ── Filter function ────────────────────────────────────────────────────────────
 
@@ -115,15 +137,21 @@ export function isBaRelevant(
   const title = job.title.toLowerCase();
   const desc  = (job.description ?? "").toLowerCase();
 
-  // Layer 1a — title must match at least one whitelist entry
-  if (!BA_TITLE_WHITELIST.some(re => re.test(title))) return false;
-
-  // Layer 1b — title must not match any blacklist entry
+  // Layer 1c — blacklist always wins
   if (BA_TITLE_BLACKLIST.some(re => re.test(title))) return false;
 
-  // Layer 2 — description must contain enough BA-specific signals
-  const hits = BA_DESC_KEYWORDS.filter(kw => desc.includes(kw)).length;
-  if (hits < BA_DESC_MIN_MATCHES) return false;
+  // Layer 1a — check for core BA title
+  const isCore       = BA_CORE_WHITELIST.some(re => re.test(title));
 
-  return true;
+  // Layer 1b — check for borderline BA title (only if not already core)
+  const isBorderline = !isCore && BA_BORDERLINE_WHITELIST.some(re => re.test(title));
+
+  // Title must match something
+  if (!isCore && !isBorderline) return false;
+
+  // Layer 2 — count BA-specific description keywords
+  const hits = BA_DESC_KEYWORDS.filter(kw => desc.includes(kw)).length;
+  const required = isBorderline ? BA_BORDERLINE_MIN_MATCHES : BA_DESC_MIN_MATCHES;
+
+  return hits >= required;
 }

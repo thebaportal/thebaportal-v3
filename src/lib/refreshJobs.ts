@@ -9,6 +9,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { ADAPTERS } from "./ats/adapters";
 import { isBaRelevant } from "./ats/filter";
+import { isCanadianLocation } from "./ats/location";
 import { normalizeForDedup } from "./ats/clean";
 
 export type { RefreshResult } from "./ats/types";
@@ -107,7 +108,7 @@ export async function runRefresh(): Promise<RefreshResult> {
 
   if (envErrors.length > 0) {
     console.error("[refreshJobs] ABORT — missing env vars:", envErrors);
-    return { ok: false, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, envErrors, error: envErrors.join("; ") };
+    return { ok: false, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0, envErrors, error: envErrors.join("; ") };
   }
 
   // Verify service_role JWT
@@ -119,7 +120,7 @@ export async function runRefresh(): Promise<RefreshResult> {
     if (payload.role !== "service_role") {
       const msg = `SERVICE_KEY has role "${payload.role}" — expected "service_role"`;
       console.error("[refreshJobs]", msg);
-      return { ok: false, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, error: msg };
+      return { ok: false, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0, error: msg };
     }
   } catch {
     console.warn("[refreshJobs] Could not decode JWT — proceeding");
@@ -140,7 +141,7 @@ export async function runRefresh(): Promise<RefreshResult> {
 
   if (allJobs.length === 0) {
     console.warn("[refreshJobs] No jobs fetched — nothing to process");
-    return { ok: true, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0 };
+    return { ok: true, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0 };
   }
 
   // 3. Freshness filter — only keep jobs from the last 14 days
@@ -157,9 +158,21 @@ export async function runRefresh(): Promise<RefreshResult> {
   });
   console.log(`[refreshJobs] After freshness filter: ${freshJobs.length} (${skippedStale} stale/invalid removed)`);
 
-  // 4. BA relevance filter
+  // 4. Canada location filter — reject non-Canadian or ambiguous locations
+  let skippedNonCanada = 0;
+  const canadianJobs = freshJobs.filter(job => {
+    const ok = isCanadianLocation(job.location);
+    if (!ok) {
+      console.log(`[refreshJobs] Non-Canada rejected: "${job.location}" — ${job.title} @ ${job.company}`);
+      skippedNonCanada++;
+    }
+    return ok;
+  });
+  console.log(`[refreshJobs] After Canada filter: ${canadianJobs.length} (${skippedNonCanada} non-Canada removed)`);
+
+  // 5. BA relevance filter
   let skippedIrrelevant = 0;
-  const relevantJobs = freshJobs.filter(job => {
+  const relevantJobs = canadianJobs.filter(job => {
     const relevant = isBaRelevant(job);
     if (!relevant) skippedIrrelevant++;
     return relevant;
@@ -168,7 +181,7 @@ export async function runRefresh(): Promise<RefreshResult> {
 
   if (relevantJobs.length === 0) {
     console.warn("[refreshJobs] No relevant BA jobs found");
-    return { ok: true, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale };
+    return { ok: true, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada };
   }
 
   // 5. Build rows
@@ -251,7 +264,7 @@ export async function runRefresh(): Promise<RefreshResult> {
   if (guardViolations.length > 0) {
     const msg = `GUARD FAILED — ${guardViolations.length} duplicate dedup_key(s): ${guardViolations.slice(0, 5).join(", ")}`;
     console.error(`[refreshJobs] ${msg}`);
-    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, error: msg };
+    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada, error: msg };
   }
   console.log(`[refreshJobs] Guard passed — ${dedupedRows.length} unique rows ready`);
 
@@ -267,7 +280,7 @@ export async function runRefresh(): Promise<RefreshResult> {
 
   if (upsertError) {
     console.error("[refreshJobs] Upsert FAILED:", upsertError.message, upsertError.code);
-    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, error: upsertError.message };
+    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada, error: upsertError.message };
   }
 
   console.log(`[refreshJobs] Upsert succeeded — ${dedupedRows.length} rows written`);
@@ -287,5 +300,5 @@ export async function runRefresh(): Promise<RefreshResult> {
   }
 
   console.log("[refreshJobs] ── DONE ──────────────────────────────────────");
-  return { ok: true, fetched: allJobs.length, upserted: dedupedRows.length, skippedIrrelevant, skippedStale };
+  return { ok: true, fetched: allJobs.length, upserted: dedupedRows.length, skippedIrrelevant, skippedStale, skippedNonCanada };
 }

@@ -48,6 +48,7 @@ export interface RefreshResult {
   upserted: number;
   skippedIrrelevant: number;
   skippedStale: number;
+  skippedNonCanada: number;
   error?: string;
   envErrors?: string[];
 }
