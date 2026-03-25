@@ -126,7 +126,7 @@ export class WorkdayAdapter implements JobAdapter {
         appliedFacets: {} as Record<string, never>,
         limit:      PAGE_SIZE,
         offset,
-        searchText: "",
+        searchText: "analyst",   // narrows results; BA filter still applies downstream
       };
 
       const data = await this.postWithRetry(endpoint, body);
