@@ -15,7 +15,7 @@
  * to avoid hammering the API after a large title filter pass.
  */
 
-import type { JobAdapter, NormalizedJob } from "../types";
+import type { JobAdapter, NormalizedJob, AdapterFetchResult, SourceResult } from "../types";
 import type { EmployerSource } from "../registry";
 import { cleanText, cleanTitle } from "../clean";
 import { BA_CORE_WHITELIST, BA_BORDERLINE_WHITELIST, BA_TITLE_BLACKLIST } from "../filter";
@@ -100,25 +100,30 @@ export class SmartRecruitersAdapter implements JobAdapter {
 
   constructor(private readonly sources: EmployerSource[]) {}
 
-  async fetchJobs(): Promise<NormalizedJob[]> {
-    const results: NormalizedJob[] = [];
+  async fetchJobs(): Promise<AdapterFetchResult> {
+    const jobs: NormalizedJob[] = [];
+    const sourceResults: SourceResult[] = [];
 
     for (const source of this.sources) {
       if (!source.slug) {
         console.warn(`[SmartRecruiters] ${source.name} — missing slug (company identifier), skipping`);
+        sourceResults.push({ sourceId: source.id, sourceName: source.name, jobCount: 0, error: "Missing slug config" });
         continue;
       }
 
       try {
-        const jobs = await this.fetchCompanyJobs(source);
-        results.push(...jobs);
+        const fetched = await this.fetchCompanyJobs(source);
+        jobs.push(...fetched);
+        sourceResults.push({ sourceId: source.id, sourceName: source.name, jobCount: fetched.length });
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error(`[SmartRecruiters] Error fetching ${source.name}:`, err);
+        sourceResults.push({ sourceId: source.id, sourceName: source.name, jobCount: 0, error: msg });
       }
     }
 
-    console.log(`[SmartRecruiters] Total raw jobs fetched: ${results.length}`);
-    return results;
+    console.log(`[SmartRecruiters] Total raw jobs fetched: ${jobs.length}`);
+    return { jobs, sourceResults };
   }
 
   private async fetchCompanyJobs(source: EmployerSource): Promise<NormalizedJob[]> {

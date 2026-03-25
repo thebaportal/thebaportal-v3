@@ -21,7 +21,7 @@
  * is conclusive. A borderline title without description context is ambiguous.
  */
 
-import type { JobAdapter, NormalizedJob } from "../types";
+import type { JobAdapter, NormalizedJob, AdapterFetchResult, SourceResult } from "../types";
 import type { EmployerSource } from "../registry";
 import { cleanText, cleanTitle } from "../clean";
 
@@ -89,27 +89,32 @@ export class WorkdayAdapter implements JobAdapter {
 
   constructor(private readonly sources: EmployerSource[]) {}
 
-  async fetchJobs(): Promise<NormalizedJob[]> {
-    const results: NormalizedJob[] = [];
+  async fetchJobs(): Promise<AdapterFetchResult> {
+    const jobs: NormalizedJob[] = [];
+    const sourceResults: SourceResult[] = [];
 
     for (const source of this.sources) {
       if (!source.tenant || source.wd_num == null || !source.board_name) {
         console.warn(
           `[Workday] ${source.name} — missing tenant/wd_num/board_name, skipping`
         );
+        sourceResults.push({ sourceId: source.id, sourceName: source.name, jobCount: 0, error: "Missing tenant/wd_num/board_name config" });
         continue;
       }
 
       try {
-        const jobs = await this.fetchCompanyJobs(source);
-        results.push(...jobs);
+        const fetched = await this.fetchCompanyJobs(source);
+        jobs.push(...fetched);
+        sourceResults.push({ sourceId: source.id, sourceName: source.name, jobCount: fetched.length });
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error(`[Workday] Error fetching ${source.name}:`, err);
+        sourceResults.push({ sourceId: source.id, sourceName: source.name, jobCount: 0, error: msg });
       }
     }
 
-    console.log(`[Workday] Total raw jobs fetched: ${results.length}`);
-    return results;
+    console.log(`[Workday] Total raw jobs fetched: ${jobs.length}`);
+    return { jobs, sourceResults };
   }
 
   private async fetchCompanyJobs(source: EmployerSource): Promise<NormalizedJob[]> {

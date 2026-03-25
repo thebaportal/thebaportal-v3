@@ -6,7 +6,7 @@
  * apply_url is the Greenhouse-hosted job page where candidates apply directly.
  */
 
-import type { JobAdapter, NormalizedJob } from "../types";
+import type { JobAdapter, NormalizedJob, AdapterFetchResult, SourceResult } from "../types";
 import type { EmployerSource } from "../registry";
 import { cleanText, cleanTitle } from "../clean";
 
@@ -34,8 +34,9 @@ export class GreenhouseAdapter implements JobAdapter {
 
   constructor(private readonly companies: EmployerSource[]) {}
 
-  async fetchJobs(): Promise<NormalizedJob[]> {
-    const results: NormalizedJob[] = [];
+  async fetchJobs(): Promise<AdapterFetchResult> {
+    const jobs: NormalizedJob[] = [];
+    const sourceResults: SourceResult[] = [];
 
     for (const company of this.companies) {
       try {
@@ -46,21 +47,23 @@ export class GreenhouseAdapter implements JobAdapter {
 
         if (res.status === 404) {
           console.warn(`[Greenhouse] ${company.name} (${company.slug}) — 404, slug may be wrong`);
+          sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: 0, error: "HTTP 404 — slug may be wrong" });
           continue;
         }
         if (!res.ok) {
           console.warn(`[Greenhouse] ${company.name} — HTTP ${res.status}`);
+          sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: 0, error: `HTTP ${res.status}` });
           continue;
         }
 
         const data: GreenhouseResponse = await res.json();
-        const jobs = data.jobs ?? [];
-        console.log(`[Greenhouse] ${company.name}: ${jobs.length} postings`);
+        const postings = data.jobs ?? [];
+        console.log(`[Greenhouse] ${company.name}: ${postings.length} postings`);
 
-        for (const job of jobs) {
+        for (const job of postings) {
           if (!job.title || !job.absolute_url) continue;
 
-          results.push({
+          jobs.push({
             title:       cleanTitle(job.title),
             company:     company.name,
             location:    cleanText(job.location?.name) ?? null,
@@ -70,15 +73,19 @@ export class GreenhouseAdapter implements JobAdapter {
             source_name: company.name,
             source_type: "greenhouse",
             source_slug: company.slug,
-            is_ba_relevant: false, // set by filter in refreshJobs
+            is_ba_relevant: false,
           });
         }
+
+        sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: postings.length });
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error(`[Greenhouse] Error fetching ${company.name}:`, err);
+        sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: 0, error: msg });
       }
     }
 
-    console.log(`[Greenhouse] Total raw jobs fetched: ${results.length}`);
-    return results;
+    console.log(`[Greenhouse] Total raw jobs fetched: ${jobs.length}`);
+    return { jobs, sourceResults };
   }
 }

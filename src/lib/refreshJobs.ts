@@ -8,13 +8,13 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { buildAdapters } from "./ats/adapters";
-import { fetchActiveEmployerSources } from "./ats/registry";
+import { fetchActiveEmployerSources, recordSourceFailure, recordSourceSuccess } from "./ats/registry";
 import { checkBaRelevance } from "./ats/filter";
 import { isCanadianLocation } from "./ats/location";
 import { normalizeForDedup } from "./ats/clean";
 
 export type { RefreshResult } from "./ats/types";
-import type { NormalizedJob, RefreshResult } from "./ats/types";
+import type { NormalizedJob, RefreshResult, SourceReport, SourceResult } from "./ats/types";
 
 // ── Prep link logic ────────────────────────────────────────────────────────────
 
@@ -140,25 +140,76 @@ export async function runRefresh(): Promise<RefreshResult> {
     return { ok: true, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0 };
   }
 
-  // 4. Build adapters from registry and run them
+  // 4. Build adapters from registry and run them — track per-source health
   const adapters = buildAdapters(sources);
   const allJobs: NormalizedJob[] = [];
+  const allSourceResults: SourceResult[] = [];
 
   for (const adapter of adapters) {
     console.log(`[refreshJobs] Running adapter: ${adapter.name}`);
     try {
-      const jobs = await adapter.fetchJobs();
+      const { jobs, sourceResults } = await adapter.fetchJobs();
       console.log(`[refreshJobs] ${adapter.name}: ${jobs.length} raw jobs`);
       allJobs.push(...jobs);
+      allSourceResults.push(...sourceResults);
     } catch (err) {
       console.error(`[refreshJobs] Adapter ${adapter.name} threw:`, err);
     }
   }
   console.log(`[refreshJobs] Total raw jobs from all adapters: ${allJobs.length}`);
 
+  // 4b. Write source health to DB — fire-and-forget, non-blocking
+  // Build a lookup of sourceId → platform for the report
+  const sourceIdToPlatform = new Map(sources.map(s => [s.id, s.platform]));
+  const newlyDeactivated: string[] = [];
+
+  await Promise.all(allSourceResults.map(async (sr) => {
+    if (sr.error) {
+      const deactivated = await recordSourceFailure(supabase, sr.sourceId, sr.sourceName, sr.error);
+      if (deactivated) newlyDeactivated.push(sr.sourceName);
+    } else {
+      await recordSourceSuccess(supabase, sr.sourceId);
+    }
+  }));
+
+  // 4c. Build source report
+  const reportByPlatform: Record<string, { active: number; failed: number }> = {};
+  const reportFailures: Array<{ name: string; platform: string; error: string }> = [];
+
+  for (const sr of allSourceResults) {
+    const platform = sourceIdToPlatform.get(sr.sourceId) ?? "unknown";
+    if (!reportByPlatform[platform]) reportByPlatform[platform] = { active: 0, failed: 0 };
+    if (sr.error) {
+      reportByPlatform[platform].failed++;
+      reportFailures.push({ name: sr.sourceName, platform, error: sr.error });
+    } else {
+      reportByPlatform[platform].active++;
+    }
+  }
+
+  const sourceReport: SourceReport = {
+    totalSources:     allSourceResults.length,
+    healthySources:   allSourceResults.filter(r => !r.error).length,
+    failedSources:    allSourceResults.filter(r => !!r.error).length,
+    newlyDeactivated: newlyDeactivated.length,
+    byPlatform:       reportByPlatform,
+    failures:         reportFailures,
+  };
+
+  console.log(
+    `[refreshJobs] Source health: ${sourceReport.healthySources} healthy, ` +
+    `${sourceReport.failedSources} failed, ${sourceReport.newlyDeactivated} newly deactivated`
+  );
+  if (reportFailures.length > 0) {
+    console.log(`[refreshJobs] Failed sources:`);
+    for (const f of reportFailures) {
+      console.log(`  ✗ ${f.name} (${f.platform}): ${f.error}`);
+    }
+  }
+
   if (allJobs.length === 0) {
     console.warn("[refreshJobs] No jobs fetched — nothing to process");
-    return { ok: true, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0 };
+    return { ok: true, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0, sourceReport };
   }
 
   // 3. Freshness filter — only keep jobs from the last 14 days
@@ -213,7 +264,7 @@ export async function runRefresh(): Promise<RefreshResult> {
 
   if (relevantJobs.length === 0) {
     console.warn("[refreshJobs] No relevant BA jobs found");
-    return { ok: true, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada };
+    return { ok: true, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada, sourceReport };
   }
 
   // 5. Build rows
@@ -296,7 +347,7 @@ export async function runRefresh(): Promise<RefreshResult> {
   if (guardViolations.length > 0) {
     const msg = `GUARD FAILED — ${guardViolations.length} duplicate dedup_key(s): ${guardViolations.slice(0, 5).join(", ")}`;
     console.error(`[refreshJobs] ${msg}`);
-    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada, error: msg };
+    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada, sourceReport, error: msg };
   }
   console.log(`[refreshJobs] Guard passed — ${dedupedRows.length} unique rows ready`);
 
@@ -307,7 +358,7 @@ export async function runRefresh(): Promise<RefreshResult> {
 
   if (upsertError) {
     console.error("[refreshJobs] Upsert FAILED:", upsertError.message, upsertError.code);
-    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada, error: upsertError.message };
+    return { ok: false, fetched: allJobs.length, upserted: 0, skippedIrrelevant, skippedStale, skippedNonCanada, sourceReport, error: upsertError.message };
   }
 
   console.log(`[refreshJobs] Upsert succeeded — ${dedupedRows.length} rows written`);
@@ -327,5 +378,5 @@ export async function runRefresh(): Promise<RefreshResult> {
   }
 
   console.log("[refreshJobs] ── DONE ──────────────────────────────────────");
-  return { ok: true, fetched: allJobs.length, upserted: dedupedRows.length, skippedIrrelevant, skippedStale, skippedNonCanada };
+  return { ok: true, fetched: allJobs.length, upserted: dedupedRows.length, skippedIrrelevant, skippedStale, skippedNonCanada, sourceReport };
 }

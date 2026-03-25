@@ -6,7 +6,7 @@
  * apply_url (hostedUrl) is the Lever-hosted job page where candidates apply directly.
  */
 
-import type { JobAdapter, NormalizedJob } from "../types";
+import type { JobAdapter, NormalizedJob, AdapterFetchResult, SourceResult } from "../types";
 import type { EmployerSource } from "../registry";
 import { cleanText, cleanTitle } from "../clean";
 
@@ -33,8 +33,9 @@ export class LeverAdapter implements JobAdapter {
 
   constructor(private readonly companies: EmployerSource[]) {}
 
-  async fetchJobs(): Promise<NormalizedJob[]> {
-    const results: NormalizedJob[] = [];
+  async fetchJobs(): Promise<AdapterFetchResult> {
+    const jobs: NormalizedJob[] = [];
+    const sourceResults: SourceResult[] = [];
 
     for (const company of this.companies) {
       try {
@@ -45,17 +46,19 @@ export class LeverAdapter implements JobAdapter {
 
         if (res.status === 404) {
           console.warn(`[Lever] ${company.name} (${company.slug}) — 404, slug may be wrong`);
+          sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: 0, error: "HTTP 404 — slug may be wrong" });
           continue;
         }
         if (!res.ok) {
           console.warn(`[Lever] ${company.name} — HTTP ${res.status}`);
+          sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: 0, error: `HTTP ${res.status}` });
           continue;
         }
 
-        const jobs: LeverPosting[] = await res.json();
-        console.log(`[Lever] ${company.name}: ${jobs.length} postings`);
+        const postings: LeverPosting[] = await res.json();
+        console.log(`[Lever] ${company.name}: ${postings.length} postings`);
 
-        for (const job of jobs) {
+        for (const job of postings) {
           if (!job.text || !job.hostedUrl) continue;
 
           const rawDesc = job.descriptionBody || job.description || "";
@@ -63,7 +66,7 @@ export class LeverAdapter implements JobAdapter {
             ? new Date(job.createdAt).toISOString()
             : new Date().toISOString();
 
-          results.push({
+          jobs.push({
             title:       cleanTitle(job.text),
             company:     company.name,
             location:    cleanText(job.categories?.location) ?? null,
@@ -76,12 +79,16 @@ export class LeverAdapter implements JobAdapter {
             is_ba_relevant: false,
           });
         }
+
+        sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: postings.length });
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error(`[Lever] Error fetching ${company.name}:`, err);
+        sourceResults.push({ sourceId: company.id, sourceName: company.name, jobCount: 0, error: msg });
       }
     }
 
-    console.log(`[Lever] Total raw jobs fetched: ${results.length}`);
-    return results;
+    console.log(`[Lever] Total raw jobs fetched: ${jobs.length}`);
+    return { jobs, sourceResults };
   }
 }

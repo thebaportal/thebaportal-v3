@@ -4,8 +4,7 @@
  * Adding a new source adapter:
  *   1. Create src/lib/ats/adapters/{name}.ts implementing JobAdapter
  *   2. Register it in src/lib/ats/adapters/index.ts
- *   3. Add company configs in src/lib/ats/companies.ts
- *   Nothing else needs to change.
+ *   3. Insert employer rows into employer_sources (no code change needed)
  */
 
 /** Canonical job record after normalization — every adapter produces this. */
@@ -29,6 +28,26 @@ export interface NormalizedJob {
 }
 
 /**
+ * Per-source health result returned by each adapter.
+ * The refresh pipeline uses this to update employer_sources health fields.
+ */
+export interface SourceResult {
+  sourceId:   string;
+  sourceName: string;
+  jobCount:   number;
+  /** Set when the source failed — used to populate last_error in the DB */
+  error?: string;
+}
+
+/**
+ * What fetchJobs() returns — jobs plus one SourceResult per employer source.
+ */
+export interface AdapterFetchResult {
+  jobs:          NormalizedJob[];
+  sourceResults: SourceResult[];
+}
+
+/**
  * Every source adapter must implement this interface.
  * The refresh pipeline calls fetchJobs() on each registered adapter
  * and merges the results before filtering and upserting.
@@ -38,8 +57,8 @@ export interface JobAdapter {
   readonly name: string;
   /** Platform key written to source_type column */
   readonly source_type: string;
-  /** Fetch all current jobs from this source and return normalized records. */
-  fetchJobs(): Promise<NormalizedJob[]>;
+  /** Fetch all current jobs from this source and return normalized records + per-source health. */
+  fetchJobs(): Promise<AdapterFetchResult>;
 }
 
 export interface RefreshResult {
@@ -49,6 +68,17 @@ export interface RefreshResult {
   skippedIrrelevant: number;
   skippedStale: number;
   skippedNonCanada: number;
+  sourceReport?: SourceReport;
   error?: string;
   envErrors?: string[];
+}
+
+/** Summary of source health after a pipeline run — logged + returned in API response. */
+export interface SourceReport {
+  totalSources:      number;
+  healthySources:    number;
+  failedSources:     number;
+  newlyDeactivated:  number;
+  byPlatform: Record<string, { active: number; failed: number }>;
+  failures: Array<{ name: string; platform: string; error: string }>;
 }

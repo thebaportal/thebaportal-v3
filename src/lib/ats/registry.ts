@@ -78,15 +78,18 @@ export async function fetchActiveEmployerSources(
 }
 
 /**
- * Mark a source as having failed. If it hits 3 consecutive failures,
- * deactivate it automatically and log a warning.
+ * Mark a source as having failed.
+ * Increments consecutive_failures and records last_error + last_fetched_at.
+ * Auto-deactivates the source after 3 consecutive failures.
+ * Returns true if the source was deactivated this run.
  * Non-fatal — errors here are ignored so the main pipeline keeps running.
  */
 export async function recordSourceFailure(
   supabase: SupabaseClient,
   sourceId: string,
-  sourceName: string
-): Promise<void> {
+  sourceName: string,
+  error: string
+): Promise<boolean> {
   try {
     const { data } = await supabase
       .from("employer_sources")
@@ -101,31 +104,42 @@ export async function recordSourceFailure(
       .from("employer_sources")
       .update({
         consecutive_failures: newCount,
+        last_fetched_at:      new Date().toISOString(),
+        last_error:           error,
         ...(shouldDeactivate ? { active: false } : {}),
       })
       .eq("id", sourceId);
 
     if (shouldDeactivate) {
       console.warn(
-        `[registry] ${sourceName} deactivated after 3 consecutive fetch failures`
+        `[registry] ${sourceName} deactivated after 3 consecutive fetch failures — last error: ${error}`
       );
     }
+
+    return shouldDeactivate;
   } catch {
     // Non-fatal — registry failure tracking must not break the pipeline
+    return false;
   }
 }
 
 /**
- * Reset consecutive_failures to 0 after a successful fetch.
+ * Reset consecutive_failures to 0 and record last_success_at after a successful fetch.
  */
 export async function recordSourceSuccess(
   supabase: SupabaseClient,
   sourceId: string
 ): Promise<void> {
   try {
+    const now = new Date().toISOString();
     await supabase
       .from("employer_sources")
-      .update({ consecutive_failures: 0, last_fetched_at: new Date().toISOString() })
+      .update({
+        consecutive_failures: 0,
+        last_fetched_at:      now,
+        last_success_at:      now,
+        last_error:           null,
+      })
       .eq("id", sourceId);
   } catch {
     // Non-fatal
