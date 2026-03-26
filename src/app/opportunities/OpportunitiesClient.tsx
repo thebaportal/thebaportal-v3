@@ -22,6 +22,9 @@ interface JobListing {
   prep_links: PrepLink[] | null;
   source_type: string | null;
   source_name: string | null;
+  // URL verification
+  verified_apply_url: string | null;
+  apply_url_status: string | null;
 }
 
 interface Props {
@@ -158,8 +161,16 @@ const CAREERS_FALLBACK: Record<string, string> = {
 };
 
 function resolveApplyUrl(job: JobListing): { href: string; label: string; isDirect: boolean } {
-  const raw = job.apply_url || job.url || "";
+  // Use server-verified result when available — this is the authoritative answer.
+  if (job.apply_url_status === "valid" && job.verified_apply_url) {
+    return { href: job.verified_apply_url, label: "Apply", isDirect: true };
+  }
+  if (job.apply_url_status === "invalid" && job.verified_apply_url) {
+    return { href: job.verified_apply_url, label: "View job on company site", isDirect: false };
+  }
 
+  // Pending/unverified: client-side check as stopgap until 7am cron runs.
+  const raw = job.apply_url || job.url || "";
   if (isBadUrl(raw)) {
     const fallback = CAREERS_FALLBACK[job.company ?? ""];
     const google   = `https://www.google.com/search?q=${encodeURIComponent(
@@ -167,7 +178,6 @@ function resolveApplyUrl(job: JobListing): { href: string; label: string; isDire
     )}`;
     return { href: fallback ?? google, label: "View job on company site", isDirect: false };
   }
-
   return { href: raw, label: "Apply", isDirect: true };
 }
 

@@ -293,35 +293,55 @@ export async function runRefresh(): Promise<RefreshResult> {
     quality_score:number;
     prep_links:   PrepLink[];
     updated_at:   string;
+    // URL verification fields
+    raw_apply_url:      string;
+    verified_apply_url: string | null;
+    apply_url_status:   string;
+    last_verified_at:   string | null;
     // Legacy columns — null for new jobs (Adzuna gone)
     adzuna_id:    null;
     salary_min:   null;
     salary_max:   null;
   };
 
+  const now = new Date().toISOString();
+
   const rawRows: JobRow[] = relevantJobs.map(job => {
     const dedupKey = `${normalizeForDedup(job.title)}::${job.company.toLowerCase()}`;
+
+    // Workday URLs are unverified until the /api/jobs/verify cron runs at 7am.
+    // All other ATS platforms (Greenhouse, Lever, SmartRecruiters) have stable,
+    // hosted URLs that do not require verification.
+    const isWorkday          = job.source_type === "workday";
+    const apply_url_status   = isWorkday ? "pending" : "valid";
+    const verified_apply_url = isWorkday ? null       : job.apply_url;
+    const last_verified_at   = isWorkday ? null       : now;
+
     return {
-      dedup_key:     dedupKey,
-      title:         job.title,
-      company:       job.company || null,
-      location:      job.location,
-      apply_url:     job.apply_url,
-      url:           job.apply_url,
-      description:   job.description,
-      posted_at:     job.posted_at,
-      source_name:   job.source_name,
-      source_type:   job.source_type,
-      source_slug:   job.source_slug,
-      is_ba_relevant:true,
-      work_type:     detectWorkType(job.title, job.description ?? ""),
-      level:         detectLevel(job.title, job.description ?? ""),
-      quality_score: qualityScore(job),
-      prep_links:    getPrep(job.title, job.description ?? ""),
-      updated_at:    new Date().toISOString(),
-      adzuna_id:     null,
-      salary_min:    null,
-      salary_max:    null,
+      dedup_key:          dedupKey,
+      title:              job.title,
+      company:            job.company || null,
+      location:           job.location,
+      apply_url:          job.apply_url,
+      url:                job.apply_url,
+      description:        job.description,
+      posted_at:          job.posted_at,
+      source_name:        job.source_name,
+      source_type:        job.source_type,
+      source_slug:        job.source_slug,
+      is_ba_relevant:     true,
+      work_type:          detectWorkType(job.title, job.description ?? ""),
+      level:              detectLevel(job.title, job.description ?? ""),
+      quality_score:      qualityScore(job),
+      prep_links:         getPrep(job.title, job.description ?? ""),
+      updated_at:         now,
+      raw_apply_url:      job.apply_url,
+      verified_apply_url,
+      apply_url_status,
+      last_verified_at,
+      adzuna_id:          null,
+      salary_min:         null,
+      salary_max:         null,
     };
   });
 

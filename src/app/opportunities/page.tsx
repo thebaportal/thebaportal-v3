@@ -33,24 +33,22 @@ export default async function OpportunitiesPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 14-day fence applied at query time — mirrors the ingestion freshness window.
-  // This ensures stale rows already in the DB are never served, even if the
-  // 30-day prune job hasn't run yet.
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  // 10-day fence at query time — mirrors the ingestion freshness window.
+  const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
 
   const fetchJobs = () =>
     db
       .from("job_listings")
-      .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name")
-      .gte("posted_at", fourteenDaysAgo)
+      .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name, verified_apply_url, apply_url_status")
+      .gte("posted_at", tenDaysAgo)
       .order("quality_score", { ascending: false })
       .order("posted_at",     { ascending: false })
-      .limit(200); // fetch extra; we'll filter down to clean ones
+      .limit(200);
 
   let { data: raw } = await fetchJobs();
 
-  // Strip out aggregator-linked or URL-less rows — these are old Adzuna records
-  // or any future ingestion that didn't produce a direct employer link.
+  // Strip aggregator-linked rows. Jobs with bad Workday URLs are kept —
+  // resolveApplyUrl() on the client will show the appropriate fallback.
   const cleanJobs = (raw ?? []).filter(job => {
     const url = job.apply_url || job.url;
     return isDirectUrl(url);
@@ -69,7 +67,7 @@ export default async function OpportunitiesPage() {
     } else {
       console.log(`[OpportunitiesPage] Bootstrap sync complete — ${result.upserted} rows`);
       const { data: fresh } = await fetchJobs();
-      const freshClean = (fresh ?? []).filter(job => isDirectUrl(job.apply_url || job.url));
+      const freshClean = (fresh ?? []).filter(job => isDirectUrl(job.apply_url || job.url ?? undefined));
       return (
         <OpportunitiesClient
           initialJobs={freshClean as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
