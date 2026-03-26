@@ -129,7 +129,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [province, setProvince] = useState("all");
   const [syncing,  setSyncing]  = useState(false);
   const [syncMsg,  setSyncMsg]  = useState<string | null>(null);
-  const [modal,    setModal]    = useState<PracticeModal | null>(null);
+  const [modal,       setModal]       = useState<PracticeModal | null>(null);
+  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
 
   const triggerSync = useCallback(async () => {
     setSyncing(true); setSyncMsg(null);
@@ -207,11 +208,11 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
             // live BA roles — Canada
           </div>
           <h1 style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, letterSpacing: "-0.03em", color: C.text1, lineHeight: 1.05, marginBottom: 20, maxWidth: 640 }}>
-            {"Don't just apply."}<br />
-            <span style={{ color: C.teal }}>Prove you can do the job.</span>
+            Apply fast.{" "}
+            <span style={{ color: C.teal }}>Then prove you can do the job.</span>
           </h1>
           <p style={{ fontSize: 16, color: C.text3, lineHeight: 1.7, maxWidth: 500, marginBottom: 36 }}>
-            Practice real BA scenarios drawn from live Canadian job postings. Build the skills employers are actually testing — before your interview.
+            Real BA roles. Then practice what they&apos;ll actually test you on.
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 12, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", letterSpacing: "-0.01em" }}>
@@ -384,31 +385,51 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   )}
 
                   {/* Row 6: prep chips + CTAs */}
-                  <div style={{ marginTop: "auto", paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {prep.map((p, i) => (
-                        <button key={i} onClick={() => handlePractice(job)}
-                          style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}`, cursor: "pointer" }}>
-                          {p.label}
+                  <div style={{ marginTop: "auto", paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {prep.map((p, i) => (
+                          <button key={i} onClick={() => handlePractice(job)}
+                            style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}`, cursor: "pointer" }}>
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {/* Practice — secondary, visible */}
+                        <button onClick={() => handlePractice(job)}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: C.text2, background: "transparent", padding: "7px 13px", borderRadius: 8, border: `1px solid ${C.border}`, cursor: "pointer", whiteSpace: "nowrap", transition: "color 0.12s, border-color 0.12s" }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text1; (e.currentTarget as HTMLButtonElement).style.borderColor = C.borderHover; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text2; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}>
+                          Practice this role
                         </button>
-                      ))}
+                        {/* Apply — primary, always direct */}
+                        <a href={applyUrl} target="_blank" rel="noopener noreferrer"
+                          onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "8px 16px", borderRadius: 9, textDecoration: "none", whiteSpace: "nowrap", transition: "background 0.12s" }}
+                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
+                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
+                          Apply <ExternalLink size={11} />
+                        </a>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {/* Apply — always direct, no modal, no friction */}
-                      <a href={applyUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: C.text3, textDecoration: "none", padding: "7px 12px", borderRadius: 8, border: `1px solid ${C.border}`, transition: "color 0.12s, border-color 0.12s" }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = C.text1; (e.currentTarget as HTMLAnchorElement).style.borderColor = C.borderHover; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = C.text3; (e.currentTarget as HTMLAnchorElement).style.borderColor = C.border; }}>
-                        Apply <ExternalLink size={11} />
-                      </a>
-                      {/* Practice — primary CTA */}
-                      <button onClick={() => handlePractice(job)}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "8px 16px", borderRadius: 9, border: "none", cursor: "pointer", whiteSpace: "nowrap", transition: "background 0.12s" }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = "#17a888")}
-                        onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = C.teal)}>
-                        Practice this role
-                      </button>
-                    </div>
+
+                    {/* Post-apply nudge — shown after Apply is clicked */}
+                    {appliedJobs.has(job.id) ? (
+                      <div style={{ marginTop: 12 }}>
+                        <button onClick={() => handlePractice(job)}
+                          style={{ fontSize: 12, fontWeight: 700, color: C.teal, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", textAlign: "left" }}>
+                          Got the interview? Practice this role in 5 minutes →
+                        </button>
+                        <span style={{ fontSize: 11, color: C.text4, display: "block", marginTop: 2 }}>
+                          Don&apos;t walk in guessing.
+                        </span>
+                      </div>
+                    ) : (
+                      <p style={{ marginTop: 10, fontSize: 11, color: C.text4, fontStyle: "italic" }}>
+                        Interview coming? Practice this role
+                      </p>
+                    )}
                   </div>
                 </div>
               );
@@ -466,10 +487,10 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               // simulation mode
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text1, marginBottom: 10, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-              Test yourself against this role
+              Interview coming up?
             </h2>
             <p style={{ fontSize: 14, color: C.text3, marginBottom: 6, lineHeight: 1.6 }}>
-              Run a real BA simulation and see how you measure up before you apply.
+              Run a real BA simulation and see how you&apos;d perform before the interview.
             </p>
             <div style={{ fontSize: 13, color: C.text4, marginBottom: 28, padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, fontStyle: "italic" }}>
               {modal.jobTitle}{modal.company ? ` · ${modal.company}` : ""}
