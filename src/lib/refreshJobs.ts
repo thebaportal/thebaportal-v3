@@ -37,6 +37,13 @@ function getPrep(title: string, desc: string): PrepLink[] {
   if (/process|workflow|bpmn|swimlane|mapping/.test(t))
     prep.push({ label: "Process Mapping Challenge", href: "/scenarios" });
 
+  // Fallback for jobs with no description (e.g. Workday): any BA role gets
+  // universally relevant prep chips so users always have something to practice.
+  if (prep.length === 0 && /analyst/.test(t)) {
+    prep.push({ label: "Requirements Challenge",    href: "/scenarios" });
+    prep.push({ label: "Stakeholder Interview Sim", href: "/scenarios" });
+  }
+
   // Always include one CTA but cap total at 3 role-specific chips
   const seen = new Set<string>();
   const deduped = prep.filter(p => {
