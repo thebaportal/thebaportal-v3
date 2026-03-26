@@ -161,24 +161,26 @@ const CAREERS_FALLBACK: Record<string, string> = {
 };
 
 function resolveApplyUrl(job: JobListing): { href: string; label: string; isDirect: boolean } {
-  // Use server-verified result when available — this is the authoritative answer.
+  // Only show "Apply" if the link has been positively verified server-side.
   if (job.apply_url_status === "valid" && job.verified_apply_url) {
     return { href: job.verified_apply_url, label: "Apply", isDirect: true };
   }
+  // Invalid URL — server already computed the best fallback (careers page or Google).
   if (job.apply_url_status === "invalid" && job.verified_apply_url) {
-    return { href: job.verified_apply_url, label: "View job on company site", isDirect: false };
+    return { href: job.verified_apply_url, label: "View on company site", isDirect: false };
   }
-
-  // Pending/unverified: client-side check as stopgap until 7am cron runs.
+  // Legacy rows from existing adapters (Greenhouse/Lever/iCIMS) — apply_url is a
+  // stable hosted link, no verification needed. Show Apply directly.
   const raw = job.apply_url || job.url || "";
-  if (isBadUrl(raw)) {
-    const fallback = CAREERS_FALLBACK[job.company ?? ""];
-    const google   = `https://www.google.com/search?q=${encodeURIComponent(
-      [job.title, job.company, job.location].filter(Boolean).join(" ")
-    )}`;
-    return { href: fallback ?? google, label: "View job on company site", isDirect: false };
+  if (!isBadUrl(raw) && raw.startsWith("http")) {
+    return { href: raw, label: "Apply", isDirect: true };
   }
-  return { href: raw, label: "Apply", isDirect: true };
+  // Last resort fallback from CAREERS_FALLBACK map or Google.
+  const fallback = CAREERS_FALLBACK[job.company ?? ""];
+  const google   = `https://www.google.com/search?q=${encodeURIComponent(
+    [job.title, job.company, "Canada"].filter(Boolean).join(" ")
+  )}`;
+  return { href: fallback ?? google, label: "View on company site", isDirect: false };
 }
 
 const WORK_TYPE_LABELS: Record<string, string> = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };

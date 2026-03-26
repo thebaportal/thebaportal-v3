@@ -3,6 +3,10 @@
     {
       "path": "/api/jobs/refresh",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/jobs/fantastic-refresh",
+      "schedule": "0 7 */3 * *"
     }
   ]
 }
