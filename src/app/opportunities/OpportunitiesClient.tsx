@@ -85,6 +85,33 @@ function getPracticeTypes(prepLinks: PrepLink[]): string[] {
   return Array.from(types);
 }
 
+function getResumeKeywords(title: string, prepLinks: PrepLink[]): string[] {
+  const t = title.toLowerCase();
+  const kws = new Set<string>();
+
+  if (/agile|scrum|sprint/.test(t) || prepLinks.some(p => p.label === "Agile BA Challenge")) {
+    kws.add("Agile"); kws.add("Scrum"); kws.add("Sprint planning"); kws.add("Backlog refinement");
+  }
+  if (/data|analytics|reporting|sql/.test(t) || prepLinks.some(p => p.label === "Data Analysis Challenge")) {
+    kws.add("SQL"); kws.add("Data analysis"); kws.add("Power BI"); kws.add("Reporting");
+  }
+  if (/process|workflow|bpmn/.test(t) || prepLinks.some(p => p.label === "Process Mapping Challenge")) {
+    kws.add("Process mapping"); kws.add("BPMN"); kws.add("As-is / to-be"); kws.add("Workflow design");
+  }
+  if (/stakeholder/.test(t) || prepLinks.some(p => p.label === "Stakeholder Interview Sim")) {
+    kws.add("Stakeholder management"); kws.add("Requirements elicitation"); kws.add("Workshop facilitation");
+  }
+  if (/requirement|brd|user stor/.test(t) || prepLinks.some(p => p.label === "Requirements Challenge")) {
+    kws.add("BRD"); kws.add("User stories"); kws.add("Use cases"); kws.add("Gap analysis");
+  }
+  if (/senior/.test(t)) {
+    kws.add("Cross-functional teams"); kws.add("Project delivery");
+  }
+
+  kws.add("Business analysis"); kws.add("BABOK");
+  return Array.from(kws).slice(0, 8);
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function daysAgo(dateStr: string): string {
@@ -110,6 +137,8 @@ function isDirectUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   try {
     const host = new URL(url).hostname.toLowerCase();
+    // Filter out Workday's broken/invalid job URL placeholder
+    if (host === "community.workday.com") return false;
     return !AGGREGATOR_HOSTS.some(a => host.includes(a));
   } catch { return false; }
 }
@@ -123,14 +152,15 @@ const PROVINCES = ["ON", "BC", "AB", "QC", "MB", "SK", "NS", "Remote"];
 
 export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError }: Props) {
   const router = useRouter();
-  const [keyword,  setKeyword]  = useState("");
-  const [workType, setWorkType] = useState("all");
-  const [level,    setLevel]    = useState("all");
-  const [province, setProvince] = useState("all");
-  const [syncing,  setSyncing]  = useState(false);
-  const [syncMsg,  setSyncMsg]  = useState<string | null>(null);
+  const [keyword,     setKeyword]     = useState("");
+  const [workType,    setWorkType]    = useState("all");
+  const [level,       setLevel]       = useState("all");
+  const [province,    setProvince]    = useState("all");
+  const [syncing,     setSyncing]     = useState(false);
+  const [syncMsg,     setSyncMsg]     = useState<string | null>(null);
   const [modal,       setModal]       = useState<PracticeModal | null>(null);
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
+  const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
 
   const triggerSync = useCallback(async () => {
     setSyncing(true); setSyncMsg(null);
@@ -155,7 +185,6 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
     if (isLoggedIn) {
       router.push(`/scenarios?${params}`);
     } else {
-      // Store for post-signup pickup on scenarios page
       try { sessionStorage.setItem("practiceContext", params); } catch {}
       setModal({ jobTitle: job.title, company: job.company ?? "", practiceParams: params });
     }
@@ -281,7 +310,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
         <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 13, color: C.text4 }}>
-            {filtered.length} role{filtered.length !== 1 ? "s" : ""}
+            {filtered.length} role{filtered.length !== 1 ? "s" : ""} — click any card to preview
           </span>
           {syncMsg && (
             <span style={{ fontSize: 12, color: syncMsg.includes("failed") ? "#f87171" : C.teal, fontFamily: "monospace" }}>
@@ -329,7 +358,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
               return (
                 <div key={job.id}
-                  style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s" }}
+                  onClick={() => setSelectedJob(job)}
+                  style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.boxShadow = "none"; }}
                 >
@@ -389,23 +419,23 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {prep.map((p, i) => (
-                          <button key={i} onClick={() => handlePractice(job)}
+                          <button key={i}
+                            onClick={e => { e.stopPropagation(); handlePractice(job); }}
                             style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}`, cursor: "pointer" }}>
                             {p.label}
                           </button>
                         ))}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {/* Practice — secondary, visible */}
-                        <button onClick={() => handlePractice(job)}
+                        <button
+                          onClick={e => { e.stopPropagation(); handlePractice(job); }}
                           style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: C.text2, background: "transparent", padding: "7px 13px", borderRadius: 8, border: `1px solid ${C.border}`, cursor: "pointer", whiteSpace: "nowrap", transition: "color 0.12s, border-color 0.12s" }}
                           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text1; (e.currentTarget as HTMLButtonElement).style.borderColor = C.borderHover; }}
                           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text2; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}>
                           Practice this role
                         </button>
-                        {/* Apply — primary, always direct */}
                         <a href={applyUrl} target="_blank" rel="noopener noreferrer"
-                          onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
+                          onClick={e => { e.stopPropagation(); setAppliedJobs(prev => new Set(prev).add(job.id)); }}
                           style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "8px 16px", borderRadius: 9, textDecoration: "none", whiteSpace: "nowrap", transition: "background 0.12s" }}
                           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
                           onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
@@ -414,10 +444,10 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                       </div>
                     </div>
 
-                    {/* Post-apply nudge — shown after Apply is clicked */}
                     {appliedJobs.has(job.id) ? (
                       <div style={{ marginTop: 12 }}>
-                        <button onClick={() => handlePractice(job)}
+                        <button
+                          onClick={e => { e.stopPropagation(); handlePractice(job); }}
                           style={{ fontSize: 12, fontWeight: 700, color: C.teal, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", textAlign: "left" }}>
                           Got the interview? Practice this role in 5 minutes →
                         </button>
@@ -427,7 +457,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                       </div>
                     ) : (
                       <p style={{ marginTop: 10, fontSize: 11, color: C.text4, fontStyle: "italic" }}>
-                        Interview coming? Practice this role
+                        Click to preview the role before you apply
                       </p>
                     )}
                   </div>
@@ -482,7 +512,6 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", color: C.text4, padding: 4 }}>
               <X size={18} />
             </button>
-
             <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14, fontFamily: "monospace" }}>
               // simulation mode
             </div>
@@ -495,7 +524,6 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
             <div style={{ fontSize: 13, color: C.text4, marginBottom: 28, padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, fontStyle: "italic" }}>
               {modal.jobTitle}{modal.company ? ` · ${modal.company}` : ""}
             </div>
-
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Link href="/signup"
                 style={{ display: "block", textAlign: "center", padding: "13px 20px", borderRadius: 12, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", letterSpacing: "-0.01em" }}>
@@ -506,13 +534,143 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                 Sign in
               </Link>
             </div>
-
             <p style={{ fontSize: 12, color: C.text4, textAlign: "center", marginTop: 18 }}>
               Free to start. No credit card required.
             </p>
           </div>
         </div>
       )}
+
+      {/* ── Job detail drawer ── */}
+      {selectedJob && (() => {
+        const job      = selectedJob;
+        const applyUrl = job.apply_url || job.url || "#";
+        const prep     = (job.prep_links ?? []).filter(p => p.label !== "Career Suite");
+        const fresh    = isFresh(job.posted_at);
+        const keywords = getResumeKeywords(job.title, job.prep_links ?? []);
+
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex" }}>
+            {/* Overlay */}
+            <div
+              onClick={() => setSelectedJob(null)}
+              style={{ flex: 1, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+            />
+
+            {/* Drawer panel */}
+            <div style={{ width: "min(480px, 100vw)", background: "#18181b", borderLeft: `1px solid ${C.border}`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+
+              {/* Sticky header */}
+              <div style={{ padding: "24px 28px 20px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: "#18181b", zIndex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                      <Building2 size={12} style={{ color: C.text4, flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text3 }}>{job.company ?? "Unknown"}</span>
+                      {fresh && <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>NEW</span>}
+                    </div>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text1, lineHeight: 1.3, marginBottom: 10 }}>{job.title}</h2>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                      {job.location && (
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text3 }}>
+                          <MapPin size={10} style={{ color: C.text4 }} />
+                          {job.location}
+                        </span>
+                      )}
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: WORK_TYPE_COLORS[job.work_type] ?? C.text3, border: "1px solid rgba(255,255,255,0.06)" }}>
+                        {WORK_TYPE_LABELS[job.work_type]}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: C.text3, border: "1px solid rgba(255,255,255,0.06)" }}>
+                        {LEVEL_LABELS[job.level] ?? job.level}
+                      </span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text4 }}>
+                        <Clock size={10} />{daysAgo(job.posted_at)}
+                      </span>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedJob(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.text4, padding: 4, flexShrink: 0 }}>
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable body */}
+              <div style={{ padding: "24px 28px", flex: 1 }}>
+
+                {/* About this role */}
+                <div style={{ marginBottom: 28 }}>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
+                    About this role
+                  </h3>
+                  {job.description ? (
+                    <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.7 }}>
+                      {job.description.slice(0, 600)}{job.description.length > 600 ? "…" : ""}
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 14, color: C.text4, lineHeight: 1.7, fontStyle: "italic" }}>
+                      Full description available on the employer&apos;s site. Click Apply to read it before submitting.
+                    </p>
+                  )}
+                </div>
+
+                {/* What to prepare */}
+                {prep.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
+                      What to prepare
+                    </h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {prep.map((p, i) => {
+                        const whyText = WHY_MAP[p.label];
+                        return (
+                          <div key={i} style={{ padding: "12px 14px", borderRadius: 10, background: C.tealSoft, border: `1px solid ${C.tealBorder}` }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: whyText ? 4 : 0 }}>{p.label}</div>
+                            {whyText && <div style={{ fontSize: 12, color: C.text3, lineHeight: 1.55 }}>This interview will {whyText}.</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resume keywords */}
+                <div style={{ marginBottom: 28 }}>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
+                    Resume keywords to include
+                  </h3>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {keywords.map((kw, i) => (
+                      <span key={i} style={{ fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: C.text2, border: `1px solid ${C.border}` }}>
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Sticky footer CTAs */}
+              <div style={{ padding: "20px 28px", borderTop: `1px solid ${C.border}`, position: "sticky", bottom: 0, background: "#18181b", display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => { setSelectedJob(null); handlePractice(job); }}
+                  style={{ flex: 1, padding: "11px 16px", borderRadius: 10, background: "transparent", color: C.text2, fontSize: 13, fontWeight: 600, border: `1px solid ${C.border}`, cursor: "pointer", transition: "color 0.12s, border-color 0.12s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text1; (e.currentTarget as HTMLButtonElement).style.borderColor = C.borderHover; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text2; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}>
+                  Practice this role
+                </button>
+                <a href={applyUrl} target="_blank" rel="noopener noreferrer"
+                  onClick={() => { setAppliedJobs(prev => new Set(prev).add(job.id)); setSelectedJob(null); }}
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 16px", borderRadius: 10, background: C.teal, color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "background 0.12s" }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
+                  onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
+                  Apply now <ExternalLink size={12} />
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
