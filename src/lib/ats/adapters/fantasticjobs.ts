@@ -1,67 +1,52 @@
 /**
- * Fantastic Jobs API adapter.
+ * Active Jobs DB adapter (via RapidAPI).
  *
- * Fetches BA jobs in Canada directly from employer ATS platforms via
- * the Fantastic Jobs aggregation API (fantastic.jobs).
+ * API: https://rapidapi.com/fantastic-jobs-fantastic-jobs-default/api/active-jobs-db
+ * Endpoint: GET /active-ats-7d  (jobs posted in the last 7 days, direct ATS links)
  *
  * ── Setup ────────────────────────────────────────────────────────────────────
- * 1. Sign up at https://fantastic.jobs (RapidAPI or Apify plan)
- * 2. Add to Vercel environment variables:
- *
- *    FANTASTIC_JOBS_API_KEY   = your RapidAPI or direct API key
- *    FANTASTIC_JOBS_API_HOST  = job-postings-from-company-career-sites.p.rapidapi.com
- *                               (leave blank if using direct fantastic.jobs key)
+ * Add to Vercel environment variables:
+ *   FANTASTIC_JOBS_API_KEY  = your RapidAPI key
+ *   FANTASTIC_JOBS_API_HOST = active-jobs-db.p.rapidapi.com
  *
  * ── Free plan limits ─────────────────────────────────────────────────────────
- * - 25 jobs per request
- * - Fetch every 3 days (cron schedule: 0 7 every-3-days)
- * - Canada + BA keywords + last 7 days filter
- *
- * ── Apply URLs ───────────────────────────────────────────────────────────────
- * Fantastic Jobs returns DIRECT ATS URLs (Greenhouse, Lever, iCIMS, etc.)
- * not aggregator redirects. Each URL is verified at ingest by verifyUrl.ts.
+ * Fetch every 3 days (cron: 0 7 every-3-days). Max 25 results per call.
  */
 
 import type { NormalizedJob } from "../types";
 
-// ── Response shape from Fantastic Jobs API ───────────────────────────────────
-// Field names below are the most common — confirm against your plan's docs.
-// If a field is named differently in the real response, update the mapper below.
+// ── Response shape from active-jobs-db ───────────────────────────────────────
+// The API returns an array of job objects directly (not wrapped in a key).
 
-interface FJJob {
-  id?:              string | number;
-  title?:           string;
-  job_title?:       string;              // alternate field name
-  company_name?:    string;
-  company?:         string;             // alternate
-  location?:        string;
-  city?:            string;
-  country?:         string;
-  description?:     string;
-  job_description?: string;             // alternate
-  apply_url?:       string;
-  url?:             string;             // alternate
-  job_url?:         string;             // alternate
-  date_posted?:     string;
-  posted_at?:       string;             // alternate
-  created_at?:      string;             // alternate
-  source?:          string;             // 'greenhouse' | 'lever' | 'icims' | etc.
-  ats?:             string;             // alternate
-  company_url?:     string;             // employer careers page
-  careers_url?:     string;             // alternate
+interface AJDJob {
+  // Core fields (most likely names based on API docs)
+  id?:                   string | number;
+  title?:                string;
+  job_title?:            string;
+  organization?:         string;   // company name
+  company?:              string;
+  company_name?:         string;
+  locations_derived?:    string[]; // array: ["Toronto, ON, Canada"]
+  location?:             string;
+  city?:                 string;
+  country?:              string;
+  description_text?:     string;   // plain text description
+  description?:          string;
+  job_description?:      string;
+  url?:                  string;   // direct ATS apply link
+  apply_url?:            string;
+  job_url?:              string;
+  date_posted?:          string;   // ISO date string
+  posted_at?:            string;
+  created_at?:           string;
+  source?:               string;   // 'greenhouse' | 'lever' | 'icims' | etc.
+  ats?:                  string;
+  company_url?:          string;
+  careers_url?:          string;
 }
 
-interface FJResponse {
-  jobs?:    FJJob[];
-  results?: FJJob[];
-  data?:    FJJob[];
-  total?:   number;
-  count?:   number;
-}
+// ── Careers page fallbacks ────────────────────────────────────────────────────
 
-// ── Fallback careers pages per company ───────────────────────────────────────
-// Used when a job's apply_url is missing or invalid.
-// Add more as needed.
 const CAREERS_FALLBACK: Record<string, string> = {
   "RBC":              "https://jobs.rbc.com",
   "TD Bank":          "https://jobs.td.com",
@@ -78,44 +63,49 @@ const CAREERS_FALLBACK: Record<string, string> = {
   "KPMG Canada":      "https://home.kpmg/ca/en/home/careers.html",
   "EY Canada":        "https://www.ey.com/en_ca/careers",
   "PwC Canada":       "https://www.pwc.com/ca/en/careers.html",
+  "Shopify":          "https://www.shopify.com/careers",
+  "OpenText":         "https://careers.opentext.com",
+  "Intact Insurance": "https://careers.intact.ca",
 };
 
 // ── Field normalizers ─────────────────────────────────────────────────────────
 
-function extractTitle(j: FJJob): string | null {
+function extractTitle(j: AJDJob): string | null {
   return j.title ?? j.job_title ?? null;
 }
 
-function extractCompany(j: FJJob): string | null {
-  return j.company_name ?? j.company ?? null;
+function extractCompany(j: AJDJob): string | null {
+  return j.organization ?? j.company_name ?? j.company ?? null;
 }
 
-function extractLocation(j: FJJob): string | null {
+function extractLocation(j: AJDJob): string | null {
+  // locations_derived is an array — take the first entry
+  if (j.locations_derived?.length) return j.locations_derived[0];
   if (j.location) return j.location;
   const parts = [j.city, j.country].filter(Boolean);
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
-function extractDescription(j: FJJob): string | null {
-  return j.description ?? j.job_description ?? null;
+function extractDescription(j: AJDJob): string | null {
+  return j.description_text ?? j.description ?? j.job_description ?? null;
 }
 
-function extractApplyUrl(j: FJJob): string | null {
-  return j.apply_url ?? j.url ?? j.job_url ?? null;
+function extractApplyUrl(j: AJDJob): string | null {
+  return j.url ?? j.apply_url ?? j.job_url ?? null;
 }
 
-function extractPostedAt(j: FJJob): string {
+function extractPostedAt(j: AJDJob): string {
   const raw = j.date_posted ?? j.posted_at ?? j.created_at;
   if (!raw) return new Date().toISOString();
   const d = new Date(raw);
   return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
 }
 
-function extractSourceType(j: FJJob): string {
-  return (j.source ?? j.ats ?? "fantastic_jobs").toLowerCase();
+function extractSourceType(j: AJDJob): string {
+  return (j.source ?? j.ats ?? "active_jobs_db").toLowerCase();
 }
 
-// ── Adapter ───────────────────────────────────────────────────────────────────
+// ── Main fetch ────────────────────────────────────────────────────────────────
 
 export interface FJFetchResult {
   jobs:      NormalizedJob[];
@@ -126,114 +116,90 @@ export interface FJFetchResult {
 
 export async function fetchFantasticJobs(): Promise<FJFetchResult> {
   const apiKey  = process.env.FANTASTIC_JOBS_API_KEY;
-  const apiHost = process.env.FANTASTIC_JOBS_API_HOST;
+  const apiHost = process.env.FANTASTIC_JOBS_API_HOST ?? "active-jobs-db.p.rapidapi.com";
 
   if (!apiKey) {
     console.warn("[FantasticJobs] FANTASTIC_JOBS_API_KEY not set — skipping");
     return { jobs: [], total: 0, apiCalled: false, error: "API key not configured" };
   }
 
-  // ── Build request ──────────────────────────────────────────────────────────
-  // Two separate calls: one for "Business Analyst", one for "Systems Analyst"
-  // to maximise relevant results within the 25-job limit.
-  const allJobs: NormalizedJob[] = [];
-  const keywords = ["Business Analyst", "Systems Analyst"];
-
-  for (const keyword of keywords) {
-    try {
-      const jobs = await fetchKeyword(apiKey, apiHost ?? null, keyword);
-      allJobs.push(...jobs);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[FantasticJobs] Error fetching "${keyword}":`, msg);
-    }
-  }
-
-  // Deduplicate across the two keyword calls by apply_url
-  const seen = new Set<string>();
-  const unique = allJobs.filter(j => {
-    const key = j.apply_url;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  console.log(`[FantasticJobs] ${unique.length} unique jobs across ${keywords.length} keyword queries`);
-  return { jobs: unique, total: unique.length, apiCalled: true };
-}
-
-async function fetchKeyword(
-  apiKey:  string,
-  apiHost: string | null,
-  keyword: string,
-): Promise<NormalizedJob[]> {
-
-  // ── RapidAPI endpoint ──────────────────────────────────────────────────────
-  // If you are using a direct fantastic.jobs key (not RapidAPI), change the
-  // base URL to the one shown in your dashboard and adjust the auth header.
-  const host    = apiHost ?? "job-postings-from-company-career-sites.p.rapidapi.com";
-  const baseUrl = `https://${host}/jobs`;
+  // Title filter: all BA-relevant titles in one request using OR syntax
+  // (same syntax as location_filter in the curl example)
+  const titleFilter = [
+    '"Business Analyst"',
+    '"Systems Analyst"',
+    '"Business Systems Analyst"',
+    '"Functional Analyst"',
+    '"Solutions Analyst"',
+    '"Process Analyst"',
+  ].join(" OR ");
 
   const params = new URLSearchParams({
-    query:   keyword,
-    country: "CA",             // Canada only
-    days:    "7",              // last 7 days
-    limit:   "25",             // free plan cap
+    limit:            "25",
+    offset:           "0",
+    title_filter:     titleFilter,
+    location_filter:  '"Canada"',
+    description_type: "text",
   });
 
-  const headers: Record<string, string> = {
-    "Accept":           "application/json",
-    "X-RapidAPI-Key":   apiKey,
-    "X-RapidAPI-Host":  host,
-  };
+  const url = `https://${apiHost}/active-ats-7d?${params}`;
+  console.log(`[FantasticJobs] GET ${url.replace(apiKey, "***")}`);
 
-  console.log(`[FantasticJobs] Fetching: ${keyword} / Canada / last 7 days`);
-
-  const res = await fetch(`${baseUrl}?${params}`, {
-    headers,
-    cache:  "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} — ${res.statusText}`);
-  }
-
-  const body: FJResponse = await res.json();
-
-  // Handle different response shapes
-  const raw: FJJob[] = body.jobs ?? body.results ?? body.data ?? [];
-  if (!Array.isArray(raw) || raw.length === 0) {
-    console.log(`[FantasticJobs] No jobs returned for "${keyword}"`);
-    return [];
-  }
-
-  const results: NormalizedJob[] = [];
-
-  for (const j of raw) {
-    const title    = extractTitle(j);
-    const applyUrl = extractApplyUrl(j);
-    const company  = extractCompany(j);
-
-    if (!title || !applyUrl) continue;
-
-    // Fallback careers URL from known map
-    const fallbackUrl = company ? (CAREERS_FALLBACK[company] ?? null) : null;
-
-    results.push({
-      title:          title,
-      company:        company ?? "Unknown",
-      location:       extractLocation(j),
-      apply_url:      applyUrl,
-      description:    extractDescription(j),
-      posted_at:      extractPostedAt(j),
-      source_name:    company ?? "Fantastic Jobs",
-      source_type:    extractSourceType(j),
-      source_slug:    j.company_url ?? j.careers_url ?? fallbackUrl ?? null, // repurposed as careers fallback
-      is_ba_relevant: false,   // checked by BA filter in fantasyRefresh
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type":    "application/json",
+        "x-rapidapi-key":  apiKey,
+        "x-rapidapi-host": apiHost,
+      },
+      cache:  "no-store",
+      signal: AbortSignal.timeout(20_000),
     });
-  }
 
-  console.log(`[FantasticJobs] "${keyword}": ${results.length} jobs`);
-  return results;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status} — ${res.statusText}. Body: ${body.slice(0, 200)}`);
+    }
+
+    // API returns array directly OR wrapped in a key — handle both
+    const body = await res.json();
+    const raw: AJDJob[] = Array.isArray(body)
+      ? body
+      : (body.jobs ?? body.results ?? body.data ?? body.items ?? []);
+
+    console.log(`[FantasticJobs] ${raw.length} raw jobs returned`);
+
+    const results: NormalizedJob[] = [];
+    for (const j of raw) {
+      const title    = extractTitle(j);
+      const applyUrl = extractApplyUrl(j);
+      const company  = extractCompany(j);
+      if (!title || !applyUrl) continue;
+
+      const fallback = company ? (CAREERS_FALLBACK[company] ?? null) : null;
+
+      results.push({
+        title:          title,
+        company:        company ?? "Unknown",
+        location:       extractLocation(j),
+        apply_url:      applyUrl,
+        description:    extractDescription(j),
+        posted_at:      extractPostedAt(j),
+        source_name:    company ?? "Active Jobs DB",
+        source_type:    extractSourceType(j),
+        // Repurpose source_slug to carry the careers fallback URL through the pipeline
+        source_slug:    j.company_url ?? j.careers_url ?? fallback ?? null,
+        is_ba_relevant: false,
+      });
+    }
+
+    console.log(`[FantasticJobs] ${results.length} jobs with title+URL`);
+    return { jobs: results, total: results.length, apiCalled: true };
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[FantasticJobs] Fetch error:", msg);
+    return { jobs: [], total: 0, apiCalled: true, error: msg };
+  }
 }

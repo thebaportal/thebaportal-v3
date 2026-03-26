@@ -18,6 +18,7 @@
 
 import { createClient }           from "@supabase/supabase-js";
 import { fetchFantasticJobs }     from "./ats/adapters/fantasticjobs";
+// Env: FANTASTIC_JOBS_API_KEY + FANTASTIC_JOBS_API_HOST = active-jobs-db.p.rapidapi.com
 import { checkUrl, runConcurrent } from "./verifyUrl";
 import { checkBaRelevance }        from "./ats/filter";
 import { isCanadianLocation }      from "./ats/location";
