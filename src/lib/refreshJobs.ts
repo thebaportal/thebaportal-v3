@@ -219,9 +219,9 @@ export async function runRefresh(): Promise<RefreshResult> {
     return { ok: true, fetched: 0, upserted: 0, skippedIrrelevant: 0, skippedStale: 0, skippedNonCanada: 0, sourceReport };
   }
 
-  // 3. Freshness filter — only keep jobs from the last 14 days
+  // 3. Freshness filter — only keep jobs from the last 10 days
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 14);
+  cutoff.setDate(cutoff.getDate() - 10);
 
   let skippedStale = 0;
   const freshJobs = allJobs.filter(job => {
@@ -370,9 +370,9 @@ export async function runRefresh(): Promise<RefreshResult> {
 
   console.log(`[refreshJobs] Upsert succeeded — ${dedupedRows.length} rows written`);
 
-  // 9. Prune rows older than 30 days
+  // 9. Prune rows older than 10 days
   const pruneDate = new Date();
-  pruneDate.setDate(pruneDate.getDate() - 30);
+  pruneDate.setDate(pruneDate.getDate() - 10);
   const { error: deleteError } = await supabase
     .from("job_listings")
     .delete()

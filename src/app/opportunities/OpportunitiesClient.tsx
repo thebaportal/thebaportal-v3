@@ -137,10 +137,41 @@ function isDirectUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   try {
     const host = new URL(url).hostname.toLowerCase();
-    // Filter out Workday's broken/invalid job URL placeholder
     if (host === "community.workday.com") return false;
+    if (url.toLowerCase().includes("invalid")) return false;
     return !AGGREGATOR_HOSTS.some(a => host.includes(a));
   } catch { return false; }
+}
+
+// Workday careers page fallbacks — used when the direct job URL is broken
+const WORKDAY_CAREERS_FALLBACK: Record<string, string> = {
+  "RBC":      "https://jobs.rbc.com",
+  "TD Bank":  "https://jobs.td.com",
+  "BMO":      "https://bmo.wd3.myworkdayjobs.com/en-US/External",
+  "CIBC":     "https://cibc.wd3.myworkdayjobs.com/en-US/search",
+  "Manulife": "https://manulife.wd3.myworkdayjobs.com/en-US/MFCJH_Jobs",
+};
+
+function resolveApplyUrl(job: JobListing): { href: string; label: string; isDirect: boolean } {
+  const raw = job.apply_url || job.url || "";
+
+  if (job.source_type === "workday") {
+    const isValid =
+      raw.includes("myworkdayjobs.com") &&
+      !raw.includes("community.workday.com") &&
+      !raw.toLowerCase().includes("invalid");
+
+    if (!isValid) {
+      const fallback = WORKDAY_CAREERS_FALLBACK[job.company ?? ""];
+      return {
+        href:     fallback ?? `https://www.google.com/search?q=${encodeURIComponent((job.title ?? "") + " " + (job.company ?? "") + " careers")}`,
+        label:    "View job on company site",
+        isDirect: false,
+      };
+    }
+  }
+
+  return { href: raw || "#", label: "Apply", isDirect: true };
 }
 
 const WORK_TYPE_LABELS: Record<string, string> = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };
@@ -350,7 +381,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(480px, 1fr))", gap: 16, marginBottom: 64 }}>
             {filtered.map(job => {
-              const applyUrl = job.apply_url || job.url || "#";
+              const apply    = resolveApplyUrl(job);
               const fresh    = isFresh(job.posted_at);
               const prep     = (job.prep_links ?? []).filter(p => p.label !== "Career Suite").slice(0, 2);
               const prov     = extractProvince(job.location);
@@ -434,12 +465,12 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text2; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}>
                           Practice this role
                         </button>
-                        <a href={applyUrl} target="_blank" rel="noopener noreferrer"
+                        <a href={apply.href} target="_blank" rel="noopener noreferrer"
                           onClick={e => { e.stopPropagation(); setAppliedJobs(prev => new Set(prev).add(job.id)); }}
                           style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "8px 16px", borderRadius: 9, textDecoration: "none", whiteSpace: "nowrap", transition: "background 0.12s" }}
                           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
                           onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
-                          Apply <ExternalLink size={11} />
+                          {apply.label} <ExternalLink size={11} />
                         </a>
                       </div>
                     </div>
@@ -544,7 +575,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
       {/* ── Job detail drawer ── */}
       {selectedJob && (() => {
         const job      = selectedJob;
-        const applyUrl = job.apply_url || job.url || "#";
+        const apply    = resolveApplyUrl(job);
         const prep     = (job.prep_links ?? []).filter(p => p.label !== "Career Suite");
         const fresh    = isFresh(job.posted_at);
         const keywords = getResumeKeywords(job.title, job.prep_links ?? []);
@@ -597,23 +628,47 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               {/* Scrollable body */}
               <div style={{ padding: "24px 28px", flex: 1 }}>
 
-                {/* About this role */}
-                <div style={{ marginBottom: 28 }}>
+                {/* 1. About this role — always first */}
+                <div style={{ marginBottom: 24 }}>
                   <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
                     About this role
                   </h3>
                   {job.description ? (
-                    <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.7 }}>
-                      {job.description.slice(0, 600)}{job.description.length > 600 ? "…" : ""}
+                    <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.8, minHeight: "7.2em" }}>
+                      {job.description.slice(0, 800)}{job.description.length > 800 ? "…" : ""}
                     </p>
                   ) : (
-                    <p style={{ fontSize: 14, color: C.text4, lineHeight: 1.7, fontStyle: "italic" }}>
-                      Full description available on the employer&apos;s site. Click Apply to read it before submitting.
+                    <div style={{ minHeight: "7.2em" }}>
+                      <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.8, marginBottom: 8 }}>
+                        This employer doesn&apos;t publish the full description until you open the listing.
+                        Read it on their site before you apply — it takes 2 minutes and tells you exactly
+                        what keywords to match on your resume.
+                      </p>
+                      <p style={{ fontSize: 13, color: C.text4, lineHeight: 1.6 }}>
+                        Key things to look for: required tools, years of experience, industry focus,
+                        and whether they mention agile, data, or process work.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Apply button — right after description */}
+                <div style={{ marginBottom: 28 }}>
+                  <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                    onClick={() => { setAppliedJobs(prev => new Set(prev).add(job.id)); setSelectedJob(null); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "11px 22px", borderRadius: 10, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", transition: "background 0.12s" }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
+                    onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
+                    {apply.label} <ExternalLink size={13} />
+                  </a>
+                  {!apply.isDirect && (
+                    <p style={{ fontSize: 12, color: C.text4, marginTop: 8 }}>
+                      Direct link unavailable — this opens the employer&apos;s careers page.
                     </p>
                   )}
                 </div>
 
-                {/* What to prepare */}
+                {/* 3. What to prepare */}
                 {prep.length > 0 && (
                   <div style={{ marginBottom: 28 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
@@ -633,7 +688,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   </div>
                 )}
 
-                {/* Resume keywords */}
+                {/* 4. Resume keywords — last */}
                 <div style={{ marginBottom: 28 }}>
                   <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
                     Resume keywords to include
@@ -649,22 +704,15 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
               </div>
 
-              {/* Sticky footer CTAs */}
-              <div style={{ padding: "20px 28px", borderTop: `1px solid ${C.border}`, position: "sticky", bottom: 0, background: "#18181b", display: "flex", gap: 10 }}>
+              {/* Sticky footer — Practice only (Apply already inline above) */}
+              <div style={{ padding: "20px 28px", borderTop: `1px solid ${C.border}`, position: "sticky", bottom: 0, background: "#18181b" }}>
                 <button
                   onClick={() => { setSelectedJob(null); handlePractice(job); }}
-                  style={{ flex: 1, padding: "11px 16px", borderRadius: 10, background: "transparent", color: C.text2, fontSize: 13, fontWeight: 600, border: `1px solid ${C.border}`, cursor: "pointer", transition: "color 0.12s, border-color 0.12s" }}
+                  style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: "transparent", color: C.text2, fontSize: 13, fontWeight: 600, border: `1px solid ${C.border}`, cursor: "pointer", transition: "color 0.12s, border-color 0.12s" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text1; (e.currentTarget as HTMLButtonElement).style.borderColor = C.borderHover; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text2; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}>
-                  Practice this role
+                  Practice this role before the interview
                 </button>
-                <a href={applyUrl} target="_blank" rel="noopener noreferrer"
-                  onClick={() => { setAppliedJobs(prev => new Set(prev).add(job.id)); setSelectedJob(null); }}
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 16px", borderRadius: 10, background: C.teal, color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "background 0.12s" }}
-                  onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
-                  onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
-                  Apply now <ExternalLink size={12} />
-                </a>
               </div>
             </div>
           </div>
