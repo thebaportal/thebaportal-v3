@@ -47,16 +47,44 @@ const industries  = ["All", "Banking/Finance", "Healthcare", "Energy/Oil & Gas",
 const typeFilters = ["All Types", "Discovery", "Requirements", "Solution Analysis", "UAT", "Incident", "Facilitation", "Change Management", "Elicitation", "Data Migration", "ERP Implementation"];
 
 
+interface PracticeContext {
+  title:   string;
+  company: string;
+  types:   string[];
+}
+
 interface ScenariosClientProps {
   profile: { subscription_tier: string; full_name: string | null } | null;
   user: { email: string };
+  practiceContext?: PracticeContext | null;
 }
 
-export default function ScenariosClient({ profile, user }: ScenariosClientProps) {
+export default function ScenariosClient({ profile, user, practiceContext: practiceContextProp }: ScenariosClientProps) {
   const router = useRouter();
   const [activeIndustry, setActiveIndustry] = useState("All");
   const [activeType,     setActiveType]     = useState("All Types");
   const [searchQuery,    setSearchQuery]    = useState("");
+  const [practiceContext, setPracticeContext] = useState<PracticeContext | null>(practiceContextProp ?? null);
+
+  // Pick up context stored in sessionStorage when user signed up via the modal
+  useEffect(() => {
+    if (!practiceContext) {
+      try {
+        const stored = sessionStorage.getItem("practiceContext");
+        if (stored) {
+          const params = new URLSearchParams(stored);
+          const title   = params.get("practicing");
+          const company = params.get("company") ?? "";
+          const types   = (params.get("types") ?? "").split(",").filter(Boolean);
+          if (title) {
+            setPracticeContext({ title, company, types });
+            sessionStorage.removeItem("practiceContext");
+          }
+        }
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isPro = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
   const totalChallenges = challenges.length;
@@ -92,6 +120,32 @@ export default function ScenariosClient({ profile, user }: ScenariosClientProps)
         </header>
 
         <div className="px-8 py-8" style={{ maxWidth: "960px" }}>
+
+          {/* Practicing-for banner */}
+          {practiceContext && (
+            <div style={{ marginBottom: "24px", padding: "16px 20px", borderRadius: "14px", background: "rgba(31,191,159,0.07)", border: "1px solid rgba(31,191,159,0.22)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px", fontFamily: "monospace" }}>
+                  // practice mode
+                </div>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-1)", margin: 0 }}>
+                  You are practicing for: <span style={{ color: "var(--teal)" }}>{practiceContext.title}</span>
+                  {practiceContext.company && <span style={{ color: "var(--text-3)", fontWeight: 400 }}> at {practiceContext.company}</span>}
+                </p>
+                {practiceContext.types.length > 0 && (
+                  <p style={{ fontSize: "12px", color: "var(--text-3)", margin: "4px 0 0", fontFamily: "monospace" }}>
+                    Recommended challenges are highlighted below
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setPracticeContext(null)}
+                style={{ fontSize: "12px", color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: "6px", whiteSpace: "nowrap" }}>
+                Clear ✕
+              </button>
+            </div>
+          )}
+
           <div className="mb-8">
             <h1 className="type-hero" style={{ fontSize: "28px", marginBottom: "8px" }}>BA Simulation Challenges</h1>
             <p className="type-body">Interview AI stakeholders. Produce real deliverables. Get scored by a Senior BA Coach.</p>
@@ -141,11 +195,12 @@ export default function ScenariosClient({ profile, user }: ScenariosClientProps)
                   const diff = difficultyConfig[challenge.difficulty];
                   const isLocked = challenge.tier === "pro" && !isPro;
                   const img = challengeImages[challenge.id] || { url: FALLBACK_IMAGE, credit: "Business operations" };
+                  const isRecommended = practiceContext?.types.includes(challenge.type) ?? false;
                   return (
                     <motion.div key={challenge.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}
                       onClick={() => isLocked ? router.push("/pricing") : router.push(`/scenarios/${challenge.id}?mode=normal`)}
                       className="group relative overflow-hidden cursor-pointer"
-                      style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "18px", display: "flex", transition: "all 0.25s ease", minHeight: "160px" }}
+                      style={{ background: "var(--card)", border: isRecommended ? "1px solid rgba(31,191,159,0.45)" : "1px solid var(--border)", borderRadius: "18px", display: "flex", transition: "all 0.25s ease", minHeight: "160px", boxShadow: isRecommended ? "0 0 0 1px rgba(31,191,159,0.15), 0 4px 20px rgba(31,191,159,0.08)" : "none" }}
                       whileHover={{ y: -3, transition: { duration: 0.2 } }}
                       onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = `${type?.color}30`; el.style.boxShadow = "0 10px 40px rgba(0,0,0,0.5)"; }}
                       onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "var(--border)"; el.style.boxShadow = "none"; }}>
@@ -171,6 +226,7 @@ export default function ScenariosClient({ profile, user }: ScenariosClientProps)
                           <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "5px", background: `${diff?.color}12`, color: diff?.color, border: `1px solid ${diff?.color}22`, letterSpacing: "0.03em" }}>{diff?.label}</span>
                           <span style={{ fontSize: "11px", fontWeight: 600, padding: "3px 10px", borderRadius: "5px", background: "rgba(255,255,255,0.05)", color: "var(--text-2)", border: "1px solid var(--border)" }}>{challenge.industry}</span>
                           {challenge.tier === "pro" && <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "5px", background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid var(--teal-border)" }}>PRO</span>}
+                          {isRecommended && <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "5px", background: "rgba(31,191,159,0.12)", color: "#1fbf9f", border: "1px solid rgba(31,191,159,0.28)" }}>Recommended</span>}
                         </div>
                         <h3 className="type-card" style={{ marginBottom: "10px", transition: "color 0.15s" }}>{challenge.title}</h3>
                         <p className="type-body" style={{ fontSize: "14px", marginBottom: "18px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }}>{challenge.brief.situation}</p>

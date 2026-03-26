@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ScenariosClient from "./ScenariosClient";
 
-export default async function ScenariosPage() {
+interface PageProps {
+  searchParams: { practicing?: string; company?: string; types?: string };
+}
+
+export default async function ScenariosPage({ searchParams }: PageProps) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -14,5 +18,19 @@ export default async function ScenariosPage() {
     .eq("id", user.id)
     .single();
 
-  return <ScenariosClient profile={profile} user={{ email: user.email! }} />;
+  const practiceContext = searchParams.practicing
+    ? {
+        title:   searchParams.practicing,
+        company: searchParams.company ?? "",
+        types:   (searchParams.types ?? "").split(",").filter(Boolean),
+      }
+    : null;
+
+  return (
+    <ScenariosClient
+      profile={profile}
+      user={{ email: user.email! }}
+      practiceContext={practiceContext}
+    />
+  );
 }
