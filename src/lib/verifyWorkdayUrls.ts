@@ -23,7 +23,14 @@ const CAREERS_FALLBACK: Record<string, string> = {
   "Manulife": "https://manulife.wd3.myworkdayjobs.com/en-US/MFCJH_Jobs",
 };
 
-/** Follow redirects and check whether the final URL is Workday's invalid-job placeholder. */
+/**
+ * Follow redirects and check whether the final URL is Workday's invalid-job placeholder.
+ *
+ * We ONLY mark a URL invalid when we positively detect the community.workday.com redirect —
+ * that is the single failure mode we care about. HTTP errors (403 bot-detection, timeouts,
+ * network failures from Vercel IPs) are treated as "valid" so we don't falsely suppress
+ * real job links just because Workday blocked our server-side probe.
+ */
 async function checkUrl(url: string): Promise<"valid" | "invalid"> {
   try {
     const res = await fetch(url, {
@@ -41,11 +48,11 @@ async function checkUrl(url: string): Promise<"valid" | "invalid"> {
     if (finalUrl.includes("community.workday.com")) return "invalid";
     if (finalUrl.includes("invalid-url"))           return "invalid";
     if (finalUrl.includes("invalid_url"))           return "invalid";
-    if (!res.ok)                                    return "invalid";
+    // 403 / 429 / 5xx = Workday bot-blocking our probe, not an invalid URL — treat as valid.
     return "valid";
   } catch {
-    // Timeout, network error, or CORS — treat as invalid so we show the fallback.
-    return "invalid";
+    // Timeout or network error from Vercel IPs — give benefit of the doubt.
+    return "valid";
   }
 }
 
