@@ -443,13 +443,13 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
             <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: C.tealSoft, filter: "blur(60px)", pointerEvents: "none" }} />
             <div style={{ position: "relative" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14, fontFamily: "monospace" }}>
-                // the platform BA candidates use to prepare
+                // more than a job board
               </div>
               <h3 style={{ fontSize: 22, fontWeight: 800, color: C.text1, marginBottom: 10, letterSpacing: "-0.02em" }}>
-                Practice the role before you apply for it
+                Apply today. Practice before the interview.
               </h3>
               <p style={{ fontSize: 14, color: C.text3, marginBottom: 28, maxWidth: 460, lineHeight: 1.65 }}>
-                Scenarios, stakeholder simulations, and real deliverables — built specifically for business analysts.
+                Scenarios, stakeholder simulations, and real BA deliverables — so you walk in ready.
               </p>
               <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 12, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
                 Start free — no credit card needed
