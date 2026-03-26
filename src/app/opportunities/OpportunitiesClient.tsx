@@ -39,6 +39,66 @@ interface PracticeModal {
   practiceParams: string;
 }
 
+// ── Description parser ─────────────────────────────────────────────────────────
+
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ").replace(/\s+/g, " ").trim();
+}
+
+function parseBullets(text: string): string[] {
+  return text
+    .split(/[\n\r]|(?<=\.)(?=\s+[A-Z•\-])/)
+    .map(l => l.replace(/^[\s•·●▪\-\*\d\.\)]+/, "").trim())
+    .filter(l => l.length > 12 && l.length < 200);
+}
+
+function parseDesc(raw: string | null): {
+  overview:      string;
+  duties:        string[];
+  requirements:  string[];
+} {
+  if (!raw) return { overview: "", duties: [], requirements: [] };
+  const clean = stripHtml(raw);
+
+  // Find section boundaries
+  const lower   = clean.toLowerCase();
+  const respIdx = lower.search(/\b(responsibilities|what you.ll do|your role|key duties|what we need you to do)\b/i);
+  const reqIdx  = lower.search(/\b(requirements|qualifications|what you need|what you bring|must.have|you have)\b/i);
+
+  const overview = clean.slice(0, 280).replace(/\..*$/, "") + ".";
+
+  if (respIdx > 0 && reqIdx > respIdx) {
+    const duties       = parseBullets(clean.slice(respIdx, reqIdx)).slice(0, 6);
+    const requirements = parseBullets(clean.slice(reqIdx)).slice(0, 6);
+    return { overview, duties, requirements };
+  }
+
+  // No clear sections — split at midpoint
+  const all = parseBullets(clean);
+  const mid = Math.ceil(all.length / 2);
+  return {
+    overview,
+    duties:       all.slice(0, mid).slice(0, 6),
+    requirements: all.slice(mid).slice(0, 6),
+  };
+}
+
+// ── Sample interview questions by prep type ────────────────────────────────────
+
+const SAMPLE_QUESTIONS: Record<string, string> = {
+  "Agile BA Challenge":        "Walk me through how you facilitated sprint planning as the BA — what did you own?",
+  "Requirements Challenge":    "Tell me about a time conflicting stakeholder needs threatened your requirements. How did you resolve it?",
+  "Stakeholder Interview Sim": "How do you handle a key stakeholder who keeps changing requirements mid-project?",
+  "Process Mapping Challenge": "Walk me through a business process you documented and improved. What was the measurable impact?",
+  "Data Analysis Challenge":   "Describe a time you used data to challenge or validate a business assumption.",
+  "Exam Prep":                 "What does BABOK say about the difference between elicitation and requirements analysis?",
+};
+
+function getSampleQuestion(prepLinks: PrepLink[]): string {
+  const hit = prepLinks.find(p => SAMPLE_QUESTIONS[p.label]);
+  return hit ? SAMPLE_QUESTIONS[hit.label] : "Tell me about a project where you translated complex business needs into clear technical requirements.";
+}
+
 // ── Colours ───────────────────────────────────────────────────────────────────
 
 const C = {
@@ -198,9 +258,10 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [province,    setProvince]    = useState("all");
   const [syncing,     setSyncing]     = useState(false);
   const [syncMsg,     setSyncMsg]     = useState<string | null>(null);
-  const [modal,       setModal]       = useState<PracticeModal | null>(null);
-  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
-  const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
+  const [modal,          setModal]          = useState<PracticeModal | null>(null);
+  const [appliedJobs,    setAppliedJobs]    = useState<Set<string>>(new Set());
+  const [selectedJob,    setSelectedJob]    = useState<JobListing | null>(null);
+  const [expandedAction, setExpandedAction] = useState<"resume" | "prepare" | "interview" | null>(null);
 
   const triggerSync = useCallback(async () => {
     setSyncing(true); setSyncMsg(null);
@@ -398,7 +459,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
               return (
                 <div key={job.id}
-                  onClick={() => setSelectedJob(job)}
+                  onClick={() => { setSelectedJob(job); setExpandedAction(null); }}
                   style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.boxShadow = "none"; }}
@@ -635,93 +696,230 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               </div>
 
               {/* Scrollable body */}
-              <div style={{ padding: "24px 28px", flex: 1 }}>
+              {(() => {
+                const parsed  = parseDesc(job.description);
+                const sampleQ = getSampleQuestion(job.prep_links ?? []);
+                const FREE_DUTIES = 3;
+                const FREE_REQS   = 2;
 
-                {/* 1. About this role — always first */}
-                <div style={{ marginBottom: 24 }}>
-                  <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
-                    About this role
-                  </h3>
-                  {job.description ? (
-                    <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.8, minHeight: "7.2em" }}>
-                      {job.description.slice(0, 800)}{job.description.length > 800 ? "…" : ""}
-                    </p>
-                  ) : (
-                    <div style={{ minHeight: "7.2em" }}>
-                      <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.8, marginBottom: 8 }}>
-                        This employer doesn&apos;t publish the full description until you open the listing.
-                        Read it on their site before you apply — it takes 2 minutes and tells you exactly
-                        what keywords to match on your resume.
+                return (
+                <div style={{ padding: "24px 28px", flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
+
+                  {/* ── Overview ── */}
+                  <div style={{ marginBottom: 22 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8, fontFamily: "monospace" }}>Overview</div>
+                    {parsed.overview ? (
+                      <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.75 }}>{parsed.overview}</p>
+                    ) : (
+                      <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.75, fontStyle: "italic" }}>
+                        Full description available on the employer site. Read it before applying — match your resume to their language.
                       </p>
-                      <p style={{ fontSize: 13, color: C.text4, lineHeight: 1.6 }}>
-                        Key things to look for: required tools, years of experience, industry focus,
-                        and whether they mention agile, data, or process work.
-                      </p>
+                    )}
+                  </div>
+
+                  {/* ── Responsibilities ── */}
+                  {parsed.duties.length > 0 && (
+                    <div style={{ marginBottom: 22 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8, fontFamily: "monospace" }}>Responsibilities</div>
+                      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                        {parsed.duties.slice(0, FREE_DUTIES).map((d, i) => (
+                          <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                            <span style={{ color: C.teal, flexShrink: 0, marginTop: 3 }}>›</span>{d}
+                          </li>
+                        ))}
+                        {parsed.duties.length > FREE_DUTIES && (
+                          <li style={{ position: "relative", overflow: "hidden", borderRadius: 6 }}>
+                            <div style={{ filter: "blur(3px)", opacity: 0.35, pointerEvents: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                              {parsed.duties.slice(FREE_DUTIES).map((d, i) => (
+                                <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                                  <span style={{ color: C.teal, flexShrink: 0 }}>›</span>{d}
+                                </div>
+                              ))}
+                            </div>
+                          </li>
+                        )}
+                      </ul>
                     </div>
                   )}
-                </div>
 
-                {/* 2. Apply button — right after description */}
-                <div style={{ marginBottom: 28 }}>
-                  <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                    onClick={() => { setAppliedJobs(prev => new Set(prev).add(job.id)); setSelectedJob(null); }}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "11px 22px", borderRadius: 10, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", transition: "background 0.12s" }}
-                    onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
-                    onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
-                    {apply.label} <ExternalLink size={13} />
-                  </a>
-                  {!apply.isDirect && (
-                    <p style={{ fontSize: 12, color: C.text4, marginTop: 8 }}>
-                      Direct link unavailable — this opens the employer&apos;s careers page.
-                    </p>
+                  {/* ── Requirements ── */}
+                  {parsed.requirements.length > 0 && (
+                    <div style={{ marginBottom: 22 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8, fontFamily: "monospace" }}>Requirements</div>
+                      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                        {parsed.requirements.slice(0, FREE_REQS).map((r, i) => (
+                          <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                            <span style={{ color: C.text4, flexShrink: 0, marginTop: 3 }}>✓</span>{r}
+                          </li>
+                        ))}
+                        {parsed.requirements.length > FREE_REQS && (
+                          <li style={{ position: "relative", overflow: "hidden", borderRadius: 6 }}>
+                            <div style={{ filter: "blur(3px)", opacity: 0.35, pointerEvents: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                              {parsed.requirements.slice(FREE_REQS).map((r, i) => (
+                                <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2 }}>
+                                  <span style={{ color: C.text4, flexShrink: 0 }}>✓</span>{r}
+                                </div>
+                              ))}
+                            </div>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
                   )}
-                </div>
 
-                {/* 3. What to prepare */}
-                {prep.length > 0 && (
-                  <div style={{ marginBottom: 28 }}>
-                    <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
-                      What to prepare
-                    </h3>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {prep.map((p, i) => {
-                        const whyText = WHY_MAP[p.label];
-                        return (
-                          <div key={i} style={{ padding: "12px 14px", borderRadius: 10, background: C.tealSoft, border: `1px solid ${C.tealBorder}` }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: whyText ? 4 : 0 }}>{p.label}</div>
-                            {whyText && <div style={{ fontSize: 12, color: C.text3, lineHeight: 1.55 }}>This interview will {whyText}.</div>}
+                  {/* ── Salary ── */}
+                  <div style={{ marginBottom: 22, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "monospace" }}>Salary</span>
+                    <span style={{ fontSize: 13, color: C.text3, fontStyle: "italic" }}>Not disclosed — ask at offer stage.</span>
+                  </div>
+
+                  {/* ── Gate divider ── */}
+                  <div style={{ margin: "4px 0 24px", padding: "14px 16px", borderRadius: 10, background: "rgba(31,191,159,0.06)", border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>See full role breakdown + how to prepare</span>
+                    <span style={{ fontSize: 18 }}>🔒</span>
+                  </div>
+
+                  {/* ── Primary: Apply ── */}
+                  <div style={{ marginBottom: 20 }}>
+                    <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                      onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 20px", borderRadius: 11, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", transition: "background 0.12s" }}
+                      onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
+                      onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
+                      Apply on company site <ExternalLink size={13} />
+                    </a>
+                    {!apply.isDirect && (
+                      <p style={{ fontSize: 11, color: C.text4, textAlign: "center", marginTop: 6 }}>Opens employer careers page</p>
+                    )}
+                  </div>
+
+                  {/* ── Secondary actions (expandable) ── */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
+
+                    {/* Tailor my resume */}
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 11, overflow: "hidden" }}>
+                      <button
+                        onClick={() => setExpandedAction(expandedAction === "resume" ? null : "resume")}
+                        style={{ width: "100%", padding: "12px 16px", background: expandedAction === "resume" ? "rgba(255,255,255,0.04)" : "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", color: C.text2, fontSize: 13, fontWeight: 600 }}>
+                        <span>Tailor my resume for this role</span>
+                        <span style={{ color: C.text4, fontSize: 16 }}>{expandedAction === "resume" ? "−" : "+"}</span>
+                      </button>
+                      {expandedAction === "resume" && (
+                        <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${C.border}` }}>
+                          <p style={{ fontSize: 12, color: C.text4, margin: "12px 0 10px" }}>3 keywords to include on your resume:</p>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                            {keywords.slice(0, 3).map((kw, i) => (
+                              <span key={i} style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,0.06)", color: C.text2, border: `1px solid ${C.border}` }}>{kw}</span>
+                            ))}
                           </div>
-                        );
-                      })}
+                          {isLoggedIn ? (
+                            <Link href="/career" style={{ display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 9, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, color: C.teal, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                              Full resume analysis in Career Suite →
+                            </Link>
+                          ) : (
+                            <Link href="/signup" style={{ display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 9, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, color: C.teal, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                              Sign up free to unlock full analysis →
+                            </Link>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
 
-                {/* 4. Resume keywords — last */}
-                <div style={{ marginBottom: 28 }}>
-                  <h3 style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, fontFamily: "monospace" }}>
-                    Resume keywords to include
-                  </h3>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {keywords.map((kw, i) => (
-                      <span key={i} style={{ fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: C.text2, border: `1px solid ${C.border}` }}>
-                        {kw}
-                      </span>
-                    ))}
+                    {/* How to prepare */}
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 11, overflow: "hidden" }}>
+                      <button
+                        onClick={() => setExpandedAction(expandedAction === "prepare" ? null : "prepare")}
+                        style={{ width: "100%", padding: "12px 16px", background: expandedAction === "prepare" ? "rgba(255,255,255,0.04)" : "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", color: C.text2, fontSize: 13, fontWeight: 600 }}>
+                        <span>Show me how to prepare</span>
+                        <span style={{ color: C.text4, fontSize: 16 }}>{expandedAction === "prepare" ? "−" : "+"}</span>
+                      </button>
+                      {expandedAction === "prepare" && (
+                        <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${C.border}` }}>
+                          <p style={{ fontSize: 12, color: C.text4, margin: "12px 0 10px" }}>This interview will test you on:</p>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                            {prep.slice(0, 2).map((p, i) => (
+                              <div key={i} style={{ padding: "8px 12px", borderRadius: 8, background: C.tealSoft, border: `1px solid ${C.tealBorder}` }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: C.teal }}>{p.label}</span>
+                                {WHY_MAP[p.label] && <span style={{ fontSize: 12, color: C.text3 }}> — {WHY_MAP[p.label]}</span>}
+                              </div>
+                            ))}
+                          </div>
+                          {isLoggedIn ? (
+                            <button
+                              onClick={() => { setSelectedJob(null); handlePractice(job); }}
+                              style={{ width: "100%", padding: "10px 16px", borderRadius: 9, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, color: C.teal, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                              Start practice session →
+                            </button>
+                          ) : (
+                            <Link href="/signup" style={{ display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 9, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, color: C.teal, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                              Sign up free to start preparing →
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Simulate interview */}
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 11, overflow: "hidden" }}>
+                      <button
+                        onClick={() => setExpandedAction(expandedAction === "interview" ? null : "interview")}
+                        style={{ width: "100%", padding: "12px 16px", background: expandedAction === "interview" ? "rgba(255,255,255,0.04)" : "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", color: C.text2, fontSize: 13, fontWeight: 600 }}>
+                        <span>Simulate this interview</span>
+                        <span style={{ color: C.text4, fontSize: 16 }}>{expandedAction === "interview" ? "−" : "+"}</span>
+                      </button>
+                      {expandedAction === "interview" && (
+                        <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${C.border}` }}>
+                          <p style={{ fontSize: 12, color: C.text4, margin: "12px 0 10px" }}>Sample question for this role:</p>
+                          <div style={{ padding: "12px 14px", borderRadius: 9, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, fontSize: 13, color: C.text2, lineHeight: 1.65, marginBottom: 14, fontStyle: "italic" }}>
+                            &ldquo;{sampleQ}&rdquo;
+                          </div>
+                          {isLoggedIn ? (
+                            <button
+                              onClick={() => { setSelectedJob(null); handlePractice(job); }}
+                              style={{ width: "100%", padding: "10px 16px", borderRadius: 9, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, color: C.teal, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                              Practice full interview simulation →
+                            </button>
+                          ) : (
+                            <Link href="/signup" style={{ display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 9, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, color: C.teal, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                              Sign up free to practice →
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Practice challenges — direct link */}
+                    <button
+                      onClick={() => { setSelectedJob(null); handlePractice(job); }}
+                      style={{ padding: "12px 16px", borderRadius: 11, background: "transparent", border: `1px solid ${C.border}`, color: C.text3, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
+                      Practice challenges for this role type
+                    </button>
+
                   </div>
+
+                  {appliedJobs.has(job.id) && (
+                    <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(31,191,159,0.06)", border: `1px solid ${C.tealBorder}`, marginBottom: 20 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 4 }}>Got the interview?</p>
+                      <p style={{ fontSize: 12, color: C.text3 }}>Practice this role in 5 minutes. Don&apos;t walk in guessing.</p>
+                      <button
+                        onClick={() => { setSelectedJob(null); handlePractice(job); }}
+                        style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: C.teal, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                        Start simulation →
+                      </button>
+                    </div>
+                  )}
+
                 </div>
+                );
+              })()}
 
-              </div>
-
-              {/* Sticky footer — Practice only (Apply already inline above) */}
-              <div style={{ padding: "20px 28px", borderTop: `1px solid ${C.border}`, position: "sticky", bottom: 0, background: "#18181b" }}>
-                <button
-                  onClick={() => { setSelectedJob(null); handlePractice(job); }}
-                  style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: "transparent", color: C.text2, fontSize: 13, fontWeight: 600, border: `1px solid ${C.border}`, cursor: "pointer", transition: "color 0.12s, border-color 0.12s" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text1; (e.currentTarget as HTMLButtonElement).style.borderColor = C.borderHover; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text2; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}>
-                  Practice this role before the interview
-                </button>
+              {/* Sticky footer */}
+              <div style={{ padding: "16px 28px", borderTop: `1px solid ${C.border}`, position: "sticky", bottom: 0, background: "#18181b" }}>
+                <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                  onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px", borderRadius: 10, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+                  Apply on company site <ExternalLink size={13} />
+                </a>
               </div>
             </div>
           </div>

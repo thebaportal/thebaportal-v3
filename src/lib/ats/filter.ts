@@ -30,12 +30,18 @@ export const BA_CORE_WHITELIST: RegExp[] = [
   /\bIT\s+business\s+analyst\b/i,
   /\bjr\.?\s+business\s+analyst\b/i,
   /\bsr\.?\s+business\s+analyst\b/i,
+  /\bsenior\s+business\s+analyst\b/i,
   /\blead\s+business\s+analyst\b/i,
   /\bprincipal\s+business\s+analyst\b/i,
   /\bstaff\s+business\s+analyst\b/i,
   /\brequirements?\s+analyst\b/i,
   /\benterprise\s+analyst\b/i,
   /\bfunctional\s+analyst\b/i,
+  /\bsolutions?\s+analyst\b/i,
+  /\bbusiness\s+solutions?\s+analyst\b/i,
+  /\bsenior\s+systems?\s+analyst\b/i,
+  /\bsenior\s+functional\s+analyst\b/i,
+  /\bsenior\s+solutions?\s+analyst\b/i,
 ];
 
 // ── Layer 1b: Borderline titles (elevated description bar) ────────────────────
@@ -47,6 +53,8 @@ export const BA_BORDERLINE_WHITELIST: RegExp[] = [
   /\bprocess\s+analyst\b/i,
   /\btechnology\s+analyst\b/i,
   /\bproduct\s+analyst\b/i,
+  /\bapplication\s+analyst\b/i,
+  /\bIT\s+analyst\b/i,
 ];
 
 // ── Layer 1c: Blacklist — always reject ───────────────────────────────────────
