@@ -132,19 +132,24 @@ function extractProvince(location: string | null): string {
   return m ? m[1] : "";
 }
 
+// Only block aggregator sites — broken/missing URLs are handled by resolveApplyUrl
 const AGGREGATOR_HOSTS = ["adzuna", "indeed", "ziprecruiter", "monster", "careerjet", "jobbank"];
 function isDirectUrl(url: string | null | undefined): boolean {
-  if (!url) return false;
+  if (!url) return true; // no URL: show job, resolveApplyUrl provides fallback
   try {
     const host = new URL(url).hostname.toLowerCase();
-    if (host === "community.workday.com") return false;
-    if (url.toLowerCase().includes("invalid")) return false;
     return !AGGREGATOR_HOSTS.some(a => host.includes(a));
-  } catch { return false; }
+  } catch { return true; }
 }
 
-// Workday careers page fallbacks — used when the direct job URL is broken
-const WORKDAY_CAREERS_FALLBACK: Record<string, string> = {
+function isBadUrl(url: string): boolean {
+  if (!url) return true;
+  const lower = url.toLowerCase();
+  return lower.includes("community.workday.com") || lower.includes("invalid");
+}
+
+// Known careers page fallbacks — used when direct job URL is broken
+const CAREERS_FALLBACK: Record<string, string> = {
   "RBC":      "https://jobs.rbc.com",
   "TD Bank":  "https://jobs.td.com",
   "BMO":      "https://bmo.wd3.myworkdayjobs.com/en-US/External",
@@ -155,23 +160,15 @@ const WORKDAY_CAREERS_FALLBACK: Record<string, string> = {
 function resolveApplyUrl(job: JobListing): { href: string; label: string; isDirect: boolean } {
   const raw = job.apply_url || job.url || "";
 
-  if (job.source_type === "workday") {
-    const isValid =
-      raw.includes("myworkdayjobs.com") &&
-      !raw.includes("community.workday.com") &&
-      !raw.toLowerCase().includes("invalid");
-
-    if (!isValid) {
-      const fallback = WORKDAY_CAREERS_FALLBACK[job.company ?? ""];
-      return {
-        href:     fallback ?? `https://www.google.com/search?q=${encodeURIComponent((job.title ?? "") + " " + (job.company ?? "") + " careers")}`,
-        label:    "View job on company site",
-        isDirect: false,
-      };
-    }
+  if (isBadUrl(raw)) {
+    const fallback = CAREERS_FALLBACK[job.company ?? ""];
+    const google   = `https://www.google.com/search?q=${encodeURIComponent(
+      [job.title, job.company, job.location].filter(Boolean).join(" ")
+    )}`;
+    return { href: fallback ?? google, label: "View job on company site", isDirect: false };
   }
 
-  return { href: raw || "#", label: "Apply", isDirect: true };
+  return { href: raw, label: "Apply", isDirect: true };
 }
 
 const WORK_TYPE_LABELS: Record<string, string> = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };
