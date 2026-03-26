@@ -13,7 +13,6 @@ import type { JobAdapter } from "../types";
 import type { EmployerSource } from "../registry";
 import { GreenhouseAdapter }     from "./greenhouse";
 import { LeverAdapter }          from "./lever";
-import { WorkdayAdapter }        from "./workday";
 import { SmartRecruitersAdapter } from "./smartrecruiters";
 import { ICIMSAdapter }           from "./icims";
 
@@ -45,12 +44,6 @@ export function buildAdapters(sources: EmployerSource[]): JobAdapter[] {
     console.log(`[adapters] Lever: ${lever.length} sources`);
   }
 
-  const workday = byPlatform.get("workday");
-  if (workday?.length) {
-    adapters.push(new WorkdayAdapter(workday));
-    console.log(`[adapters] Workday: ${workday.length} sources`);
-  }
-
   const smartrecruiters = byPlatform.get("smartrecruiters");
   if (smartrecruiters?.length) {
     adapters.push(new SmartRecruitersAdapter(smartrecruiters));
@@ -68,7 +61,7 @@ export function buildAdapters(sources: EmployerSource[]): JobAdapter[] {
   // const jobvite  = byPlatform.get("jobvite");
 
   const unhandled = [...byPlatform.keys()].filter(
-    p => !["greenhouse", "lever", "workday", "smartrecruiters", "icims"].includes(p)
+    p => !["greenhouse", "lever", "smartrecruiters", "icims"].includes(p)
   );
   if (unhandled.length > 0) {
     console.warn(`[adapters] No adapter for platforms: ${unhandled.join(", ")} — skipped`);
