@@ -67,7 +67,7 @@ export default async function OpportunitiesPage() {
     } else {
       console.log(`[OpportunitiesPage] Bootstrap sync complete — ${result.upserted} rows`);
       const { data: fresh } = await fetchJobs();
-      const freshClean = (fresh ?? []).filter(job => isDirectUrl(job.apply_url || job.url ?? undefined));
+      const freshClean = (fresh ?? []).filter(job => isDirectUrl(job.apply_url || (job.url ?? undefined)));
       return (
         <OpportunitiesClient
           initialJobs={freshClean as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
