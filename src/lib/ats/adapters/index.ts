@@ -15,6 +15,7 @@ import { GreenhouseAdapter }     from "./greenhouse";
 import { LeverAdapter }          from "./lever";
 import { WorkdayAdapter }        from "./workday";
 import { SmartRecruitersAdapter } from "./smartrecruiters";
+import { ICIMSAdapter }           from "./icims";
 
 /**
  * Build the active adapter set from a list of employer sources.
@@ -56,13 +57,18 @@ export function buildAdapters(sources: EmployerSource[]): JobAdapter[] {
     console.log(`[adapters] SmartRecruiters: ${smartrecruiters.length} sources`);
   }
 
+  const icims = byPlatform.get("icims");
+  if (icims?.length) {
+    adapters.push(new ICIMSAdapter(icims));
+    console.log(`[adapters] iCIMS: ${icims.length} sources`);
+  }
+
   // Future platforms — add cases here as adapters are built:
-  // const icims = byPlatform.get("icims");
   // const bamboohr = byPlatform.get("bamboohr");
   // const jobvite  = byPlatform.get("jobvite");
 
   const unhandled = [...byPlatform.keys()].filter(
-    p => !["greenhouse", "lever", "workday", "smartrecruiters"].includes(p)
+    p => !["greenhouse", "lever", "workday", "smartrecruiters", "icims"].includes(p)
   );
   if (unhandled.length > 0) {
     console.warn(`[adapters] No adapter for platforms: ${unhandled.join(", ")} — skipped`);
