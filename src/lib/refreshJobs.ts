@@ -309,13 +309,9 @@ export async function runRefresh(): Promise<RefreshResult> {
   const rawRows: JobRow[] = relevantJobs.map(job => {
     const dedupKey = `${normalizeForDedup(job.title)}::${job.company.toLowerCase()}`;
 
-    // Workday URLs are unverified until the /api/jobs/verify cron runs at 7am.
-    // All other ATS platforms (Greenhouse, Lever, SmartRecruiters) have stable,
-    // hosted URLs that do not require verification.
-    const isWorkday          = job.source_type === "workday";
-    const apply_url_status   = isWorkday ? "pending" : "valid";
-    const verified_apply_url = isWorkday ? null       : job.apply_url;
-    const last_verified_at   = isWorkday ? null       : now;
+    const apply_url_status   = "valid";
+    const verified_apply_url = job.apply_url;
+    const last_verified_at   = now;
 
     return {
       dedup_key:          dedupKey,
