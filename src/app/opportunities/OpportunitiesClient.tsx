@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase, RefreshCw, AlertTriangle, X, ChevronRight } from "lucide-react";
+import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase, RefreshCw, AlertTriangle, X, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 
 interface PrepLink { label: string; href: string }
 
@@ -387,6 +387,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [expandedAction, setExpandedAction] = useState<"resume" | "prepare" | "interview" | null>(null);
   const [insightOpen,    setInsightOpen]    = useState(false);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [isFullView,     setIsFullView]     = useState(false);
 
   const triggerSync = useCallback(async () => {
     setSyncing(true); setSyncMsg(null);
@@ -584,7 +585,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
               return (
                 <div key={job.id}
-                  onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightOpen(false); }}
+                  onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightOpen(false); setIsFullView(false); }}
                   style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.boxShadow = "none"; }}
@@ -780,17 +781,19 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
         return (
           <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex" }}>
-            {/* Overlay */}
-            <div
-              onClick={() => setSelectedJob(null)}
-              style={{ flex: 1, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
-            />
+            {/* Overlay — hidden in full view */}
+            {!isFullView && (
+              <div
+                onClick={() => setSelectedJob(null)}
+                style={{ flex: 1, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+              />
+            )}
 
             {/* Drawer panel */}
-            <div style={{ width: "min(480px, 100vw)", background: "#18181b", borderLeft: `1px solid ${C.border}`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+            <div style={{ width: isFullView ? "100vw" : "clamp(480px, 44vw, 680px)", background: "#18181b", borderLeft: isFullView ? "none" : `1px solid ${C.border}`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
 
               {/* Sticky header */}
-              <div style={{ padding: "24px 28px 20px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: "#18181b", zIndex: 1 }}>
+              <div style={{ padding: isFullView ? "24px 40px 20px" : "24px 28px 20px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: "#18181b", zIndex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -817,9 +820,24 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                       </span>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedJob(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.text4, padding: 4, flexShrink: 0 }}>
-                    <X size={18} />
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                    <button
+                      onClick={() => {
+                        const opening = !isFullView;
+                        setIsFullView(opening);
+                        if (opening && !insightOpen) {
+                          setInsightOpen(true); setInsightLoading(true);
+                          setTimeout(() => setInsightLoading(false), 700);
+                        }
+                      }}
+                      title={isFullView ? "Panel view" : "Expand to full view"}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: C.text4, padding: 4, display: "flex", alignItems: "center" }}>
+                      {isFullView ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
+                    <button onClick={() => { setSelectedJob(null); setIsFullView(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.text4, padding: 4 }}>
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -830,12 +848,17 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                 const practiceHref = isLoggedIn ? null : "/signup"; // null = use handlePractice
 
                 return (
-                <div style={{ padding: "24px 28px 32px", flex: 1 }}>
+                <div style={{ padding: isFullView ? "32px 40px 48px" : "24px 28px 32px", flex: 1, display: "grid", gridTemplateColumns: isFullView ? "1.1fr 0.9fr" : "1fr", gap: isFullView ? "0 48px" : 0, alignItems: "start" }}>
+
+                {/* ── LEFT COLUMN: job details ── */}
+                <div style={{ minWidth: 0 }}>
 
                   {/* ── Section header ── */}
+                  {!isFullView && (
                   <p style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 20, fontFamily: "monospace" }}>
                     Job details
                   </p>
+                  )}
 
                   {/* ── Responsibilities ── */}
                   <div style={{ marginBottom: 24 }}>
@@ -878,6 +901,11 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                     <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, fontFamily: "monospace" }}>Salary</div>
                     <p style={{ fontSize: 13, color: C.text3, margin: 0 }}>Not disclosed — ask at offer stage.</p>
                   </div>
+
+                </div>{/* end left column */}
+
+                {/* ── RIGHT COLUMN: support + apply ── */}
+                <div style={{ minWidth: 0 }}>
 
                   {/* ── Support section ── */}
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginBottom: 28 }}>
@@ -924,9 +952,12 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                             </div>
                           ) : (
                             <div style={{ padding: "20px" }}>
-                              <div style={{ fontSize: 10, fontWeight: 700, color: C.teal, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 18 }}>
-                                AI breakdown · based on this role
-                              </div>
+                                <p style={{ fontSize: 14, fontWeight: 700, color: C.text1, marginBottom: 4, lineHeight: 1.4 }}>
+                                You are being evaluated on more than what&apos;s written in the job description.
+                              </p>
+                              <p style={{ fontSize: 12, color: C.text3, marginBottom: 20, lineHeight: 1.6 }}>
+                                Here&apos;s what this role is actually testing:
+                              </p>
 
                               {/* Core Skills */}
                               <div style={{ marginBottom: 18 }}>
@@ -976,7 +1007,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
                               {/* Interview questions */}
                               <div style={{ marginBottom: 20 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Likely interview focus</div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Expect questions like:</div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                   {insight.interviewQuestions.map((q, i) => (
                                     <div key={i} style={{ fontSize: 13, color: C.text2, lineHeight: 1.6, padding: "10px 12px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}` }}>
@@ -987,6 +1018,9 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                               </div>
 
                               {/* CTAs */}
+                              <p style={{ fontSize: 12, fontWeight: 600, color: C.text3, marginBottom: 10 }}>
+                                Don&apos;t just read these. Practice them.
+                              </p>
                               <div style={{ display: "flex", gap: 8 }}>
                                 <button
                                   onClick={() => { setSelectedJob(null); handlePractice(job); }}
@@ -1050,6 +1084,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                       <p style={{ fontSize: 11, color: C.text4, textAlign: "center", marginTop: 6 }}>Opens employer careers page</p>
                     )}
                   </div>
+
+                </div>{/* end right column */}
 
                 </div>
                 );
