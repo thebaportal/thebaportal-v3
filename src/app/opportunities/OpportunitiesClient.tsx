@@ -99,6 +99,129 @@ function getSampleQuestion(prepLinks: PrepLink[]): string {
   return hit ? SAMPLE_QUESTIONS[hit.label] : "Tell me about a project where you translated complex business needs into clear technical requirements.";
 }
 
+// ── 3-tag generator ────────────────────────────────────────────────────────────
+
+function generateTags(title: string, desc: string | null): [string, string, string] {
+  const text = (title + " " + (desc ?? "")).toLowerCase();
+
+  const core = (() => {
+    if (/stakeholder|facilitat|workshop|elicit/.test(text)) return "Stakeholders";
+    if (/\bdata\b|sql|analytics|reporting|\bbi\b|power bi/.test(text)) return "Data";
+    if (/process|workflow|bpmn|swimlane/.test(text)) return "Process";
+    if (/agile|scrum|sprint|kanban/.test(text)) return "Agile";
+    if (/system|integration|\bapi\b/.test(text)) return "Systems";
+    return "Stakeholders";
+  })();
+
+  const tool = (() => {
+    if (/\bsap\b/.test(text)) return "SAP";
+    if (/salesforce/.test(text)) return "Salesforce";
+    if (/\bsql\b/.test(text)) return "SQL";
+    if (/power bi|powerbi/.test(text)) return "Power BI";
+    if (/\bapi\b|restful/.test(text)) return "APIs";
+    if (/tableau/.test(text)) return "Tableau";
+    if (/\bazure\b/.test(text)) return "Azure";
+    if (/\baws\b/.test(text)) return "AWS";
+    if (/agile|scrum/.test(text) && core !== "Agile") return "Agile";
+    if (/process|workflow/.test(text) && core !== "Process") return "Process";
+    return "Agile";
+  })();
+
+  const focus = (() => {
+    if (/transform|change management/.test(text)) return "Transformation";
+    if (/deliver|implement|deploy/.test(text)) return "Delivery";
+    if (/strateg/.test(text)) return "Strategy";
+    if (/operat/.test(text)) return "Operations";
+    if (/senior|lead|principal/.test(title.toLowerCase())) return "Strategy";
+    return "Delivery";
+  })();
+
+  return [core, tool, focus];
+}
+
+// ── AI insight generator ───────────────────────────────────────────────────────
+
+interface JobInsight {
+  coreSkills:         string[];
+  dayToDay:           string[];
+  strongCandidate:    string[];
+  whereTheyFail:      string[];
+  interviewQuestions: string[];
+}
+
+function generateInsight(job: JobListing): JobInsight {
+  const title = job.title.toLowerCase();
+  const desc  = (job.description ?? "").toLowerCase();
+  const text  = title + " " + desc;
+
+  const coreSkills: string[] = [];
+  if (/stakeholder|facilitat/.test(text))              coreSkills.push("Stakeholder management");
+  if (/requirement|elicit|brd|user stor/.test(text))   coreSkills.push("Requirements elicitation");
+  if (/agile|scrum|sprint/.test(text))                  coreSkills.push("Agile delivery");
+  if (/\bdata\b|sql|analytics|reporting/.test(text))   coreSkills.push("Data analysis");
+  if (/process|workflow|bpmn/.test(text))               coreSkills.push("Process mapping");
+  if (/system|integration|\bapi\b/.test(text))          coreSkills.push("Systems analysis");
+  if (/change|transform/.test(text))                    coreSkills.push("Change management");
+  if (coreSkills.length === 0) coreSkills.push("Requirements gathering", "Stakeholder alignment", "Business analysis");
+
+  const parsed = parseDesc(job.description);
+  const dayToDay = parsed.duties.length > 0
+    ? parsed.duties.slice(0, 4)
+    : [
+        "Gather and document business requirements from stakeholders",
+        "Translate business needs into functional specifications",
+        "Facilitate alignment sessions across business and tech teams",
+        "Maintain project documentation and track deliverables throughout delivery",
+      ];
+
+  const strongCandidate: string[] = [
+    "Leads with context — sets up the problem before explaining what they did",
+    "References real artifacts: BRDs, user stories, process maps, acceptance criteria",
+  ];
+  if (/senior|lead|principal/.test(title)) {
+    strongCandidate.push("Shows end-to-end ownership across the full BA lifecycle, not just task execution");
+  } else {
+    strongCandidate.push("Demonstrates a structured, repeatable approach to analysis");
+  }
+  if (/agile|scrum/.test(text))    strongCandidate.push("Comfortable adapting requirements as delivery evolves sprint by sprint");
+  if (/stakeholder/.test(text))    strongCandidate.push("Builds trust with business and tech stakeholders at the same time");
+
+  const whereTheyFail: string[] = [
+    "Give vague answers with no named projects, no outcomes, no specifics",
+    "Cannot demonstrate BA artifacts they personally produced",
+  ];
+  if (/agile/.test(text)) {
+    whereTheyFail.push("Use agile buzzwords without being able to describe their actual role in ceremonies");
+  } else {
+    whereTheyFail.push("Describe team outcomes without clarifying their individual contribution");
+  }
+  if (/stakeholder/.test(text)) {
+    whereTheyFail.push("Cannot articulate how they navigated conflicting or difficult stakeholder priorities");
+  } else {
+    whereTheyFail.push("Explain what they did but not why it mattered to the business");
+  }
+
+  const questions: string[] = [];
+  if (/stakeholder|facilitat/.test(text))   questions.push("Tell me about a time you had to manage conflicting stakeholder requirements. How did you resolve it?");
+  if (/requirement|brd|user stor/.test(text)) questions.push("Walk me through how you gathered and documented requirements for a complex initiative.");
+  if (/agile|scrum/.test(text))              questions.push("What is your role as a BA in a scrum team? How do you handle requirements that shift mid-sprint?");
+  if (/process|workflow/.test(text))         questions.push("Describe a process you mapped and improved. What did the as-is look like, and what changed?");
+  if (/\bdata\b|sql|analytics/.test(text))   questions.push("Tell me about a time you used data to challenge or validate a business assumption.");
+  if (/change|transform/.test(text))         questions.push("How have you supported stakeholder adoption during a major system or process change?");
+  if (questions.length < 3) {
+    questions.push("How do you approach a project where requirements are unclear from the start?");
+    questions.push("Give an example of a deliverable you produced that directly influenced a business decision.");
+  }
+
+  return {
+    coreSkills:         coreSkills.slice(0, 5),
+    dayToDay:           dayToDay.slice(0, 4),
+    strongCandidate:    strongCandidate.slice(0, 4),
+    whereTheyFail:      whereTheyFail.slice(0, 4),
+    interviewQuestions: questions.slice(0, 5),
+  };
+}
+
 // ── Colours ───────────────────────────────────────────────────────────────────
 
 const C = {
@@ -262,6 +385,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [appliedJobs,    setAppliedJobs]    = useState<Set<string>>(new Set());
   const [selectedJob,    setSelectedJob]    = useState<JobListing | null>(null);
   const [expandedAction, setExpandedAction] = useState<"resume" | "prepare" | "interview" | null>(null);
+  const [insightOpen,    setInsightOpen]    = useState(false);
+  const [insightLoading, setInsightLoading] = useState(false);
 
   const triggerSync = useCallback(async () => {
     setSyncing(true); setSyncMsg(null);
@@ -455,11 +580,11 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               const fresh    = isFresh(job.posted_at);
               const prep     = (job.prep_links ?? []).filter(p => p.label !== "Career Suite").slice(0, 2);
               const prov     = extractProvince(job.location);
-              const why      = whyThisMatters(job.prep_links ?? []);
+              const tags     = generateTags(job.title, job.description);
 
               return (
                 <div key={job.id}
-                  onClick={() => { setSelectedJob(job); setExpandedAction(null); }}
+                  onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightOpen(false); }}
                   style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.boxShadow = "none"; }}
@@ -501,12 +626,14 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                     </span>
                   </div>
 
-                  {/* Row 4: why this matters */}
-                  {why && (
-                    <div style={{ fontSize: 12, color: C.teal, fontFamily: "monospace", marginBottom: 10, opacity: 0.85 }}>
-                      // {why}
-                    </div>
-                  )}
+                  {/* Row 4: signal tags */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                    {tags.map((tag, i) => (
+                      <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(31,191,159,0.06)", color: C.teal, border: `1px solid rgba(31,191,159,0.18)` }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
 
                   {/* Row 5: description preview */}
                   {job.description && (
@@ -649,6 +776,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
         const prep     = (job.prep_links ?? []).filter(p => p.label !== "Career Suite");
         const fresh    = isFresh(job.posted_at);
         const keywords = getResumeKeywords(job.title, job.prep_links ?? []);
+        const insight  = generateInsight(job);
 
         return (
           <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex" }}>
@@ -770,15 +898,111 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         <span style={{ fontSize: 12, color: C.teal, fontWeight: 700 }}>Career Suite</span>
                       </Link>
 
-                      <Link
-                        href={practiceHref ?? "#"}
-                        onClick={practiceHref ? undefined : (e) => { e.preventDefault(); setSelectedJob(null); handlePractice(job); }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>See what this job is testing</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
-                      </Link>
+                      {/* "See what this job is really testing" — expands inline */}
+                      <button
+                        onClick={() => {
+                          if (insightOpen) { setInsightOpen(false); return; }
+                          setInsightOpen(true);
+                          setInsightLoading(true);
+                          setTimeout(() => setInsightLoading(false), 700);
+                        }}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: insightOpen ? C.tealSoft : C.surface, border: `1px solid ${insightOpen ? C.tealBorder : C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "all 0.12s" }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: insightOpen ? C.teal : C.text2 }}>See what this job is really testing</span>
+                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>{insightOpen ? "Hide ↑" : "AI breakdown →"}</span>
+                      </button>
+
+                      {/* ── Insight panel ── */}
+                      {insightOpen && (
+                        <div style={{ borderRadius: 12, border: `1px solid ${C.tealBorder}`, background: "rgba(31,191,159,0.03)", overflow: "hidden" }}>
+                          {insightLoading ? (
+                            <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, fontFamily: "monospace", letterSpacing: "0.08em" }}>Analyzing role…</div>
+                              {[80, 60, 90, 50, 70].map((w, i) => (
+                                <div key={i} style={{ height: 10, borderRadius: 6, background: `rgba(31,191,159,0.12)`, width: `${w}%`, animation: "pulse 1.2s ease-in-out infinite" }} />
+                              ))}
+                              <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }`}</style>
+                            </div>
+                          ) : (
+                            <div style={{ padding: "20px" }}>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: C.teal, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 18 }}>
+                                AI breakdown · based on this role
+                              </div>
+
+                              {/* Core Skills */}
+                              <div style={{ marginBottom: 18 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Core skills this role tests</div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                  {insight.coreSkills.map((s, i) => (
+                                    <span key={i} style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, background: C.surface, border: `1px solid ${C.border}`, color: C.text2 }}>{s}</span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Day to day */}
+                              <div style={{ marginBottom: 18 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>What you will actually be asked to do</div>
+                                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                                  {insight.dayToDay.map((d, i) => (
+                                    <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                                      <span style={{ color: C.teal, flexShrink: 0, fontWeight: 700 }}>›</span>{d}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              {/* Strong candidate */}
+                              <div style={{ marginBottom: 18 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>What a strong candidate looks like</div>
+                                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                                  {insight.strongCandidate.map((s, i) => (
+                                    <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                                      <span style={{ color: "#10b981", flexShrink: 0 }}>✓</span>{s}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              {/* Where they fail */}
+                              <div style={{ marginBottom: 18 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Where most candidates fall short</div>
+                                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                                  {insight.whereTheyFail.map((f, i) => (
+                                    <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                                      <span style={{ color: "#f87171", flexShrink: 0 }}>✕</span>{f}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              {/* Interview questions */}
+                              <div style={{ marginBottom: 20 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Likely interview focus</div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                  {insight.interviewQuestions.map((q, i) => (
+                                    <div key={i} style={{ fontSize: 13, color: C.text2, lineHeight: 1.6, padding: "10px 12px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}` }}>
+                                      <span style={{ color: C.text4, fontFamily: "monospace", fontSize: 11, marginRight: 6 }}>Q{i + 1}</span>{q}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* CTAs */}
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <button
+                                  onClick={() => { setSelectedJob(null); handlePractice(job); }}
+                                  style={{ flex: 1, padding: "10px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}` }}>
+                                  Practice these questions
+                                </button>
+                                <button
+                                  onClick={() => { setSelectedJob(null); handlePractice(job); }}
+                                  style={{ flex: 1, padding: "10px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "transparent", color: C.text2, border: `1px solid ${C.border}` }}>
+                                  Run a BA challenge
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <Link
                         href={practiceHref ?? "#"}
