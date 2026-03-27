@@ -466,13 +466,28 @@ function isFresh(dateStr: string): boolean {
   return (Date.now() - new Date(dateStr).getTime()) / 86_400_000 <= 3;
 }
 
+// Full province name → abbreviation (handles "Ontario", "British Columbia", etc.)
+const PROVINCE_NAMES: [RegExp, string][] = [
+  [/\bontario\b/i, "ON"], [/\bbritish columbia\b/i, "BC"], [/\balberta\b/i, "AB"],
+  [/\bquebec\b/i, "QC"], [/\bmanitoba\b/i, "MB"], [/\bsaskatchewan\b/i, "SK"],
+  [/\bnova scotia\b/i, "NS"], [/\bnew brunswick\b/i, "NB"],
+  [/\bnewfoundland\b/i, "NL"], [/\bprince edward island\b/i, "PE"],
+  [/\byukon\b/i, "YT"], [/\bnorthwest territories\b/i, "NT"], [/\bnunavut\b/i, "NU"],
+];
+
 function extractProvince(location: string | null): string {
   if (!location) return "";
   if (/\bremote\b/i.test(location)) return "Remote";
-  const matches = location.match(/\b(ON|BC|AB|QC|MB|SK|NS|NB|NL|PE|NT|NU|YT)\b/g);
-  // Multi-province listing (e.g. "Toronto, ON or Vancouver, BC") → show under All only
-  if (!matches || matches.length !== 1) return "";
-  return matches[0];
+
+  // Abbreviation matches (e.g. "Toronto, ON, Canada")
+  const abbrev = location.match(/\b(ON|BC|AB|QC|MB|SK|NS|NB|NL|PE|NT|NU|YT)\b/g) ?? [];
+  // Full name matches (e.g. "Toronto, Ontario")
+  const named  = PROVINCE_NAMES.filter(([re]) => re.test(location)).map(([, code]) => code);
+
+  const all = [...new Set([...abbrev, ...named])];
+  // Multi-province listing → show under All only (no specific province match)
+  if (all.length !== 1) return "";
+  return all[0];
 }
 
 // Only block aggregator sites — broken/missing URLs are handled by resolveApplyUrl
@@ -808,9 +823,9 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
         ) : (
           <div className="ba-card-grid">
             {filtered.map((job, cardIdx) => {
-              const fresh   = isFresh(job.posted_at);
-              const prov    = extractProvince(job.location);
-              const insight = generateAlexCardInsight(job, cardIdx);
+              const fresh = isFresh(job.posted_at);
+              const prov  = extractProvince(job.location);
+              const apply = resolveApplyUrl(job);
 
               return (
                 <div key={job.id}
@@ -830,7 +845,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   </h2>
 
                   {/* Location • Type • Level */}
-                  <div style={{ fontSize: 13, color: "#64748B", marginBottom: 18, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+                  <div style={{ fontSize: 13, color: "#64748B", marginBottom: 22, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", flexGrow: 1 }}>
                     {job.location && <span>{prov || job.location}</span>}
                     {job.location && <span style={{ color: "#CBD5E1" }}>•</span>}
                     <span>{WORK_TYPE_LABELS[job.work_type]}</span>
@@ -838,20 +853,25 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                     <span>{LEVEL_LABELS[job.level] ?? job.level}</span>
                   </div>
 
-                  {/* Alex Rivera insight */}
-                  <p style={{ fontSize: 14, color: "#0F766E", lineHeight: 1.65, margin: "0 0 22px", fontStyle: "italic", flexGrow: 1 }}>
-                    {insight}
-                  </p>
-
-                  {/* Single CTA */}
-                  <button
-                    onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
-                    style={{ padding: "11px 0", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", width: "100%", letterSpacing: "-0.01em", transition: "background 0.12s" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
-                    onMouseLeave={e => (e.currentTarget.style.background = C.teal)}
-                  >
-                    Before you apply →
-                  </button>
+                  {/* Two buttons */}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
+                      style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", transition: "background 0.12s" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
+                      onMouseLeave={e => (e.currentTarget.style.background = C.teal)}
+                    >
+                      Preview job
+                    </button>
+                    <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                      onClick={e => { e.stopPropagation(); setAppliedJobs(prev => new Set(prev).add(job.id)); }}
+                      style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 600, color: "#334155", background: "transparent", border: "1px solid #E2E8F0", textDecoration: "none", transition: "border-color 0.12s, color 0.12s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#94A3B8"; (e.currentTarget as HTMLAnchorElement).style.color = "#0F172A"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#E2E8F0"; (e.currentTarget as HTMLAnchorElement).style.color = "#334155"; }}
+                    >
+                      Apply <ExternalLink size={11} />
+                    </a>
+                  </div>
                 </div>
               );
             })}
