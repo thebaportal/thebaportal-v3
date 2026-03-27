@@ -501,7 +501,21 @@ function resolveApplyUrl(job: JobListing): { href: string; label: string; isDire
 const WORK_TYPE_LABELS: Record<string, string> = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };
 const WORK_TYPE_COLORS: Record<string, string> = { remote: "#059669", hybrid: "#7c3aed", onsite: "#2563eb" };
 const LEVEL_LABELS: Record<string, string> = { entry: "Entry", junior: "Junior", mid: "Mid", senior: "Senior" };
-const PROVINCES = ["ON", "BC", "AB", "QC", "MB", "SK", "NS", "Remote"];
+const PROVINCES = ["ON", "BC", "AB", "QC", "MB", "SK", "NS", "NB", "NL", "PE", "YT", "NT", "NU", "Remote"];
+
+// ── Alex card quote ────────────────────────────────────────────────────────────
+function generateCardQuote(job: JobListing): string {
+  const text = (job.title + " " + (job.description ?? "")).toLowerCase();
+  if (/stakeholder|facilitat|workshop/.test(text))    return "This role is really about getting misaligned stakeholders to agree — not just documenting what they said.";
+  if (/agile|scrum|sprint/.test(text))                return "They want a BA who shapes the backlog, not just attends standups.";
+  if (/process|workflow|bpmn|as.is/.test(text))        return "Process mapping is a core deliverable here — you'll own as-is to to-be end to end.";
+  if (/\bdata\b|sql|analytics|power bi/.test(text))   return "Data fluency is non-negotiable — they'll test whether your analysis changes decisions.";
+  if (/change|transform|adoption/.test(text))         return "Delivery isn't enough here — they need someone who drives adoption when resistance is real.";
+  if (/system|integration|\bapi\b/.test(text))        return "This role sits at the business-tech boundary — your requirements need to be dev-ready, not just written.";
+  if (/requirement|brd|user stor/.test(text))         return "Strong requirements fundamentals are the baseline — the differentiator is how you get to sign-off.";
+  if (/senior|lead|principal/.test(job.title.toLowerCase())) return "At this level they're hiring for impact and ownership — not just task execution.";
+  return "Structured thinking, clear communication, artifacts that hold up — that's what gets you the offer.";
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -588,86 +602,78 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
       </nav>
 
       {/* ── Hero ── */}
-      <div style={{ paddingTop: 58, background: `linear-gradient(180deg, #0d1117 0%, ${C.bg} 100%)`, borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "72px 24px 64px" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 20, fontFamily: "monospace" }}>
-            // live BA roles — Canada
-          </div>
-          <h1 style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, letterSpacing: "-0.03em", color: C.text1, lineHeight: 1.05, marginBottom: 20, maxWidth: 640 }}>
-            Apply fast.{" "}
-            <span style={{ color: C.teal }}>Then prove you can do the job.</span>
+      <div style={{ paddingTop: 58, borderBottom: `1px solid ${C.border}`, background: `linear-gradient(180deg, #0c1118 0%, ${C.bg} 100%)` }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 32px 40px" }}>
+          <h1 style={{ fontSize: "clamp(26px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.025em", color: C.text1, lineHeight: 1.15, marginBottom: 10 }}>
+            Curated BA jobs in Canada.
           </h1>
-          <p style={{ fontSize: 16, color: C.text3, lineHeight: 1.7, maxWidth: 500, marginBottom: 36 }}>
-            Real BA roles. Then practice what they&apos;ll actually test you on.
+          <p style={{ fontSize: 15, color: C.text3, lineHeight: 1.6, margin: 0 }}>
+            With coaching from <span style={{ color: C.teal, fontWeight: 600 }}>Alex Rivera</span>, Senior BA Coach — so you don&apos;t just apply, you show up prepared.
           </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 12, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", letterSpacing: "-0.01em" }}>
-              Start practicing free <ChevronRight size={14} />
-            </Link>
-            <a href="#listings" style={{ fontSize: 14, color: C.text3, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              Browse roles ↓
-            </a>
-          </div>
-          <div style={{ display: "flex", gap: 24, marginTop: 40, flexWrap: "wrap" }}>
-            {[
-              `${filtered.length} roles live`,
-              "Direct employer links only",
-              "Canada only",
-            ].map(s => (
-              <span key={s} style={{ fontSize: 12, color: C.text4, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.teal, display: "inline-block", flexShrink: 0 }} />
-                {s}
-              </span>
-            ))}
-          </div>
           {syncError && (
-            <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#f87171", padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
-              <AlertTriangle size={13} /> Sync error: {syncError}
+            <div style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "#f87171", padding: "8px 12px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
+              <AlertTriangle size={12} /> Sync error: {syncError}
             </div>
           )}
         </div>
       </div>
 
       {/* ── Listings ── */}
-      <div id="listings" style={{ maxWidth: 1120, margin: "0 auto", padding: "40px 24px 0" }}>
+      <div id="listings" style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 32px 0" }}>
 
-        {/* Filters */}
-        <div style={{ marginBottom: 28, background: C.surface, borderRadius: 14, padding: "18px 20px", border: `1px solid ${C.border}` }}>
-          <div style={{ position: "relative", maxWidth: 440, marginBottom: 14 }}>
-            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.text4, pointerEvents: "none" }} />
+        {/* Filter bar — single compact row */}
+        <style>{`
+          .ba-select {
+            appearance: none;
+            background: ${C.card};
+            border: 1px solid ${C.border};
+            border-radius: 9px;
+            color: ${C.text2};
+            font-size: 13px;
+            font-family: inherit;
+            padding: 8px 32px 8px 12px;
+            cursor: pointer;
+            outline: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+          }
+          .ba-select:focus { border-color: ${C.teal}; }
+        `}</style>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
+          {/* Search */}
+          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
+            <Search size={14} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.text4, pointerEvents: "none" }} />
             <input
               type="text"
               placeholder="Search title, company, or city…"
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              style={{ width: "100%", paddingLeft: 34, paddingRight: 12, paddingTop: 9, paddingBottom: 9, background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, color: C.text1, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8, background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, color: C.text1, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
             />
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: C.text4, fontWeight: 600, marginRight: 2, textTransform: "uppercase", letterSpacing: "0.05em" }}>Type</span>
-            {(["all", "remote", "hybrid", "onsite"] as const).map(t => (
-              <button key={t} onClick={() => setWorkType(t)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", background: workType === t ? C.teal : "transparent", color: workType === t ? "#fff" : C.text3, borderColor: workType === t ? C.teal : C.border, transition: "all 0.12s" }}>
-                {t === "all" ? "All" : WORK_TYPE_LABELS[t]}
-              </button>
-            ))}
-            <span style={{ fontSize: 11, color: C.text4, fontWeight: 600, marginLeft: 10, marginRight: 2, textTransform: "uppercase", letterSpacing: "0.05em" }}>Level</span>
-            {(["all", "entry", "mid", "senior"] as const).map(l => (
-              <button key={l} onClick={() => setLevel(l)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", background: level === l ? C.teal : "transparent", color: level === l ? "#fff" : C.text3, borderColor: level === l ? C.teal : C.border, transition: "all 0.12s" }}>
-                {l === "all" ? "All" : LEVEL_LABELS[l]}
-              </button>
-            ))}
-            <span style={{ fontSize: 11, color: C.text4, fontWeight: 600, marginLeft: 10, marginRight: 2, textTransform: "uppercase", letterSpacing: "0.05em" }}>Province</span>
-            {(["all", ...PROVINCES] as const).map(p => (
-              <button key={p} onClick={() => setProvince(p)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", background: province === p ? C.teal : "transparent", color: province === p ? "#fff" : C.text3, borderColor: province === p ? C.teal : C.border, transition: "all 0.12s" }}>
-                {p === "all" ? "All" : p}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 13, color: C.text4 }}>
-            {filtered.length} role{filtered.length !== 1 ? "s" : ""} — click any card to preview
+          {/* Type */}
+          <select className="ba-select" value={workType} onChange={e => setWorkType(e.target.value)}>
+            <option value="all">All types</option>
+            <option value="remote">Remote</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="onsite">On-site</option>
+          </select>
+          {/* Level */}
+          <select className="ba-select" value={level} onChange={e => setLevel(e.target.value)}>
+            <option value="all">All levels</option>
+            <option value="entry">Entry</option>
+            <option value="mid">Mid</option>
+            <option value="senior">Senior</option>
+          </select>
+          {/* Province */}
+          <select className="ba-select" value={province} onChange={e => setProvince(e.target.value)}>
+            <option value="all">All provinces</option>
+            {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          {/* Live count */}
+          <span style={{ fontSize: 13, color: C.text4, whiteSpace: "nowrap", marginLeft: 4 }}>
+            <span style={{ fontWeight: 700, color: C.teal }}>{filtered.length}</span> role{filtered.length !== 1 ? "s" : ""} live
           </span>
           {syncMsg && (
             <span style={{ fontSize: 12, color: syncMsg.includes("failed") ? "#f87171" : C.teal, fontFamily: "monospace" }}>
@@ -678,15 +684,15 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
         {/* Cards */}
         {filtered.length === 0 ? (
-          <div style={{ padding: "72px 0", textAlign: "center", color: C.text3 }}>
-            <Briefcase size={36} style={{ margin: "0 auto 16px", display: "block", opacity: 0.3 }} />
+          <div style={{ padding: "80px 0", textAlign: "center" }}>
+            <Briefcase size={32} style={{ margin: "0 auto 14px", display: "block", color: C.text4, opacity: 0.4 }} />
             {initialJobs.length === 0 ? (
               <>
-                <p style={{ fontSize: 15, marginBottom: 8, color: C.text2 }}>
+                <p style={{ fontSize: 15, marginBottom: 6, color: C.text2 }}>
                   {syncError ? "Sync failed — jobs could not be loaded." : "No jobs loaded yet."}
                 </p>
                 <p style={{ fontSize: 13, color: C.text3, marginBottom: 20 }}>
-                  {syncError ? "Check that SUPABASE_SERVICE_ROLE_KEY is set in Vercel." : "Pull in the latest listings now."}
+                  {syncError ? "Check Vercel env vars." : "Pull in the latest listings."}
                 </p>
                 <button onClick={triggerSync} disabled={syncing}
                   style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}`, opacity: syncing ? 0.6 : 1 }}>
@@ -696,133 +702,92 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               </>
             ) : (
               <>
-                <p style={{ fontSize: 15, color: C.text2 }}>No jobs match your filters.</p>
+                <p style={{ fontSize: 15, color: C.text2, marginBottom: 10 }}>No roles match your filters.</p>
                 <button onClick={() => { setKeyword(""); setWorkType("all"); setLevel("all"); setProvince("all"); }}
-                  style={{ marginTop: 12, fontSize: 13, color: C.teal, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                  style={{ fontSize: 13, color: C.teal, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
                   Clear filters
                 </button>
               </>
             )}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(480px, 1fr))", gap: 16, marginBottom: 64 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18, marginBottom: 80 }}>
             {filtered.map(job => {
-              const apply    = resolveApplyUrl(job);
-              const fresh    = isFresh(job.posted_at);
-              const prep     = (job.prep_links ?? []).filter(p => p.label !== "Career Suite").slice(0, 2);
-              const prov     = extractProvince(job.location);
-              const tags     = generateTags(job.title, job.description);
+              const apply = resolveApplyUrl(job);
+              const fresh = isFresh(job.posted_at);
+              const prov  = extractProvince(job.location);
+              const tags  = generateTags(job.title, job.description);
+              const quote = generateCardQuote(job);
 
               return (
                 <div key={job.id}
-                  onClick={() => {
-                    setSelectedJob(job); setExpandedAction(null);
-                    setInsightLoading(true);
-                    setTimeout(() => setInsightLoading(false), 700);
-                  }}
-                  style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.boxShadow = "none"; }}
+                  style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.45)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
                 >
-                  {/* Row 1: company + freshness */}
+                  {/* Row 1: company + date */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <Building2 size={12} style={{ color: C.text4, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text3 }}>{job.company ?? "Unknown company"}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text3 }}>{job.company ?? "Unknown"}</span>
+                      {fresh && <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, borderRadius: 20, padding: "1px 7px" }}>NEW</span>}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      {fresh && (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, borderRadius: 20, padding: "2px 8px", letterSpacing: "0.04em" }}>NEW</span>
-                      )}
-                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text4 }}>
-                        <Clock size={11} />{daysAgo(job.posted_at)}
-                      </span>
-                    </div>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text4 }}>
+                      <Clock size={11} />{daysAgo(job.posted_at)}
+                    </span>
                   </div>
 
                   {/* Row 2: title */}
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text1, marginBottom: 8, lineHeight: 1.35 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text1, marginBottom: 10, lineHeight: 1.35 }}>
                     {job.title}
                   </h2>
 
-                  {/* Row 3: location + tags */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 10 }}>
+                  {/* Row 3: meta — location · type · level */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12, fontSize: 12, color: C.text3 }}>
                     {job.location && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text3 }}>
-                        <MapPin size={11} style={{ color: C.text4 }} />
-                        {prov || job.location}
+                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        <MapPin size={11} style={{ color: C.text4 }} />{prov || job.location}
                       </span>
                     )}
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: WORK_TYPE_COLORS[job.work_type] ?? C.text3, border: `1px solid rgba(255,255,255,0.06)` }}>
-                      {WORK_TYPE_LABELS[job.work_type]}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: C.text3, border: "1px solid rgba(255,255,255,0.06)" }}>
-                      {LEVEL_LABELS[job.level] ?? job.level}
-                    </span>
+                    {job.location && <span style={{ color: C.border }}>·</span>}
+                    <span style={{ color: WORK_TYPE_COLORS[job.work_type] ?? C.text3, fontWeight: 600 }}>{WORK_TYPE_LABELS[job.work_type]}</span>
+                    <span style={{ color: C.border }}>·</span>
+                    <span>{LEVEL_LABELS[job.level] ?? job.level}</span>
                   </div>
 
-                  {/* Row 4: signal tags */}
-                  <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                  {/* Row 4: skill tags */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
                     {tags.map((tag, i) => (
-                      <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(31,191,159,0.06)", color: C.teal, border: `1px solid rgba(31,191,159,0.18)` }}>
+                      <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(31,191,159,0.07)", color: C.teal, border: `1px solid rgba(31,191,159,0.18)` }}>
                         {tag}
                       </span>
                     ))}
                   </div>
 
-                  {/* Row 5: description preview */}
-                  {job.description && (
-                    <p style={{ fontSize: 13, color: C.text3, lineHeight: 1.6, marginBottom: 14, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>
-                      {job.description.slice(0, 200)}
-                    </p>
-                  )}
-
-                  {/* Row 6: prep chips + CTAs */}
-                  <div style={{ marginTop: "auto", paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {prep.map((p, i) => (
-                          <button key={i}
-                            onClick={e => { e.stopPropagation(); handlePractice(job); }}
-                            style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}`, cursor: "pointer" }}>
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); handlePractice(job); }}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: C.text2, background: "transparent", padding: "7px 13px", borderRadius: 8, border: `1px solid ${C.border}`, cursor: "pointer", whiteSpace: "nowrap", transition: "color 0.12s, border-color 0.12s" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text1; (e.currentTarget as HTMLButtonElement).style.borderColor = C.borderHover; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text2; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}>
-                          Practice this role
-                        </button>
-                        <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                          onClick={e => { e.stopPropagation(); setAppliedJobs(prev => new Set(prev).add(job.id)); }}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "8px 16px", borderRadius: 9, textDecoration: "none", whiteSpace: "nowrap", transition: "background 0.12s" }}
-                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = "#17a888")}
-                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = C.teal)}>
-                          {apply.label} <ExternalLink size={11} />
-                        </a>
-                      </div>
+                  {/* Row 5: Alex Rivera quote */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: 18, padding: "10px 12px", borderRadius: 9, background: "rgba(255,255,255,0.02)", border: `1px solid ${C.border}` }}>
+                    <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.tealSoft, border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: C.teal }}>AR</span>
                     </div>
+                    <p style={{ fontSize: 12, color: C.text3, lineHeight: 1.55, margin: 0, fontStyle: "italic" }}>{quote}</p>
+                  </div>
 
-                    {appliedJobs.has(job.id) ? (
-                      <div style={{ marginTop: 12 }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); handlePractice(job); }}
-                          style={{ fontSize: 12, fontWeight: 700, color: C.teal, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", textAlign: "left" }}>
-                          Got the interview? Practice this role in 5 minutes →
-                        </button>
-                        <span style={{ fontSize: 11, color: C.text4, display: "block", marginTop: 2 }}>
-                          Don&apos;t walk in guessing.
-                        </span>
-                      </div>
-                    ) : (
-                      <p style={{ marginTop: 10, fontSize: 11, color: C.text4, fontStyle: "italic" }}>
-                        Click to preview the role before you apply
-                      </p>
-                    )}
+                  {/* Row 6: actions */}
+                  <div style={{ marginTop: "auto", display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
+                      style={{ flex: 1, padding: "9px 14px", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", transition: "background 0.12s" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
+                      onMouseLeave={e => (e.currentTarget.style.background = C.teal)}>
+                      View coaching
+                    </button>
+                    <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                      onClick={e => { e.stopPropagation(); setAppliedJobs(prev => new Set(prev).add(job.id)); }}
+                      style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "9px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600, color: C.text2, background: "transparent", border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s, color 0.12s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = C.borderHover; (e.currentTarget as HTMLAnchorElement).style.color = C.text1; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = C.border; (e.currentTarget as HTMLAnchorElement).style.color = C.text2; }}>
+                      Apply <ExternalLink size={11} />
+                    </a>
                   </div>
                 </div>
               );
