@@ -500,6 +500,14 @@ const PROVINCE_NAMES: [RegExp, string][] = [
   [/\byukon\b/i, "YT"], [/\bnorthwest territories\b/i, "NT"], [/\bnunavut\b/i, "NU"],
 ];
 
+function formatLocation(location: string | null): string {
+  if (!location) return "";
+  return location
+    .replace(/,?\s*canada\s*$/i, "")   // strip trailing "Canada"
+    .replace(/,?\s*ca\s*$/i, "")       // strip trailing "CA"
+    .trim();
+}
+
 function extractProvince(location: string | null): string {
   if (!location) return "";
   if (/\bremote\b/i.test(location)) return "Remote";
@@ -898,7 +906,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
                   {/* Location • Type */}
                   <div style={{ fontSize: 13, color: "#64748B", marginBottom: 12, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
-                    {job.location && <span>{prov || job.location}</span>}
+                    {job.location && <span>{formatLocation(job.location)}</span>}
                     {job.location && <span style={{ color: "#CBD5E1" }}>•</span>}
                     <span>{WORK_TYPE_LABELS[job.work_type]}</span>
                     <span style={{ color: "#CBD5E1" }}>•</span>
