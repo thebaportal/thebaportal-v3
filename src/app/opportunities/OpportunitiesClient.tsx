@@ -704,22 +704,15 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                 return (
                 <div style={{ padding: "24px 28px 32px", flex: 1 }}>
 
-                  {/* ── Overview ── */}
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8, fontFamily: "monospace" }}>Overview</div>
-                    {parsed.overview ? (
-                      <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.75, margin: 0 }}>{parsed.overview}</p>
-                    ) : (
-                      <p style={{ fontSize: 14, color: C.text3, lineHeight: 1.75, margin: 0 }}>
-                        Full description on the employer site. Read it before applying — match your resume to their language.
-                      </p>
-                    )}
-                  </div>
+                  {/* ── Section header ── */}
+                  <p style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 20, fontFamily: "monospace" }}>
+                    Job details
+                  </p>
 
-                  {/* ── Responsibilities — all free ── */}
-                  {parsed.duties.length > 0 && (
-                    <div style={{ marginBottom: 24 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10, fontFamily: "monospace" }}>Responsibilities</div>
+                  {/* ── Responsibilities ── */}
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10, fontFamily: "monospace" }}>Responsibilities</div>
+                    {parsed.duties.length > 0 ? (
                       <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                         {parsed.duties.map((d, i) => (
                           <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: C.text2, lineHeight: 1.65 }}>
@@ -727,13 +720,17 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                           </li>
                         ))}
                       </ul>
-                    </div>
-                  )}
+                    ) : (
+                      <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.65 }}>
+                        See the full job posting for responsibilities.
+                      </p>
+                    )}
+                  </div>
 
-                  {/* ── Requirements — all free ── */}
-                  {parsed.requirements.length > 0 && (
-                    <div style={{ marginBottom: 24 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10, fontFamily: "monospace" }}>Requirements</div>
+                  {/* ── Requirements ── */}
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10, fontFamily: "monospace" }}>Requirements</div>
+                    {parsed.requirements.length > 0 ? (
                       <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                         {parsed.requirements.map((r, i) => (
                           <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: C.text2, lineHeight: 1.65 }}>
@@ -741,33 +738,36 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                           </li>
                         ))}
                       </ul>
-                    </div>
-                  )}
+                    ) : (
+                      <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.65 }}>
+                        See the full job posting for requirements.
+                      </p>
+                    )}
+                  </div>
 
                   {/* ── Salary ── */}
-                  <div style={{ marginBottom: 32, display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "monospace" }}>Salary</span>
-                    <span style={{ fontSize: 13, color: C.text3 }}>Not disclosed — ask at offer stage.</span>
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, fontFamily: "monospace" }}>Salary</div>
+                    <p style={{ fontSize: 13, color: C.text3, margin: 0 }}>Not disclosed — ask at offer stage.</p>
                   </div>
 
                   {/* ── Support section ── */}
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginBottom: 28 }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: C.text1, marginBottom: 4 }}>
-                      Want help before you apply?
+                    <p style={{ fontSize: 15, fontWeight: 700, color: C.text1, marginBottom: 6 }}>
+                      Give yourself a stronger shot at this role
                     </p>
                     <p style={{ fontSize: 13, color: C.text3, marginBottom: 20, lineHeight: 1.6 }}>
-                      Give yourself a stronger shot with role-specific prep.
+                      Most candidates apply with the same resume. Stand out with role-specific preparation.
                     </p>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 
+                      {/* Highlighted first action */}
                       <Link
                         href={helpHref}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Tailor my resume for this role</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Career Suite →</span>
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 10, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, textDecoration: "none" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text1 }}>Tailor my resume</span>
+                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 700 }}>Career Suite</span>
                       </Link>
 
                       <Link
@@ -776,8 +776,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>See what this job is really testing</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios →</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>See what this job is testing</span>
+                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
                       </Link>
 
                       <Link
@@ -786,8 +786,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Practice likely interview questions</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios →</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Practice interview questions</span>
+                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
                       </Link>
 
                       <Link
@@ -796,8 +796,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Run a real BA challenge</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios →</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Run a BA challenge</span>
+                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
                       </Link>
 
                       <Link
@@ -806,34 +806,31 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Get pitch ready</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>PitchReady →</span>
+                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>PitchReady</span>
                       </Link>
 
                     </div>
                   </div>
 
-                  {/* ── Apply (inline, at bottom of body) ── */}
-                  <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                    onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px", borderRadius: 11, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
-                    Apply on company site <ExternalLink size={13} />
-                  </a>
-                  {!apply.isDirect && (
-                    <p style={{ fontSize: 11, color: C.text4, textAlign: "center", marginTop: 6 }}>Opens employer careers page</p>
-                  )}
+                  {/* ── Apply ── */}
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                    <p style={{ fontSize: 13, color: C.text3, marginBottom: 14, lineHeight: 1.6 }}>
+                      Ready? Apply directly on the company site.
+                    </p>
+                    <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                      onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px", borderRadius: 11, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+                      Apply on company site <ExternalLink size={13} />
+                    </a>
+                    {!apply.isDirect && (
+                      <p style={{ fontSize: 11, color: C.text4, textAlign: "center", marginTop: 6 }}>Opens employer careers page</p>
+                    )}
+                  </div>
 
                 </div>
                 );
               })()}
 
-              {/* Sticky footer — Apply always visible while scrolling */}
-              <div style={{ padding: "14px 28px", borderTop: `1px solid ${C.border}`, position: "sticky", bottom: 0, background: "#18181b" }}>
-                <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                  onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 10, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
-                  Apply on company site <ExternalLink size={13} />
-                </a>
-              </div>
             </div>
           </div>
         );
