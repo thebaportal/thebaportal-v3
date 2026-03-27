@@ -103,6 +103,31 @@ function parseDesc(raw: string | null): {
   };
 }
 
+// ── Card content extractors ───────────────────────────────────────────────────
+
+// First sentence of description — acts as a company/role overview blurb
+function extractCompanyBlurb(desc: string | null): string {
+  if (!desc) return "";
+  const text = stripHtml(desc).replace(/\s+/g, " ").trim();
+  const cut  = text.search(/[.!?]\s+[A-Z]/);
+  const line = cut > 20 ? text.slice(0, cut + 1) : text.slice(0, 130);
+  return line.slice(0, 130).trim() + (line.length > 130 ? "…" : "");
+}
+
+// 1-2 requirement bullets extracted from the requirements/qualifications section
+function extractKeyRequirements(desc: string | null): string {
+  if (!desc) return "";
+  const text = stripHtml(desc);
+  const lower = text.toLowerCase();
+  const reqIdx = lower.search(/\b(requirements?|qualifications?|what you (need|bring|have)|must[- ]have)\b/);
+  const section = text.slice(reqIdx > 0 ? reqIdx : 0, (reqIdx > 0 ? reqIdx : 0) + 600);
+  const bullets = parseBullets(section)
+    .filter(b => /\b(year|degree|certif|experience|proficien|knowledge|skill|familiar)\b/i.test(b))
+    .slice(0, 2);
+  if (bullets.length > 0) return bullets.join(" · ").slice(0, 160);
+  return parseBullets(text).slice(0, 1).join("").slice(0, 120);
+}
+
 // ── Sample interview questions by prep type ────────────────────────────────────
 
 const SAMPLE_QUESTIONS: Record<string, string> = {
@@ -623,6 +648,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [selectedJob,    setSelectedJob]    = useState<JobListing | null>(null);
   const [expandedAction, setExpandedAction] = useState<"resume" | "prepare" | "interview" | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [coachingOpen,   setCoachingOpen]   = useState(true);
   const [mounted,        setMounted]        = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
@@ -696,12 +722,35 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
       {/* ── Hero ── */}
       <div style={{ paddingTop: 58, borderBottom: `1px solid ${C.border}`, background: `linear-gradient(180deg, #0c1118 0%, ${C.bg} 100%)` }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 32px 40px" }}>
-          <h1 style={{ fontSize: "clamp(26px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.025em", color: C.text1, lineHeight: 1.15, marginBottom: 10 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "52px 32px 44px" }}>
+          <h1 style={{ fontSize: "clamp(28px, 3.6vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", color: C.text1, lineHeight: 1.12, marginBottom: 14 }}>
             Curated BA jobs in Canada.
           </h1>
-          <p style={{ fontSize: 15, color: C.text3, lineHeight: 1.6, margin: 0 }}>
-            Alex Rivera shows you what to prepare before you apply.
+          <p style={{ fontSize: 16, color: C.text3, lineHeight: 1.65, marginBottom: 28, maxWidth: 540 }}>
+            Not hundreds of noisy listings. Just the roles worth your time.
+          </p>
+
+          {/* Alex Rivera value prop */}
+          <div style={{ display: "inline-flex", flexDirection: "column", gap: 0, padding: "18px 22px", borderRadius: 12, background: "rgba(31,191,159,0.06)", border: `1px solid ${C.tealBorder}`, marginBottom: 24 }}>
+            <p style={{ fontSize: 13.5, color: C.text2, marginBottom: 12 }}>
+              Before you apply, <span style={{ color: C.teal, fontWeight: 700 }}>Alex Rivera</span>, Senior BA Coach, breaks down:
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {[
+                "What this role actually tests",
+                "Where most candidates fail",
+                "What to prepare before the interview",
+              ].map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+                  <span style={{ color: C.teal, fontWeight: 700, fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}>•</span>
+                  <span style={{ fontSize: 13.5, color: C.text3, lineHeight: 1.4 }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p style={{ fontSize: 15, fontWeight: 700, color: C.teal, letterSpacing: "-0.01em", margin: 0 }}>
+            Apply smarter. Not harder.
           </p>
           {syncError && (
             <div style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "#f87171", padding: "8px 12px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
@@ -826,6 +875,9 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               const fresh = isFresh(job.posted_at);
               const prov  = extractProvince(job.location);
               const apply = resolveApplyUrl(job);
+              const tags  = generateTags(job.title, job.description);
+              const blurb = extractCompanyBlurb(job.description);
+              const reqs  = extractKeyRequirements(job.description);
 
               return (
                 <div key={job.id}
@@ -840,12 +892,12 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   </div>
 
                   {/* Title */}
-                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", marginBottom: 10, lineHeight: 1.3 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", marginBottom: 8, lineHeight: 1.3 }}>
                     {job.title}
                   </h2>
 
-                  {/* Location • Type • Level */}
-                  <div style={{ fontSize: 13, color: "#64748B", marginBottom: 22, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", flexGrow: 1 }}>
+                  {/* Location • Type */}
+                  <div style={{ fontSize: 13, color: "#64748B", marginBottom: 12, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
                     {job.location && <span>{prov || job.location}</span>}
                     {job.location && <span style={{ color: "#CBD5E1" }}>•</span>}
                     <span>{WORK_TYPE_LABELS[job.work_type]}</span>
@@ -853,24 +905,47 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                     <span>{LEVEL_LABELS[job.level] ?? job.level}</span>
                   </div>
 
+                  {/* Company blurb */}
+                  {blurb && (
+                    <p style={{ fontSize: 13, color: "#94A3B8", lineHeight: 1.55, margin: "0 0 10px", fontStyle: "italic" }}>
+                      {blurb}
+                    </p>
+                  )}
+
+                  {/* Key requirements */}
+                  {reqs && (
+                    <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.55, margin: "0 0 14px" }}>
+                      {reqs}
+                    </p>
+                  )}
+
+                  {/* Skill tags */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap", flexGrow: 1, alignContent: "flex-start" }}>
+                    {tags.map((tag, i) => (
+                      <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: "#F1F5F9", color: "#475569" }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
                   {/* Two buttons */}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
+                      onClick={() => { setSelectedJob(job); setCoachingOpen(true); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
                       style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", transition: "background 0.12s" }}
                       onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
                       onMouseLeave={e => (e.currentTarget.style.background = C.teal)}
                     >
-                      Preview job
+                      See what Alex says
                     </button>
-                    <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                      onClick={e => { e.stopPropagation(); setAppliedJobs(prev => new Set(prev).add(job.id)); }}
-                      style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 600, color: "#334155", background: "transparent", border: "1px solid #E2E8F0", textDecoration: "none", transition: "border-color 0.12s, color 0.12s" }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#94A3B8"; (e.currentTarget as HTMLAnchorElement).style.color = "#0F172A"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#E2E8F0"; (e.currentTarget as HTMLAnchorElement).style.color = "#334155"; }}
+                    <button
+                      onClick={() => { setSelectedJob(job); setCoachingOpen(false); setExpandedAction(null); setInsightLoading(false); }}
+                      style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", background: "transparent", color: "#334155", border: "1px solid #E2E8F0", transition: "border-color 0.12s, color 0.12s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#94A3B8"; e.currentTarget.style.color = "#0F172A"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#334155"; }}
                     >
-                      Apply <ExternalLink size={11} />
-                    </a>
+                      Apply
+                    </button>
                   </div>
                 </div>
               );
@@ -1007,7 +1082,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               </div>
 
               {/* ── Two-column body ── */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", flex: 1, minHeight: 0, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: coachingOpen ? "1fr 380px" : "1fr 170px", flex: 1, minHeight: 0, overflow: "hidden" }}>
 
                 {/* LEFT — verbatim job description */}
                 <div style={{ overflowY: "auto", padding: "28px 32px 40px", borderRight: `1px solid ${C.border}` }}>
@@ -1029,6 +1104,30 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                 {/* RIGHT — Alex Rivera coaching panel (warm light) */}
                 <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", background: A.bg }}>
 
+                  {!coachingOpen ? (
+                    /* ── Mini panel — user arrived via Apply ── */
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: "28px 16px", height: "100%" }}>
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: A.tealSoft, border: `1px solid ${A.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: A.teal }}>AR</span>
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: A.text1, marginBottom: 2 }}>Alex Rivera</div>
+                        <div style={{ fontSize: 10, color: A.teal, fontWeight: 600 }}>Senior BA Coach</div>
+                      </div>
+                      <button onClick={() => { setCoachingOpen(true); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
+                        style={{ width: "100%", padding: "10px 8px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", background: A.tealSoft, color: A.teal, border: `1px solid ${A.tealBorder}`, textAlign: "center", lineHeight: 1.4 }}>
+                        See what Alex says →
+                      </button>
+                      <div style={{ width: "100%", borderTop: `1px solid ${A.border}`, paddingTop: 14 }}>
+                        <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                          onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
+                          style={{ display: "block", textAlign: "center", padding: "10px 8px", borderRadius: 8, background: A.teal, color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+                          Apply now
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                  <>
                   {/* Alex identity bar — sticky */}
                   <div style={{ padding: "20px 22px 16px", borderBottom: `1px solid ${A.border}`, display: "flex", alignItems: "center", gap: 12, flexShrink: 0, position: "sticky", top: 0, background: A.bg, zIndex: 1 }}>
                     <div style={{ width: 40, height: 40, borderRadius: "50%", background: A.tealSoft, border: `1px solid ${A.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1162,6 +1261,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                       </>
                     )}
                   </div>
+                  </> /* end coachingOpen full panel */
+                  )} {/* end coachingOpen ternary */}
                 </div>
 
               </div>
