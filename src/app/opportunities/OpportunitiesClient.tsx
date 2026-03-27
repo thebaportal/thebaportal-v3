@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase, RefreshCw, AlertTriangle, X, ChevronRight } from "lucide-react";
@@ -157,6 +157,29 @@ function generateTags(title: string, desc: string | null): [string, string, stri
   })();
 
   return [core, tool, focus];
+}
+
+// ── Insight quality guardrail ─────────────────────────────────────────────────
+// Rejects any insight containing generic phrases that undermine Alex's specificity.
+
+const GUARDRAIL_PHRASES = [
+  "great opportunity",
+  "exciting chance",
+  "values communication",
+  "team player",
+  "grow your career",
+];
+
+function passesGuardrail(text: string): boolean {
+  const lower = text.toLowerCase();
+  if (GUARDRAIL_PHRASES.some(p => lower.includes(p))) return false;
+  // "collaborate with stakeholders" is acceptable only when followed by a consequence
+  if (lower.includes("collaborate with stakeholders")) {
+    const idx   = lower.indexOf("collaborate with stakeholders");
+    const after = lower.slice(idx + 29, idx + 100);
+    if (!/\b(to|and|who|that|when|but|while|by|in order)\b/.test(after)) return false;
+  }
+  return true;
 }
 
 // ── Alex Rivera coaching engine ────────────────────────────────────────────────
@@ -331,7 +354,7 @@ function generateInsight(job: JobListing): JobInsight {
   }
 
   return {
-    insights:       insights.slice(0, 4),
+    insights:       insights.filter(ins => passesGuardrail(ins.heading + " " + ins.body)).slice(0, 4),
     advice:         advice.slice(0, 2),
     interviewFocus: interviewFocus.slice(0, 4),
     questions:      questions.slice(0, 3),
@@ -446,8 +469,10 @@ function isFresh(dateStr: string): boolean {
 function extractProvince(location: string | null): string {
   if (!location) return "";
   if (/\bremote\b/i.test(location)) return "Remote";
-  const m = location.match(/\b(ON|BC|AB|QC|MB|SK|NS|NB|NL|PE|NT|NU|YT)\b/);
-  return m ? m[1] : "";
+  const matches = location.match(/\b(ON|BC|AB|QC|MB|SK|NS|NB|NL|PE|NT|NU|YT)\b/g);
+  // Multi-province listing (e.g. "Toronto, ON or Vancouver, BC") → show under All only
+  if (!matches || matches.length !== 1) return "";
+  return matches[0];
 }
 
 // Only block aggregator sites — broken/missing URLs are handled by resolveApplyUrl
@@ -504,17 +529,73 @@ const LEVEL_LABELS: Record<string, string> = { entry: "Entry", junior: "Junior",
 const PROVINCES = ["ON", "BC", "AB", "QC", "MB", "SK", "NS", "NB", "NL", "PE", "YT", "NT", "NU", "Remote"];
 
 // ── Alex card quote ────────────────────────────────────────────────────────────
-function generateCardQuote(job: JobListing): string {
+// cardIndex is used to rotate opening patterns across visible cards (max 22 words, min 12).
+function generateCardQuote(job: JobListing, cardIndex: number): string {
   const text = (job.title + " " + (job.description ?? "")).toLowerCase();
-  if (/stakeholder|facilitat|workshop/.test(text))    return "This role is really about getting misaligned stakeholders to agree — not just documenting what they said.";
-  if (/agile|scrum|sprint/.test(text))                return "They want a BA who shapes the backlog, not just attends standups.";
-  if (/process|workflow|bpmn|as.is/.test(text))        return "Process mapping is a core deliverable here — you'll own as-is to to-be end to end.";
-  if (/\bdata\b|sql|analytics|power bi/.test(text))   return "Data fluency is non-negotiable — they'll test whether your analysis changes decisions.";
-  if (/change|transform|adoption/.test(text))         return "Delivery isn't enough here — they need someone who drives adoption when resistance is real.";
-  if (/system|integration|\bapi\b/.test(text))        return "This role sits at the business-tech boundary — your requirements need to be dev-ready, not just written.";
-  if (/requirement|brd|user stor/.test(text))         return "Strong requirements fundamentals are the baseline — the differentiator is how you get to sign-off.";
-  if (/senior|lead|principal/.test(job.title.toLowerCase())) return "At this level they're hiring for impact and ownership — not just task execution.";
-  return "Structured thinking, clear communication, artifacts that hold up — that's what gets you the offer.";
+  const p = cardIndex % 4; // cycles: 0=Most…, 1=This role is not…, 2=They will test…, 3=If you cannot…
+
+  if (/stakeholder|facilitat|workshop/.test(text)) return [
+    "Most candidates document what stakeholders said — this role needs what they actually meant.",
+    "This role is not about gathering requirements — it is about making misaligned teams agree.",
+    "They will test how you handle conflicting priorities from business and tech simultaneously.",
+    "If you cannot align stakeholders without escalating, this role will expose that gap fast.",
+  ][p];
+
+  if (/agile|scrum|sprint/.test(text)) return [
+    "Most candidates claim agile experience — few can explain what they personally own in sprint planning.",
+    "This role is not about attending standups — it is about shaping what gets built each sprint.",
+    "They will test whether your backlog contributions are collaborative or just administrative.",
+    "If you cannot separate your BA role from the product owner's, that answer ends the interview.",
+  ][p];
+
+  if (/process|workflow|bpmn|as.is/.test(text)) return [
+    "Most candidates map the process as described — this role needs the honest version with the gaps.",
+    "This role is not about drawing diagrams — it is about identifying what is actually broken.",
+    "They will test whether your as-is reflects reality or just what people told you it was.",
+    "If you cannot trace a process problem to its root cause, the map is just decoration here.",
+  ][p];
+
+  if (/\bdata\b|sql|analytics|power bi/.test(text)) return [
+    "Most candidates report on data — this role needs someone who uses it to challenge decisions.",
+    "This role is not about dashboards — it is about knowing when the numbers say something is wrong.",
+    "They will test whether your analysis has ever changed a direction, not just supported one.",
+    "If you cannot show where data influenced a decision, your experience will not land here.",
+  ][p];
+
+  if (/change|transform|adoption/.test(text)) return [
+    "Most candidates focus on delivery — this role needs someone who stays until adoption sticks.",
+    "This role is not about launching — it is about getting people to actually use what you built.",
+    "They will test how you handled real resistance during a rollout, not a smooth handover.",
+    "If you cannot show a rollout where you overcame pushback, that question will cost you.",
+  ][p];
+
+  if (/system|integration|\bapi\b/.test(text)) return [
+    "Most candidates write requirements — this role needs specs detailed enough for dev to ship from.",
+    "This role is not about bridging gaps — it is about requirements that need no follow-up conversation.",
+    "They will test whether your technical requirements can stand without a clarification call.",
+    "If you cannot explain a technical constraint to a business lead, you become the bottleneck.",
+  ][p];
+
+  if (/requirement|brd|user stor/.test(text)) return [
+    "Most candidates gather requirements — this role wants ones that hold up in a sprint review.",
+    "This role is not about asking questions — it is about producing artifacts that drive sign-off.",
+    "They will test whether your requirements are clear enough to hand over without another meeting.",
+    "If you cannot name a specific BRD or user story set you wrote, that is a visible gap.",
+  ][p];
+
+  if (/senior|lead|principal/.test(job.title.toLowerCase())) return [
+    "Most senior BA interviews fail when candidates lead with activity instead of business impact.",
+    "This role is not about doing the work — it is about owning the outcome end to end.",
+    "They will test whether you can diagnose a business problem before proposing a solution.",
+    "If you cannot show end-to-end ownership of an initiative, this level will be a stretch.",
+  ][p];
+
+  return [
+    "Most candidates assume structured thinking is obvious — this role tests whether yours holds up.",
+    "This role is not about experience on paper — it is about what your artifacts prove you did.",
+    "They will test requirements, stakeholder management, and delivery all in the same conversation.",
+    "If you cannot connect your BA work to a business outcome, your examples will not stick.",
+  ][p];
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -532,6 +613,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [selectedJob,    setSelectedJob]    = useState<JobListing | null>(null);
   const [expandedAction, setExpandedAction] = useState<"resume" | "prepare" | "interview" | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [mounted,        setMounted]        = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const triggerSync = useCallback(async () => {
     setSyncing(true); setSyncMsg(null);
@@ -683,7 +766,39 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
         </div>
 
         {/* Cards */}
-        {filtered.length === 0 ? (
+        {!mounted ? (
+          /* ── Skeleton grid (loading state) ── */
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18, marginBottom: 80 }}>
+            <style>{`@keyframes shimmer{0%,100%{opacity:.35}50%{opacity:.7}}`}</style>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px" }}>
+                {/* company + date row */}
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ height: 11, borderRadius: 6, background: C.border, width: "35%", animation: "shimmer 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 11, borderRadius: 6, background: C.border, width: "18%", animation: "shimmer 1.4s ease-in-out infinite" }} />
+                </div>
+                {/* title */}
+                <div style={{ height: 18, borderRadius: 6, background: C.border, width: "75%", marginBottom: 8, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 18, borderRadius: 6, background: C.border, width: "55%", marginBottom: 14, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                {/* meta */}
+                <div style={{ height: 11, borderRadius: 6, background: C.border, width: "60%", marginBottom: 14, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                {/* tags */}
+                <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+                  {[42, 34, 46].map((w, j) => (
+                    <div key={j} style={{ height: 22, borderRadius: 20, background: C.border, width: `${w}px`, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                  ))}
+                </div>
+                {/* quote bubble */}
+                <div style={{ height: 52, borderRadius: 9, background: C.border, marginBottom: 18, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                {/* buttons */}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ flex: 1, height: 36, borderRadius: 9, background: C.border, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                  <div style={{ flex: 1, height: 36, borderRadius: 9, background: C.border, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ padding: "80px 0", textAlign: "center" }}>
             <Briefcase size={32} style={{ margin: "0 auto 14px", display: "block", color: C.text4, opacity: 0.4 }} />
             {initialJobs.length === 0 ? (
@@ -702,9 +817,12 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               </>
             ) : (
               <>
-                <p style={{ fontSize: 15, color: C.text2, marginBottom: 10 }}>No roles match your filters.</p>
+                <p style={{ fontSize: 15, color: C.text2, marginBottom: 8 }}>No roles match your filters.</p>
+                <p style={{ fontSize: 13, color: C.teal, marginBottom: 18, fontStyle: "italic", lineHeight: 1.6 }}>
+                  Alex says: &ldquo;Broaden your search or I can&apos;t help you win what isn&apos;t here.&rdquo;
+                </p>
                 <button onClick={() => { setKeyword(""); setWorkType("all"); setLevel("all"); setProvince("all"); }}
-                  style={{ fontSize: 13, color: C.teal, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                  style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, border: "none", cursor: "pointer", padding: "9px 20px", borderRadius: 9 }}>
                   Clear filters
                 </button>
               </>
@@ -712,12 +830,12 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18, marginBottom: 80 }}>
-            {filtered.map(job => {
+            {filtered.map((job, cardIdx) => {
               const apply = resolveApplyUrl(job);
               const fresh = isFresh(job.posted_at);
               const prov  = extractProvince(job.location);
               const tags  = generateTags(job.title, job.description);
-              const quote = generateCardQuote(job);
+              const quote = generateCardQuote(job, cardIdx);
 
               return (
                 <div key={job.id}
@@ -729,7 +847,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <Building2 size={12} style={{ color: C.text4, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text3 }}>{job.company ?? "Unknown"}</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: C.text3 }}>{job.company ?? "Unknown"}</span>
                       {fresh && <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, borderRadius: 20, padding: "1px 7px" }}>NEW</span>}
                     </div>
                     <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text4 }}>
@@ -738,7 +856,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   </div>
 
                   {/* Row 2: title */}
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text1, marginBottom: 10, lineHeight: 1.35 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text1, marginBottom: 10, lineHeight: 1.35 }}>
                     {job.title}
                   </h2>
 
@@ -769,7 +887,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                     <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.tealSoft, border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                       <span style={{ fontSize: 8, fontWeight: 800, color: C.teal }}>AR</span>
                     </div>
-                    <p style={{ fontSize: 12, color: C.text3, lineHeight: 1.55, margin: 0, fontStyle: "italic" }}>{quote}</p>
+                    <p style={{ fontSize: 15, color: C.teal, lineHeight: 1.6, margin: 0, fontStyle: "italic" }}>{quote}</p>
                   </div>
 
                   {/* Row 6: actions */}
