@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase, RefreshCw, AlertTriangle, X, ChevronRight } from "lucide-react";
+import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase, RefreshCw, AlertTriangle, X } from "lucide-react";
 
 interface PrepLink { label: string; href: string }
 
@@ -528,73 +528,68 @@ const WORK_TYPE_COLORS: Record<string, string> = { remote: "#059669", hybrid: "#
 const LEVEL_LABELS: Record<string, string> = { entry: "Entry", junior: "Junior", mid: "Mid", senior: "Senior" };
 const PROVINCES = ["ON", "BC", "AB", "QC", "MB", "SK", "NS", "NB", "NL", "PE", "YT", "NT", "NU", "Remote"];
 
-// ── Alex card quote ────────────────────────────────────────────────────────────
-// cardIndex is used to rotate opening patterns across visible cards (max 22 words, min 12).
-function generateCardQuote(job: JobListing, cardIndex: number): string {
+// ── Alex Rivera card insight ──────────────────────────────────────────────────
+// Three rotating formats across visible cards. Single sentence, max 22 words.
+// 0 = "Before you apply: ..."
+// 1 = "Most candidates miss ... Do not be one of them."
+// 2 = "If you cannot ..., you will not pass."
+
+function generateAlexCardInsight(job: JobListing, cardIndex: number): string {
   const text = (job.title + " " + (job.description ?? "")).toLowerCase();
-  const p = cardIndex % 4; // cycles: 0=Most…, 1=This role is not…, 2=They will test…, 3=If you cannot…
+  const p = cardIndex % 3;
 
   if (/stakeholder|facilitat|workshop/.test(text)) return [
-    "Most candidates document what stakeholders said — this role needs what they actually meant.",
-    "This role is not about gathering requirements — it is about making misaligned teams agree.",
-    "They will test how you handle conflicting priorities from business and tech simultaneously.",
-    "If you cannot align stakeholders without escalating, this role will expose that gap fast.",
+    "Before you apply: can you show how you got two disagreeing stakeholders to align?",
+    "Most candidates miss that this role is about influence, not documentation. Do not be one of them.",
+    "If you cannot align competing teams without escalating, you will not pass the second round.",
   ][p];
 
   if (/agile|scrum|sprint/.test(text)) return [
-    "Most candidates claim agile experience — few can explain what they personally own in sprint planning.",
-    "This role is not about attending standups — it is about shaping what gets built each sprint.",
-    "They will test whether your backlog contributions are collaborative or just administrative.",
-    "If you cannot separate your BA role from the product owner's, that answer ends the interview.",
+    "Before you apply: name exactly what you own in sprint planning that the product owner does not.",
+    "Most candidates cannot separate their role from the product owner's. Do not be one of them.",
+    "If you cannot say what you personally deliver each sprint, you will not pass.",
   ][p];
 
   if (/process|workflow|bpmn|as.is/.test(text)) return [
-    "Most candidates map the process as described — this role needs the honest version with the gaps.",
-    "This role is not about drawing diagrams — it is about identifying what is actually broken.",
-    "They will test whether your as-is reflects reality or just what people told you it was.",
-    "If you cannot trace a process problem to its root cause, the map is just decoration here.",
+    "Before you apply: have a real example ready of a broken process you mapped and fixed end to end.",
+    "Most candidates map what they were told, not what is actually broken. Do not be one of them.",
+    "If you cannot trace a process problem to its root cause before drawing the fix, you will not pass.",
   ][p];
 
   if (/\bdata\b|sql|analytics|power bi/.test(text)) return [
-    "Most candidates report on data — this role needs someone who uses it to challenge decisions.",
-    "This role is not about dashboards — it is about knowing when the numbers say something is wrong.",
-    "They will test whether your analysis has ever changed a direction, not just supported one.",
-    "If you cannot show where data influenced a decision, your experience will not land here.",
+    "Before you apply: can you name a time your analysis changed a business decision?",
+    "Most candidates report numbers instead of challenging assumptions with them. Do not be one of them.",
+    "If you cannot show where your data changed a direction, you will not pass the analytical screen.",
   ][p];
 
   if (/change|transform|adoption/.test(text)) return [
-    "Most candidates focus on delivery — this role needs someone who stays until adoption sticks.",
-    "This role is not about launching — it is about getting people to actually use what you built.",
-    "They will test how you handled real resistance during a rollout, not a smooth handover.",
-    "If you cannot show a rollout where you overcame pushback, that question will cost you.",
+    "Before you apply: think of a rollout where resistance was real and you got people across anyway.",
+    "Most candidates talk delivery but cannot show they drove adoption through pushback. Do not be one of them.",
+    "If you cannot show you moved stakeholders through genuine resistance, you will not pass here.",
   ][p];
 
   if (/system|integration|\bapi\b/.test(text)) return [
-    "Most candidates write requirements — this role needs specs detailed enough for dev to ship from.",
-    "This role is not about bridging gaps — it is about requirements that need no follow-up conversation.",
-    "They will test whether your technical requirements can stand without a clarification call.",
-    "If you cannot explain a technical constraint to a business lead, you become the bottleneck.",
+    "Before you apply: can a developer build from your requirements without asking a follow-up question?",
+    "Most candidates write requirements that need constant clarification. Do not be one of them.",
+    "If you cannot write a spec a developer can ship from, you will not pass the technical review.",
   ][p];
 
   if (/requirement|brd|user stor/.test(text)) return [
-    "Most candidates gather requirements — this role wants ones that hold up in a sprint review.",
-    "This role is not about asking questions — it is about producing artifacts that drive sign-off.",
-    "They will test whether your requirements are clear enough to hand over without another meeting.",
-    "If you cannot name a specific BRD or user story set you wrote, that is a visible gap.",
+    "Before you apply: name the last artifact you produced and the decision it directly drove.",
+    "Most candidates describe requirements work without naming a single artifact. Do not be one of them.",
+    "If you cannot defend your requirements when stakeholders push back, you will not pass.",
   ][p];
 
   if (/senior|lead|principal/.test(job.title.toLowerCase())) return [
-    "Most senior BA interviews fail when candidates lead with activity instead of business impact.",
-    "This role is not about doing the work — it is about owning the outcome end to end.",
-    "They will test whether you can diagnose a business problem before proposing a solution.",
+    "Before you apply: what business outcome changed because of work you personally led?",
+    "Most senior candidates lead with activity instead of impact. Do not be one of them.",
     "If you cannot show end-to-end ownership of an initiative, this level will be a stretch.",
   ][p];
 
   return [
-    "Most candidates assume structured thinking is obvious — this role tests whether yours holds up.",
-    "This role is not about experience on paper — it is about what your artifacts prove you did.",
-    "They will test requirements, stakeholder management, and delivery all in the same conversation.",
-    "If you cannot connect your BA work to a business outcome, your examples will not stick.",
+    "Before you apply: name the last BA artifact you produced and the decision it drove.",
+    "Most candidates cannot connect their work to a business outcome. Do not be one of them.",
+    "If you cannot move from a vague business problem to a documented spec, you will not pass.",
   ][p];
 }
 
@@ -691,7 +686,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
             Curated BA jobs in Canada.
           </h1>
           <p style={{ fontSize: 15, color: C.text3, lineHeight: 1.6, margin: 0 }}>
-            With coaching from <span style={{ color: C.teal, fontWeight: 600 }}>Alex Rivera</span>, Senior BA Coach — so you don&apos;t just apply, you show up prepared.
+            Alex Rivera shows you what to prepare before you apply.
           </p>
           {syncError && (
             <div style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "#f87171", padding: "8px 12px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
@@ -722,6 +717,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
             background-position: right 10px center;
           }
           .ba-select:focus { border-color: ${C.teal}; }
+          .ba-card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 80px; }
+          @media (max-width: 600px) { .ba-card-grid { grid-template-columns: 1fr; } }
         `}</style>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
           {/* Search */}
@@ -766,41 +763,24 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
         </div>
 
         {/* Cards */}
+        <style>{`@keyframes shimmer{0%,100%{opacity:.3}50%{opacity:.65}}`}</style>
         {!mounted ? (
-          /* ── Skeleton grid (loading state) ── */
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18, marginBottom: 80 }}>
-            <style>{`@keyframes shimmer{0%,100%{opacity:.35}50%{opacity:.7}}`}</style>
+          /* ── Skeleton grid ── */
+          <div className="ba-card-grid">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px" }}>
-                {/* company + date row */}
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                  <div style={{ height: 11, borderRadius: 6, background: C.border, width: "35%", animation: "shimmer 1.4s ease-in-out infinite" }} />
-                  <div style={{ height: 11, borderRadius: 6, background: C.border, width: "18%", animation: "shimmer 1.4s ease-in-out infinite" }} />
-                </div>
-                {/* title */}
-                <div style={{ height: 18, borderRadius: 6, background: C.border, width: "75%", marginBottom: 8, animation: "shimmer 1.4s ease-in-out infinite" }} />
-                <div style={{ height: 18, borderRadius: 6, background: C.border, width: "55%", marginBottom: 14, animation: "shimmer 1.4s ease-in-out infinite" }} />
-                {/* meta */}
-                <div style={{ height: 11, borderRadius: 6, background: C.border, width: "60%", marginBottom: 14, animation: "shimmer 1.4s ease-in-out infinite" }} />
-                {/* tags */}
-                <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-                  {[42, 34, 46].map((w, j) => (
-                    <div key={j} style={{ height: 22, borderRadius: 20, background: C.border, width: `${w}px`, animation: "shimmer 1.4s ease-in-out infinite" }} />
-                  ))}
-                </div>
-                {/* quote bubble */}
-                <div style={{ height: 52, borderRadius: 9, background: C.border, marginBottom: 18, animation: "shimmer 1.4s ease-in-out infinite" }} />
-                {/* buttons */}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ flex: 1, height: 36, borderRadius: 9, background: C.border, animation: "shimmer 1.4s ease-in-out infinite" }} />
-                  <div style={{ flex: 1, height: 36, borderRadius: 9, background: C.border, animation: "shimmer 1.4s ease-in-out infinite" }} />
-                </div>
+              <div key={i} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14, padding: "24px" }}>
+                <div style={{ height: 12, borderRadius: 6, background: "#E8EDF2", width: "38%", marginBottom: 12, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 20, borderRadius: 6, background: "#E8EDF2", width: "80%", marginBottom: 8, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 20, borderRadius: 6, background: "#E8EDF2", width: "58%", marginBottom: 14, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 12, borderRadius: 6, background: "#E8EDF2", width: "55%", marginBottom: 20, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 40, borderRadius: 6, background: "#E8EDF2", marginBottom: 20, animation: "shimmer 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 40, borderRadius: 9, background: "#E8EDF2", animation: "shimmer 1.4s ease-in-out infinite" }} />
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: "80px 0", textAlign: "center" }}>
-            <Briefcase size={32} style={{ margin: "0 auto 14px", display: "block", color: C.text4, opacity: 0.4 }} />
+            <Briefcase size={32} style={{ margin: "0 auto 16px", display: "block", color: C.text4, opacity: 0.4 }} />
             {initialJobs.length === 0 ? (
               <>
                 <p style={{ fontSize: 15, marginBottom: 6, color: C.text2 }}>
@@ -817,96 +797,61 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
               </>
             ) : (
               <>
-                <p style={{ fontSize: 15, color: C.text2, marginBottom: 8 }}>No roles match your filters.</p>
-                <p style={{ fontSize: 13, color: C.teal, marginBottom: 18, fontStyle: "italic", lineHeight: 1.6 }}>
-                  Alex says: &ldquo;Broaden your search or I can&apos;t help you win what isn&apos;t here.&rdquo;
-                </p>
+                <p style={{ fontSize: 15, color: C.text2, marginBottom: 20 }}>No roles match your filters.</p>
                 <button onClick={() => { setKeyword(""); setWorkType("all"); setLevel("all"); setProvince("all"); }}
-                  style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, border: "none", cursor: "pointer", padding: "9px 20px", borderRadius: 9 }}>
+                  style={{ fontSize: 13, color: C.teal, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontWeight: 600 }}>
                   Clear filters
                 </button>
               </>
             )}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18, marginBottom: 80 }}>
+          <div className="ba-card-grid">
             {filtered.map((job, cardIdx) => {
-              const apply = resolveApplyUrl(job);
-              const fresh = isFresh(job.posted_at);
-              const prov  = extractProvince(job.location);
-              const tags  = generateTags(job.title, job.description);
-              const quote = generateCardQuote(job, cardIdx);
+              const fresh   = isFresh(job.posted_at);
+              const prov    = extractProvince(job.location);
+              const insight = generateAlexCardInsight(job, cardIdx);
 
               return (
                 <div key={job.id}
-                  style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.45)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
+                  style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 14, padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 1px 4px rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.06)", transition: "box-shadow 0.15s, transform 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.13)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "none"; }}
                 >
-                  {/* Row 1: company + date */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Building2 size={12} style={{ color: C.text4, flexShrink: 0 }} />
-                      <span style={{ fontSize: 14, fontWeight: 500, color: C.text3 }}>{job.company ?? "Unknown"}</span>
-                      {fresh && <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, borderRadius: 20, padding: "1px 7px" }}>NEW</span>}
-                    </div>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text4 }}>
-                      <Clock size={11} />{daysAgo(job.posted_at)}
-                    </span>
+                  {/* Company + NEW badge */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "#64748B" }}>{job.company ?? "Unknown"}</span>
+                    {fresh && <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: "rgba(31,191,159,0.10)", border: "1px solid rgba(31,191,159,0.25)", borderRadius: 20, padding: "1px 7px" }}>NEW</span>}
                   </div>
 
-                  {/* Row 2: title */}
-                  <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text1, marginBottom: 10, lineHeight: 1.35 }}>
+                  {/* Title */}
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", marginBottom: 10, lineHeight: 1.3 }}>
                     {job.title}
                   </h2>
 
-                  {/* Row 3: meta — location · type · level */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12, fontSize: 12, color: C.text3 }}>
-                    {job.location && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                        <MapPin size={11} style={{ color: C.text4 }} />{prov || job.location}
-                      </span>
-                    )}
-                    {job.location && <span style={{ color: C.border }}>·</span>}
-                    <span style={{ color: WORK_TYPE_COLORS[job.work_type] ?? C.text3, fontWeight: 600 }}>{WORK_TYPE_LABELS[job.work_type]}</span>
-                    <span style={{ color: C.border }}>·</span>
+                  {/* Location • Type • Level */}
+                  <div style={{ fontSize: 13, color: "#64748B", marginBottom: 18, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+                    {job.location && <span>{prov || job.location}</span>}
+                    {job.location && <span style={{ color: "#CBD5E1" }}>•</span>}
+                    <span>{WORK_TYPE_LABELS[job.work_type]}</span>
+                    <span style={{ color: "#CBD5E1" }}>•</span>
                     <span>{LEVEL_LABELS[job.level] ?? job.level}</span>
                   </div>
 
-                  {/* Row 4: skill tags */}
-                  <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-                    {tags.map((tag, i) => (
-                      <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(31,191,159,0.07)", color: C.teal, border: `1px solid rgba(31,191,159,0.18)` }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  {/* Alex Rivera insight */}
+                  <p style={{ fontSize: 14, color: "#0F766E", lineHeight: 1.65, margin: "0 0 22px", fontStyle: "italic", flexGrow: 1 }}>
+                    {insight}
+                  </p>
 
-                  {/* Row 5: Alex Rivera quote */}
-                  <div style={{ display: "flex", gap: 8, marginBottom: 18, padding: "10px 12px", borderRadius: 9, background: "rgba(255,255,255,0.02)", border: `1px solid ${C.border}` }}>
-                    <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.tealSoft, border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                      <span style={{ fontSize: 8, fontWeight: 800, color: C.teal }}>AR</span>
-                    </div>
-                    <p style={{ fontSize: 15, color: C.teal, lineHeight: 1.6, margin: 0, fontStyle: "italic" }}>{quote}</p>
-                  </div>
-
-                  {/* Row 6: actions */}
-                  <div style={{ marginTop: "auto", display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
-                      style={{ flex: 1, padding: "9px 14px", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", transition: "background 0.12s" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
-                      onMouseLeave={e => (e.currentTarget.style.background = C.teal)}>
-                      View coaching
-                    </button>
-                    <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                      onClick={e => { e.stopPropagation(); setAppliedJobs(prev => new Set(prev).add(job.id)); }}
-                      style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "9px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600, color: C.text2, background: "transparent", border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s, color 0.12s" }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = C.borderHover; (e.currentTarget as HTMLAnchorElement).style.color = C.text1; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = C.border; (e.currentTarget as HTMLAnchorElement).style.color = C.text2; }}>
-                      Apply <ExternalLink size={11} />
-                    </a>
-                  </div>
+                  {/* Single CTA */}
+                  <button
+                    onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
+                    style={{ padding: "11px 0", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", width: "100%", letterSpacing: "-0.01em", transition: "background 0.12s" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
+                    onMouseLeave={e => (e.currentTarget.style.background = C.teal)}
+                  >
+                    Before you apply →
+                  </button>
                 </div>
               );
             })}
