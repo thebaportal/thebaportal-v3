@@ -936,7 +936,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         }}
                         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: insightOpen ? C.tealSoft : C.surface, border: `1px solid ${insightOpen ? C.tealBorder : C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "all 0.12s" }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: insightOpen ? C.teal : C.text2 }}>See what this job is really testing</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>{insightOpen ? "Hide ↑" : "AI breakdown →"}</span>
+                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>{insightOpen ? "Hide ↑" : "Role breakdown →"}</span>
                       </button>
 
                       {/* ── Insight panel ── */}
@@ -1038,34 +1038,32 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         </div>
                       )}
 
-                      <Link
-                        href={practiceHref ?? "#"}
-                        onClick={practiceHref ? undefined : (e) => { e.preventDefault(); setSelectedJob(null); handlePractice(job); }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
+                      <button
+                        onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "border-color 0.12s" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Practice interview questions</span>
                         <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
-                      </Link>
+                      </button>
 
-                      <Link
-                        href={practiceHref ?? "#"}
-                        onClick={practiceHref ? undefined : (e) => { e.preventDefault(); setSelectedJob(null); handlePractice(job); }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
+                      <button
+                        onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "border-color 0.12s" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Run a BA challenge</span>
                         <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
-                      </Link>
+                      </button>
 
-                      <Link
-                        href={isLoggedIn ? "/pitchready" : "/signup"}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, textDecoration: "none", transition: "border-color 0.12s" }}
+                      <button
+                        onClick={() => { setSelectedJob(null); router.push(isLoggedIn ? "/pitchready" : "/signup"); }}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "border-color 0.12s" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Get pitch ready</span>
                         <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>PitchReady</span>
-                      </Link>
+                      </button>
 
                     </div>
                   </div>
