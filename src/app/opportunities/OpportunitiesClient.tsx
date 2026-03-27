@@ -585,7 +585,11 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
 
               return (
                 <div key={job.id}
-                  onClick={() => { setSelectedJob(job); setExpandedAction(null); setInsightOpen(false); setIsFullView(false); }}
+                  onClick={() => {
+                    setSelectedJob(job); setExpandedAction(null); setIsFullView(false);
+                    setInsightOpen(true); setInsightLoading(true);
+                    setTimeout(() => setInsightLoading(false), 700);
+                  }}
                   style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", display: "flex", flexDirection: "column", transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.boxShadow = "none"; }}
@@ -841,253 +845,169 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                 </div>
               </div>
 
-              {/* Scrollable body */}
-              {(() => {
-                const parsed = parseDesc(job.description);
-                const helpHref = isLoggedIn ? "/career" : "/signup";
-                const practiceHref = isLoggedIn ? null : "/signup"; // null = use handlePractice
+              {/* Scrollable body — single-column progressive layout */}
+              <div style={{ padding: "24px 28px 48px", flex: 1, display: "flex", flexDirection: "column" }}>
 
-                return (
-                <div style={{ padding: isFullView ? "32px 40px 48px" : "24px 28px 32px", flex: 1, display: "grid", gridTemplateColumns: isFullView ? "1.1fr 0.9fr" : "1fr", gap: isFullView ? "0 48px" : 0, alignItems: "start" }}>
-
-                {/* ── LEFT COLUMN: job details ── */}
-                <div style={{ minWidth: 0 }}>
-
-                  {/* ── Section header ── */}
-                  {!isFullView && (
-                  <p style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 20, fontFamily: "monospace" }}>
-                    Job details
-                  </p>
+                {/* ── Section 1: Job description (source content) ── */}
+                <div style={{ marginBottom: 32 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace" }}>Job description</span>
+                    <span style={{ fontSize: 10, color: C.text4, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "1px 6px" }}>from employer</span>
+                  </div>
+                  {job.description ? (
+                    <p style={{ fontSize: 13, color: C.text2, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                      {job.description.trim()}
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.6 }}>
+                      No description available. View the full posting for details.
+                    </p>
                   )}
-
-                  {/* ── Responsibilities ── */}
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10, fontFamily: "monospace" }}>Responsibilities</div>
-                    {parsed.duties.length > 0 ? (
-                      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                        {parsed.duties.map((d, i) => (
-                          <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: C.text2, lineHeight: 1.65 }}>
-                            <span style={{ color: C.teal, flexShrink: 0, marginTop: 2, fontWeight: 700 }}>›</span>{d}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.65 }}>
-                        See the full job posting for responsibilities.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* ── Requirements ── */}
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10, fontFamily: "monospace" }}>Requirements</div>
-                    {parsed.requirements.length > 0 ? (
-                      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                        {parsed.requirements.map((r, i) => (
-                          <li key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: C.text2, lineHeight: 1.65 }}>
-                            <span style={{ color: C.text4, flexShrink: 0, marginTop: 2 }}>✓</span>{r}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.65 }}>
-                        See the full job posting for requirements.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* ── Salary ── */}
-                  <div style={{ marginBottom: 32 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, fontFamily: "monospace" }}>Salary</div>
-                    <p style={{ fontSize: 13, color: C.text3, margin: 0 }}>Not disclosed — ask at offer stage.</p>
-                  </div>
-
-                </div>{/* end left column */}
-
-                {/* ── RIGHT COLUMN: support + apply ── */}
-                <div style={{ minWidth: 0 }}>
-
-                  {/* ── Support section ── */}
-                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginBottom: 28 }}>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: C.text1, marginBottom: 6 }}>
-                      Give yourself a stronger shot at this role
-                    </p>
-                    <p style={{ fontSize: 13, color: C.text3, marginBottom: 20, lineHeight: 1.6 }}>
-                      Most candidates apply with the same resume. Stand out with role-specific preparation.
-                    </p>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-
-                      {/* Highlighted first action */}
-                      <Link
-                        href={helpHref}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 10, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, textDecoration: "none" }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text1 }}>Tailor my resume</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 700 }}>Career Suite</span>
-                      </Link>
-
-                      {/* "See what this job is really testing" — expands inline */}
-                      <button
-                        onClick={() => {
-                          if (insightOpen) { setInsightOpen(false); return; }
-                          setInsightOpen(true);
-                          setInsightLoading(true);
-                          setTimeout(() => setInsightLoading(false), 700);
-                        }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: insightOpen ? C.tealSoft : C.surface, border: `1px solid ${insightOpen ? C.tealBorder : C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "all 0.12s" }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: insightOpen ? C.teal : C.text2 }}>See what this job is really testing</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>{insightOpen ? "Hide ↑" : "Role breakdown →"}</span>
-                      </button>
-
-                      {/* ── Insight panel ── */}
-                      {insightOpen && (
-                        <div style={{ borderRadius: 12, border: `1px solid ${C.tealBorder}`, background: "rgba(31,191,159,0.03)", overflow: "hidden" }}>
-                          {insightLoading ? (
-                            <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, fontFamily: "monospace", letterSpacing: "0.08em" }}>Analyzing role…</div>
-                              {[80, 60, 90, 50, 70].map((w, i) => (
-                                <div key={i} style={{ height: 10, borderRadius: 6, background: `rgba(31,191,159,0.12)`, width: `${w}%`, animation: "pulse 1.2s ease-in-out infinite" }} />
-                              ))}
-                              <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }`}</style>
-                            </div>
-                          ) : (
-                            <div style={{ padding: "20px" }}>
-                                <p style={{ fontSize: 14, fontWeight: 700, color: C.text1, marginBottom: 4, lineHeight: 1.4 }}>
-                                You are being evaluated on more than what&apos;s written in the job description.
-                              </p>
-                              <p style={{ fontSize: 12, color: C.text3, marginBottom: 20, lineHeight: 1.6 }}>
-                                Here&apos;s what this role is actually testing:
-                              </p>
-
-                              {/* Core Skills */}
-                              <div style={{ marginBottom: 18 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Core skills this role tests</div>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                                  {insight.coreSkills.map((s, i) => (
-                                    <span key={i} style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, background: C.surface, border: `1px solid ${C.border}`, color: C.text2 }}>{s}</span>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Day to day */}
-                              <div style={{ marginBottom: 18 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>What you will actually be asked to do</div>
-                                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
-                                  {insight.dayToDay.map((d, i) => (
-                                    <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
-                                      <span style={{ color: C.teal, flexShrink: 0, fontWeight: 700 }}>›</span>{d}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-
-                              {/* Strong candidate */}
-                              <div style={{ marginBottom: 18 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>What a strong candidate looks like</div>
-                                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
-                                  {insight.strongCandidate.map((s, i) => (
-                                    <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
-                                      <span style={{ color: "#10b981", flexShrink: 0 }}>✓</span>{s}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-
-                              {/* Where they fail */}
-                              <div style={{ marginBottom: 18 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Where most candidates fall short</div>
-                                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
-                                  {insight.whereTheyFail.map((f, i) => (
-                                    <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
-                                      <span style={{ color: "#f87171", flexShrink: 0 }}>✕</span>{f}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-
-                              {/* Interview questions */}
-                              <div style={{ marginBottom: 20 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Expect questions like:</div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                  {insight.interviewQuestions.map((q, i) => (
-                                    <div key={i} style={{ fontSize: 13, color: C.text2, lineHeight: 1.6, padding: "10px 12px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}` }}>
-                                      <span style={{ color: C.text4, fontFamily: "monospace", fontSize: 11, marginRight: 6 }}>Q{i + 1}</span>{q}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* CTAs */}
-                              <p style={{ fontSize: 12, fontWeight: 600, color: C.text3, marginBottom: 10 }}>
-                                Don&apos;t just read these. Practice them.
-                              </p>
-                              <div style={{ display: "flex", gap: 8 }}>
-                                <button
-                                  onClick={() => { setSelectedJob(null); handlePractice(job); }}
-                                  style={{ flex: 1, padding: "10px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}` }}>
-                                  Practice these questions
-                                </button>
-                                <button
-                                  onClick={() => { setSelectedJob(null); handlePractice(job); }}
-                                  style={{ flex: 1, padding: "10px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "transparent", color: C.text2, border: `1px solid ${C.border}` }}>
-                                  Run a BA challenge
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "border-color 0.12s" }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Practice interview questions</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
-                      </button>
-
-                      <button
-                        onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "border-color 0.12s" }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Run a BA challenge</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>Scenarios</span>
-                      </button>
-
-                      <button
-                        onClick={() => { setSelectedJob(null); router.push(isLoggedIn ? "/pitchready" : "/signup"); }}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "border-color 0.12s" }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Get pitch ready</span>
-                        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>PitchReady</span>
-                      </button>
-
-                    </div>
-                  </div>
-
-                  {/* ── Apply ── */}
-                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
-                    <p style={{ fontSize: 13, color: C.text3, marginBottom: 14, lineHeight: 1.6 }}>
-                      Ready? Apply directly on the company site.
-                    </p>
-                    <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                      onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px", borderRadius: 11, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
-                      Apply on company site <ExternalLink size={13} />
-                    </a>
-                    {!apply.isDirect && (
-                      <p style={{ fontSize: 11, color: C.text4, textAlign: "center", marginTop: 6 }}>Opens employer careers page</p>
-                    )}
-                  </div>
-
-                </div>{/* end right column */}
-
                 </div>
-                );
-              })()}
+
+                {/* ── Separator ── */}
+                <div style={{ height: 1, background: C.border, marginBottom: 32 }} />
+
+                {/* ── Section 2: Role breakdown ── */}
+                <div style={{ marginBottom: 32 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace" }}>Role breakdown</span>
+                    <span style={{ fontSize: 10, color: C.text4, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "1px 6px" }}>based on this job description</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: C.text4, marginBottom: 20, lineHeight: 1.5 }}>
+                    You are being evaluated on more than what&apos;s written.
+                  </p>
+
+                  {insightLoading ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, fontFamily: "monospace", letterSpacing: "0.08em" }}>Analyzing role…</div>
+                      {[80, 60, 90, 50, 70].map((w, i) => (
+                        <div key={i} style={{ height: 10, borderRadius: 6, background: "rgba(31,191,159,0.12)", width: `${w}%`, animation: "pulse 1.2s ease-in-out infinite" }} />
+                      ))}
+                      <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }`}</style>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Core Skills */}
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Core skills this role tests</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {insight.coreSkills.map((s, i) => (
+                            <span key={i} style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, background: C.surface, border: `1px solid ${C.border}`, color: C.text2 }}>{s}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Day to day */}
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>What you will actually be doing</div>
+                        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                          {insight.dayToDay.map((d, i) => (
+                            <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                              <span style={{ color: C.teal, flexShrink: 0, fontWeight: 700 }}>›</span>{d}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Strong candidate */}
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>What a strong candidate looks like</div>
+                        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                          {insight.strongCandidate.map((s, i) => (
+                            <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                              <span style={{ color: "#10b981", flexShrink: 0 }}>✓</span>{s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Where they fail */}
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Where most candidates fall short</div>
+                        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                          {insight.whereTheyFail.map((f, i) => (
+                            <li key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: C.text2, lineHeight: 1.6 }}>
+                              <span style={{ color: "#f87171", flexShrink: 0 }}>✕</span>{f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Interview questions */}
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Expect questions like:</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {insight.interviewQuestions.map((q, i) => (
+                            <div key={i} style={{ fontSize: 13, color: C.text2, lineHeight: 1.6, padding: "10px 12px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}` }}>
+                              <span style={{ color: C.text4, fontFamily: "monospace", fontSize: 11, marginRight: 6 }}>Q{i + 1}</span>{q}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Practice CTAs */}
+                      <p style={{ fontSize: 12, fontWeight: 600, color: C.text3, marginBottom: 10 }}>
+                        Don&apos;t just read these. Practice them.
+                      </p>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
+                          style={{ flex: 1, padding: "10px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", background: C.tealSoft, color: C.teal, border: `1px solid ${C.tealBorder}` }}>
+                          Practice these questions
+                        </button>
+                        <button
+                          onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
+                          style={{ flex: 1, padding: "10px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "transparent", color: C.text2, border: `1px solid ${C.border}` }}>
+                          Run a BA challenge
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Separator ── */}
+                <div style={{ height: 1, background: C.border, marginBottom: 32 }} />
+
+                {/* ── Section 3: Prepare for this role ── */}
+                <div style={{ marginBottom: 32 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: C.text1, marginBottom: 16 }}>
+                    Give yourself a stronger shot
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Link
+                      href={isLoggedIn ? "/career" : "/signup"}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 10, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, textDecoration: "none" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text1 }}>Tailor my resume</span>
+                      <span style={{ fontSize: 12, color: C.teal, fontWeight: 700 }}>Career Suite</span>
+                    </Link>
+                    <button
+                      onClick={() => { setSelectedJob(null); router.push(isLoggedIn ? "/pitchready" : "/signup"); }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: "pointer", width: "100%", textAlign: "left", transition: "border-color 0.12s" }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = C.borderHover)}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text2 }}>Get pitch ready</span>
+                      <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>PitchReady</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── Section 4: Apply ── */}
+                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+                  <p style={{ fontSize: 13, color: C.text3, marginBottom: 14, lineHeight: 1.6 }}>
+                    Ready? Apply directly on the company site.
+                  </p>
+                  <a href={apply.href} target="_blank" rel="noopener noreferrer"
+                    onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px", borderRadius: 11, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+                    Apply on company site <ExternalLink size={13} />
+                  </a>
+                  {!apply.isDirect && (
+                    <p style={{ fontSize: 11, color: C.text4, textAlign: "center", marginTop: 6 }}>Opens employer careers page</p>
+                  )}
+                </div>
+
+              </div>
 
             </div>
           </div>
