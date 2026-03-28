@@ -3,29 +3,9 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MapPin, Building2, Clock, ExternalLink, Search, Briefcase, RefreshCw, AlertTriangle, X } from "lucide-react";
-
-interface PrepLink { label: string; href: string }
-
-interface JobListing {
-  id: string;
-  title: string;
-  company: string | null;
-  location: string | null;
-  description: string | null;
-  apply_url: string | null;
-  url: string | null;
-  posted_at: string;
-  work_type: "remote" | "hybrid" | "onsite";
-  level: "entry" | "junior" | "mid" | "senior";
-  quality_score: number;
-  prep_links: PrepLink[] | null;
-  source_type: string | null;
-  source_name: string | null;
-  // URL verification
-  verified_apply_url: string | null;
-  apply_url_status: string | null;
-}
+import { Search, Briefcase, RefreshCw, AlertTriangle, X } from "lucide-react";
+import type { JobListing, PrepLink } from "@/lib/jobInsights";
+import JobDetailContent from "@/components/JobDetailContent";
 
 interface Props {
   initialJobs: JobListing[];
@@ -207,184 +187,8 @@ function passesGuardrail(text: string): boolean {
   return true;
 }
 
-// ── Alex Rivera coaching engine ────────────────────────────────────────────────
+// ── (generateInsight moved to @/lib/jobInsights — see JobDetailContent) ──────
 
-interface CoachingInsight {
-  heading: string;
-  body:    string;
-}
-
-interface CoachingQuestion {
-  q:    string;
-  note: string;
-}
-
-interface JobInsight {
-  insights:       CoachingInsight[];
-  advice:         string[];
-  interviewFocus: string[];
-  questions:      CoachingQuestion[];
-}
-
-function generateInsight(job: JobListing): JobInsight {
-  const title   = job.title.toLowerCase();
-  const desc    = (job.description ?? "").toLowerCase();
-  const text    = title + " " + desc;
-  const company = job.company ?? "this company";
-  const isSnr   = /senior|lead|principal|staff/.test(title);
-  const isEntry = /junior|jr\.?|entry|associate|new.?grad/.test(title);
-
-  // ── What I'm seeing ──────────────────────────────────────────────────────────
-  const insights: CoachingInsight[] = [];
-
-  if (/stakeholder|facilitat|workshop|elicit/.test(text)) {
-    insights.push({
-      heading: "Stakeholder management is the real job here",
-      body: `${company} isn't just looking for someone to document requirements — they need someone who can get misaligned people to agree. Expect to be asked about a time you navigated conflicting priorities between business and tech, and pushed through anyway. Generic answers about "collaborating with stakeholders" won't land.`,
-    });
-  }
-
-  if (/agile|scrum|sprint|kanban/.test(text)) {
-    insights.push({
-      heading: "This is an agile-first environment",
-      body: `They want a BA who actively shapes the backlog, not someone who documents after the fact. Be ready to explain your exact role in sprint ceremonies — what you personally prepared, what you facilitated, what got clarified because of your input. "I attended standups" is not an answer.`,
-    });
-  }
-
-  if (/requirement|elicit|brd|user stor|acceptance/.test(text)) {
-    insights.push({
-      heading: "Requirements quality will be tested directly",
-      body: `From what I'm seeing, ${company} cares about structured requirements work — not just gathering, but producing artifacts that hold up. You should be able to walk them through a BRD, a set of user stories, or acceptance criteria you personally wrote. If you can't name the document and describe a specific decision it drove, that's a gap to address.`,
-    });
-  }
-
-  if (/process|workflow|bpmn|as.is|to.be|swimlane/.test(text)) {
-    insights.push({
-      heading: "Process mapping is a core deliverable",
-      body: `This role involves documenting and improving how work actually flows — not just how people say it flows. They'll want to hear about a process you mapped honestly, including the messy parts, and how your analysis led to a real change. As-is to to-be, with you driving it.`,
-    });
-  }
-
-  if (/\bdata\b|sql|analytics|reporting|power bi|tableau|\bbi\b/.test(text)) {
-    insights.push({
-      heading: "Data fluency is expected, not optional",
-      body: `I've coached BAs through roles like this — the data piece often gets undersold in interviews. ${company} will want an example where you used data to challenge or validate a business assumption, not just report numbers. Think about a time your analysis changed a decision that was already heading in the wrong direction.`,
-    });
-  }
-
-  if (/system|integration|\bapi\b|technical|architect/.test(text)) {
-    insights.push({
-      heading: "You're bridging business and technical teams",
-      body: `This role sits at the intersection of what the business wants and what dev can build. They'll test whether your requirements are detailed enough for a developer to work from — not just conceptual. Be ready to talk about how you handle technical ambiguity and what you do when dev pushes back on a requirement.`,
-    });
-  }
-
-  if (/change|transform|adoption|training/.test(text)) {
-    insights.push({
-      heading: "Change management is part of the role",
-      body: `Delivery isn't enough here — ${company} needs someone who can get stakeholders to actually adopt what's built. Think about a time you supported a rollout where resistance was real, and what you did differently to make adoption stick.`,
-    });
-  }
-
-  if (insights.length === 0) {
-    insights.push({
-      heading: "Core BA fundamentals are the baseline",
-      body: `The description doesn't go deep on specifics, but for any BA role at this level, they'll expect structured requirements work, clear stakeholder communication, and the ability to move from ambiguous business problems to documented, actionable specs. Make sure your examples show all three.`,
-    });
-  }
-
-  // ── My advice ────────────────────────────────────────────────────────────────
-  const advice: string[] = [];
-
-  if (isSnr) {
-    advice.push("Lead with business impact, not activity. Don't tell them what you did — tell them what changed for the business because of what you did. Senior BAs who can't articulate outcomes rarely make it past the second round.");
-    advice.push("Show end-to-end ownership. The best thing you can do is walk them through a full initiative — from the business problem you diagnosed, through delivery, to what actually improved. That arc is what separates seniors from mids.");
-  } else if (isEntry) {
-    advice.push("Don't apologise for your experience level — reframe it. Academic projects, bootcamp work, volunteer BA roles all count. Talk about them like real work, because the thinking is the same.");
-    advice.push("Name your artifacts. Even if the project was small, if you wrote user stories, drew a process diagram, or produced a requirements doc — name it explicitly. It signals you know the discipline, not just the idea of it.");
-  } else {
-    advice.push("Specificity is what separates strong candidates from forgettable ones. Instead of 'gathered requirements from stakeholders,' say 'ran five workshops with operations and IT to align on a claims process redesign.' Names, numbers, outcomes.");
-    advice.push("Your resume needs at least two concrete examples of BA artifacts you personally produced — BRDs, user stories, process maps, acceptance criteria. If your resume only talks about responsibilities, rewrite it around deliverables.");
-  }
-
-  // ── Interview focus ───────────────────────────────────────────────────────────
-  const interviewFocus: string[] = [];
-  if (/stakeholder|facilitat/.test(text))   interviewFocus.push("How you handle conflicting stakeholder priorities without losing momentum");
-  if (/requirement|brd/.test(text))         interviewFocus.push("Your process for moving from a vague business problem to documented, signed-off requirements");
-  if (/agile|scrum/.test(text))             interviewFocus.push("Your specific role in agile ceremonies — what you own versus what the product owner owns");
-  if (/process|workflow/.test(text))        interviewFocus.push("How you map a process end-to-end and get buy-in on what needs to change");
-  if (/\bdata\b|analytics/.test(text))      interviewFocus.push("Examples where your analysis directly influenced a business or project decision");
-  if (/system|integration/.test(text))      interviewFocus.push("How you translate business requirements into specs developers can actually use");
-  if (/change|transform/.test(text))        interviewFocus.push("How you've driven stakeholder adoption when resistance was real");
-  if (interviewFocus.length < 3) {
-    interviewFocus.push("How you prioritise when multiple stakeholders have competing needs");
-    interviewFocus.push("A project where your analysis changed the direction of a decision");
-    interviewFocus.push("How you know when requirements are good enough to hand over");
-  }
-
-  // ── Questions with coaching notes ────────────────────────────────────────────
-  const questions: CoachingQuestion[] = [];
-
-  if (/stakeholder|facilitat/.test(text)) {
-    questions.push({
-      q:    "Tell me about a time stakeholders couldn't agree on what they needed. How did you move the project forward?",
-      note: "Don't just say you 'facilitated discussion.' Name the parties, the conflict, and the specific technique you used to get to alignment — workshop, decision matrix, escalation path. Show you had a process, not luck.",
-    });
-  }
-
-  if (/requirement|brd|user stor/.test(text)) {
-    questions.push({
-      q:    "Walk me through your process for gathering and documenting requirements for a complex initiative.",
-      note: "They're listening for structure. Do you start with the business problem or jump to solutions? Do you mention stakeholder workshops, gap analysis, sign-off? Vague answers about 'working with the team' score poorly — name your artifacts.",
-    });
-  }
-
-  if (/agile|scrum/.test(text)) {
-    questions.push({
-      q:    "What's your role as a BA in a scrum team, and how do you handle requirements that change mid-sprint?",
-      note: "Be specific about what you own versus what the product owner owns. They'll red-flag anyone who can't articulate the difference. If you've played both roles, say so — but be clear about what each looked like.",
-    });
-  }
-
-  if (/process|workflow/.test(text)) {
-    questions.push({
-      q:    "Describe a process you mapped and improved. What did the as-is look like, and what changed in the to-be?",
-      note: "Lead with the business problem, not the tool. The as-is should include what was actually broken — not just different. Then show that your to-be solved the root cause, not just the symptom.",
-    });
-  }
-
-  if (/\bdata\b|sql|analytics/.test(text)) {
-    questions.push({
-      q:    "Tell me about a time you used data to challenge or validate a business assumption.",
-      note: "The best answers show a moment where the data said something unexpected — and you had the confidence to bring it up rather than ignore it. Describe what you found, how you presented it, and what happened as a result.",
-    });
-  }
-
-  if (/change|transform/.test(text)) {
-    questions.push({
-      q:    "How have you supported stakeholder adoption during a major system or process change?",
-      note: "They want to hear about real resistance — not a smooth rollout. What pushback did you face, and what did you do differently to get people across the line? If your answer is 'I sent training materials,' that's not enough.",
-    });
-  }
-
-  if (questions.length < 3) {
-    questions.push({
-      q:    "How do you approach a project where the business problem is unclear from the start?",
-      note: "Show you have a discovery process — not that you wait for clarity to land in your lap. Name the techniques: stakeholder interviews, current-state mapping, problem framing workshops. Strong candidates have a repeatable approach.",
-    });
-    questions.push({
-      q:    "Give me an example of a BA deliverable you produced that directly influenced a business decision.",
-      note: "Name the artifact, name the decision, name the outcome. This is the core of what BAs do — if you can't connect your work to a business change, that's the gap the interview will expose.",
-    });
-  }
-
-  return {
-    insights:       insights.filter(ins => passesGuardrail(ins.heading + " " + ins.body)).slice(0, 4),
-    advice:         advice.slice(0, 2),
-    interviewFocus: interviewFocus.slice(0, 4),
-    questions:      questions.slice(0, 3),
-  };
-}
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -651,13 +455,10 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [province,    setProvince]    = useState("all");
   const [syncing,     setSyncing]     = useState(false);
   const [syncMsg,     setSyncMsg]     = useState<string | null>(null);
-  const [modal,          setModal]          = useState<PracticeModal | null>(null);
-  const [appliedJobs,    setAppliedJobs]    = useState<Set<string>>(new Set());
-  const [selectedJob,    setSelectedJob]    = useState<JobListing | null>(null);
-  const [expandedAction, setExpandedAction] = useState<"resume" | "prepare" | "interview" | null>(null);
-  const [insightLoading, setInsightLoading] = useState(false);
-  const [coachingOpen,   setCoachingOpen]   = useState(true);
-  const [mounted,        setMounted]        = useState(false);
+  const [modal,              setModal]              = useState<PracticeModal | null>(null);
+  const [selectedJob,        setSelectedJob]        = useState<JobListing | null>(null);
+  const [initialCoachingOpen, setInitialCoachingOpen] = useState(true);
+  const [mounted,            setMounted]            = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   const triggerSync = useCallback(async () => {
@@ -939,7 +740,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   {/* Two buttons */}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      onClick={() => { setSelectedJob(job); setCoachingOpen(true); setExpandedAction(null); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
+                      onClick={() => { setInitialCoachingOpen(true); setSelectedJob(job); }}
                       style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", transition: "background 0.12s" }}
                       onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
                       onMouseLeave={e => (e.currentTarget.style.background = C.teal)}
@@ -947,7 +748,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                       See what Alex says
                     </button>
                     <button
-                      onClick={() => { setSelectedJob(job); setCoachingOpen(false); setExpandedAction(null); setInsightLoading(false); }}
+                      onClick={() => { setInitialCoachingOpen(false); setSelectedJob(job); }}
                       style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", background: "transparent", color: "#334155", border: "1px solid #E2E8F0", transition: "border-color 0.12s, color 0.12s" }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor = "#94A3B8"; e.currentTarget.style.color = "#0F172A"; }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#334155"; }}
@@ -1035,249 +836,28 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
         </div>
       )}
 
-      {/* ── Job detail drawer ── */}
-      {selectedJob && (() => {
-        const job      = selectedJob;
-        const apply    = resolveApplyUrl(job);
-        const prep     = (job.prep_links ?? []).filter(p => p.label !== "Career Suite");
-        const fresh    = isFresh(job.posted_at);
-        const keywords = getResumeKeywords(job.title, job.prep_links ?? []);
-        const insight  = generateInsight(job);
-
-        return (
-          /* ── Backdrop ── */
+      {/* ── Job detail modal ── */}
+      {selectedJob && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}
+          onClick={() => setSelectedJob(null)}
+        >
           <div
-            style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}
-            onClick={() => setSelectedJob(null)}
+            style={{ width: "min(1100px, 100%)", height: "min(88vh, 860px)", background: "#18181b", border: `1px solid ${C.border}`, borderRadius: 18, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.85)" }}
+            onClick={e => e.stopPropagation()}
           >
-            {/* ── Modal ── */}
-            <div
-              style={{ width: "min(1100px, 100%)", height: "min(88vh, 860px)", background: "#18181b", border: `1px solid ${C.border}`, borderRadius: 18, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.85)" }}
-              onClick={e => e.stopPropagation()}
-            >
 
-              {/* ── Sticky header ── */}
-              <div style={{ padding: "20px 28px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <Building2 size={12} style={{ color: C.text4, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text3 }}>{job.company ?? "Unknown"}</span>
-                      {fresh && <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>NEW</span>}
-                    </div>
-                    <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text1, lineHeight: 1.25, marginBottom: 8, letterSpacing: "-0.02em" }}>{job.title}</h2>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                      {job.location && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text3 }}>
-                          <MapPin size={10} style={{ color: C.text4 }} />{job.location}
-                        </span>
-                      )}
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: WORK_TYPE_COLORS[job.work_type] ?? C.text3, border: "1px solid rgba(255,255,255,0.07)" }}>
-                        {WORK_TYPE_LABELS[job.work_type]}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: C.text3, border: "1px solid rgba(255,255,255,0.07)" }}>
-                        {LEVEL_LABELS[job.level] ?? job.level}
-                      </span>
-                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text4 }}>
-                        <Clock size={10} />{daysAgo(job.posted_at)}
-                      </span>
-                    </div>
-                  </div>
-                  <button onClick={() => setSelectedJob(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.text4, padding: 6, flexShrink: 0, borderRadius: 8, display: "flex" }}>
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Two-column body ── */}
-              <div style={{ display: "grid", gridTemplateColumns: coachingOpen ? "1fr 380px" : "1fr 170px", flex: 1, minHeight: 0, overflow: "hidden" }}>
-
-                {/* LEFT — verbatim job description */}
-                <div style={{ overflowY: "auto", padding: "28px 32px 40px", borderRight: `1px solid ${C.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace" }}>Job description</span>
-                    <span style={{ fontSize: 10, color: C.text4, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "1px 6px" }}>from employer</span>
-                  </div>
-                  {job.description ? (
-                    <p style={{ fontSize: 13.5, color: C.text2, lineHeight: 1.85, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                      {rawDescriptionText(job.description)}
-                    </p>
-                  ) : (
-                    <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.7 }}>
-                      No description provided. View the full posting for details.
-                    </p>
-                  )}
-                </div>
-
-                {/* RIGHT — Alex Rivera coaching panel (warm light) */}
-                <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", background: A.bg }}>
-
-                  {!coachingOpen ? (
-                    /* ── Mini panel — user arrived via Apply ── */
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: "28px 16px", height: "100%" }}>
-                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: A.tealSoft, border: `1px solid ${A.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: A.teal }}>AR</span>
-                      </div>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: A.text1, marginBottom: 2 }}>Alex Rivera</div>
-                        <div style={{ fontSize: 10, color: A.teal, fontWeight: 600 }}>Senior BA Coach</div>
-                      </div>
-                      <button onClick={() => { setCoachingOpen(true); setInsightLoading(true); setTimeout(() => setInsightLoading(false), 700); }}
-                        style={{ width: "100%", padding: "10px 8px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", background: A.tealSoft, color: A.teal, border: `1px solid ${A.tealBorder}`, textAlign: "center", lineHeight: 1.4 }}>
-                        See what Alex says →
-                      </button>
-                      <div style={{ width: "100%", borderTop: `1px solid ${A.border}`, paddingTop: 14 }}>
-                        <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                          onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
-                          style={{ display: "block", textAlign: "center", padding: "10px 8px", borderRadius: 8, background: A.teal, color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-                          Apply now
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                  <>
-                  {/* Alex identity bar — sticky */}
-                  <div style={{ padding: "20px 22px 16px", borderBottom: `1px solid ${A.border}`, display: "flex", alignItems: "center", gap: 12, flexShrink: 0, position: "sticky", top: 0, background: A.bg, zIndex: 1 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: A.tealSoft, border: `1px solid ${A.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: A.teal }}>AR</span>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: A.text1 }}>Alex Rivera</div>
-                      <div style={{ fontSize: 11, color: A.teal, fontWeight: 600, marginTop: 1 }}>Senior BA Coach</div>
-                    </div>
-                  </div>
-
-                  {/* Coaching content */}
-                  <div style={{ padding: "20px 22px 32px", flex: 1 }}>
-                    <p style={{ fontSize: 12.5, color: A.text3, marginBottom: 24, lineHeight: 1.7, fontStyle: "italic" }}>
-                      &ldquo;I&apos;ve reviewed this role. Here&apos;s what I&apos;d tell you before you apply.&rdquo;
-                    </p>
-
-                    {insightLoading ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: A.teal, fontFamily: "monospace", letterSpacing: "0.08em", marginBottom: 4 }}>Reviewing role…</div>
-                        {[78, 55, 90, 48, 70].map((w, i) => (
-                          <div key={i} style={{ height: 9, borderRadius: 5, background: A.tealSoft, width: `${w}%`, animation: "pulse 1.2s ease-in-out infinite" }} />
-                        ))}
-                        <style>{`@keyframes pulse{0%,100%{opacity:.3}50%{opacity:.75}}`}</style>
-                      </div>
-                    ) : (
-                      <>
-                        {/* WHAT I'M SEEING */}
-                        <div style={{ marginBottom: 24 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: A.teal, textTransform: "uppercase", letterSpacing: "0.11em", marginBottom: 12 }}>What I&apos;m seeing</div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {insight.insights.map((ins, i) => (
-                              <div key={i} style={{ padding: "12px 14px", borderRadius: 10, background: A.bgCard, border: `1px solid ${A.border}` }}>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: A.text1, marginBottom: 5 }}>{ins.heading}</div>
-                                <p style={{ fontSize: 12, color: A.text2, lineHeight: 1.65, margin: 0 }}>{ins.body}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* MY ADVICE */}
-                        <div style={{ marginBottom: 24 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: A.teal, textTransform: "uppercase", letterSpacing: "0.11em", marginBottom: 12 }}>My advice</div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            {insight.advice.map((a, i) => (
-                              <div key={i} style={{ display: "flex", gap: 10, fontSize: 12.5, color: A.text2, lineHeight: 1.65 }}>
-                                <span style={{ color: A.teal, flexShrink: 0, fontWeight: 700, fontSize: 14, marginTop: -1 }}>→</span>
-                                <span>{a}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* WHAT THEY'LL LIKELY TEST YOU ON */}
-                        <div style={{ marginBottom: 24 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: A.teal, textTransform: "uppercase", letterSpacing: "0.11em", marginBottom: 10 }}>What they&apos;ll likely test you on</div>
-                          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 7 }}>
-                            {insight.interviewFocus.map((f, i) => (
-                              <li key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, color: A.text2, lineHeight: 1.6 }}>
-                                <span style={{ color: A.teal, flexShrink: 0, fontWeight: 700 }}>›</span>{f}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* QUESTIONS TO PRACTICE */}
-                        <div style={{ marginBottom: 24 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: A.teal, textTransform: "uppercase", letterSpacing: "0.11em", marginBottom: 6 }}>Questions to practice</div>
-                          <p style={{ fontSize: 11.5, color: A.text3, marginBottom: 12, lineHeight: 1.5 }}>Say these out loud — that&apos;s where you find the real gaps.</p>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {insight.questions.map((item, i) => (
-                              <div key={i} style={{ borderRadius: 10, border: `1px solid ${A.border}`, overflow: "hidden" }}>
-                                <div style={{ padding: "11px 13px", background: A.bgCard }}>
-                                  <span style={{ color: A.teal, fontWeight: 700, fontSize: 10, marginRight: 6, fontFamily: "monospace" }}>Q{i + 1}</span>
-                                  <span style={{ fontSize: 12.5, color: A.text1, lineHeight: 1.6, fontWeight: 600 }}>{item.q}</span>
-                                </div>
-                                <div style={{ padding: "9px 13px", background: A.bg, borderTop: `1px solid ${A.border}` }}>
-                                  <span style={{ fontSize: 10.5, fontWeight: 700, color: A.teal, marginRight: 5 }}>Coaching note:</span>
-                                  <span style={{ fontSize: 11.5, color: A.text3, lineHeight: 1.6 }}>{item.note}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Practice CTAs */}
-                        <div style={{ display: "flex", gap: 7, marginBottom: 20 }}>
-                          <button onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
-                            style={{ flex: 1, padding: "9px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: A.tealSoft, color: A.teal, border: `1px solid ${A.tealBorder}` }}>
-                            Practice questions
-                          </button>
-                          <button onClick={() => { setSelectedJob(null); isLoggedIn ? handlePractice(job) : router.push("/signup"); }}
-                            style={{ flex: 1, padding: "9px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "transparent", color: A.text3, border: `1px solid ${A.border}` }}>
-                            BA challenge
-                          </button>
-                        </div>
-
-                        {/* MY COACHING TOOLKIT */}
-                        <div style={{ borderRadius: 12, border: `1px solid ${A.tealBorder}`, background: A.tealSoft, padding: "14px 16px", marginBottom: 20 }}>
-                          <p style={{ fontSize: 10, fontWeight: 700, color: A.teal, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Get my full coaching toolkit for this role</p>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            <Link href={isLoggedIn ? "/career" : "/signup"}
-                              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, background: "#fff", border: `1px solid ${A.border}`, textDecoration: "none" }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 700, color: A.text1 }}>Tailor my resume for this role</span>
-                              <span style={{ fontSize: 10.5, color: A.teal, fontWeight: 700 }}>Career Suite</span>
-                            </Link>
-                            <button onClick={() => { setSelectedJob(null); router.push(isLoggedIn ? "/pitchready" : "/signup"); }}
-                              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, background: "#fff", border: `1px solid ${A.border}`, cursor: "pointer", width: "100%", textAlign: "left" }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 600, color: A.text1 }}>Pitch ready — practice with feedback</span>
-                              <span style={{ fontSize: 10.5, color: A.teal, fontWeight: 700 }}>Pitch Ready</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Apply */}
-                        <div style={{ borderTop: `1px solid ${A.border}`, paddingTop: 16, marginBottom: 16 }}>
-                          <a href={apply.href} target="_blank" rel="noopener noreferrer"
-                            onClick={() => setAppliedJobs(prev => new Set(prev).add(job.id))}
-                            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 16px", borderRadius: 10, background: A.teal, color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none" }}>
-                            Apply on company site <ExternalLink size={13} />
-                          </a>
-                          {!apply.isDirect && (
-                            <p style={{ fontSize: 11, color: A.text4, textAlign: "center", marginTop: 5 }}>Opens employer careers page</p>
-                          )}
-                        </div>
-
-                        {/* Disclaimer */}
-                        <p style={{ fontSize: 11, color: A.text4, lineHeight: 1.6, margin: 0 }}>
-                          Alex Rivera is an independent career coach, not affiliated with this employer. Coaching notes are based on patterns from 140+ BA roles across Canada.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                  </> /* end coachingOpen full panel */
-                  )} {/* end coachingOpen ternary */}
-                </div>
-
-              </div>
-            </div>
+            <JobDetailContent
+              key={selectedJob.id}
+              job={selectedJob}
+              mode="modal"
+              onClose={() => setSelectedJob(null)}
+              isLoggedIn={isLoggedIn}
+              initialCoachingOpen={initialCoachingOpen}
+            />
           </div>
-        );
-      })()}
+        </div>
+      )}
 
     </div>
   );
