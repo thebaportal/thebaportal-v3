@@ -4,7 +4,8 @@ import { cookies }            from "next/headers";
 import { notFound }           from "next/navigation";
 import Link                   from "next/link";
 import type { Metadata }      from "next";
-import JobDetailContent       from "@/components/JobDetailContent";
+import WinThisRole            from "@/components/WinThisRole";
+import { generateWinInsights } from "@/lib/jobInsights";
 import type { JobListing }    from "@/lib/jobInsights";
 
 interface Params { params: { id: string } }
@@ -72,6 +73,8 @@ export default async function JobPage({ params }: Params) {
 
   if (!job) notFound();
 
+  const winInsights = generateWinInsights(job as JobListing);
+
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Inter','Open Sans',sans-serif", WebkitFontSmoothing: "antialiased", color: C.text1 }}>
 
@@ -97,18 +100,17 @@ export default async function JobPage({ params }: Params) {
         </div>
       </nav>
 
-      {/* Job content */}
-      <div style={{ paddingTop: 58, maxWidth: 1200, margin: "0 auto" }}>
-        <JobDetailContent
+      {/* Win This Role content */}
+      <div style={{ paddingTop: 58 }}>
+        <WinThisRole
           job={job as JobListing}
-          mode="page"
+          insights={winInsights}
           isLoggedIn={!!user}
-          initialCoachingOpen={true}
         />
       </div>
 
       {/* Footer */}
-      <footer style={{ borderTop: `1px solid ${C.border}`, padding: "24px", textAlign: "center", background: C.surface, marginTop: 40 }}>
+      <footer style={{ borderTop: `1px solid ${C.border}`, padding: "24px", textAlign: "center", background: C.surface }}>
         <div style={{ display: "flex", justifyContent: "center", gap: "24px", flexWrap: "wrap" }}>
           {[["Home", "/"], ["Jobs", "/opportunities"], ["Pricing", "/pricing"], ["FAQ", "/faq"], ["Privacy", "/privacy"], ["Terms", "/terms"]].map(([l, h]) => (
             <Link key={l} href={h!} style={{ fontSize: "12px", color: C.text4, textDecoration: "none" }}>{l}</Link>

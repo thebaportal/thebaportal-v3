@@ -536,6 +536,217 @@ function buildQuestions(signals: JobSignals, topLines: ScoredLine[]): CoachingQu
   return questions.slice(0, 3);
 }
 
+// ── Win This Role types ───────────────────────────────────────────────────────
+
+export interface GapRow {
+  says:  string;
+  tests: string;
+}
+
+export interface WinStep {
+  number:  string;
+  heading: string;
+  body:    string;
+  cta:     string;
+  ctaHref: string;
+}
+
+export interface WinInsights {
+  gapRows:     GapRow[];
+  failReasons: string[];
+  winSteps:    WinStep[];
+}
+
+// ── Gap rows ──────────────────────────────────────────────────────────────────
+
+function buildGapRows(topLines: ScoredLine[], signals: JobSignals): GapRow[] {
+  const { systems, industry } = signals;
+  const rows: GapRow[] = [];
+
+  for (const line of topLines) {
+    if (rows.length >= 4) break;
+    const q   = trimQuote(line.text, 72);
+    const tag = line.tags[0];
+
+    if (tag === "system") {
+      const sys = line.text.match(NAMED_SYSTEMS)?.[0] ?? "this system";
+      rows.push({
+        says:  `"${q}"`,
+        tests: `Whether you have a real project story inside ${sys} — not just familiarity. Project name, your role, the deliverable you produced, and the decision it drove.`,
+      });
+    } else if (tag === "years") {
+      rows.push({
+        says:  `"${q}"`,
+        tests: "Whether the depth of your experience matches the seniority of the work — not just the years. Can you name five complex initiatives without pausing?",
+      });
+    } else if (tag === "constraint") {
+      const c = line.text.match(/\b(HIPAA|HITECH|PIPEDA|SOX|GDPR|OSFI|FINTRAC|ATIP|PHIPA|AML)\b/i)?.[0]?.toUpperCase() ?? "the regulation";
+      rows.push({
+        says:  `"${q}"`,
+        tests: `Whether you've worked inside ${c} constraints and can explain how it changed your process — not just that you know what ${c} is.`,
+      });
+    } else if (tag === "ownership") {
+      rows.push({
+        says:  `"${q}"`,
+        tests: "Whether your stories end with what you personally closed — not what the team delivered. They used an ownership verb deliberately.",
+      });
+    } else if (tag === "deliverable") {
+      rows.push({
+        says:  `"${q}"`,
+        tests: "Whether you can walk through a real example from memory — what problem it solved, what you documented, and what decision it drove.",
+      });
+    } else if (tag === "industry") {
+      rows.push({
+        says:  `"${q}"`,
+        tests: `Whether you understand how this domain shapes BA work — not just that you've been in ${industry ?? "this industry"} before.`,
+      });
+    }
+  }
+
+  // Signal-based fill when the JD was thin
+  if (rows.length < 3 && systems.length > 0) {
+    rows.push({
+      says:  `Experience with ${systems[0]}`,
+      tests: `Whether you have a production story — not a training course. Name the project, the phase, and the deliverable you produced inside it.`,
+    });
+  }
+  if (rows.length < 3) {
+    rows.push({
+      says:  "Strong stakeholder management skills",
+      tests: "Whether you can describe a specific conflict you navigated and how it was resolved — not just that you're a good communicator.",
+    });
+  }
+  if (rows.length < 4) {
+    rows.push({
+      says:  "Experience with requirements gathering",
+      tests: "Whether you have a structured process you can articulate — technique, format, sign-off approach — not a vague description of talking to stakeholders.",
+    });
+  }
+
+  return rows.slice(0, 4);
+}
+
+// ── Fail reasons ──────────────────────────────────────────────────────────────
+
+function buildFailReasons(signals: JobSignals, topLines: ScoredLine[]): string[] {
+  const { level, systems, industry, constraints } = signals;
+  const reasons: string[] = [];
+
+  // System-specific reason (most targeted)
+  const topSysLine = topLines.find(l => l.tags.includes("system"));
+  if (topSysLine) {
+    const sys = topSysLine.text.match(NAMED_SYSTEMS)?.[0] ?? systems[0];
+    if (sys) reasons.push(`They list ${sys} on their resume but can't name a specific project, phase, or deliverable when pressed. The technical screen exposes this within the first two questions.`);
+  } else if (systems.length > 0) {
+    reasons.push(`They claim ${systems[0]} experience but can't walk through a specific deliverable they produced inside it. "Worked with" and "produced inside" are very different things.`);
+  }
+
+  // Level-based reason
+  if (reasons.length < 3) {
+    if (level === "senior") {
+      reasons.push("They walk in with task-executor stories when the role demands initiative ownership. Every answer ends with what they delivered — not what changed for the business.");
+    } else if (level === "entry") {
+      reasons.push("They lead with their experience gap instead of showing structured rigour. The BA who demonstrates disciplined process at entry level beats the one who apologises for their CV.");
+    } else {
+      reasons.push("They describe a process they followed rather than a problem they solved. 'I gathered requirements from stakeholders' tells the interviewer nothing about how you handle ambiguity under pressure.");
+    }
+  }
+
+  // Domain or constraint reason
+  if (reasons.length < 3) {
+    if (constraints.length > 0) {
+      reasons.push(`They acknowledge ${constraints[0]} compliance exists but can't explain how it changed their requirements process. That's the actual test — and most candidates pivot to what they know instead.`);
+    } else if (industry === "healthcare") {
+      reasons.push("They treat it as a generic BA role and skip the clinical context. The hiring team notices within ten minutes when a candidate doesn't speak the domain.");
+    } else if (industry === "finance" || industry === "insurance") {
+      reasons.push("They skip the regulatory research and treat the role as process-agnostic. Finance and insurance BA interviews test domain instincts, not just methodology fluency.");
+    } else if (industry === "government") {
+      reasons.push("They underestimate the governance complexity. Public sector BA work has approval structures and stakeholder dynamics that private-sector candidates consistently miss.");
+    } else {
+      reasons.push("They don't connect their experience to this role's specific requirements. They rehearse the general BA interview instead of answering what this job actually tests.");
+    }
+  }
+
+  // Ensure we always return exactly 3
+  while (reasons.length < 3) {
+    reasons.push("They come in without having read the job description carefully enough to name two things this role requires that their last role didn't. Generic preparation shows immediately.");
+  }
+
+  return reasons.slice(0, 3);
+}
+
+// ── Win steps ─────────────────────────────────────────────────────────────────
+
+function buildWinSteps(signals: JobSignals): WinStep[] {
+  const { level, systems, industry, company } = signals;
+
+  const step1Body = systems.length > 0
+    ? `Read the job description again — slowly. Circle every time they mention ${systems[0]}. That's not a checkbox — it's the core of what the technical screen tests. Most candidates skim once and apply. Don't.`
+    : industry
+    ? `Read the job description again — slowly. Note every piece of ${industry} domain language. That's the context the panel assumes you already have. Most candidates skim once and apply. Don't.`
+    : `Read the job description again — slowly. Mark every ownership verb: "lead," "own," "drive." Count them. That's the bar they're holding candidates to. Most candidates skim once and apply. Don't.`;
+
+  const step2Body = industry
+    ? `Run a ${industry} scenario on the BA Portal before you write a single interview answer. You'll discover the gaps in your thinking faster than any prep guide. Ten minutes of practice reveals what an hour of prep misses.`
+    : `Run a BA scenario on the BA Portal before you prep your answers. The gaps in your process become obvious when you're working through a real problem — not when you're rehearsing in front of a mirror.`;
+
+  const step3Body = level === "senior"
+    ? `For a senior role, prepare three initiative stories — not task stories. What you owned, the complexity you navigated, the business outcome you drove. Every story should end with a measurable change, not a deliverable.`
+    : level === "entry"
+    ? `You don't need ten years of stories. You need two or three that show structured process and rigorous thinking. Academic work, bootcamp projects, and volunteer BA roles all count — if you talk about them with discipline.`
+    : `Prepare two or three STAR stories that each end with a named business outcome. 'I gathered requirements' is not a story. 'I ran three workshops, resolved a conflict, and drove a decision that saved six weeks of rework' is.`;
+
+  const step4Body = systems.length > 0
+    ? `Put ${systems[0]} on your first resume page with a named project and a specific deliverable. If it's buried or absent, you won't get the call. Recruiters scan in seconds.`
+    : industry
+    ? `Lead your resume with ${industry} domain experience if you have it. If you don't — be direct in your cover letter about why the role still fits your trajectory and what you'll bring from day one.`
+    : `Lead your resume with outcomes, not responsibilities. ${company !== "this company" ? `${company} has enough people who can document requirements.` : "Hiring managers have enough people who can document requirements."} They want someone who can change what the business does.`;
+
+  return [
+    {
+      number:  "01",
+      heading: "Read it like they wrote it for a reason",
+      body:    step1Body,
+      cta:     "Browse the job listing",
+      ctaHref: "/opportunities",
+    },
+    {
+      number:  "02",
+      heading: "Practice before you prep",
+      body:    step2Body,
+      cta:     "Start a challenge",
+      ctaHref: "/scenarios",
+    },
+    {
+      number:  "03",
+      heading: "Prepare your stories — not your answers",
+      body:    step3Body,
+      cta:     "Build your story bank",
+      ctaHref: "/career",
+    },
+    {
+      number:  "04",
+      heading: "Fix your positioning before you apply",
+      body:    step4Body,
+      cta:     "Review your positioning",
+      ctaHref: "/career",
+    },
+  ];
+}
+
+// ── Win This Role export ──────────────────────────────────────────────────────
+
+export function generateWinInsights(job: JobListing): WinInsights {
+  const signals  = extractSignals(job);
+  const topLines = job.description ? extractTopLines(job.description) : [];
+
+  return {
+    gapRows:     buildGapRows(topLines, signals),
+    failReasons: buildFailReasons(signals, topLines),
+    winSteps:    buildWinSteps(signals),
+  };
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function generateInsight(job: JobListing): JobInsight {
