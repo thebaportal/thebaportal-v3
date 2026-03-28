@@ -1026,96 +1026,77 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── PLATFORM SUITE ──────────────────────────────────────────────── */}
+      {/* ── THE PLATFORM ─────────────────────────────────────────────────── */}
       <section style={{ padding: "0 0 100px" }} id="features">
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
           <div ref={featuresReveal.ref} style={{ ...featuresReveal.style, textAlign: "center", marginBottom: 56 }}>
-            <Eyebrow>Full Platform</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>Everything you need to grow as a BA</h2>
-            <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 520, margin: "0 auto", lineHeight: 1.68 }}>Challenges are just the start. Pro unlocks a full career development suite built for working Business Analysts.</p>
+            <Eyebrow>The Platform</Eyebrow>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>Everything you need to grow as a Business Analyst</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
-
-            {/* Career Advisor */}
-            <Link href="/career" style={{ textDecoration: "none", display: "block" }}>
-              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(167,139,250,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-              >
-                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(167,139,250,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(167,139,250,.12)", border: "1px solid rgba(167,139,250,.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            {[
+              {
+                href: "/scenarios",
+                color: "#38bdf8",
+                title: "Challenges",
+                desc: "Run real scenarios with simulated stakeholders. Get scored by Alex Rivera.",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>,
+              },
+              {
+                href: "/learning",
+                color: "#fb923c",
+                title: "Learning",
+                desc: "Follow Vela, a Lagos fintech, through the full SDLC. Six modules, each with a challenge.",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>,
+              },
+              {
+                href: "/pitchready",
+                color: "#a78bfa",
+                title: "PitchReady",
+                desc: "Practice your interview answers under pressure. Get real-time feedback.",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>,
+              },
+              {
+                href: "/exam",
+                color: "#facc15",
+                title: "Exam Prep",
+                desc: "CBAP, CCBA, PMI-PBA practice questions. Flashcards and mock tests.",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#facc15" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
+              },
+              {
+                href: "/career",
+                color: "#1fbf9f",
+                title: "Career Suite",
+                desc: "Personalized career plan, resume builder, salary guide.",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>,
+              },
+              {
+                href: "/opportunities",
+                color: "#34d399",
+                title: "Jobs",
+                desc: "Curated BA jobs in Canada. Alex Rivera tells you how to win before you apply.",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" width="22" height="22"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+              },
+            ].map(card => (
+              <Link key={card.href} href={card.href} style={{ textDecoration: "none", display: "block" }}>
+                <div
+                  style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "36px 32px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer", height: "100%", display: "flex", flexDirection: "column" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}30`; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
+                >
+                  <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(ellipse, ${card.color}08 0%, transparent 65%)`, pointerEvents: "none" }} />
+                  <div style={{ width: 44, height: 44, borderRadius: 13, background: `${card.color}12`, border: `1px solid ${card.color}22`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+                    {card.icon}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>{card.title}</div>
+                  <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.68, marginBottom: 24, flex: 1 }}>{card.desc}</p>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: card.color }}>
+                    Explore
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </div>
                 </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Career Advisor Suite</div>
-                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Answer a few questions and get a personalised career plan from Alex Rivera. Whether you are breaking into BA, aiming for senior, or positioning yourself as a contractor — there is a flow built for your situation.</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {["New to BA", "Transition into BA", "Move to Senior", "Lead BA", "Contractor Positioning"].map(tag => (
-                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#a78bfa", background: "rgba(167,139,250,.1)", border: "1px solid rgba(167,139,250,.15)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-
-            {/* Portfolio Builder */}
-            <Link href="/portfolio" style={{ textDecoration: "none", display: "block" }}>
-              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(31,191,159,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-              >
-                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(31,191,159,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(31,191,159,.1)", border: "1px solid rgba(31,191,159,.18)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-                </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Portfolio Case Study Builder</div>
-                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Your challenge submissions become real portfolio pieces. AI transforms raw work into structured case studies with resume bullets and interview-ready answers in the SAR format — ready to share or send to recruiters.</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {["Case Study Transform", "Resume Bullets", "Interview Answer (SAR)", "Public Portfolio Link"].map(tag => (
-                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#1fbf9f", background: "rgba(31,191,159,.08)", border: "1px solid rgba(31,191,159,.14)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-
-            {/* Exam Prep */}
-            <Link href="/exam" style={{ textDecoration: "none", display: "block" }}>
-              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(251,146,60,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-              >
-                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(251,146,60,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(251,146,60,.1)", border: "1px solid rgba(251,146,60,.18)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Exam Prep</div>
-                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Practise for the CBAP, CCBA, and PMI-PBA with BABOK-aligned questions and concept explainers. Flashcards, mock tests, and spaced repetition so the knowledge sticks when it counts.</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {["CBAP", "CCBA", "PMI-PBA", "BABOK Aligned", "Flashcards"].map(tag => (
-                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#fb923c", background: "rgba(251,146,60,.08)", border: "1px solid rgba(251,146,60,.14)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-
-            {/* Learning Modules */}
-            <Link href="/learning" style={{ textDecoration: "none", display: "block" }}>
-              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "40px 44px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,.28)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-              >
-                <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(56,189,248,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(56,189,248,.1)", border: "1px solid rgba(56,189,248,.18)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-                </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>Learning Modules</div>
-                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, marginBottom: 24, maxWidth: 380 }}>Bite-sized theory that connects directly to practice. Elicitation techniques, requirements writing, stakeholder management, and more — each module ends with a challenge so you apply what you learn immediately.</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {["Elicitation", "Requirements Writing", "Stakeholder Mgmt", "Process Modelling"].map(tag => (
-                    <span key={tag} style={{ fontSize: 11.5, fontWeight: 600, color: "#38bdf8", background: "rgba(56,189,248,.08)", border: "1px solid rgba(56,189,248,.14)", padding: "4px 10px", borderRadius: 999 }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-
+              </Link>
+            ))}
           </div>
         </div>
       </section>

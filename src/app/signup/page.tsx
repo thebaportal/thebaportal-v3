@@ -60,7 +60,7 @@ export default function SignupPage() {
     setError("");
     try {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -69,6 +69,9 @@ export default function SignupPage() {
         },
       });
       if (authError) { setError(authError.message); return; }
+      // When Supabase "Confirm email" is disabled, signUp returns a live session
+      // and the user is already authenticated — skip the check-your-email screen.
+      if (data.session) { router.push("/dashboard"); return; }
       setDone(true);
     } catch {
       setError("Something went wrong. Please try again.");
