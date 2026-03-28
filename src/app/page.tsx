@@ -47,12 +47,8 @@ const CHALLENGES = [
 ];
 
 const INDUSTRIES = [
-  { name: "Banking",     emoji: "🏦" },
-  { name: "Healthcare",  emoji: "🏥" },
-  { name: "Energy",      emoji: "⚡" },
-  { name: "Technology",  emoji: "💻" },
-  { name: "Insurance",   emoji: "🛡️" },
-  { name: "Government",  emoji: "🏛️" },
+  "Banking", "Healthcare", "Energy", "Technology",
+  "Insurance", "Government", "Retail", "Logistics",
 ];
 
 // ── Subcomponents ─────────────────────────────────────────────────────────────
@@ -324,6 +320,31 @@ function ChallengeCard({ title, industry, type, difficulty, typeColor, diffColor
       </div>
     </div>
   );
+}
+
+// ── Industry Icon ─────────────────────────────────────────────────────────────
+function IndustryIcon({ name }: { name: string }) {
+  const s = { width: 22, height: 22, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  switch (name) {
+    case "Banking":
+      return <svg {...s} viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v12a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M9 22V12h6v10"/></svg>;
+    case "Healthcare":
+      return <svg {...s} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>;
+    case "Energy":
+      return <svg {...s} viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>;
+    case "Technology":
+      return <svg {...s} viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
+    case "Insurance":
+      return <svg {...s} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+    case "Government":
+      return <svg {...s} viewBox="0 0 24 24"><path d="M3 22h18M12 3L2 9h20L12 3z"/><path d="M5 9v10M9 9v10M15 9v10M19 9v10"/></svg>;
+    case "Retail":
+      return <svg {...s} viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>;
+    case "Logistics":
+      return <svg {...s} viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>;
+    default:
+      return null;
+  }
 }
 
 // ── Pricing Card ──────────────────────────────────────────────────────────────
@@ -639,6 +660,7 @@ export default function LandingPage() {
   const alexReveal = useReveal();
   const industriesHeadReveal = useReveal();
   const industriesGridReveal = useReveal();
+  const habitReveal = useReveal();
   const pricingHeadReveal = useReveal();
   const pricingReveal = useReveal();
   const finalReveal = useReveal();
@@ -861,14 +883,14 @@ export default function LandingPage() {
             {/* Left */}
             <div>
               <h1 className="a1" style={{ fontFamily: "var(--font-display)", fontSize: "clamp(46px, 5.6vw, 74px)", fontWeight: 900, lineHeight: 0.97, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 24 }}>
-                Real BA work.<br />
+                Real BA Work.<br />
                 Simulated<br />
-                <span style={{ background: "linear-gradient(110deg, var(--teal) 0%, #2ddbb8 38%, #60d4f7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>pressure.</span>
+                <span style={{ background: "linear-gradient(110deg, var(--teal) 0%, #2ddbb8 38%, #60d4f7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Pressure.</span>
               </h1>
 
               <p className="a3" style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.72, maxWidth: 430, marginBottom: 38 }}>
-                Interview AI stakeholders, write real deliverables, and get scored by Alex Rivera —
-                a Senior BA Coach who{" "}<strong style={{ color: "var(--t1)", fontWeight: 600 }}>does not sugarcoat.</strong>
+                Practice with simulated stakeholders. Get scored by Alex Rivera.
+                Build your portfolio.{" "}<strong style={{ color: "var(--t1)", fontWeight: 600 }}>Land the job.</strong>
               </p>
 
               <div className="a4" style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 48, flexWrap: "wrap" }}>
@@ -876,7 +898,7 @@ export default function LandingPage() {
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 40px rgba(31,191,159,.36)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)"; }}
                 >
-                  Start Practicing Free <ArrowRight size={16} />
+                  Start Free <ArrowRight size={16} />
                 </Link>
                 <Link href="/scenarios" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "15px 22px", borderRadius: "var(--radius)", background: "rgba(255,255,255,.04)", border: "1px solid var(--border)", transition: "all .2s", textDecoration: "none" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--t1)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(255,255,255,.14)"; }}
@@ -946,10 +968,10 @@ export default function LandingPage() {
             <div style={{ position: "absolute", top: 44, left: "calc(12.5% + 10px)", right: "calc(12.5% + 10px)", height: 1, background: "linear-gradient(to right, transparent 0%, rgba(31,191,159,0.25) 15%, rgba(31,191,159,0.25) 85%, transparent 100%)", pointerEvents: "none", zIndex: 0 }} />
 
             {[
-              { num: "01", phase: "Practice",  color: "#38bdf8", title: "Run real scenarios",      desc: "Interview AI stakeholders, write deliverables, get scored by Alex Rivera across 4 dimensions.", tools: ["Challenges"] },
-              { num: "02", phase: "Learn",     color: "#fb923c", title: "Build the theory",        desc: "Follow Vela — a Lagos fintech — through the full SDLC. Six modules, each ending with a challenge.", tools: ["Learning"] },
-              { num: "03", phase: "Prepare",   color: "#a78bfa", title: "Get interview-ready",     desc: "Practise your answers under pressure and pass your BA certification with BABOK-aligned questions.", tools: ["PitchReady", "Exam Prep"] },
-              { num: "04", phase: "Advance",   color: "#1fbf9f", title: "Land the role",           desc: "Personalised career plan, resume bullets, cover letters, salary benchmarks — all from Alex Rivera.", tools: ["Career Suite"] },
+              { num: "01", phase: "Practice",  color: "#38bdf8", title: "Run real scenarios",   desc: "Run real scenarios with simulated stakeholders. Get scored on how you frame problems and use evidence.", tools: ["Challenges"] },
+              { num: "02", phase: "Learn",     color: "#fb923c", title: "Build the theory",     desc: "Build the theory. Follow Vela, a Lagos fintech, through the full SDLC.", tools: ["Learning"] },
+              { num: "03", phase: "Prepare",   color: "#a78bfa", title: "Nail the interview",   desc: "Nail your interview answers. Practice under pressure.", tools: ["PitchReady", "Exam Prep"] },
+              { num: "04", phase: "Advance",   color: "#1fbf9f", title: "Land the role",        desc: "Personalized career plan, resume builder, and salary benchmarks.", tools: ["Career Suite"] },
             ].map((step, i) => (
               <div key={step.num} style={{ position: "relative", zIndex: 1 }}>
                 <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "28px 24px", height: "100%", transition: "border-color .2s, background .2s" }}
@@ -1111,12 +1133,12 @@ export default function LandingPage() {
             <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 52, color: "var(--violet)", opacity: 0.3, lineHeight: 1, marginBottom: 10 }}>&ldquo;</div>
               <blockquote style={{ fontFamily: "var(--font-display)", fontSize: 21, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.02em", lineHeight: 1.38, marginBottom: 20 }}>
-                The gap between a good BA and a great one is practice under real pressure. Theory gets you the interview. Reps get you the job.
+                I&apos;ve coached over 2,000 Business Analysts. The ones who advance fastest practice under real pressure — not just study theory.
               </blockquote>
               <p style={{ fontSize: 14.5, color: "var(--t2)", lineHeight: 1.74, marginBottom: 28 }}>
-                Every submission is evaluated across four dimensions: Problem Framing, Root Cause Analysis, Evidence Use, and Recommendation Quality. No gold stars for effort. Only feedback that makes you better.
+                Every scenario comes with direct feedback on how you framed the problem, whether you identified the real root cause, and how you used evidence to support your decisions.
               </p>
-              <div style={{ display: "flex", gap: 32 }}>
+              <div style={{ display: "flex", gap: 32, marginBottom: 28 }}>
                 {[{ val: "4", label: "Eval dimensions" }, { val: "100", label: "Point scale" }, { val: "3", label: "Difficulty modes" }].map(m => (
                   <div key={m.label}>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "var(--violet)", letterSpacing: "-0.03em" }}>{m.val}</div>
@@ -1124,6 +1146,12 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
+              <Link href="/scenarios" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "var(--violet)", padding: "10px 20px", borderRadius: "var(--radius-sm)", background: "rgba(124,110,245,.1)", border: "1px solid rgba(124,110,245,.22)", textDecoration: "none", transition: "background .2s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(124,110,245,.18)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(124,110,245,.1)"; }}
+              >
+                See how it works <ChevronRight size={14} />
+              </Link>
             </div>
           </div>
         </div>
@@ -1134,22 +1162,85 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
           <div ref={industriesHeadReveal.ref} style={{ ...industriesHeadReveal.style, textAlign: "center", marginBottom: 44 }}>
             <Eyebrow>Coverage</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)" }}>Whatever industry you&apos;re targeting</h2>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)" }}>Practice where you want to work</h2>
           </div>
-          <div ref={industriesGridReveal.ref} style={{ ...industriesGridReveal.style, display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 10, marginBottom: 16 }}>
-            {INDUSTRIES.map(ind => (
-              <div key={ind.name} style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "22px 14px", textAlign: "center", transition: "border-color .2s, background .2s", cursor: "default" }}
+          <div ref={industriesGridReveal.ref} style={{ ...industriesGridReveal.style, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
+            {INDUSTRIES.map(name => (
+              <div key={name} style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "26px 14px", textAlign: "center", transition: "border-color .2s, background .2s", cursor: "default" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(31,191,159,.18)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; }}
               >
-                <div style={{ marginBottom: 10, fontSize: 20, lineHeight: 1 }}>{ind.emoji}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600, color: "var(--t2)" }}>{ind.name}</div>
+                <div style={{ marginBottom: 10, display: "flex", justifyContent: "center", color: "var(--t3)" }}>
+                  <IndustryIcon name={name} />
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600, color: "var(--t2)" }}>{name}</div>
               </div>
             ))}
           </div>
           <p style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t4)" }}>
-            + Retail, Telecom, Manufacturing, Logistics, Legal, Aviation and 14 more on the roadmap
+            +14 more industries on the roadmap
           </p>
+        </div>
+      </section>
+
+      {/* ── DAILY HABIT ─────────────────────────────────────────────────── */}
+      <section style={{ padding: "0 0 100px" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
+          <div ref={habitReveal.ref} style={{ ...habitReveal.style, background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "56px 64px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: -80, left: -80, width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(56,189,248,.05) 0%, transparent 65%)", pointerEvents: "none" }} />
+
+            {/* Left: copy */}
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <Eyebrow>Daily Practice</Eyebrow>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3vw, 38px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>
+                Build the habit. One scenario a day.
+              </h2>
+              <p style={{ fontSize: 15, color: "var(--t2)", lineHeight: 1.72, marginBottom: 32 }}>
+                The BAs who improve fastest are the ones who show up consistently. A new challenge drops every day. It takes 30 minutes. The feedback is immediate.
+              </p>
+              <div style={{ display: "flex", gap: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t2)" }}><strong style={{ color: "var(--teal)" }}>47</strong> BAs active today</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-3.5-.944"/></svg>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t2)" }}><strong style={{ color: "#fb923c" }}>3 day</strong> streak</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Today's Challenge card */}
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--t4)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>Today&apos;s Challenge</div>
+              <div style={{ background: "var(--bg-2)", border: "1px solid rgba(56,189,248,.18)", borderRadius: "var(--radius)", padding: "28px 28px 24px", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, #38bdf8, transparent)" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 5, textTransform: "uppercase" as const, letterSpacing: ".06em", background: "rgba(56,189,248,.1)", color: "#38bdf8", border: "1px solid rgba(56,189,248,.2)" }}>Discovery</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 5, textTransform: "uppercase" as const, letterSpacing: ".06em", background: "rgba(34,197,94,.08)", color: "#22c55e", border: "1px solid rgba(34,197,94,.18)" }}>Beginner</span>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--t1)", lineHeight: 1.3, marginBottom: 18, letterSpacing: "-0.02em" }}>
+                  Rising Customer Churn at First National Bank
+                </div>
+                <div style={{ display: "flex", gap: 16, marginBottom: 22 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    Banking
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    30 min
+                  </div>
+                </div>
+                <Link href="/scenarios" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "12px 22px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .2s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; }}
+                >
+                  Start now <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
