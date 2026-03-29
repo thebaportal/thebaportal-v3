@@ -539,28 +539,26 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
             Not hundreds of noisy listings. Just the roles worth your time.
           </p>
 
-          {/* Alex Rivera value prop */}
-          <div style={{ display: "inline-flex", flexDirection: "column", gap: 0, padding: "18px 22px", borderRadius: 12, background: "rgba(31,191,159,0.06)", border: `1px solid ${C.tealBorder}`, marginBottom: 24 }}>
-            <p style={{ fontSize: 13.5, color: C.text2, marginBottom: 12 }}>
-              Before you apply, <span style={{ color: C.teal, fontWeight: 700 }}>Alex Rivera</span>, Senior BA Coach, breaks down:
+          {/* Pre-apply tension box */}
+          <div style={{ display: "inline-flex", flexDirection: "column", gap: 16, padding: "20px 24px", borderRadius: 12, background: "rgba(31,191,159,0.06)", border: `1px solid ${C.tealBorder}`, marginBottom: 0 }}>
+            <p style={{ fontSize: 14, color: C.text2, margin: 0, lineHeight: 1.65, maxWidth: 460 }}>
+              Most BA candidates apply without understanding what this role actually tests.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {[
-                "What this role actually tests",
-                "Where most candidates fail",
-                "What to prepare before the interview",
-              ].map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
-                  <span style={{ color: C.teal, fontWeight: 700, fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}>•</span>
-                  <span style={{ fontSize: 13.5, color: C.text3, lineHeight: 1.4 }}>{item}</span>
-                </div>
-              ))}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <a
+                href="#listings"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700, background: C.teal, color: "#000", textDecoration: "none", letterSpacing: "-0.01em" }}
+              >
+                See how to win this role
+              </a>
+              <a
+                href="#listings"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 20px", borderRadius: 9, fontSize: 13, fontWeight: 500, background: "transparent", color: C.text3, textDecoration: "none", border: `1px solid ${C.border}` }}
+              >
+                Apply anyway
+              </a>
             </div>
           </div>
-
-          <p style={{ fontSize: 15, fontWeight: 700, color: C.teal, letterSpacing: "-0.01em", margin: 0 }}>
-            Apply smarter. Not harder.
-          </p>
           {syncError && (
             <div style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "#f87171", padding: "8px 12px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
               <AlertTriangle size={12} /> Sync error: {syncError}
@@ -737,24 +735,27 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                     ))}
                   </div>
 
-                  {/* Two buttons */}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() => { setInitialCoachingOpen(true); setSelectedJob(job); }}
-                      style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", background: C.teal, color: "#fff", border: "none", transition: "background 0.12s" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#17a888")}
-                      onMouseLeave={e => (e.currentTarget.style.background = C.teal)}
+                  {/* Buttons — coaching primary, apply secondary */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Link
+                      href={`/jobs/${job.id}`}
+                      style={{ display: "block", textAlign: "center", padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, background: C.teal, color: "#000", textDecoration: "none", letterSpacing: "-0.01em" }}
                     >
-                      See what Alex says
-                    </button>
-                    <button
-                      onClick={() => { setInitialCoachingOpen(false); setSelectedJob(job); }}
-                      style={{ flex: 1, padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", background: "transparent", color: "#334155", border: "1px solid #E2E8F0", transition: "border-color 0.12s, color 0.12s" }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#94A3B8"; e.currentTarget.style.color = "#0F172A"; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#334155"; }}
-                    >
-                      Apply
-                    </button>
+                      See how to win this role
+                    </Link>
+                    <div>
+                      <a
+                        href={apply.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "block", textAlign: "center", padding: "9px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, background: "transparent", color: "#64748B", textDecoration: "none", border: "1px solid #E2E8F0" }}
+                      >
+                        {apply.label}
+                      </a>
+                      <p style={{ fontSize: 11, color: "#94A3B8", margin: "5px 0 0", textAlign: "center", lineHeight: 1.45 }}>
+                        You are applying without seeing what this role actually tests.
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
