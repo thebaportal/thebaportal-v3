@@ -1,6 +1,23 @@
 import Link from "next/link";
 import type { JobListing, WinInsights } from "@/lib/jobInsights";
 
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi,      "\n\n")
+    .replace(/<\/li>/gi,     "\n")
+    .replace(/<\/div>/gi,    "\n")
+    .replace(/<[^>]+>/g,     "")
+    .replace(/&amp;/g,  "&")
+    .replace(/&lt;/g,   "<")
+    .replace(/&gt;/g,   ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g,  "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 const C = {
   bg:         "#09090b",
   surface:    "#111117",
@@ -47,6 +64,19 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
           .wtr-gap-right { border-left: none; border-top: 1px solid ${C.border}; }
           .wtr-steps     { grid-template-columns: 1fr; }
         }
+        .wtr-jd-details { list-style: none; }
+        .wtr-jd-details summary {
+          display: flex; align-items: center; gap: 8px;
+          cursor: pointer; list-style: none; user-select: none;
+        }
+        .wtr-jd-details summary::-webkit-details-marker { display: none; }
+        .wtr-jd-details summary .wtr-chevron {
+          transition: transform 0.2s ease;
+          flex-shrink: 0;
+        }
+        .wtr-jd-details[open] summary .wtr-chevron {
+          transform: rotate(180deg);
+        }
       `}} />
 
       <div style={{ padding: "40px 24px 80px", maxWidth: 880, margin: "0 auto" }}>
@@ -87,6 +117,23 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
             </span>
           </div>
         </div>
+
+        {/* ── 1b. Job description ── */}
+        {job.description && (
+          <details className="wtr-jd-details" style={{ marginBottom: 40 }}>
+            <summary style={{ fontSize: 13, fontWeight: 600, color: C.text4 }}>
+              <svg className="wtr-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+              View full job description
+            </summary>
+            <div style={{ marginTop: 16, padding: "20px 22px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12 }}>
+              <pre style={{ fontSize: 13, color: C.text3, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap", fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                {stripHtml(job.description)}
+              </pre>
+            </div>
+          </details>
+        )}
 
         {/* ── 2. Alex Rivera card ── */}
         <div style={{ background: C.surface, border: `1px solid ${C.tealBorder}`, borderRadius: 16, padding: "28px 32px", marginBottom: 48, position: "relative", overflow: "hidden" }}>
