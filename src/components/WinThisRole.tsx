@@ -59,32 +59,32 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
         .wtr-gap-grid { display: grid; grid-template-columns: 1fr 1fr; }
         .wtr-gap-right { border-left: 1px solid ${C.border}; }
         .wtr-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        @media (max-width: 640px) {
+        .wtr-jd-alex { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+        .wtr-alex-sticky { position: sticky; top: 78px; }
+        .wtr-jd-scroll {
+          max-height: 520px;
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: ${C.border} transparent;
+        }
+        .wtr-jd-scroll::-webkit-scrollbar { width: 4px; }
+        .wtr-jd-scroll::-webkit-scrollbar-track { background: transparent; }
+        .wtr-jd-scroll::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 4px; }
+        @media (max-width: 768px) {
           .wtr-gap-grid  { grid-template-columns: 1fr; }
           .wtr-gap-right { border-left: none; border-top: 1px solid ${C.border}; }
           .wtr-steps     { grid-template-columns: 1fr; }
-        }
-        .wtr-jd-details { list-style: none; }
-        .wtr-jd-details summary {
-          display: flex; align-items: center; gap: 8px;
-          cursor: pointer; list-style: none; user-select: none;
-        }
-        .wtr-jd-details summary::-webkit-details-marker { display: none; }
-        .wtr-jd-details summary .wtr-chevron {
-          transition: transform 0.2s ease;
-          flex-shrink: 0;
-        }
-        .wtr-jd-details[open] summary .wtr-chevron {
-          transform: rotate(180deg);
+          .wtr-jd-alex   { grid-template-columns: 1fr; }
+          .wtr-alex-sticky { position: static; }
         }
       `}} />
 
-      <div style={{ padding: "40px 24px 80px", maxWidth: 880, margin: "0 auto" }}>
+      <div style={{ padding: "40px 24px 80px", maxWidth: 1100, margin: "0 auto" }}>
 
         {/* Back link */}
         <Link
           href="/opportunities"
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.text3, textDecoration: "none", marginBottom: 32 }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.text3, textDecoration: "none", marginBottom: 28 }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
@@ -93,11 +93,11 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
         </Link>
 
         {/* ── 1. Job context ── */}
-        <div style={{ marginBottom: 40 }}>
-          <h1 style={{ fontSize: 30, fontWeight: 800, color: C.text1, margin: "0 0 12px", lineHeight: 1.2, letterSpacing: "-0.025em" }}>
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: C.text1, margin: "0 0 10px", lineHeight: 1.2, letterSpacing: "-0.025em" }}>
             {job.title}
           </h1>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
             {job.company && (
               <span style={{ fontSize: 15, fontWeight: 600, color: C.text2 }}>{job.company}</span>
             )}
@@ -118,42 +118,57 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
           </div>
         </div>
 
-        {/* ── 1b. Job description ── */}
-        {job.description && (
-          <details className="wtr-jd-details" style={{ marginBottom: 40 }}>
-            <summary style={{ fontSize: 13, fontWeight: 600, color: C.text4 }}>
-              <svg className="wtr-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-              View full job description
-            </summary>
-            <div style={{ marginTop: 16, padding: "20px 22px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12 }}>
-              <pre style={{ fontSize: 13, color: C.text3, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap", fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                {stripHtml(job.description)}
-              </pre>
-            </div>
-          </details>
-        )}
+        {/* ── 2. JD + Alex side by side ── */}
+        <div className="wtr-jd-alex" style={{ marginBottom: 52 }}>
 
-        {/* ── 2. Alex Rivera card ── */}
-        <div style={{ background: C.surface, border: `1px solid ${C.tealBorder}`, borderRadius: 16, padding: "28px 32px", marginBottom: 48, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(31,191,159,0.05) 0%, transparent 55%)", pointerEvents: "none" }} />
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start", position: "relative" }}>
-            <div style={{ width: 50, height: 50, borderRadius: "50%", background: C.tealSoft, border: `2px solid ${C.tealBorder}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: C.teal }}>
-              A
+          {/* Left — Job description */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.text4} strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+                Job Description
+              </span>
             </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, marginBottom: 8, letterSpacing: "0.07em", textTransform: "uppercase" }}>
-                Alex Rivera, Career Coach
-              </div>
-              <p style={{ fontSize: 19, fontWeight: 700, color: C.text1, margin: "0 0 12px", lineHeight: 1.45, letterSpacing: "-0.01em" }}>
-                &ldquo;I&rsquo;ve reviewed this role. Here&rsquo;s what 90% of candidates get wrong.&rdquo;
-              </p>
-              <p style={{ fontSize: 14, color: C.text3, margin: 0, lineHeight: 1.75 }}>
-                Most candidates apply, do surface prep, and wonder why they don&rsquo;t hear back. This page gives you the honest breakdown of what this specific role actually tests — and exactly what you need to do before you apply.
-              </p>
+            <div className="wtr-jd-scroll" style={{ padding: "20px" }}>
+              {job.description ? (
+                <pre style={{ fontSize: 12.5, color: C.text3, lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap", fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                  {stripHtml(job.description)}
+                </pre>
+              ) : (
+                <p style={{ fontSize: 13, color: C.text4, margin: 0, fontStyle: "italic" }}>
+                  No description available for this role.
+                </p>
+              )}
             </div>
           </div>
+
+          {/* Right — Alex Rivera */}
+          <div className="wtr-alex-sticky">
+            <div style={{ background: C.surface, border: `1px solid ${C.tealBorder}`, borderRadius: 14, padding: "28px", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(31,191,159,0.05) 0%, transparent 55%)", pointerEvents: "none" }} />
+              <div style={{ position: "relative" }}>
+                <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 20 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.tealSoft, border: `2px solid ${C.tealBorder}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: C.teal }}>
+                    A
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text1, lineHeight: 1.2 }}>Alex Rivera</div>
+                    <div style={{ fontSize: 11, color: C.teal, fontWeight: 600, marginTop: 2 }}>Senior BA Career Coach</div>
+                  </div>
+                </div>
+                <p style={{ fontSize: 17, fontWeight: 700, color: C.text1, margin: "0 0 14px", lineHeight: 1.5, letterSpacing: "-0.01em" }}>
+                  &ldquo;I&rsquo;ve reviewed this role. Here&rsquo;s what 90% of candidates get wrong.&rdquo;
+                </p>
+                <p style={{ fontSize: 13.5, color: C.text3, margin: 0, lineHeight: 1.75 }}>
+                  Most candidates apply, do surface prep, and wonder why they don&rsquo;t hear back. Below is the honest breakdown of what this specific role actually tests — and what you need to do differently before you apply.
+                </p>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* ── 3. The Gap ── */}
@@ -166,7 +181,6 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
           </p>
 
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-            {/* Header */}
             <div className="wtr-gap-grid" style={{ background: "#16161d", borderBottom: `1px solid ${C.border}` }}>
               <div style={{ padding: "11px 20px", fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase" }}>
                 What the job says
@@ -175,8 +189,6 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
                 What it actually tests
               </div>
             </div>
-
-            {/* Rows */}
             {gapRows.map((row, i) => (
               <div
                 key={i}
@@ -205,7 +217,6 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
           <p style={{ fontSize: 14, color: C.text3, margin: "0 0 24px", lineHeight: 1.65 }}>
             Three specific reasons — based on what this role actually demands.
           </p>
-
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {failReasons.map((reason, i) => (
               <div
@@ -231,7 +242,6 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
           <p style={{ fontSize: 14, color: C.text3, margin: "0 0 24px", lineHeight: 1.65 }}>
             Four steps. Do all four before you apply.
           </p>
-
           <div className="wtr-steps">
             {winSteps.map((step) => (
               <div
@@ -282,7 +292,7 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
               </svg>
             </Link>
             {!isLoggedIn && (
-              <p style={{ fontSize: 12, color: C.text4, marginTop: 12, margin: "12px 0 0" }}>
+              <p style={{ fontSize: 12, color: C.text4, margin: "12px 0 0" }}>
                 Free account. No credit card.
               </p>
             )}
