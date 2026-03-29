@@ -555,6 +555,7 @@ export interface WinInsights {
   gapRows:     GapRow[];
   failReasons: string[];
   winSteps:    WinStep[];
+  close?:      string;
 }
 
 // ── Gap rows ──────────────────────────────────────────────────────────────────

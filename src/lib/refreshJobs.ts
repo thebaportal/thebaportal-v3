@@ -12,6 +12,8 @@ import { fetchActiveEmployerSources, recordSourceFailure, recordSourceSuccess } 
 import { checkBaRelevance } from "./ats/filter";
 import { isCanadianLocation } from "./ats/location";
 import { normalizeForDedup } from "./ats/clean";
+import { generateWinInsightsAI } from "./generateWinInsightsAI";
+import type { JobListing } from "./jobInsights";
 
 export type { RefreshResult } from "./ats/types";
 import type { NormalizedJob, RefreshResult, SourceReport, SourceResult } from "./ats/types";
@@ -398,6 +400,38 @@ export async function runRefresh(): Promise<RefreshResult> {
     console.warn("[refreshJobs] Prune error (non-fatal):", deleteError.message);
   } else {
     console.log("[refreshJobs] Stale rows pruned");
+  }
+
+  // 10. Generate AI win insights for uncached jobs (up to 8 per sync, 2 at a time)
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const { data: uncached } = await supabase
+        .from("job_listings")
+        .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name, verified_apply_url, apply_url_status")
+        .is("win_insights", null)
+        .order("quality_score", { ascending: false })
+        .limit(8);
+
+      if (uncached && uncached.length > 0) {
+        console.log(`[refreshJobs] Generating AI insights for ${uncached.length} uncached job(s)`);
+        for (let i = 0; i < uncached.length; i += 2) {
+          const batch = uncached.slice(i, i + 2);
+          await Promise.all(batch.map(async (job) => {
+            const insights = await generateWinInsightsAI(job as JobListing);
+            if (insights) {
+              await supabase.from("job_listings").update({
+                win_insights:              insights,
+                win_insights_generated_at: new Date().toISOString(),
+              }).eq("id", job.id);
+              console.log(`[refreshJobs] Insights cached for job ${job.id}`);
+            }
+          }));
+        }
+      }
+    } catch (insightErr) {
+      // Non-fatal — rule engine is the fallback
+      console.warn("[refreshJobs] Insight generation error (non-fatal):", insightErr);
+    }
   }
 
   console.log("[refreshJobs] ── DONE ──────────────────────────────────────");

@@ -221,7 +221,9 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
               The Uncomfortable Truth
             </h2>
             <p style={{ fontSize: 15, color: C.text3, margin: "0 auto 28px", maxWidth: 500, lineHeight: 1.75 }}>
-              Most candidates read this and do nothing. They bookmark it, mean to come back, and apply without any of it. The ones who get hired are the ones who act on it today.
+              {insights.close
+                ? insights.close
+                : "Most candidates read this and do nothing. They bookmark it, mean to come back, and apply without any of it. The ones who get hired are the ones who act on it today."}
             </p>
             <Link
               href={isLoggedIn ? "/scenarios" : "/signup"}

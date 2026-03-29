@@ -6,7 +6,8 @@ import Link                   from "next/link";
 import type { Metadata }      from "next";
 import WinThisRole            from "@/components/WinThisRole";
 import { generateWinInsights } from "@/lib/jobInsights";
-import type { JobListing }    from "@/lib/jobInsights";
+import type { JobListing, WinInsights } from "@/lib/jobInsights";
+import type { AIWinInsights } from "@/lib/generateWinInsightsAI";
 
 interface Params { params: { id: string } }
 
@@ -67,13 +68,22 @@ export default async function JobPage({ params }: Params) {
   );
   const { data: job } = await db
     .from("job_listings")
-    .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name, verified_apply_url, apply_url_status")
+    .select("id, title, company, location, description, apply_url, url, posted_at, work_type, level, quality_score, prep_links, source_type, source_name, verified_apply_url, apply_url_status, win_insights")
     .eq("id", params.id)
     .single();
 
   if (!job) notFound();
 
-  const winInsights = generateWinInsights(job as JobListing);
+  // Build insights: prefer AI cache, fall back to rule engine
+  const ruleInsights = generateWinInsights(job as JobListing);
+  const aiCache = job.win_insights as AIWinInsights | null;
+
+  const winInsights: WinInsights = aiCache ? {
+    gapRows:     aiCache.gaps.map(g => ({ says: g.jobSays, tests: g.actuallyTests })),
+    failReasons: aiCache.failures,
+    winSteps:    ruleInsights.winSteps,
+    close:       aiCache.close,
+  } : ruleInsights;
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Inter','Open Sans',sans-serif", WebkitFontSmoothing: "antialiased", color: C.text1 }}>
