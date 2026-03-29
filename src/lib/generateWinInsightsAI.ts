@@ -47,15 +47,14 @@ ${desc || "(not provided)"}
 Job title: ${job.title}
 Company: ${company}
 Level: ${level}
-${job.location ? `Location: ${job.location}` : ""}
 
-${isThin ? "The job description has fewer than 100 words. Infer from the job title, level, company, and industry. Do not mention it. Just produce the output." : ""}
+${isThin ? "If the job description has fewer than 100 words, infer from the title, level, company, and industry. Do not mention it. Just produce the output." : ""}
 
-Output exactly this JSON — no markdown, no explanation, no text before or after:
+Output exactly this JSON — no markdown, no explanation:
 
 {
   "gaps": [
-    { "jobSays": "short phrase from JD, max 12 words", "actuallyTests": "specific question under 18 words" },
+    { "jobSays": "short phrase from JD", "actuallyTests": "question under 18 words" },
     { "jobSays": "...", "actuallyTests": "..." },
     { "jobSays": "...", "actuallyTests": "..." }
   ],
@@ -64,13 +63,13 @@ Output exactly this JSON — no markdown, no explanation, no text before or afte
 }
 
 Rules:
-- Each actuallyTests must be a question that creates real tension. Be specific to this role.
-  Bad: "Can you work with stakeholders?"
-  Good: "Can you get two directors to agree when both think they are right?"
-  Good: "Requirements will change mid-sprint. Will you stay in control or lose direction?"
-- Each failure starts with "You" and references one gap above
-- All three gaps must be distinct — no repeating the same insight in different words
-- Do not use: great opportunity, team player, fast-paced environment, strong communication skills`;
+- Each actuallyTests must be a specific question that creates real tension
+- Bad: "Can you work with stakeholders?"
+- Good: "Can you get two directors to agree when both think they are right?"
+- Good: "Requirements will change mid-sprint. Will you stay in control or lose direction?"
+- Each failure starts with "You" and references one gap
+- No generic phrases: great opportunity, team player, fast-paced environment
+- All three gaps must be distinct`;
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
