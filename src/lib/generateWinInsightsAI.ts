@@ -18,6 +18,25 @@ export interface AIWinInsights {
   close:    string;
 }
 
+// ── Industry detection ────────────────────────────────────────────────────────
+
+const INDUSTRY_PATTERNS: [RegExp, string][] = [
+  [/\b(patient|clinical|hospital|healthcare|ehr|nursing|physician|medical|pharma)\b/i,               "Healthcare"],
+  [/\b(bank|banking|aml|anti.money|osfi|basel|brokerage|investment|capital markets|wealth)\b/i,      "Financial Services"],
+  [/\b(insurance|underwriting|claims|actuary|policyholder|reinsurance)\b/i,                          "Insurance"],
+  [/\b(government|municipality|provincial|federal|ministry|crown corporation|public sector)\b/i,     "Government"],
+  [/\b(university|college|school board|k-12|education|student|curriculum)\b/i,                       "Education"],
+  [/\b(retail|e-commerce|ecommerce|consumer goods|inventory|supply chain)\b/i,                       "Retail"],
+  [/\b(telecom|telecommunications|wireless|carrier|mobility|crtc)\b/i,                               "Telecom"],
+  [/\b(energy|utilities|oil|gas|mining|hydro|nuclear|renewables)\b/i,                                "Energy"],
+  [/\b(saas|software|technology|platform|cloud|fintech|startup)\b/i,                                 "Technology"],
+];
+
+function detectIndustry(job: JobListing): string {
+  const text = [job.title, job.company, job.description].filter(Boolean).join(" ");
+  return INDUSTRY_PATTERNS.find(([re]) => re.test(text))?.[1] ?? "Technology";
+}
+
 // ── Prompt ────────────────────────────────────────────────────────────────────
 
 function stripHtml(html: string): string {
@@ -34,10 +53,11 @@ function stripHtml(html: string): string {
 }
 
 function buildPrompt(job: JobListing): string {
-  const desc    = job.description ? stripHtml(job.description).slice(0, 2500) : "";
-  const isThin  = desc.length < 100;
-  const company = job.company ?? "this company";
-  const level   = job.level ?? "mid";
+  const desc     = job.description ? stripHtml(job.description).slice(0, 2500) : "";
+  const isThin   = desc.length < 100;
+  const company  = job.company  ?? "this company";
+  const level    = job.level    ?? "mid";
+  const industry = detectIndustry(job);
 
   return `You are Alex Rivera, a Senior Business Analyst Coach. You are direct, sharp, and honest.
 
@@ -47,29 +67,31 @@ ${desc || "(not provided)"}
 Job title: ${job.title}
 Company: ${company}
 Level: ${level}
+Industry: ${industry}
 
 ${isThin ? "If the job description has fewer than 100 words, infer from the title, level, company, and industry. Do not mention it. Just produce the output." : ""}
 
-Output exactly this JSON — no markdown, no explanation:
+Return JSON only:
 
 {
   "gaps": [
-    { "jobSays": "short phrase from JD", "actuallyTests": "question under 18 words" },
+    { "jobSays": "short phrase from JD", "actuallyTests": "specific question under 18 words" },
     { "jobSays": "...", "actuallyTests": "..." },
     { "jobSays": "...", "actuallyTests": "..." }
   ],
-  "failures": ["You... (max 16 words)", "You...", "You..."],
+  "failures": [
+    "You... (max 16 words)",
+    "You...",
+    "You..."
+  ],
   "close": "1 to 3 sentences"
 }
 
 Rules:
-- Each actuallyTests must be a specific question that creates real tension
-- Bad: "Can you work with stakeholders?"
-- Good: "Can you get two directors to agree when both think they are right?"
-- Good: "Requirements will change mid-sprint. Will you stay in control or lose direction?"
-- Each failure starts with "You" and references one gap
-- No generic phrases: great opportunity, team player, fast-paced environment
-- All three gaps must be distinct`;
+- Questions must create tension and feel specific to the role
+- No generic phrases
+- Each failure must map to a gap
+- All gaps must be distinct`;
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
