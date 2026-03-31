@@ -24,33 +24,56 @@ interface PreviewBullet {
 }
 
 interface TransformOutput {
-  preview:            PreviewBullet[];
-  missingSignals:     string[];
-  additionalBullets:  string[];
-  positioningSummary: string;
+  preview: PreviewBullet[];
+  full:    string[];
 }
 
 // ── Prompt ────────────────────────────────────────────────────────────────────
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function buildPrompt(
-  job:        { title: string; company: string | null; level: string },
+  job:        { title: string; company: string | null; level: string; description: string | null },
   gaps:       string[],
+  failures:   string[],
   resumeText: string,
 ): string {
-  const expectations = gaps.map(g => `- ${g}`).join("\n");
+  const desc     = job.description ? stripHtml(job.description).slice(0, 2000) : "(not provided)";
+  const gapList  = gaps.map(g => `- ${g}`).join("\n");
+  const failList = failures.map(f => `- ${f}`).join("\n");
 
-  return `You are Alex Rivera, Senior BA Coach.
-You are reviewing a candidate's resume against a specific job.
+  return `You are a Senior Business Analyst rewriting a candidate's experience to match a specific job.
 
-Job context:
-Title: ${job.title}
+You are direct, practical, and focused on business impact. No fluff. No generic statements.
+
+Job description:
+${desc}
+
+Job title: ${job.title}
 Company: ${job.company ?? "this company"}
 Level: ${job.level}
-Key expectations:
-${expectations}
 
-Candidate resume:
+What this role actually tests:
+${gapList}
+
+Where candidates fail:
+${failList}
+
+Candidate experience:
 ${resumeText.slice(0, 3000)}
+
+Your task:
+Rewrite the candidate's experience into strong, job-aligned resume bullets.
+
+Rules:
+- Each bullet must show: action, business context, and impact or outcome
+- Replace generic language with specific BA actions: elicited requirements, mapped processes, facilitated workshops, supported UAT, analyzed data
+- Tie bullets directly to what this job actually tests
+- Fix weak phrasing — Bad: "worked with stakeholders" / Good: "facilitated workshops with finance and operations to resolve conflicting requirements"
+- Do not invent experience. Do not exaggerate seniority. Do not use buzzwords or filler.
+- preview.original must be verbatim from the candidate's resume — pick the weakest bullets
 
 Return JSON only:
 
@@ -58,32 +81,23 @@ Return JSON only:
   "preview": [
     {
       "original": "verbatim weak bullet copied from their resume",
-      "rewritten": "stronger version showing conflict, decision, and measurable impact",
-      "whyItFails": "one blunt sentence"
+      "rewritten": "stronger version showing action, business context, and measurable impact",
+      "whyItFails": "one blunt sentence explaining why the original fails"
     },
     {
-      "original": "second weak bullet verbatim",
+      "original": "second weak bullet verbatim from their resume",
       "rewritten": "stronger version",
       "whyItFails": "one blunt sentence"
     }
   ],
-  "missingSignals": [
-    "what the resume fails to prove",
-    "what is weak or vague",
-    "what is completely missing"
-  ],
-  "additionalBullets": [
+  "full": [
+    "rewritten bullet 1 — job-aligned, specific, impact-driven",
+    "rewritten bullet 2",
     "rewritten bullet 3",
-    "rewritten bullet 4"
-  ],
-  "positioningSummary": "2-3 sentences on how to reframe their profile for this specific role"
-}
-
-Rules:
-- Be blunt. Focus on proof, not wording.
-- Rewritten bullets must show business impact, a decision made, or a conflict resolved.
-- If the resume has no strong bullets to work from, infer from common BA experience at this level and show what they should be writing.
-- positioningSummary must be specific to this role and company, not generic advice.`;
+    "rewritten bullet 4",
+    "rewritten bullet 5"
+  ]
+}`;
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -101,9 +115,10 @@ function validate(raw: unknown): raw is TransformOutput {
     if (typeof p.whyItFails !== "string" || !p.whyItFails.trim()) return false;
   }
 
-  if (!Array.isArray(obj.missingSignals))    return false;
-  if (!Array.isArray(obj.additionalBullets)) return false;
-  if (typeof obj.positioningSummary !== "string" || !obj.positioningSummary.trim()) return false;
+  if (!Array.isArray(obj.full) || obj.full.length < 1) return false;
+  for (const b of obj.full) {
+    if (typeof b !== "string" || !b.trim()) return false;
+  }
 
   return true;
 }
@@ -135,7 +150,7 @@ export async function POST(request: Request) {
     // Fetch job + cached insights
     const { data: job, error: jobErr } = await admin
       .from("job_listings")
-      .select("id, title, company, level, win_insights")
+      .select("id, title, company, level, description, win_insights")
       .eq("id", job_id)
       .single();
 
@@ -154,17 +169,22 @@ export async function POST(request: Request) {
       isPro = profile?.subscription_tier === "pro";
     }
 
-    // Extract gap questions as expectations
+    // Extract gaps + failures from win_insights, fall back to sensible defaults
     const aiInsights = job.win_insights as AIWinInsights | null;
     const gaps = aiInsights?.gaps?.map(g => g.actuallyTests) ?? [
       "Produce BA deliverables independently without close supervision",
       "Navigate stakeholder conflict and drive decisions under pressure",
       "Connect requirements directly to measurable business outcomes",
     ];
+    const failures = aiInsights?.failures ?? [
+      "You describe activity but cannot show a business outcome",
+      "You list tools used but not decisions influenced",
+      "You talk about teams without showing what you personally drove",
+    ];
 
     // Generate
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const prompt = buildPrompt(job, gaps, raw_text);
+    const prompt = buildPrompt(job, gaps, failures, raw_text);
 
     const message = await client.messages.create({
       model:      "claude-sonnet-4-6",
@@ -203,12 +223,8 @@ export async function POST(request: Request) {
     if (isPro) {
       return NextResponse.json({
         preview: output.preview.slice(0, 2),
-        full: {
-          missingSignals:    output.missingSignals,
-          additionalBullets: output.additionalBullets,
-          positioningSummary: output.positioningSummary,
-        },
-        locked: false,
+        full:    output.full,
+        locked:  false,
       });
     }
 

@@ -12,15 +12,9 @@ interface PreviewBullet {
   whyItFails: string;
 }
 
-interface TransformFull {
-  missingSignals:    string[];
-  additionalBullets: string[];
-  positioningSummary: string;
-}
-
 interface TransformResult {
   preview: PreviewBullet[];
-  full?:   TransformFull;
+  full?:   string[];
   locked:  boolean;
 }
 
@@ -36,9 +30,6 @@ const C = {
   tealBorder: "rgba(31,191,159,0.22)",
   red:        "#ef4444",
   redSoft:    "rgba(239,68,68,0.08)",
-  amber:      "#f59e0b",
-  amberSoft:  "rgba(245,158,11,0.08)",
-  amberBorder:"rgba(245,158,11,0.22)",
   text1:      "#f8fafc",
   text2:      "#e2e8f0",
   text3:      "#94a3b8",
@@ -284,58 +275,19 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn }: Props) 
               </div>
 
               {/* Full output — pro */}
-              {!result.locked && result.full && (
+              {!result.locked && result.full && result.full.length > 0 && (
                 <div style={{ marginTop: 28 }}>
-
-                  {/* Missing signals */}
-                  {result.full.missingSignals.length > 0 && (
-                    <div style={{ marginBottom: 24 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12 }}>
-                        What your resume fails to prove
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12 }}>
+                    Full rewrite — job-aligned bullets
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {result.full.map((bullet, i) => (
+                      <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "13px 16px", background: "rgba(31,191,159,0.03)", border: `1px solid ${C.tealBorder}`, borderRadius: 10 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.teal, flexShrink: 0, marginTop: 8 }} />
+                        <p style={{ fontSize: 13.5, color: C.text2, margin: 0, lineHeight: 1.7 }}>{bullet}</p>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {result.full.missingSignals.map((s, i) => (
-                          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                            <div style={{ width: 18, height: 18, borderRadius: "50%", background: C.amberSoft, border: `1px solid ${C.amberBorder}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
-                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={C.amber} strokeWidth="3">
-                                <path d="M12 9v4M12 17h.01"/>
-                              </svg>
-                            </div>
-                            <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.65 }}>{s}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Additional bullets */}
-                  {result.full.additionalBullets.length > 0 && (
-                    <div style={{ marginBottom: 24 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12 }}>
-                        Additional Rewritten Bullets
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {result.full.additionalBullets.map((b, i) => (
-                          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 16px", background: "rgba(31,191,159,0.03)", border: `1px solid ${C.tealBorder}`, borderRadius: 10 }}>
-                            <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.teal, flexShrink: 0, marginTop: 7 }} />
-                            <p style={{ fontSize: 13, color: C.text2, margin: 0, lineHeight: 1.65 }}>{b}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Positioning summary */}
-                  {result.full.positioningSummary && (
-                    <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 20px" }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
-                        How to position yourself
-                      </div>
-                      <p style={{ fontSize: 13.5, color: C.text3, margin: 0, lineHeight: 1.75 }}>
-                        {result.full.positioningSummary}
-                      </p>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
               )}
 
