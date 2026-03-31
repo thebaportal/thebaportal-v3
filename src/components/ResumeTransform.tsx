@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAnalytics } from "@/lib/posthog";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -38,30 +39,59 @@ const C = {
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
+type SavedTransform = { preview: PreviewBullet[]; full: string[] };
+
 interface Props {
-  jobId:      string;
-  jobTitle:   string;
-  isLoggedIn: boolean;
+  jobId:          string;
+  jobTitle:       string;
+  isLoggedIn:     boolean;
+  isPro:          boolean;
+  savedTransform?: SavedTransform | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ResumeTransform({ jobId, jobTitle, isLoggedIn }: Props) {
-  const [isOpen,     setIsOpen]     = useState(false);
+export default function ResumeTransform({ jobId, jobTitle, isLoggedIn, isPro, savedTransform }: Props) {
+  const [isOpen,     setIsOpen]     = useState(!!savedTransform);
   const [resumeText, setResumeText] = useState("");
   const [loading,    setLoading]    = useState(false);
-  const [result,     setResult]     = useState<TransformResult | null>(null);
+  const [result,     setResult]     = useState<TransformResult | null>(
+    savedTransform ? {
+      preview: savedTransform.preview,
+      full:    isPro ? savedTransform.full : undefined,
+      locked:  !isPro,
+    } : null
+  );
   const [error,      setError]      = useState<string | null>(null);
+  const [copied,     setCopied]     = useState(false);
 
   const sectionRef = useRef<HTMLDivElement>(null);
-  const { track } = useAnalytics();
+  const outputRef  = useRef<HTMLDivElement>(null);
+  const { track }  = useAnalytics();
+  const searchParams = useSearchParams();
+  const isReturn     = searchParams.get("return") === "true";
+  const isCancelled  = searchParams.get("cancelled") === "true";
+
+  // Auto-scroll to output on Stripe return
+  useEffect(() => {
+    if (isReturn && savedTransform) {
+      setTimeout(() => outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+    }
+  }, [isReturn, savedTransform]);
+
+  function copyBullets(r: TransformResult) {
+    const bullets = r.locked
+      ? r.preview.map(b => b.rewritten)
+      : [...r.preview.map(b => b.rewritten), ...(r.full ?? [])];
+    navigator.clipboard.writeText(bullets.map(b => `• ${b}`).join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   function open() {
     setIsOpen(true);
     track("resume_section_opened", { job_id: jobId, job_title: jobTitle });
-    setTimeout(() => {
-      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
   }
 
   async function handleSubmit() {
@@ -83,6 +113,7 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn }: Props) 
       if (data.locked) {
         track("paywall_shown", { job_id: jobId, job_title: jobTitle, location: "resume_transform" });
       }
+      setTimeout(() => outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Generation failed — please try again");
     } finally {
@@ -236,12 +267,30 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn }: Props) 
 
           {/* Results */}
           {result && (
-            <div>
+            <div ref={outputRef} style={{ scrollMarginTop: 88 }}>
 
               {/* Preview bullets */}
               <div style={{ marginBottom: result.locked ? 0 : 28 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 14 }}>
-                  Rewritten Bullets
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+                    Rewritten Bullets
+                  </div>
+                  <button
+                    onClick={() => copyBullets(result)}
+                    style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11, fontWeight: 600, color: copied ? C.teal : C.text3, transition: "color 0.15s" }}
+                  >
+                    {copied ? (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copy bullets
+                      </>
+                    )}
+                  </button>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {result.preview.map((bullet, i) => (
@@ -277,6 +326,12 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn }: Props) 
               {/* Full output — pro */}
               {!result.locked && result.full && result.full.length > 0 && (
                 <div style={{ marginTop: 28 }}>
+                  {isReturn && (
+                    <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(31,191,159,0.06)", border: `1px solid ${C.tealBorder}`, borderRadius: 8, fontSize: 12.5, color: C.teal, display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                      Full version unlocked
+                    </div>
+                  )}
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12 }}>
                     Full rewrite — job-aligned bullets
                   </div>
@@ -294,66 +349,61 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn }: Props) 
               {/* Locked — free users */}
               {result.locked && (
                 <div style={{ position: "relative", marginTop: 20 }}>
+                  {/* Cancelled banner */}
+                  {isCancelled && (
+                    <div style={{ marginBottom: 12, padding: "10px 14px", background: "rgba(148,163,184,0.06)", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12.5, color: C.text3, textAlign: "center" }}>
+                      Your full version is still locked. You can upgrade any time.
+                    </div>
+                  )}
+
                   {/* Blurred skeleton */}
                   <div style={{ filter: "blur(5px)", pointerEvents: "none", userSelect: "none", opacity: 0.5 }}>
                     <div style={{ marginBottom: 14 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
-                        What your resume fails to prove
+                        Full rewrite — job-aligned bullets
                       </div>
-                      {[80, 65, 72].map((w, i) => (
+                      {[88, 72, 95, 65, 80].map((w, i) => (
                         <div key={i} style={{ height: 13, borderRadius: 6, background: C.border, marginBottom: 8, width: `${w}%` }} />
                       ))}
-                    </div>
-                    <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.text4, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
-                        Additional Rewritten Bullets
-                      </div>
-                      {[90, 78].map((w, i) => (
-                        <div key={i} style={{ height: 13, borderRadius: 6, background: C.border, marginBottom: 8, width: `${w}%` }} />
-                      ))}
-                    </div>
-                    <div>
-                      <div style={{ height: 13, borderRadius: 6, background: C.border, marginBottom: 8, width: "95%" }} />
-                      <div style={{ height: 13, borderRadius: 6, background: C.border, width: "60%" }} />
                     </div>
                   </div>
 
                   {/* Overlay */}
                   <div style={{
-                    position:   "absolute",
-                    inset:      0,
-                    background: "linear-gradient(to bottom, transparent 0%, rgba(9,9,11,0.85) 40%, rgba(9,9,11,0.98) 100%)",
-                    display:    "flex",
+                    position:      "absolute",
+                    inset:         0,
+                    background:    "linear-gradient(to bottom, transparent 0%, rgba(9,9,11,0.85) 40%, rgba(9,9,11,0.98) 100%)",
+                    display:       "flex",
                     flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
+                    alignItems:    "center",
+                    justifyContent:"flex-end",
                     paddingBottom: 8,
-                    borderRadius: 10,
+                    borderRadius:  10,
                   }}>
                     <div style={{ textAlign: "center", padding: "0 12px" }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: C.text1, margin: "0 0 6px" }}>
-                        You saw what's broken. Now fix it.
+                        This is how your experience should read for this role.
                       </p>
                       <p style={{ fontSize: 12.5, color: C.text3, margin: "0 0 16px", lineHeight: 1.6 }}>
-                        The full rewrite — missing signals, additional bullets, and positioning — is Pro only.
+                        Unlock the full rewrite — all job-aligned bullets ready to copy into your resume.
                       </p>
                       <Link
-                        href={isLoggedIn ? "/pricing" : "/signup"}
+                        href={isLoggedIn ? `/pricing?return_job=${jobId}` : `/signup?return_job=${jobId}`}
                         onClick={() => track("upgrade_clicked", { job_id: jobId, job_title: jobTitle, is_logged_in: isLoggedIn })}
                         style={{
-                          display:      "inline-flex",
-                          alignItems:   "center",
-                          gap:          7,
-                          fontSize:     13,
-                          fontWeight:   700,
-                          color:        "#000",
-                          background:   C.teal,
-                          padding:      "10px 22px",
-                          borderRadius: 9,
+                          display:        "inline-flex",
+                          alignItems:     "center",
+                          gap:            7,
+                          fontSize:       13,
+                          fontWeight:     700,
+                          color:          "#000",
+                          background:     C.teal,
+                          padding:        "10px 22px",
+                          borderRadius:   9,
                           textDecoration: "none",
                         }}
                       >
-                        {isLoggedIn ? "Upgrade to Pro" : "Get started free"}
+                        Unlock full resume
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>

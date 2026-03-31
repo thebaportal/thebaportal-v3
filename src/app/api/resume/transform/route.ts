@@ -182,30 +182,33 @@ export async function POST(request: Request) {
       "You talk about teams without showing what you personally drove",
     ];
 
-    // Generate
+    // Generate (retry once on parse failure)
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const prompt = buildPrompt(job, gaps, failures, raw_text);
 
-    const message = await client.messages.create({
-      model:      "claude-sonnet-4-6",
-      max_tokens: 1400,
-      messages:   [{ role: "user", content: prompt }],
-    });
+    async function callOnce(): Promise<TransformOutput | null> {
+      const message = await client.messages.create({
+        model:      "claude-sonnet-4-6",
+        max_tokens: 1400,
+        messages:   [{ role: "user", content: prompt }],
+      });
+      const text = message.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map(b => b.text)
+        .join("")
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```\s*$/, "")
+        .trim();
+      try {
+        const parsed = JSON.parse(text);
+        return validate(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
 
-    const raw = message.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map(b => b.text)
-      .join("")
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```\s*$/, "")
-      .trim();
-
-    let output: TransformOutput;
-    try {
-      const parsed = JSON.parse(raw);
-      if (!validate(parsed)) throw new Error("Invalid structure");
-      output = parsed;
-    } catch {
+    const output = (await callOnce()) ?? (await callOnce());
+    if (!output) {
       return NextResponse.json({ error: "Generation failed — please try again" }, { status: 422 });
     }
 

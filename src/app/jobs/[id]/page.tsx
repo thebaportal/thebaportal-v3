@@ -91,6 +91,23 @@ export default async function JobPage({ params }: Params) {
     isPro = profile?.subscription_tier === "pro";
   }
 
+  // Fetch latest saved transform for this user + job
+  type SavedTransform = { preview: { original: string; rewritten: string; whyItFails: string }[]; full: string[] };
+  let savedTransform: SavedTransform | null = null;
+  if (user) {
+    const { data: saved } = await admin
+      .from("resume_transformations")
+      .select("transformed_output")
+      .eq("user_id", user.id)
+      .eq("job_id", params.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    if (saved?.transformed_output) {
+      savedTransform = saved.transformed_output as SavedTransform;
+    }
+  }
+
   // Build insights: prefer AI cache, fall back to rule engine
   const ruleInsights = generateWinInsights(job as JobListing);
   const aiCache = job.win_insights as AIWinInsights | null;
@@ -134,6 +151,7 @@ export default async function JobPage({ params }: Params) {
           insights={winInsights}
           isLoggedIn={!!user}
           isPro={isPro}
+          savedTransform={savedTransform}
         />
       </div>
 

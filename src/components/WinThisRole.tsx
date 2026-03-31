@@ -34,14 +34,17 @@ const C = {
   text4:      "#475569",
 };
 
+type SavedTransform = { preview: { original: string; rewritten: string; whyItFails: string }[]; full: string[] };
+
 interface Props {
-  job:        JobListing;
-  insights:   WinInsights;
-  isLoggedIn: boolean;
-  isPro?:     boolean;
+  job:            JobListing;
+  insights:       WinInsights;
+  isLoggedIn:     boolean;
+  isPro?:         boolean;
+  savedTransform?: SavedTransform | null;
 }
 
-export default function WinThisRole({ job, insights, isLoggedIn, isPro }: Props) {
+export default function WinThisRole({ job, insights, isLoggedIn, isPro, savedTransform }: Props) {
   const { gapRows, failReasons, winSteps } = insights;
 
   const levelLabel =
@@ -241,6 +244,8 @@ export default function WinThisRole({ job, insights, isLoggedIn, isPro }: Props)
           jobId={job.id}
           jobTitle={job.title}
           isLoggedIn={isLoggedIn}
+          isPro={isPro ?? false}
+          savedTransform={savedTransform}
         />
 
         {/* ── 6. How to Win This Role ── */}
