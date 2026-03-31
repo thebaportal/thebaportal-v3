@@ -33,6 +33,23 @@ export async function POST(request: Request) {
   const subscription = event.data.object as Stripe.Subscription;
 
   switch (event.type) {
+    // Fires immediately on payment confirmation — use this to avoid timing race
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const userId = session.metadata?.supabase_user_id;
+      if (userId) {
+        await supabaseAdmin
+          .from("profiles")
+          .update({
+            subscription_tier:  "pro",
+            subscription_status: "active",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", userId);
+      }
+      break;
+    }
+
     case "customer.subscription.created":
     case "customer.subscription.updated": {
       const userId = subscription.metadata?.supabase_user_id;

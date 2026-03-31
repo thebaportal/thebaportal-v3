@@ -36,8 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
     }
 
-    const { billing } = await request.json();
-    console.log("Billing type:", billing);
+    const { billing, return_job } = await request.json();
+    console.log("Billing type:", billing, "Return job:", return_job);
 
     const priceId = billing === "annual"
       ? process.env.STRIPE_ANNUAL_PRICE_ID!
@@ -90,8 +90,12 @@ export async function POST(request: Request) {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${siteUrl()}/dashboard?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl()}/pricing?canceled=true`,
+      success_url: return_job
+        ? `${siteUrl()}/jobs/${return_job}?return=true&session_id={CHECKOUT_SESSION_ID}`
+        : `${siteUrl()}/dashboard?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: return_job
+        ? `${siteUrl()}/jobs/${return_job}?cancelled=true`
+        : `${siteUrl()}/pricing?canceled=true`,
       metadata: { supabase_user_id: user.id },
       subscription_data: {
         metadata: { supabase_user_id: user.id },

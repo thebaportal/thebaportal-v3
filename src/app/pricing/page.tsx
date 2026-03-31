@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { BookOpen, Check, Crown, Zap, ArrowLeft, Loader2 } from "lucide-react";
 
@@ -28,7 +28,9 @@ const proFeatures = [
 export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
-  const router = useRouter();
+  const router      = useRouter();
+  const searchParams = useSearchParams();
+  const returnJob   = searchParams.get("return_job");
 
   const monthlyPrice = 29;
   const annualPrice = 19;
@@ -40,7 +42,7 @@ export default function PricingPage() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billing }),
+        body: JSON.stringify({ billing, return_job: returnJob ?? undefined }),
       });
       const data = await res.json();
       if (data.url) {
