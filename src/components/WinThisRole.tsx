@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { JobListing, WinInsights } from "@/lib/jobInsights";
+import ResumeTransform from "@/components/ResumeTransform";
 
 function stripHtml(html: string): string {
   return html
@@ -37,9 +38,10 @@ interface Props {
   job:        JobListing;
   insights:   WinInsights;
   isLoggedIn: boolean;
+  isPro?:     boolean;
 }
 
-export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
+export default function WinThisRole({ job, insights, isLoggedIn, isPro }: Props) {
   const { gapRows, failReasons, winSteps } = insights;
 
   const levelLabel =
@@ -234,7 +236,14 @@ export default function WinThisRole({ job, insights, isLoggedIn }: Props) {
           </div>
         </section>
 
-        {/* ── 5. How to Win This Role ── */}
+        {/* ── 5. Resume Transform ── */}
+        <ResumeTransform
+          jobId={job.id}
+          jobTitle={job.title}
+          isLoggedIn={isLoggedIn}
+        />
+
+        {/* ── 6. How to Win This Role ── */}
         <section style={{ marginBottom: 52 }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text1, margin: "0 0 6px", letterSpacing: "-0.02em" }}>
             How to Win This Role

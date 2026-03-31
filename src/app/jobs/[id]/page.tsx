@@ -9,6 +9,12 @@ import { generateWinInsights } from "@/lib/jobInsights";
 import type { JobListing, WinInsights } from "@/lib/jobInsights";
 import type { AIWinInsights } from "@/lib/generateWinInsightsAI";
 
+const admin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
 interface Params { params: { id: string } }
 
 // ── Dynamic SEO metadata ──────────────────────────────────────────────────────
@@ -74,6 +80,17 @@ export default async function JobPage({ params }: Params) {
 
   if (!job) notFound();
 
+  // Check subscription
+  let isPro = false;
+  if (user) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("subscription_tier")
+      .eq("id", user.id)
+      .single();
+    isPro = profile?.subscription_tier === "pro";
+  }
+
   // Build insights: prefer AI cache, fall back to rule engine
   const ruleInsights = generateWinInsights(job as JobListing);
   const aiCache = job.win_insights as AIWinInsights | null;
@@ -116,6 +133,7 @@ export default async function JobPage({ params }: Params) {
           job={job as JobListing}
           insights={winInsights}
           isLoggedIn={!!user}
+          isPro={isPro}
         />
       </div>
 

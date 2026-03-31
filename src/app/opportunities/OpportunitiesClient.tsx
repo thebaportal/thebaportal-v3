@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Search, Briefcase, RefreshCw, AlertTriangle, X } from "lucide-react";
 import type { JobListing, PrepLink } from "@/lib/jobInsights";
 import JobDetailContent from "@/components/JobDetailContent";
+import { useAnalytics } from "@/lib/posthog";
 
 interface Props {
   initialJobs: JobListing[];
@@ -449,6 +450,7 @@ function generateAlexCardInsight(job: JobListing, cardIndex: number): string {
 
 export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError }: Props) {
   const router = useRouter();
+  const { track } = useAnalytics();
   const [keyword,     setKeyword]     = useState("");
   const [workType,    setWorkType]    = useState("all");
   const [level,       setLevel]       = useState("all");
@@ -739,6 +741,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Link
                       href={`/jobs/${job.id}`}
+                      onClick={() => track("win_this_role_clicked", { job_id: job.id, job_title: job.title })}
                       style={{ display: "block", textAlign: "center", padding: "10px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, background: C.teal, color: "#000", textDecoration: "none", letterSpacing: "-0.01em" }}
                     >
                       See how to win this role
@@ -748,6 +751,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                         href={apply.href}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => track("apply_clicked", { job_id: job.id, job_title: job.title })}
                         style={{ display: "block", textAlign: "center", padding: "9px 0", borderRadius: 9, fontSize: 13, fontWeight: 500, background: "transparent", color: "#64748B", textDecoration: "none", border: "1px solid #E2E8F0" }}
                       >
                         {apply.label}
