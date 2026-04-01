@@ -72,7 +72,7 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
   const searchParams = useSearchParams();
   const [rightColOpen, setRightColOpen] = useState(false);
 
-  // On mount: if returning from Stripe, verify the session and reload for fresh Pro state
+  // On mount: if returning from Stripe, verify the session and hard-reload for fresh Pro state
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
     const upgrade   = searchParams.get("upgrade");
@@ -83,14 +83,15 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: sessionId }),
     })
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        const data = await res.json();
+        console.log("[dashboard] verify-session response:", res.status, data);
         if (data.success) {
-          // Reload without query params so the page shows fresh Pro data
-          router.replace("/dashboard");
+          // Hard reload — bypasses Next.js router cache, gets fresh server data
+          window.location.href = "/dashboard";
         }
       })
-      .catch(err => console.error("[dashboard] verify-session error:", err));
+      .catch(err => console.error("[dashboard] verify-session fetch error:", err));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
