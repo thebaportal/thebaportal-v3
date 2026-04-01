@@ -45,9 +45,12 @@ export async function POST(request: Request) {
 
     console.log("Using price ID:", priceId);
 
+    console.log("[checkout] service role key present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY, "prefix:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10));
+
     const supabaseAdmin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
     // Use supabaseAdmin to read profile (bypasses RLS)
@@ -76,7 +79,7 @@ export async function POST(request: Request) {
         .eq("id", user.id);
 
       if (updateError) {
-        console.error("Failed to save stripe_customer_id:", updateError.message);
+        console.error("Failed to save stripe_customer_id:", updateError.message, "| code:", updateError.code, "| details:", updateError.details, "| hint:", updateError.hint);
       } else {
         console.log("stripe_customer_id saved successfully");
       }

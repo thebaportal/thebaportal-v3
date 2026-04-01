@@ -9,9 +9,12 @@ export async function POST(request: Request) {
     apiVersion: "2026-02-25.clover",
   });
 
+  console.log("[webhook] service role key present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY, "prefix:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10));
+
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
   const body = await request.text();
