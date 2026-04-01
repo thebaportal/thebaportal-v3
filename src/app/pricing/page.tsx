@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { BookOpen, Check, Crown, Zap, ArrowLeft, Loader2 } from "lucide-react";
@@ -25,7 +25,7 @@ const proFeatures = [
   "New content added monthly",
 ];
 
-export default function PricingPage() {
+function PricingInner() {
   const [loading, setLoading] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const router      = useRouter();
@@ -331,5 +331,13 @@ export default function PricingPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense>
+      <PricingInner />
+    </Suspense>
   );
 }
