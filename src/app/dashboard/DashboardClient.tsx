@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ChevronRight, ChevronUp, ArrowRight, Bell,
@@ -69,13 +69,13 @@ const HERO_IMG = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w
 
 export default function DashboardClient({ profile, user, upgradeSuccess, emailConfirmed, stats }: DashboardClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [rightColOpen, setRightColOpen] = useState(false);
 
-  // On mount: if returning from Stripe, verify the session and hard-reload for fresh Pro state
+  // On mount: read params directly from the URL (useSearchParams is unreliable inside Suspense)
   useEffect(() => {
-    const sessionId = searchParams.get("session_id");
-    const upgrade   = searchParams.get("upgrade");
+    const params    = new URLSearchParams(window.location.search);
+    const upgrade   = params.get("upgrade");
+    const sessionId = params.get("session_id");
     if (upgrade !== "success" || !sessionId) return;
 
     fetch("/api/stripe/verify-session", {
@@ -87,12 +87,10 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
         const data = await res.json();
         console.log("[dashboard] verify-session response:", res.status, data);
         if (data.success) {
-          // Hard reload — bypasses Next.js router cache, gets fresh server data
           window.location.href = "/dashboard";
         }
       })
       .catch(err => console.error("[dashboard] verify-session fetch error:", err));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isPro     = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
