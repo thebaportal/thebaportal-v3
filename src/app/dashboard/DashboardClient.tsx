@@ -70,6 +70,9 @@ const HERO_IMG = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w
 export default function DashboardClient({ profile, user, upgradeSuccess, emailConfirmed, stats }: DashboardClientProps) {
   const router = useRouter();
   const [rightColOpen, setRightColOpen] = useState(false);
+  const [isPro, setIsPro] = useState(
+    profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise"
+  );
 
   // On mount: read params directly from the URL (useSearchParams is unreliable inside Suspense)
   useEffect(() => {
@@ -87,13 +90,12 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
         const data = await res.json();
         console.log("[dashboard] verify-session response:", res.status, data);
         if (data.success) {
-          window.location.href = "/dashboard";
+          setIsPro(true);
+          window.history.replaceState({}, "", "/dashboard");
         }
       })
       .catch(err => console.error("[dashboard] verify-session fetch error:", err));
   }, []);
-
-  const isPro     = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
   const firstName = profile?.full_name?.split(" ")[0] || "there";
 
   const { progress, skills, levelInfo, badges, attempts } = stats;
@@ -108,7 +110,7 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
 
-      <AppSidebar activeHref="/dashboard" profile={profile} user={user} />
+      <AppSidebar activeHref="/dashboard" profile={isPro ? { ...profile, subscription_tier: "pro" } : profile} user={user} />
 
       {/* MAIN */}
       <main className="flex-1 overflow-y-auto">
