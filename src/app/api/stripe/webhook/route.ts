@@ -42,16 +42,9 @@ export async function POST(request: Request) {
       const userId = session.metadata?.supabase_user_id;
       console.log("[webhook] checkout.session.completed — userId:", userId, "session status:", session.status);
       if (userId) {
-        const { error } = await supabaseAdmin
-          .from("profiles")
-          .update({
-            subscription_tier:  "pro",
-            subscription_status: "active",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", userId);
+        const { error } = await supabaseAdmin.rpc("activate_pro_subscription", { p_user_id: userId });
         if (error) {
-          console.error("[webhook] profiles update failed:", error.message, error.details);
+          console.error("[webhook] activate_pro_subscription failed:", error.message, error.details);
         } else {
           console.log("[webhook] subscription_tier set to pro for user:", userId);
         }

@@ -31,10 +31,8 @@ export default async function DashboardPage({
       // Accept any complete session — metadata match is a nice-to-have but
       // the session_id itself is not guessable and the user is authenticated.
       if (session.status === "complete") {
-        await admin
-          .from("profiles")
-          .update({ subscription_tier: "pro", updated_at: new Date().toISOString() })
-          .eq("id", user.id);
+        const { error: rpcError } = await admin.rpc("activate_pro_subscription", { p_user_id: user.id });
+        if (rpcError) console.error("[dashboard] activate_pro_subscription failed:", rpcError.message);
       }
     } catch (err) {
       console.error("[dashboard] Stripe session verify failed:", err);

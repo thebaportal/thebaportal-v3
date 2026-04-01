@@ -92,11 +92,12 @@ export default async function JobPage({ params, searchParams }: Params) {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" });
       const session = await stripe.checkout.sessions.retrieve(searchParams.session_id);
       if (session.status === "complete") {
-        await admin
-          .from("profiles")
-          .update({ subscription_tier: "pro", updated_at: new Date().toISOString() })
-          .eq("id", user.id);
-        console.log("[jobs/page] Stripe session verified — subscription_tier set to pro for user:", user.id);
+        const { error: rpcError } = await admin.rpc("activate_pro_subscription", { p_user_id: user.id });
+        if (rpcError) {
+          console.error("[jobs/page] activate_pro_subscription failed:", rpcError.message);
+        } else {
+          console.log("[jobs/page] subscription_tier set to pro for user:", user.id);
+        }
       }
     } catch (err) {
       console.error("[jobs/page] Stripe session verify failed:", err);
