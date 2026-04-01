@@ -6,6 +6,7 @@ import { cookies }            from "next/headers";
 import { notFound }           from "next/navigation";
 import Link                   from "next/link";
 import type { Metadata }      from "next";
+import Stripe                 from "stripe";
 import WinThisRole            from "@/components/WinThisRole";
 import { generateWinInsights } from "@/lib/jobInsights";
 import type { JobListing, WinInsights } from "@/lib/jobInsights";
@@ -17,7 +18,10 @@ const admin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-interface Params { params: { id: string } }
+interface Params {
+  params: { id: string };
+  searchParams: { return?: string; session_id?: string; cancelled?: string };
+}
 
 // ── Dynamic SEO metadata ──────────────────────────────────────────────────────
 
@@ -59,7 +63,7 @@ const C = {
   text4:      "#475569",
 };
 
-export default async function JobPage({ params }: Params) {
+export default async function JobPage({ params, searchParams }: Params) {
   // Auth check (optional — no redirect)
   const cookieStore = cookies();
   const supabase = createServerClient(
@@ -81,6 +85,23 @@ export default async function JobPage({ params }: Params) {
     .single();
 
   if (!job) notFound();
+
+  // If returning from Stripe, verify the session and write Pro immediately (don't wait on webhook)
+  if (user && searchParams.return === "true" && searchParams.session_id) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" });
+      const session = await stripe.checkout.sessions.retrieve(searchParams.session_id);
+      if (session.status === "complete") {
+        await admin
+          .from("profiles")
+          .update({ subscription_tier: "pro", updated_at: new Date().toISOString() })
+          .eq("id", user.id);
+        console.log("[jobs/page] Stripe session verified — subscription_tier set to pro for user:", user.id);
+      }
+    } catch (err) {
+      console.error("[jobs/page] Stripe session verify failed:", err);
+    }
+  }
 
   // Check subscription
   let isPro = false;

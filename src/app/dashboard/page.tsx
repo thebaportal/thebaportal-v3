@@ -8,7 +8,7 @@ import { getUserStats } from "@/lib/progress-server";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { upgrade?: string; session_id?: string };
+  searchParams: { upgrade?: string; session_id?: string; confirmed?: string };
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -66,6 +66,7 @@ export default async function DashboardPage({
       profile={profile}
       user={{ email: user.email || "" }}
       upgradeSuccess={searchParams.upgrade === "success"}
+      emailConfirmed={searchParams.confirmed === "true"}
       stats={stats}
     />
   );

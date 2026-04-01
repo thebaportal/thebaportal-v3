@@ -24,6 +24,7 @@ interface DashboardClientProps {
   profile: { full_name: string | null; subscription_tier: string | null } | null;
   user: { email: string };
   upgradeSuccess?: boolean;
+  emailConfirmed?: boolean;
   stats: Stats;
 }
 
@@ -66,7 +67,7 @@ const featuredChallenges = [
 const HERO_IMG = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1400&q=80";
 
 
-export default function DashboardClient({ profile, user, upgradeSuccess, stats }: DashboardClientProps) {
+export default function DashboardClient({ profile, user, upgradeSuccess, emailConfirmed, stats }: DashboardClientProps) {
   const router = useRouter();
   const [rightColOpen, setRightColOpen] = useState(false);
 
@@ -106,6 +107,13 @@ export default function DashboardClient({ profile, user, upgradeSuccess, stats }
         </header>
 
         <div className="px-8 py-8" style={{ maxWidth: "1100px" }}>
+
+          {emailConfirmed && (
+            <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="portal-card-static px-6 py-4 flex items-center gap-3 mb-6" style={{ borderColor: "var(--teal-border)", background: "var(--teal-soft)" }}>
+              <div className="teal-dot" />
+              <p style={{ fontWeight: 600, fontSize: "14px", color: "var(--teal)" }}>Email confirmed. You are all set.</p>
+            </motion.div>
+          )}
 
           {upgradeSuccess && (
             <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="portal-card-static px-6 py-4 flex items-center gap-3 mb-6" style={{ borderColor: "var(--teal-border)", background: "var(--teal-soft)" }}>
