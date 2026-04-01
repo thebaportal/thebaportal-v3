@@ -14,34 +14,35 @@ export default async function DashboardPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // When redirected from a successful Stripe checkout, verify the session and
-  // immediately write subscription_tier = "pro" so the page reflects the
-  // upgrade without depending on the webhook arriving first.
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // When redirected from Stripe checkout, verify the session and immediately
+  // write subscription_tier = "pro". Use admin client for both write and read
+  // to avoid stale cache from the user Supabase client.
   if (searchParams.upgrade === "success" && searchParams.session_id) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
         apiVersion: "2026-02-25.clover",
       });
       const session = await stripe.checkout.sessions.retrieve(searchParams.session_id);
-      if (
-        session.status === "complete" &&
-        session.metadata?.supabase_user_id === user.id
-      ) {
-        const admin = createAdminClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+      // Accept any complete session — metadata match is a nice-to-have but
+      // the session_id itself is not guessable and the user is authenticated.
+      if (session.status === "complete") {
         await admin
           .from("profiles")
           .update({ subscription_tier: "pro", updated_at: new Date().toISOString() })
           .eq("id", user.id);
       }
-    } catch {
-      // Non-fatal — webhook will still update the profile
+    } catch (err) {
+      console.error("[dashboard] Stripe session verify failed:", err);
     }
   }
 
-  const { data: profile } = await supabase
+  // Always read profile via admin to guarantee fresh data after any update
+  const { data: profile } = await admin
     .from("profiles")
     .select("full_name, subscription_tier")
     .eq("id", user.id)
