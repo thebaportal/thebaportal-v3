@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServerClient } from "@supabase/ssr";
 import { createClient }       from "@supabase/supabase-js";
 import { cookies }            from "next/headers";
@@ -89,13 +91,14 @@ export default async function JobPage({ params }: Params) {
       .eq("id", user.id)
       .single();
     isPro = profile?.subscription_tier === "pro";
+    console.log("[jobs/page] user:", user.id, "subscription_tier:", profile?.subscription_tier, "isPro:", isPro);
   }
 
   // Fetch latest saved transform for this user + job
   type SavedTransform = { preview: { original: string; rewritten: string; whyItFails: string }[]; full: string[] };
   let savedTransform: SavedTransform | null = null;
   if (user) {
-    const { data: saved } = await admin
+    const { data: saved, error: savedErr } = await admin
       .from("resume_transformations")
       .select("transformed_output")
       .eq("user_id", user.id)
@@ -103,6 +106,7 @@ export default async function JobPage({ params }: Params) {
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
+    if (savedErr) console.log("[jobs/page] savedTransform query:", savedErr.message);
     if (saved?.transformed_output) {
       savedTransform = saved.transformed_output as SavedTransform;
     }

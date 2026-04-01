@@ -37,8 +37,9 @@ export async function POST(request: Request) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.supabase_user_id;
+      console.log("[webhook] checkout.session.completed — userId:", userId, "session status:", session.status);
       if (userId) {
-        await supabaseAdmin
+        const { error } = await supabaseAdmin
           .from("profiles")
           .update({
             subscription_tier:  "pro",
@@ -46,6 +47,13 @@ export async function POST(request: Request) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", userId);
+        if (error) {
+          console.error("[webhook] profiles update failed:", error.message, error.details);
+        } else {
+          console.log("[webhook] subscription_tier set to pro for user:", userId);
+        }
+      } else {
+        console.warn("[webhook] checkout.session.completed — no supabase_user_id in metadata. Session metadata:", session.metadata);
       }
       break;
     }
