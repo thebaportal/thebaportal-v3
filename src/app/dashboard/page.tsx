@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import Stripe from "stripe";
 import DashboardClient from "./DashboardClient";
 import { getUserStats } from "@/lib/progress-server";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage({
   searchParams,
@@ -16,30 +18,11 @@ export default async function DashboardPage({
 
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // When redirected from Stripe checkout, verify the session and immediately
-  // write subscription_tier = "pro". Use admin client for both write and read
-  // to avoid stale cache from the user Supabase client.
-  if (searchParams.upgrade === "success" && searchParams.session_id) {
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2026-02-25.clover",
-      });
-      const session = await stripe.checkout.sessions.retrieve(searchParams.session_id);
-      // Accept any complete session — metadata match is a nice-to-have but
-      // the session_id itself is not guessable and the user is authenticated.
-      if (session.status === "complete") {
-        const { error: rpcError } = await admin.rpc("activate_pro_subscription", { p_user_id: user.id });
-        if (rpcError) console.error("[dashboard] activate_pro_subscription failed:", rpcError.message);
-      }
-    } catch (err) {
-      console.error("[dashboard] Stripe session verify failed:", err);
-    }
-  }
-
-  // Always read profile via admin to guarantee fresh data after any update
+  // Profile is read fresh on every load — Pro state is set via /api/stripe/verify-session
   const { data: profile } = await admin
     .from("profiles")
     .select("full_name, subscription_tier")
@@ -60,12 +43,14 @@ export default async function DashboardPage({
   }
 
   return (
-    <DashboardClient
-      profile={profile}
-      user={{ email: user.email || "" }}
-      upgradeSuccess={searchParams.upgrade === "success"}
-      emailConfirmed={searchParams.confirmed === "true"}
-      stats={stats}
-    />
+    <Suspense>
+      <DashboardClient
+        profile={profile}
+        user={{ email: user.email || "" }}
+        upgradeSuccess={searchParams.upgrade === "success"}
+        emailConfirmed={searchParams.confirmed === "true"}
+        stats={stats}
+      />
+    </Suspense>
   );
 }

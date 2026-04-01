@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ChevronRight, ChevronUp, ArrowRight, Bell,
@@ -69,7 +69,30 @@ const HERO_IMG = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w
 
 export default function DashboardClient({ profile, user, upgradeSuccess, emailConfirmed, stats }: DashboardClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [rightColOpen, setRightColOpen] = useState(false);
+
+  // On mount: if returning from Stripe, verify the session and reload for fresh Pro state
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    const upgrade   = searchParams.get("upgrade");
+    if (upgrade !== "success" || !sessionId) return;
+
+    fetch("/api/stripe/verify-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Reload without query params so the page shows fresh Pro data
+          router.replace("/dashboard");
+        }
+      })
+      .catch(err => console.error("[dashboard] verify-session error:", err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isPro     = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
   const firstName = profile?.full_name?.split(" ")[0] || "there";
