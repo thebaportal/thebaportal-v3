@@ -10,7 +10,7 @@ import {
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard,    label: "Dashboard",      href: "/dashboard" },
-  { icon: BookOpen,           label: "Challenges",     href: "/scenarios" },
+  { icon: BookOpen,           label: "Simulation Lab", href: "/scenarios" },
   { icon: TrendingUp,         label: "Progress",       href: "/progress" },
   { icon: GraduationCap,      label: "Learning",       href: "/learning" },
   { icon: Mic,                label: "PitchReady",     href: "/pitchready" },

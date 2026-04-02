@@ -292,7 +292,7 @@ function ChallengeCard({ challenge, isPro, isRecommended, onClick }: {
           border: "1px solid rgba(31,191,159,0.22)",
           transition: "background 0.2s, color 0.2s",
         }}>
-          Practice this scenario
+          Start Simulation
           <ArrowRight size={13} />
         </div>
       )}
@@ -445,10 +445,10 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
               letterSpacing: "-0.03em", color: "var(--text-1)",
               marginBottom: 10, lineHeight: 1.1,
             }}>
-              Challenges
+              BA Simulation Lab
             </h1>
             <p style={{ fontSize: 16, color: "var(--text-2)", lineHeight: 1.6 }}>
-              Real scenarios. Real deliverables. Scored by Alex Rivera.
+              Practice real BA scenarios. Get scored. Know exactly where you stand.
             </p>
           </div>
 

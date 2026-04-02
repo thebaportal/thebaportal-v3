@@ -91,9 +91,17 @@ interface ValidationResult {
   }[];
 }
 
+interface RelatedJob {
+  id: string;
+  title: string;
+  company: string | null;
+  location: string | null;
+}
+
 interface ChallengeClientProps {
   challenge: Challenge;
   mode: string;
+  relatedJobs?: RelatedJob[];
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -202,7 +210,7 @@ function renderDeliverable(text: string, fontSize: string, color: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ChallengeClient({ challenge, mode: initialMode }: ChallengeClientProps) {
+export default function ChallengeClient({ challenge, mode: initialMode, relatedJobs = [] }: ChallengeClientProps) {
   const router = useRouter();
 
   const isElicitation = challenge.type === "elicitation";
@@ -644,6 +652,12 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                 </div>
               </div>
 
+              {/* Interview framing */}
+              <div style={{ marginBottom: "12px", padding: "8px 14px", borderRadius: "8px", background: "rgba(31,191,159,0.05)", border: "1px solid rgba(31,191,159,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--teal)" }}>You are now in a stakeholder interview. Ask like a real BA.</span>
+                <span style={{ fontSize: "11px", color: "var(--text-4)" }}>If your questions are vague, stakeholders will push back.</span>
+              </div>
+
               {/* Stakeholder header */}
               {activeStakeholder && (
                 <div style={{
@@ -684,7 +698,7 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                       Start by asking {activeStakeholder?.name?.split(" ")[0]} a question
                     </p>
                     <p style={{ fontSize: "13px", color: "var(--text-4)" }}>
-                      Use your interview to uncover the root cause of the business problem.
+                      Vague questions get vague answers. Ask with intent.
                     </p>
                   </div>
                 )}
@@ -1105,6 +1119,14 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                     })}
                   </div>
 
+                  {/* Low score reality check */}
+                  {evalResult.totalScore < 60 && (
+                    <div style={{ marginBottom: "20px", padding: "12px 18px", borderRadius: "10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.18)" }}>
+                      <div style={{ fontSize: "13.5px", fontWeight: 700, color: "#ef4444", marginBottom: "3px" }}>This would not pass in a real BA setting.</div>
+                      <div style={{ fontSize: "12.5px", color: "var(--text-3)" }}>Here is exactly why.</div>
+                    </div>
+                  )}
+
                   {/* Alex Rivera */}
                   <div style={{ padding: "28px 32px", borderRadius: "18px", background: "var(--card)", border: "1px solid var(--border)", marginBottom: "28px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
@@ -1126,10 +1148,35 @@ export default function ChallengeClient({ challenge, mode: initialMode }: Challe
                     </div>
                   </div>
 
+                  {/* Related jobs */}
+                  {relatedJobs.length > 0 && (
+                    <div style={{ marginBottom: "28px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: "12px" }}>
+                        Roles that expect this level
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        {relatedJobs.map(job => (
+                          <div key={job.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px 16px", background: "var(--card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.title}</div>
+                              <div style={{ fontSize: "12px", color: "var(--text-3)" }}>{job.company}{job.location ? ` · ${job.location}` : ""}</div>
+                            </div>
+                            <a href={`/jobs/${job.id}`} style={{ flexShrink: 0, fontSize: "12px", fontWeight: 600, color: "var(--teal)", textDecoration: "none", whiteSpace: "nowrap", padding: "6px 12px", borderRadius: "7px", border: "1px solid rgba(31,191,159,0.25)", background: "rgba(31,191,159,0.05)" }}>
+                              See how to win this role
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Actions */}
+                  <p style={{ fontSize: "12px", color: "var(--text-4)", textAlign: "center", margin: "0 0 12px", fontStyle: "italic" }}>
+                    Strong candidates refine. They don&apos;t submit once.
+                  </p>
                   <div style={{ display: "flex", gap: "12px" }}>
                     <button onClick={() => { setEvalResult(null); setSubmission(""); }} className="btn-outline" style={{ flex: 1, justifyContent: "center", padding: "13px" }}>
-                      <RotateCcw className="w-4 h-4" />Revise & Resubmit
+                      <RotateCcw className="w-4 h-4" />Fix your answer and resubmit
                     </button>
                     {isElicitation ? (
                       <button onClick={() => setActiveTab("validate")} className="btn-teal" style={{ flex: 1, justifyContent: "center", padding: "13px" }}>
