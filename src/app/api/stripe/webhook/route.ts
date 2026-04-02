@@ -58,11 +58,16 @@ export async function POST(request: Request) {
     case "customer.subscription.updated": {
       const userId = subscription.metadata?.supabase_user_id;
       if (userId) {
+        const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end === true;
+        // Keep pro access if active OR if the user cancelled but still has paid time remaining
+        const tier = (subscription.status === "active" || cancelAtPeriodEnd) ? "pro" : "free";
+        // Surface "canceled" status in the UI when cancellation is scheduled, even though Stripe still calls it "active"
+        const status = cancelAtPeriodEnd ? "canceled" : subscription.status;
         await supabaseAdmin
           .from("profiles")
           .update({
-            subscription_tier: subscription.status === "active" ? "pro" : "free",
-            subscription_status: subscription.status,
+            subscription_tier: tier,
+            subscription_status: status,
             stripe_subscription_id: subscription.id,
             subscription_current_period_end: (subscription as any).current_period_end
               ? new Date((subscription as any).current_period_end * 1000).toISOString()
@@ -75,6 +80,7 @@ export async function POST(request: Request) {
     }
 
     case "customer.subscription.deleted": {
+      // Fires at actual period end — safe to revoke access now
       const userId = subscription.metadata?.supabase_user_id;
       if (userId) {
         await supabaseAdmin
@@ -83,6 +89,7 @@ export async function POST(request: Request) {
             subscription_tier: "free",
             subscription_status: "canceled",
             stripe_subscription_id: null,
+            subscription_current_period_end: null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", userId);
