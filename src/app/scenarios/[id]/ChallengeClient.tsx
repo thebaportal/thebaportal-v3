@@ -610,7 +610,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               style={{
                 flex: 1, display: "flex", flexDirection: "column",
                 minHeight: 0, position: "relative",
-                maxWidth: "1100px", margin: "0 auto", width: "100%", padding: "0 32px",
+                width: "100%", padding: "0 clamp(16px, 4vw, 48px)",
               }}
             >
               {/* Stakeholder tabs */}
@@ -700,7 +700,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               )}
 
               {/* Chat */}
-              <div style={{ height: "55vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: "22px", padding: "16px", border: "1px solid var(--border)", borderRadius: "14px", background: "var(--card)" }}>
+              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "22px", padding: "16px", border: "1px solid var(--border)", borderRadius: "14px", background: "var(--card)" }}>
                 {currentMessages.length === 0 && (
                   <div style={{ textAlign: "center", padding: "56px 24px" }}>
                     <User className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--text-4)" }} />
@@ -836,14 +836,15 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                   placeholder={`Ask ${activeStakeholder?.name?.split(" ")[0] || "stakeholder"} a question...`}
-                  rows={2}
+                  rows={3}
                   style={{
-                    flex: 1, padding: "14px 20px", borderRadius: "12px",
+                    flex: 1, padding: "16px 20px", borderRadius: "12px",
                     border: "1px solid var(--border)", background: "var(--card)",
                     color: "var(--text-1)", fontSize: "15px",
                     fontFamily: "'Open Sans', sans-serif",
                     resize: "none", outline: "none", lineHeight: 1.6,
-                    transition: "border-color 0.15s", maxHeight: "140px", overflowY: "auto",
+                    transition: "border-color 0.15s", maxHeight: "160px", overflowY: "auto",
+                    width: "100%",
                   }}
                   onFocus={e => (e.target.style.borderColor = "rgba(31,191,159,0.3)")}
                   onBlur={e => (e.target.style.borderColor = "var(--border)")}
