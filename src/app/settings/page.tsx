@@ -16,13 +16,17 @@ export default async function SettingsPage() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  const { data: profile, error: profileError } = await admin
+  const profileResult = await admin
     .from("profiles")
     .select("full_name, subscription_tier")
     .eq("id", user.id)
     .single();
 
-  if (profileError) console.error("[settings] profile read error:", profileError.message, profileError.code, profileError.details);
+  console.log("[settings] raw profile result:", JSON.stringify(profileResult));
+
+  const profile = profileResult.data;
+  const profileError = profileResult.error;
+  if (profileError) console.error("[settings] profile read error:", profileError.message, profileError.code);
 
   const isPro = profile?.subscription_tier === "pro";
 
