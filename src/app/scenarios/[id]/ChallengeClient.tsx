@@ -502,6 +502,16 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               transition={{ duration: 0.2 }}
               style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px 60px" }}
             >
+              {/* Framing banner */}
+              <div style={{ marginBottom: "28px", padding: "16px 22px", borderRadius: "12px", background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.14)" }}>
+                <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-1)", marginBottom: "4px" }}>
+                  You are the Business Analyst responsible for this decision.
+                </div>
+                <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
+                  Your output will be evaluated like a real deliverable.
+                </div>
+              </div>
+
               <div style={{ marginBottom: "32px" }}>
                 <div className="type-label" style={{ marginBottom: "12px" }}>Select Difficulty Mode</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
@@ -600,7 +610,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               style={{
                 flex: 1, display: "flex", flexDirection: "column",
                 minHeight: 0, position: "relative",
-                maxWidth: "820px", margin: "0 auto", width: "100%", padding: "0 24px",
+                maxWidth: "1100px", margin: "0 auto", width: "100%", padding: "0 32px",
               }}
             >
               {/* Stakeholder tabs */}
@@ -690,12 +700,12 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               )}
 
               {/* Chat */}
-              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: "8px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: "8px", display: "flex", flexDirection: "column", gap: "22px" }}>
                 {currentMessages.length === 0 && (
-                  <div style={{ textAlign: "center", padding: "48px 24px" }}>
+                  <div style={{ textAlign: "center", padding: "56px 24px" }}>
                     <User className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--text-4)" }} />
-                    <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-3)", marginBottom: "6px" }}>
-                      Start by asking {activeStakeholder?.name?.split(" ")[0]} a question
+                    <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-2)", marginBottom: "8px" }}>
+                      Start the interview. Weak questions will slow you down.
                     </p>
                     <p style={{ fontSize: "13px", color: "var(--text-4)" }}>
                       Vague questions get vague answers. Ask with intent.
@@ -720,11 +730,11 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                         </div>
                       )}
                       <div style={{
-                        maxWidth: "72%", padding: "13px 18px",
+                        maxWidth: "74%", padding: "15px 22px",
                         borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                        background: isUser ? "rgba(31,191,159,0.08)" : "var(--card)",
-                        border: `1px solid ${isUser ? "rgba(31,191,159,0.2)" : "var(--border)"}`,
-                        fontSize: "15px", lineHeight: 1.65, color: "var(--text-1)",
+                        background: isUser ? "rgba(31,191,159,0.08)" : "rgba(255,255,255,0.06)",
+                        border: `1px solid ${isUser ? "rgba(31,191,159,0.2)" : "rgba(255,255,255,0.1)"}`,
+                        fontSize: "15px", lineHeight: 1.7, color: "var(--text-1)",
                       }}>
                         {msg.content}
                       </div>
@@ -782,7 +792,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                   onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
                 >
                   <Lightbulb className="w-3.5 h-3.5" style={{ color: "#fb923c" }} />
-                  <span style={{ flex: 1, textAlign: "left" }}>Not sure what to ask? View hints</span>
+                  <span style={{ flex: 1, textAlign: "left" }}>Need direction? See what strong BAs ask.</span>
                   <ChevronDown className="w-3.5 h-3.5" style={{ transform: showHints ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                 </button>
                 <AnimatePresence>
@@ -796,16 +806,19 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                       <p style={{ fontSize: "13px", color: "var(--text-3)", marginBottom: "10px", fontWeight: 600 }}>
                         Hints to guide your investigation:
                       </p>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "10px" }}>
+                        Strong BAs ask about:
+                      </div>
                       <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
                         {hints.map((hint, i) => (
                           <li key={i} onClick={() => { setInputValue(hint); setShowHints(false); }} style={{
                             fontSize: "13px", color: "var(--text-2)",
-                            paddingBottom: i < hints.length - 1 ? "8px" : 0,
-                            marginBottom: i < hints.length - 1 ? "8px" : 0,
+                            paddingBottom: i < hints.length - 1 ? "10px" : 0,
+                            marginBottom: i < hints.length - 1 ? "10px" : 0,
                             borderBottom: i < hints.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                            cursor: "pointer",
+                            cursor: "pointer", lineHeight: 1.5,
                           }}>
-                            → {hint}
+                            {hint}
                           </li>
                         ))}
                       </ul>
@@ -815,20 +828,22 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               </div>
 
               {/* Input */}
-              <div style={{ flexShrink: 0, padding: "14px 0 20px", display: "flex", gap: "10px", alignItems: "flex-end" }}>
+              <div style={{ flexShrink: 0, padding: "16px 0 24px" }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>Your question</div>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
                 <textarea
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                   placeholder={`Ask ${activeStakeholder?.name?.split(" ")[0] || "stakeholder"} a question...`}
-                  rows={1}
+                  rows={2}
                   style={{
-                    flex: 1, padding: "13px 18px", borderRadius: "12px",
+                    flex: 1, padding: "14px 20px", borderRadius: "12px",
                     border: "1px solid var(--border)", background: "var(--card)",
                     color: "var(--text-1)", fontSize: "15px",
                     fontFamily: "'Open Sans', sans-serif",
-                    resize: "none", outline: "none", lineHeight: 1.5,
-                    transition: "border-color 0.15s", maxHeight: "120px", overflowY: "auto",
+                    resize: "none", outline: "none", lineHeight: 1.6,
+                    transition: "border-color 0.15s", maxHeight: "140px", overflowY: "auto",
                   }}
                   onFocus={e => (e.target.style.borderColor = "rgba(31,191,159,0.3)")}
                   onBlur={e => (e.target.style.borderColor = "var(--border)")}
@@ -842,6 +857,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                 }}>
                   <Send className="w-4 h-4" style={{ color: inputValue.trim() ? "#05120f" : "var(--text-4)" }} />
                 </button>
+                </div>
               </div>
 
               {/* Summary Overlay */}
@@ -1016,6 +1032,10 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                   </div>
 
                   <div>
+                    <div style={{ marginBottom: "14px", padding: "12px 16px", borderRadius: "10px", background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.12)" }}>
+                      <div style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--text-1)", marginBottom: "2px" }}>This is your final recommendation. Be precise.</div>
+                      <div style={{ fontSize: "12.5px", color: "var(--text-3)" }}>Reference your stakeholder conversations. Name specific insights and decisions.</div>
+                    </div>
                     <div className="type-label" style={{ marginBottom: "12px" }}>Your Submission</div>
                     <textarea
                       value={submission}
@@ -1034,8 +1054,10 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                     />
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px" }}>
                       <span style={{ fontSize: "12px", color: "var(--text-3)" }}>{submission.length} characters</span>
-                      {submission.length > 0 && submission.length < 200 && (
+                      {submission.length > 0 && submission.length < 200 ? (
                         <span style={{ fontSize: "12px", color: "#fb923c" }}>Write more — aim for 300+ characters</span>
+                      ) : (
+                        <span style={{ fontSize: "12px", color: "var(--text-4)", fontStyle: "italic" }}>Weak structure = weak evaluation</span>
                       )}
                     </div>
                     {evalError && (
@@ -1072,10 +1094,11 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                   }}>
                     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse at 80% 50%, ${scoreColor(evalResult.totalScore)}08 0%, transparent 60%)` }} />
                     <div style={{ position: "relative" }}>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "6px" }}>Evaluation Score</div>
                       <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "56px", color: scoreColor(evalResult.totalScore), letterSpacing: "-0.04em", lineHeight: 1 }}>
                         {evalResult.totalScore}
                       </div>
-                      <div style={{ fontSize: "14px", color: "var(--text-3)", marginTop: "4px" }}>out of 100</div>
+                      <div style={{ fontSize: "14px", color: "var(--text-3)", marginTop: "4px" }}>/ 100</div>
                     </div>
                     <div style={{ flex: 1, position: "relative" }}>
                       <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "20px", color: "var(--text-1)", marginBottom: "8px", letterSpacing: "-0.02em" }}>
