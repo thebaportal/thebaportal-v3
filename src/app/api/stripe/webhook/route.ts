@@ -69,6 +69,7 @@ export async function POST(request: Request) {
             subscription_tier: tier,
             subscription_status: status,
             stripe_subscription_id: subscription.id,
+            stripe_customer_id: typeof subscription.customer === "string" ? subscription.customer : null,
             subscription_current_period_end: (subscription as any).current_period_end
               ? new Date((subscription as any).current_period_end * 1000).toISOString()
               : null,
