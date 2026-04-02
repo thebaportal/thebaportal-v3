@@ -614,90 +614,48 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               }}
             >
               {/* Stakeholder tabs */}
-              <div style={{ display: "flex", gap: "10px", padding: "20px 0 16px", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: "8px", padding: "10px 0 8px", flexShrink: 0, alignItems: "center" }}>
                 {challenge.stakeholders.map(s => {
                   const isActive = s.id === activeStakeholderId;
                   const msgCount = (conversations[s.id] || []).filter(m => m.role === "user").length;
                   return (
                     <button key={s.id} onClick={() => setActiveStakeholderId(s.id)} style={{
-                      display: "flex", alignItems: "center", gap: "10px",
-                      padding: "10px 16px", borderRadius: "12px",
-                      border: `1px solid ${isActive ? "var(--teal-border, rgba(31,191,159,0.3))" : "var(--border)"}`,
-                      background: isActive ? "rgba(31,191,159,0.06)" : "var(--card)",
+                      display: "flex", alignItems: "center", gap: "7px",
+                      padding: "6px 12px", borderRadius: "8px",
+                      border: `1px solid ${isActive ? "rgba(31,191,159,0.4)" : "var(--border)"}`,
+                      background: isActive ? "rgba(31,191,159,0.08)" : "var(--card)",
                       cursor: "pointer", transition: "all 0.15s ease",
                     }}>
                       <div style={{
-                        width: "30px", height: "30px", borderRadius: "50%",
+                        width: "22px", height: "22px", borderRadius: "50%",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: "11px", fontWeight: 700,
+                        fontSize: "10px", fontWeight: 700, flexShrink: 0,
                         background: isActive ? "var(--teal)" : "rgba(255,255,255,0.08)",
                         color: isActive ? "#05120f" : "var(--text-2)",
                         fontFamily: "'Inter','Open Sans',sans-serif",
                       }}>
                         {s.initials ?? s.avatar ?? s.name.slice(0,2).toUpperCase()}
                       </div>
-                      <div style={{ textAlign: "left" }}>
-                        <div style={{ fontSize: "13px", fontWeight: 600, color: isActive ? "var(--teal)" : "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                          {s.name}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "var(--text-3)" }}>
-                          {s.role}{msgCount > 0 ? ` · ${msgCount}Q` : ""}
-                        </div>
-                      </div>
+                      <span style={{ fontSize: "12px", fontWeight: 600, color: isActive ? "var(--teal)" : "var(--text-2)", fontFamily: "'Inter','Open Sans',sans-serif", whiteSpace: "nowrap" }}>
+                        {s.name}{msgCount > 0 ? ` (${msgCount})` : ""}
+                      </span>
                     </button>
                   );
                 })}
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}>
+                <div style={{ marginLeft: "auto" }}>
                   <button onClick={resetInterview} style={{
-                    display: "flex", alignItems: "center", gap: "6px",
-                    padding: "8px 14px", borderRadius: "10px",
+                    display: "flex", alignItems: "center", gap: "5px",
+                    padding: "5px 10px", borderRadius: "7px",
                     border: "1px solid var(--border)", background: "none",
-                    color: "var(--text-3)", fontSize: "13px", cursor: "pointer",
+                    color: "var(--text-4)", fontSize: "12px", cursor: "pointer",
                   }}
                     onMouseEnter={e => (e.currentTarget.style.color = "var(--text-1)")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "var(--text-3)")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "var(--text-4)")}
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />Reset
+                    <RotateCcw className="w-3 h-3" />Reset
                   </button>
                 </div>
               </div>
-
-              {/* Interview framing */}
-              <div style={{ marginBottom: "12px", padding: "8px 14px", borderRadius: "8px", background: "rgba(31,191,159,0.05)", border: "1px solid rgba(31,191,159,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--teal)" }}>You are now in a stakeholder interview. Ask like a real BA.</span>
-                <span style={{ fontSize: "11px", color: "var(--text-4)" }}>If your questions are vague, stakeholders will push back.</span>
-              </div>
-
-              {/* Stakeholder header */}
-              {activeStakeholder && (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: "12px",
-                  padding: "14px 20px", borderRadius: "14px",
-                  background: "var(--card)", border: "1px solid var(--border)",
-                  marginBottom: "16px", flexShrink: 0,
-                }}>
-                  <div style={{
-                    width: "38px", height: "38px", borderRadius: "50%",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "13px", fontWeight: 700,
-                    background: "rgba(31,191,159,0.08)", color: "var(--teal)",
-                    border: "1px solid rgba(31,191,159,0.2)",
-                    fontFamily: "'Inter','Open Sans',sans-serif", flexShrink: 0,
-                  }}>
-                    {activeStakeholder.initials ?? activeStakeholder.avatar ?? activeStakeholder.name.slice(0,2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                      {activeStakeholder.name}
-                    </div>
-                    <div style={{ fontSize: "12px", color: "var(--text-3)" }}>{activeStakeholder.role}</div>
-                  </div>
-                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--teal)", boxShadow: "0 0 4px rgba(31,191,159,0.5)" }} />
-                    <span style={{ fontSize: "12px", color: "var(--teal)", fontWeight: 500 }}>Available for interview</span>
-                  </div>
-                </div>
-              )}
 
               {/* Chat */}
               <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "22px", padding: "16px", border: "1px solid var(--border)", borderRadius: "14px", background: "var(--card)" }}>
@@ -766,7 +724,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                     </div>
                     <div style={{
                       padding: "14px 18px", borderRadius: "16px 16px 16px 4px",
-                      background: "var(--card)", border: "1px solid var(--border)",
+                      background: "#1c1f2e", border: "1px solid rgba(255,255,255,0.12)",
                       display: "flex", gap: "5px", alignItems: "center",
                     }}>
                       {[0, 1, 2].map(j => (
@@ -780,42 +738,26 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                 <div ref={chatEndRef} />
               </div>
 
-              {/* Hints */}
-              <div style={{ flexShrink: 0, marginTop: "12px" }}>
-                <button onClick={() => setShowHints(h => !h)} style={{
-                  display: "flex", alignItems: "center", gap: "8px",
-                  width: "100%", padding: "10px 16px", borderRadius: "10px",
-                  border: "1px solid var(--border)", background: "none",
-                  cursor: "pointer", color: "var(--text-3)", fontSize: "13px", fontWeight: 500,
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(31,191,159,0.3)")}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
-                >
-                  <Lightbulb className="w-3.5 h-3.5" style={{ color: "#fb923c" }} />
-                  <span style={{ flex: 1, textAlign: "left" }}>Need direction? See what strong BAs ask.</span>
-                  <ChevronDown className="w-3.5 h-3.5" style={{ transform: showHints ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                </button>
+              {/* Input + Hints */}
+              <div style={{ flexShrink: 0, padding: "10px 0 16px" }}>
                 <AnimatePresence>
                   {showHints && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                       style={{
                         overflow: "hidden", background: "rgba(251,146,60,0.05)",
-                        border: "1px solid rgba(251,146,60,0.15)", borderTop: "none",
-                        borderRadius: "0 0 10px 10px", padding: "14px 16px",
+                        border: "1px solid rgba(251,146,60,0.2)",
+                        borderRadius: "10px", padding: "12px 14px", marginBottom: "8px",
                       }}>
-                      <p style={{ fontSize: "13px", color: "var(--text-3)", marginBottom: "10px", fontWeight: 600 }}>
-                        Hints to guide your investigation:
-                      </p>
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "10px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "#fb923c", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "8px" }}>
                         Strong BAs ask about:
                       </div>
                       <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
                         {hints.map((hint, i) => (
                           <li key={i} onClick={() => { setInputValue(hint); setShowHints(false); }} style={{
                             fontSize: "13px", color: "var(--text-2)",
-                            paddingBottom: i < hints.length - 1 ? "10px" : 0,
-                            marginBottom: i < hints.length - 1 ? "10px" : 0,
-                            borderBottom: i < hints.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                            paddingBottom: i < hints.length - 1 ? "8px" : 0,
+                            marginBottom: i < hints.length - 1 ? "8px" : 0,
+                            borderBottom: i < hints.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
                             cursor: "pointer", lineHeight: 1.5,
                           }}>
                             {hint}
@@ -825,39 +767,44 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-
-              {/* Input */}
-              <div style={{ flexShrink: 0, padding: "16px 0 24px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>Your question</div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                <textarea
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder={`Ask ${activeStakeholder?.name?.split(" ")[0] || "stakeholder"} a question...`}
-                  rows={3}
-                  style={{
-                    flex: 1, padding: "16px 20px", borderRadius: "12px",
-                    border: "1px solid var(--border)", background: "var(--card)",
-                    color: "var(--text-1)", fontSize: "15px",
-                    fontFamily: "'Open Sans', sans-serif",
-                    resize: "none", outline: "none", lineHeight: 1.6,
-                    transition: "border-color 0.15s", maxHeight: "160px", overflowY: "auto",
-                    width: "100%",
-                  }}
-                  onFocus={e => (e.target.style.borderColor = "rgba(31,191,159,0.3)")}
-                  onBlur={e => (e.target.style.borderColor = "var(--border)")}
-                />
-                <button onClick={sendMessage} disabled={isLoading || !inputValue.trim()} style={{
-                  width: "44px", height: "44px", borderRadius: "12px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: inputValue.trim() ? "var(--teal)" : "rgba(255,255,255,0.06)",
-                  border: "none", cursor: inputValue.trim() ? "pointer" : "default",
-                  transition: "all 0.15s ease", flexShrink: 0,
-                }}>
-                  <Send className="w-4 h-4" style={{ color: inputValue.trim() ? "#05120f" : "var(--text-4)" }} />
-                </button>
+                <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+                  <textarea
+                    value={inputValue}
+                    onChange={e => setInputValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                    placeholder={`Ask ${activeStakeholder?.name?.split(" ")[0] || "stakeholder"} something...`}
+                    rows={2}
+                    style={{
+                      flex: 1, padding: "12px 16px", borderRadius: "12px",
+                      border: "1px solid var(--border)", background: "var(--card)",
+                      color: "var(--text-1)", fontSize: "15px",
+                      fontFamily: "'Open Sans', sans-serif",
+                      resize: "none", outline: "none", lineHeight: 1.6,
+                      transition: "border-color 0.15s", maxHeight: "120px", overflowY: "auto",
+                    }}
+                    onFocus={e => (e.target.style.borderColor = "rgba(31,191,159,0.3)")}
+                    onBlur={e => (e.target.style.borderColor = "var(--border)")}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                    <button onClick={sendMessage} disabled={isLoading || !inputValue.trim()} style={{
+                      width: "44px", height: "44px", borderRadius: "12px",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: inputValue.trim() ? "var(--teal)" : "rgba(255,255,255,0.06)",
+                      border: "none", cursor: inputValue.trim() ? "pointer" : "default",
+                      transition: "all 0.15s ease",
+                    }}>
+                      <Send className="w-4 h-4" style={{ color: inputValue.trim() ? "#05120f" : "var(--text-4)" }} />
+                    </button>
+                    <button onClick={() => setShowHints(h => !h)} title="See hints" style={{
+                      width: "44px", height: "32px", borderRadius: "10px",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: showHints ? "rgba(251,146,60,0.12)" : "none",
+                      border: `1px solid ${showHints ? "rgba(251,146,60,0.3)" : "var(--border)"}`,
+                      cursor: "pointer", transition: "all 0.15s",
+                    }}>
+                      <Lightbulb className="w-3.5 h-3.5" style={{ color: showHints ? "#fb923c" : "var(--text-4)" }} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
