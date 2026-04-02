@@ -722,8 +722,8 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                           width: "32px", height: "32px", borderRadius: "50%",
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: "11px", fontWeight: 700, flexShrink: 0,
-                          background: "rgba(31,191,159,0.08)", color: "var(--teal)",
-                          border: "1px solid rgba(31,191,159,0.2)",
+                          background: "#0f3028", color: "var(--teal)",
+                          border: "1px solid rgba(31,191,159,0.4)",
                           fontFamily: "'Inter','Open Sans',sans-serif", marginTop: "2px",
                         }}>
                           {activeStakeholder?.initials ?? activeStakeholder?.avatar ?? activeStakeholder?.name?.slice(0,2).toUpperCase()}
@@ -732,9 +732,9 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                       <div style={{
                         maxWidth: "74%", padding: "15px 22px",
                         borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                        background: isUser ? "rgba(31,191,159,0.08)" : "rgba(255,255,255,0.06)",
-                        border: `1px solid ${isUser ? "rgba(31,191,159,0.2)" : "rgba(255,255,255,0.1)"}`,
-                        fontSize: "15px", lineHeight: 1.7, color: "var(--text-1)",
+                        background: isUser ? "#0f3028" : "#1c1f2e",
+                        border: `1px solid ${isUser ? "rgba(31,191,159,0.35)" : "rgba(255,255,255,0.12)"}`,
+                        fontSize: "15px", lineHeight: 1.7, color: isUser ? "#d4f5ec" : "#e8eaf0",
                       }}>
                         {msg.content}
                       </div>
@@ -742,8 +742,8 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                         <div style={{
                           width: "32px", height: "32px", borderRadius: "50%",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          flexShrink: 0, background: "rgba(255,255,255,0.06)",
-                          border: "1px solid var(--border)", marginTop: "2px",
+                          flexShrink: 0, background: "#1c1f2e",
+                          border: "1px solid rgba(255,255,255,0.15)", marginTop: "2px",
                         }}>
                           <User className="w-3.5 h-3.5" style={{ color: "var(--text-3)" }} />
                         </div>
