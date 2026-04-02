@@ -33,7 +33,7 @@ export default async function ResumesPage() {
     <ResumesClient
       user={{ email: user.email ?? "" }}
       profile={profileRes.data ?? null}
-      resumes={(resumesRes.data ?? []) as Parameters<typeof ResumesClient>[0]["resumes"]}
+      resumes={(resumesRes.data ?? []) as unknown as Parameters<typeof ResumesClient>[0]["resumes"]}
     />
   );
 }

@@ -38,8 +38,8 @@ export default async function WorkspacePage() {
     <WorkspaceClient
       user={{ email: user.email ?? "" }}
       profile={profileRes.data ?? null}
-      resumes={(resumesRes.data ?? []) as Parameters<typeof WorkspaceClient>[0]["resumes"]}
-      savedJobs={(savedJobsRes.data ?? []) as Parameters<typeof WorkspaceClient>[0]["savedJobs"]}
+      resumes={(resumesRes.data ?? []) as unknown as Parameters<typeof WorkspaceClient>[0]["resumes"]}
+      savedJobs={(savedJobsRes.data ?? []) as unknown as Parameters<typeof WorkspaceClient>[0]["savedJobs"]}
     />
   );
 }

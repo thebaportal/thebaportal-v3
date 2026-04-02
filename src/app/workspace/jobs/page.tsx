@@ -33,7 +33,7 @@ export default async function SavedJobsPage() {
     <JobsClient
       user={{ email: user.email ?? "" }}
       profile={profileRes.data ?? null}
-      savedJobs={(savedJobsRes.data ?? []) as Parameters<typeof JobsClient>[0]["savedJobs"]}
+      savedJobs={(savedJobsRes.data ?? []) as unknown as Parameters<typeof JobsClient>[0]["savedJobs"]}
     />
   );
 }
