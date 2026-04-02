@@ -64,6 +64,7 @@ export async function POST(request: Request) {
             subscription_tier: subscription.status === "active" ? "pro" : "free",
             subscription_status: subscription.status,
             stripe_subscription_id: subscription.id,
+            subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq("id", userId);

@@ -16,21 +16,13 @@ export default async function SettingsPage() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  const profileResult = await admin
+  const { data: profile } = await admin
     .from("profiles")
-    .select("full_name, subscription_tier")
+    .select("full_name, subscription_tier, subscription_status, subscription_current_period_end, stripe_customer_id")
     .eq("id", user.id)
     .single();
 
-  console.log("[settings] raw profile result:", JSON.stringify(profileResult));
-
-  const profile = profileResult.data;
-  const profileError = profileResult.error;
-  if (profileError) console.error("[settings] profile read error:", profileError.message, profileError.code);
-
   const isPro = profile?.subscription_tier === "pro";
-
-  console.log("[settings] user:", user.id, "subscription_tier:", profile?.subscription_tier, "isPro:", isPro);
 
   return (
     <SettingsClient
@@ -38,6 +30,9 @@ export default async function SettingsPage() {
       email={user.email ?? ""}
       fullName={profile?.full_name ?? ""}
       isPro={isPro}
+      subscriptionStatus={profile?.subscription_status ?? null}
+      periodEnd={profile?.subscription_current_period_end ?? null}
+      hasPortal={!!profile?.stripe_customer_id}
     />
   );
 }

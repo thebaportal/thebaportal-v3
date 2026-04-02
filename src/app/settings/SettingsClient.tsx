@@ -10,6 +10,9 @@ interface Props {
   email: string;
   fullName: string;
   isPro: boolean;
+  subscriptionStatus: string | null;
+  periodEnd: string | null;
+  hasPortal: boolean;
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -44,7 +47,7 @@ const NAV: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "billing",       label: "Billing",       icon: <IconCreditCard /> },
 ];
 
-export default function SettingsClient({ userId, email, fullName, isPro }: Props) {
+export default function SettingsClient({ userId, email, fullName, isPro, subscriptionStatus, periodEnd, hasPortal }: Props) {
   const router = useRouter();
   const [tab, setTab]                 = useState<Tab>("profile");
   const [name, setName]               = useState(fullName);
@@ -211,37 +214,12 @@ export default function SettingsClient({ userId, email, fullName, isPro }: Props
           {/* BILLING */}
           {tab === "billing" && (
             <Section title="Billing" subtitle="Manage your plan and payment details.">
-              <div style={{ background: isPro ? "rgba(31,191,159,.04)" : "rgba(255,255,255,.02)", border: isPro ? "1px solid rgba(31,191,159,.18)" : "1px solid var(--border)", borderRadius: "var(--radius)", padding: "28px 28px" }}>
-                {isPro && <div style={{ position: "relative" }}>
-                  <div style={{ position: "absolute", top: -28, right: -28, width: "100%", height: 2, background: "linear-gradient(90deg,transparent,var(--teal),transparent)" }} />
-                </div>}
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-                  <div>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: "var(--t1)", marginBottom: 4 }}>{isPro ? "Pro Plan" : "Free Plan"}</div>
-                    <div style={{ fontSize: 13, color: "var(--t2)" }}>{isPro ? "Full access to all challenges, difficulty modes, and new releases." : "3 challenges included. Upgrade for full access."}</div>
-                  </div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 800, color: isPro ? "var(--teal)" : "var(--t3)", letterSpacing: "-0.03em" }}>{isPro ? "$19/mo" : "$0"}</div>
-                </div>
-
-                {isPro ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {["All 7 challenges + every new release","Hard & Expert difficulty modes","Phase B — Requirements Validation","Full scoring history & analytics","Priority support"].map(f => (
-                      <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "var(--t2)" }}>
-                        <span style={{ color: "var(--teal)" }}><IconCheck /></span>{f}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <UpgradeButton />
-                )}
-              </div>
-
-              {isPro && (
-                <>
-                  <Divider />
-                  <div style={{ fontSize: 13, color: "var(--t3)" }}>To manage your subscription or cancel, contact <a href="mailto:support@thebaportal.com" style={{ color: "var(--teal)", textDecoration: "none" }}>support@thebaportal.com</a>.</div>
-                </>
-              )}
+              <BillingPanel
+                isPro={isPro}
+                subscriptionStatus={subscriptionStatus}
+                periodEnd={periodEnd}
+                hasPortal={hasPortal}
+              />
             </Section>
           )}
 
@@ -334,49 +312,105 @@ function PasswordResetButton({ email }: { email: string }) {
   );
 }
 
-function UpgradeButton() {
+function BillingPanel({ isPro, subscriptionStatus, periodEnd, hasPortal }: {
+  isPro: boolean;
+  subscriptionStatus: string | null;
+  periodEnd: string | null;
+  hasPortal: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+
+  const formattedDate = periodEnd
+    ? new Date(periodEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : null;
+
+  const isCancelled = subscriptionStatus === "canceled" || subscriptionStatus === "cancelled";
+  const isPastDue   = subscriptionStatus === "past_due";
 
   async function handleUpgrade() {
     setLoading(true);
     setError("");
     try {
-      const res  = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billing: "annual" }),
-      });
+      const res  = await fetch("/api/stripe/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ billing: "annual" }) });
       const data = await res.json();
-      if (!res.ok || !data.url) {
-        setError(data.message ?? data.error ?? "Checkout failed — please try again.");
-        return;
-      }
-      router.push(data.url);
-    } catch (e) {
-      setError("Unexpected error — please try again.");
-      console.error("[Settings] handleUpgrade threw:", e);
-    } finally {
-      setLoading(false);
-    }
+      if (!res.ok || !data.url) { setError(data.message ?? "Checkout failed — please try again."); return; }
+      window.location.href = data.url;
+    } catch { setError("Unexpected error — please try again."); }
+    finally { setLoading(false); }
+  }
+
+  async function handlePortal() {
+    setLoading(true);
+    setError("");
+    try {
+      const res  = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) { setError("Could not open billing portal — please try again."); return; }
+      window.location.href = data.url;
+    } catch { setError("Unexpected error — please try again."); }
+    finally { setLoading(false); }
+  }
+
+  if (!isPro) {
+    return (
+      <div style={{ background: "rgba(255,255,255,.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 28 }}>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: "var(--t1)", marginBottom: 4 }}>Free Plan</div>
+        <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 20 }}>3 challenges included. Upgrade for full access.</div>
+        <button onClick={handleUpgrade} disabled={loading} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: "var(--radius-sm)", background: "var(--teal)", color: "#041a13", fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+          {loading ? "Redirecting…" : "⚡ Upgrade to Pro"}
+        </button>
+        <div style={{ marginTop: 10, fontSize: 12, color: "var(--t3)" }}>$19/mo billed annually · Cancel anytime</div>
+        {error && <div style={{ marginTop: 10, fontSize: 13, color: "#f87171" }}>{error}</div>}
+      </div>
+    );
   }
 
   return (
-    <div style={{ marginTop: 8 }}>
-      <button
-        onClick={handleUpgrade}
-        disabled={loading}
-        style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: "var(--radius-sm)", background: "var(--teal)", color: "#041a13", fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "opacity .15s" }}
-      >
-        {loading ? "Redirecting…" : "⚡ Upgrade to Pro"}
-      </button>
-      <div style={{ marginTop: 10, fontSize: 12, color: "var(--t3)" }}>$19/mo billed annually · Cancel anytime</div>
-      {error && (
-        <div style={{ marginTop: 10, fontSize: 13, color: "#f87171", padding: "8px 12px", borderRadius: "var(--radius-sm)", background: "rgba(248,113,113,.06)", border: "1px solid rgba(248,113,113,.15)" }}>
-          {error}
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ background: "rgba(31,191,159,.04)", border: "1px solid rgba(31,191,159,.18)", borderRadius: "var(--radius)", padding: 28 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: "var(--t1)", marginBottom: 4 }}>Pro Plan</div>
+            {isCancelled && formattedDate && (
+              <div style={{ fontSize: 13, color: "#fb923c" }}>Access until {formattedDate}</div>
+            )}
+            {!isCancelled && formattedDate && (
+              <div style={{ fontSize: 13, color: "var(--t2)" }}>Next billing on {formattedDate}</div>
+            )}
+            {isPastDue && (
+              <div style={{ fontSize: 13, color: "#f87171" }}>Payment failed — update your card to keep access</div>
+            )}
+          </div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+            background: isCancelled ? "rgba(251,146,60,.1)" : isPastDue ? "rgba(248,113,113,.1)" : "rgba(31,191,159,.12)",
+            color: isCancelled ? "#fb923c" : isPastDue ? "#f87171" : "var(--teal)",
+            border: isCancelled ? "1px solid rgba(251,146,60,.25)" : isPastDue ? "1px solid rgba(248,113,113,.25)" : "1px solid rgba(31,191,159,.2)",
+          }}>
+            {isCancelled ? "Cancelling" : isPastDue ? "Past due" : "Active"}
+          </div>
         </div>
-      )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+          {["All challenges + every new release", "Hard & Expert difficulty modes", "Full scoring history & analytics", "Priority support"].map(f => (
+            <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "var(--t2)" }}>
+              <span style={{ color: "var(--teal)" }}><IconCheck /></span>{f}
+            </div>
+          ))}
+        </div>
+
+        {hasPortal && (
+          <button onClick={handlePortal} disabled={loading} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 22px", borderRadius: "var(--radius-sm)", border: "1px solid rgba(31,191,159,.3)", background: "transparent", color: "var(--teal)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, transition: "all .15s" }}>
+            {loading ? "Opening…" : "Manage subscription"}
+          </button>
+        )}
+        {error && <div style={{ marginTop: 12, fontSize: 13, color: "#f87171" }}>{error}</div>}
+      </div>
+
+      <div style={{ fontSize: 12, color: "var(--t3)" }}>
+        Cancel, update payment, or view invoices via the Stripe billing portal above.
+      </div>
     </div>
   );
 }
