@@ -700,7 +700,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               )}
 
               {/* Chat */}
-              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: "8px", display: "flex", flexDirection: "column", gap: "22px" }}>
+              <div style={{ height: "55vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: "22px", padding: "16px", border: "1px solid var(--border)", borderRadius: "14px", background: "var(--card)" }}>
                 {currentMessages.length === 0 && (
                   <div style={{ textAlign: "center", padding: "56px 24px" }}>
                     <User className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--text-4)" }} />
