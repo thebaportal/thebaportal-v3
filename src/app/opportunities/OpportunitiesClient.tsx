@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Briefcase, RefreshCw, AlertTriangle, X } from "lucide-react";
+import { Search, Briefcase, RefreshCw, AlertTriangle, X, Bookmark } from "lucide-react";
 import type { JobListing, PrepLink } from "@/lib/jobInsights";
 import JobDetailContent from "@/components/JobDetailContent";
 import { useAnalytics } from "@/lib/posthog";
@@ -11,6 +11,7 @@ import { useAnalytics } from "@/lib/posthog";
 interface Props {
   initialJobs: JobListing[];
   isLoggedIn: boolean;
+  savedJobIds?: string[];
   syncError?: string;
 }
 
@@ -448,7 +449,7 @@ function generateAlexCardInsight(job: JobListing, cardIndex: number): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError }: Props) {
+export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobIds = [], syncError }: Props) {
   const router = useRouter();
   const { track } = useAnalytics();
   const [keyword,     setKeyword]     = useState("");
@@ -457,6 +458,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
   const [province,    setProvince]    = useState("all");
   const [syncing,     setSyncing]     = useState(false);
   const [syncMsg,     setSyncMsg]     = useState<string | null>(null);
+  const [savedIds,    setSavedIds]    = useState<Set<string>>(() => new Set(savedJobIds));
+  const [savingId,    setSavingId]    = useState<string | null>(null);
   const [modal,              setModal]              = useState<PracticeModal | null>(null);
   const [selectedJob,        setSelectedJob]        = useState<JobListing | null>(null);
   const [initialCoachingOpen, setInitialCoachingOpen] = useState(true);
@@ -488,6 +491,28 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
     } else {
       try { sessionStorage.setItem("practiceContext", params); } catch {}
       setModal({ jobTitle: job.title, company: job.company ?? "", practiceParams: params });
+    }
+  }
+
+  async function handleBookmark(jobId: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoggedIn) { router.push("/login"); return; }
+    setSavingId(jobId);
+    const isSaved = savedIds.has(jobId);
+    try {
+      await fetch("/api/workspace/save-job", {
+        method: isSaved ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: jobId }),
+      });
+      setSavedIds(prev => {
+        const next = new Set(prev);
+        isSaved ? next.delete(jobId) : next.add(jobId);
+        return next;
+      });
+    } finally {
+      setSavingId(null);
     }
   }
 
@@ -694,10 +719,18 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, syncError
                   onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.13)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
                   onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "none"; }}
                 >
-                  {/* Company + NEW badge */}
+                  {/* Company + NEW badge + bookmark */}
                   <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 500, color: "#64748B" }}>{job.company ?? "Unknown"}</span>
                     {fresh && <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: "rgba(31,191,159,0.10)", border: "1px solid rgba(31,191,159,0.25)", borderRadius: 20, padding: "1px 7px" }}>NEW</span>}
+                    <button
+                      onClick={e => handleBookmark(job.id, e)}
+                      disabled={savingId === job.id}
+                      title={savedIds.has(job.id) ? "Remove from saved" : "Save job"}
+                      style={{ marginLeft: "auto", background: "none", border: "none", cursor: savingId === job.id ? "wait" : "pointer", padding: 4, color: savedIds.has(job.id) ? C.teal : "#CBD5E1", display: "flex", alignItems: "center", opacity: savingId === job.id ? 0.5 : 1 }}
+                    >
+                      <Bookmark size={16} fill={savedIds.has(job.id) ? C.teal : "none"} />
+                    </button>
                   </div>
 
                   {/* Title */}

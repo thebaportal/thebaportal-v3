@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import OpportunitiesClient from "./OpportunitiesClient";
 import { runRefresh } from "@/lib/refreshJobs";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "BA Jobs in Canada — TheBAPortal" };
 
 /** Return true if a URL is a direct employer link (not an aggregator redirect). */
@@ -28,6 +30,11 @@ export default async function OpportunitiesPage() {
   );
   const { data: { user } } = await supabase.auth.getUser();
 
+  const adminDb = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   const db = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -44,6 +51,16 @@ export default async function OpportunitiesPage() {
       .order("quality_score", { ascending: false })
       .order("posted_at",     { ascending: false })
       .limit(200);
+
+  // Fetch saved job IDs for logged-in users
+  let savedJobIds: string[] = [];
+  if (user) {
+    const { data: saved } = await adminDb
+      .from("saved_jobs")
+      .select("job_id")
+      .eq("user_id", user.id);
+    savedJobIds = (saved ?? []).map(s => s.job_id);
+  }
 
   let { data: raw } = await fetchJobs();
 
@@ -72,6 +89,7 @@ export default async function OpportunitiesPage() {
         <OpportunitiesClient
           initialJobs={freshClean as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
           isLoggedIn={!!user}
+          savedJobIds={savedJobIds}
           syncError={undefined}
         />
       );
@@ -82,6 +100,7 @@ export default async function OpportunitiesPage() {
     <OpportunitiesClient
       initialJobs={cleanJobs as Parameters<typeof OpportunitiesClient>[0]["initialJobs"]}
       isLoggedIn={!!user}
+      savedJobIds={savedJobIds}
       syncError={syncError}
     />
   );
