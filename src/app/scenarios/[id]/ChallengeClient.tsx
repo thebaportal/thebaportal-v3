@@ -227,6 +227,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   const [showHints,     setShowHints]     = useState(false);
   const [showSummary,   setShowSummary]   = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const initializedStakeholders = useRef<Set<string>>(new Set());
 
   // Phase A — requirements submission
   const [submission,   setSubmission]   = useState("");
@@ -248,6 +249,23 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [currentMessages, isLoading]);
+
+  // Auto-insert stakeholder greeting when entering interview tab for the first time
+  useEffect(() => {
+    if (activeTab !== "interview") return;
+    if (initializedStakeholders.current.has(activeStakeholderId)) return;
+    if (!activeStakeholder) return;
+    initializedStakeholders.current.add(activeStakeholderId);
+    const firstName = activeStakeholder.name.split(" ")[0];
+    setConversations(prev => ({
+      ...prev,
+      [activeStakeholderId]: [{
+        role: "assistant",
+        content: `Hi, I'm ${firstName}. What would you like to understand about this situation?`,
+        stakeholderId: activeStakeholderId,
+      }],
+    }));
+  }, [activeTab, activeStakeholderId, activeStakeholder]);
 
   function switchMode(newMode: string) {
     if (newMode === mode) return;
@@ -271,6 +289,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
     if (!hasWork) return;
 
     if (!confirm("Reset all your work for this challenge? This cannot be undone.")) return;
+    initializedStakeholders.current = new Set();
     setConversations({});
     setQuestionCount(0);
     setInputValue("");
@@ -369,6 +388,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   }
 
   function resetInterview() {
+    initializedStakeholders.current = new Set();
     setConversations({});
     setQuestionCount(0);
     setInputValue("");
@@ -658,52 +678,48 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               </div>
 
               {/* Chat */}
-              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "22px", padding: "16px", border: "1px solid var(--border)", borderRadius: "14px", background: "var(--card)" }}>
-                {currentMessages.length === 0 && (
-                  <div style={{ textAlign: "center", padding: "56px 24px" }}>
-                    <User className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--text-4)" }} />
-                    <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-2)", marginBottom: "8px" }}>
-                      Start the interview. Weak questions will slow you down.
-                    </p>
-                    <p style={{ fontSize: "13px", color: "var(--text-4)" }}>
-                      Vague questions get vague answers. Ask with intent.
-                    </p>
-                  </div>
-                )}
+              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "28px", padding: "20px 16px", border: "1px solid var(--border)", borderRadius: "14px", background: "var(--card)" }}>
                 {currentMessages.map((msg, i) => {
                   const isUser = msg.role === "user";
+                  // Find the right stakeholder for this message
+                  const msgStakeholder = msg.stakeholderId
+                    ? challenge.stakeholders.find(s => s.id === msg.stakeholderId)
+                    : activeStakeholder;
                   return (
                     <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
-                      style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", gap: "10px", alignItems: "flex-start" }}>
+                      style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", gap: "10px", alignItems: "flex-end" }}>
                       {!isUser && (
                         <div style={{
-                          width: "32px", height: "32px", borderRadius: "50%",
+                          width: "30px", height: "30px", borderRadius: "50%",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: "11px", fontWeight: 700, flexShrink: 0,
+                          fontSize: "10px", fontWeight: 700, flexShrink: 0,
                           background: "#0f3028", color: "var(--teal)",
                           border: "1px solid rgba(31,191,159,0.4)",
-                          fontFamily: "'Inter','Open Sans',sans-serif", marginTop: "2px",
+                          fontFamily: "'Inter','Open Sans',sans-serif",
                         }}>
-                          {activeStakeholder?.initials ?? activeStakeholder?.avatar ?? activeStakeholder?.name?.slice(0,2).toUpperCase()}
+                          {msgStakeholder?.initials ?? msgStakeholder?.name?.slice(0,2).toUpperCase()}
                         </div>
                       )}
                       <div style={{
-                        maxWidth: "74%", padding: "15px 22px",
-                        borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                        background: isUser ? "#0f3028" : "#1c1f2e",
-                        border: `1px solid ${isUser ? "rgba(31,191,159,0.35)" : "rgba(255,255,255,0.12)"}`,
-                        fontSize: "15px", lineHeight: 1.7, color: isUser ? "#d4f5ec" : "#e8eaf0",
+                        maxWidth: isUser ? "65%" : "75%",
+                        padding: "14px 18px",
+                        borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                        background: isUser ? "#0a2919" : "#1a1d2e",
+                        border: `1px solid ${isUser ? "rgba(31,191,159,0.5)" : "rgba(255,255,255,0.1)"}`,
+                        fontSize: "15px", lineHeight: 1.65,
+                        color: isUser ? "#b8f0d8" : "#dde1f0",
+                        fontFamily: "'Open Sans', sans-serif",
                       }}>
                         {msg.content}
                       </div>
                       {isUser && (
                         <div style={{
-                          width: "32px", height: "32px", borderRadius: "50%",
+                          width: "30px", height: "30px", borderRadius: "50%",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          flexShrink: 0, background: "#1c1f2e",
-                          border: "1px solid rgba(255,255,255,0.15)", marginTop: "2px",
+                          flexShrink: 0, background: "#0a2919",
+                          border: "1px solid rgba(31,191,159,0.3)",
                         }}>
-                          <User className="w-3.5 h-3.5" style={{ color: "var(--text-3)" }} />
+                          <User className="w-3 h-3" style={{ color: "var(--teal)" }} />
                         </div>
                       )}
                     </motion.div>
@@ -767,12 +783,15 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                     </motion.div>
                   )}
                 </AnimatePresence>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "6px" }}>
+                  Your question
+                </div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
                   <textarea
                     value={inputValue}
                     onChange={e => setInputValue(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                    placeholder={`Ask ${activeStakeholder?.name?.split(" ")[0] || "stakeholder"} something...`}
+                    placeholder="Ask your next question..."
                     rows={2}
                     style={{
                       flex: 1, padding: "12px 16px", borderRadius: "12px",
@@ -897,28 +916,41 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               {/* Status bar */}
               <div style={{
                 flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "12px 0 20px", borderTop: "1px solid var(--border)",
+                padding: "10px 0 16px", borderTop: "1px solid var(--border)",
               }}>
-                <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--text-3)" }}>
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    {questionCount} question{questionCount !== 1 ? "s" : ""} asked
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--text-3)" }}>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {Object.keys(conversations).filter(sid => (conversations[sid] || []).length > 0).length}/{challenge.stakeholders.length} interviewed
-                  </span>
+                <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
+                  {/* Per-stakeholder progress dots */}
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    {challenge.stakeholders.map(s => {
+                      const userMsgCount = (conversations[s.id] || []).filter(m => m.role === "user").length;
+                      const done = userMsgCount > 0;
+                      return (
+                        <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                          <div style={{
+                            width: "8px", height: "8px", borderRadius: "50%",
+                            background: done ? "var(--teal)" : "rgba(255,255,255,0.15)",
+                            boxShadow: done ? "0 0 4px rgba(31,191,159,0.5)" : "none",
+                            transition: "all 0.2s",
+                          }} />
+                          <span style={{ fontSize: "12px", color: done ? "var(--text-2)" : "var(--text-4)", fontWeight: done ? 500 : 400 }}>
+                            {s.name.split(" ")[0]}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                   {questionCount > 0 && (
                     <button onClick={() => setShowSummary(s => !s)} style={{
-                      display: "flex", alignItems: "center", gap: "6px",
-                      padding: "5px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
-                      color: showSummary ? "var(--teal)" : "var(--text-3)",
-                      background: showSummary ? "rgba(31,191,159,0.08)" : "none",
-                      border: `1px solid ${showSummary ? "rgba(31,191,159,0.2)" : "var(--border)"}`,
-                      cursor: "pointer", transition: "all 0.15s",
-                    }}>
-                      <FileText className="w-3.5 h-3.5" />
-                      {showSummary ? "Hide" : "View"} Summary
+                      background: "none", border: "none", cursor: "pointer", padding: 0,
+                      fontSize: "12px", fontWeight: 600,
+                      color: showSummary ? "var(--teal)" : "var(--text-4)",
+                      textDecoration: "underline", textDecorationColor: "transparent",
+                      transition: "all 0.15s",
+                    }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--teal)"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "var(--teal)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = showSummary ? "var(--teal)" : "var(--text-4)"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = showSummary ? "var(--teal)" : "transparent"; }}
+                    >
+                      {showSummary ? "Hide summary" : "View summary"}
                     </button>
                   )}
                 </div>
