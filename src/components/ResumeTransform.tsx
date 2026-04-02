@@ -250,7 +250,7 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn, isPro, sa
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 1s linear infinite" }}>
                       <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                     </svg>
-                    Rewriting...
+                    Aligning your experience to this role…
                   </>
                 ) : (
                   <>
@@ -349,6 +349,17 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn, isPro, sa
               {/* Locked — free users */}
               {result.locked && (
                 <div style={{ position: "relative", marginTop: 20 }}>
+
+                  {/* Tension — what they are missing */}
+                  <div style={{ marginBottom: 16, padding: "14px 18px", background: C.redSoft, border: `1px solid rgba(239,68,68,0.15)`, borderRadius: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text3, marginBottom: 8 }}>Right now, your resume likely:</div>
+                    {["sounds generic and could apply to any role", "does not show what this role actually tests", "will not stand out from other applicants"].map((line, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: i < 2 ? 5 : 0 }}>
+                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.red, flexShrink: 0, marginTop: 6 }} />
+                        <span style={{ fontSize: 12.5, color: C.text3, lineHeight: 1.55 }}>{line}</span>
+                      </div>
+                    ))}
+                  </div>
                   {/* Cancelled banner */}
                   {isCancelled && (
                     <div style={{ marginBottom: 12, padding: "10px 14px", background: "rgba(148,163,184,0.06)", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12.5, color: C.text3, textAlign: "center" }}>
@@ -382,10 +393,13 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn, isPro, sa
                   }}>
                     <div style={{ textAlign: "center", padding: "0 12px" }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: C.text1, margin: "0 0 6px" }}>
-                        This is how your experience should read for this role.
+                        This is what your resume should sound like for this role.
                       </p>
-                      <p style={{ fontSize: 12.5, color: C.text3, margin: "0 0 16px", lineHeight: 1.6 }}>
-                        Unlock the full rewrite — all job-aligned bullets ready to copy into your resume.
+                      <p style={{ fontSize: 12.5, color: C.text3, margin: "0 0 4px", lineHeight: 1.6 }}>
+                        Most candidates apply with generic experience. This is tailored to what this role actually tests.
+                      </p>
+                      <p style={{ fontSize: 12, color: C.text4, margin: "0 0 16px", lineHeight: 1.5, fontStyle: "italic" }}>
+                        One strong application can change your outcome.
                       </p>
                       <Link
                         href={isLoggedIn ? `/pricing?return_job=${jobId}` : `/signup?return_job=${jobId}`}
@@ -403,16 +417,23 @@ export default function ResumeTransform({ jobId, jobTitle, isLoggedIn, isPro, sa
                           textDecoration: "none",
                         }}
                       >
-                        Unlock full resume
+                        Get the full version
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
                       </Link>
-                      {!isLoggedIn && (
-                        <p style={{ fontSize: 11, color: C.text4, margin: "8px 0 0" }}>
-                          Free account. No credit card.
-                        </p>
-                      )}
+                      <div style={{ marginTop: 10 }}>
+                        <span style={{ fontSize: 11, color: C.text4 }}>Built for Business Analysts targeting real roles.</span>
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <Link
+                          href={isLoggedIn ? `#` : `/signup?return_job=${jobId}`}
+                          style={{ fontSize: 11, color: C.text4, textDecoration: "underline", textDecorationColor: "rgba(71,85,105,0.5)" }}
+                          onClick={e => { if (isLoggedIn) { e.preventDefault(); } }}
+                        >
+                          Or apply without fixing it
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
