@@ -465,6 +465,57 @@ function ReusableAnswerCard({ answer }: { answer: string }) {
   );
 }
 
+// ── Scenario Tile ─────────────────────────────────────────────────────────────
+
+function ScenarioTile({ scenario: s, color, onSelect }: { scenario: Scenario; color: string; onSelect: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? "rgba(255,255,255,0.025)" : "var(--card)",
+        border: `1px solid ${hovered ? color + "60" : "var(--border)"}`,
+        borderRadius: "14px", padding: "22px",
+        display: "flex", flexDirection: "column", cursor: "pointer",
+        transition: "all 0.2s ease",
+        transform: hovered ? "translateY(-4px)" : "translateY(0)",
+        boxShadow: hovered ? `0 12px 32px rgba(0,0,0,0.35), 0 0 0 1px ${color}20` : "none",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+        <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}15`, padding: "3px 9px", borderRadius: "10px", letterSpacing: "0.06em" }}>
+          {s.difficulty.toUpperCase()}
+        </span>
+        <span style={{ fontSize: "11px", color: "var(--text-3)", display: "flex", alignItems: "center", gap: "4px" }}>
+          <Clock size={11} /> {s.duration}
+        </span>
+      </div>
+      <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: "8px" }}>{s.title}</div>
+      <div style={{ fontSize: "11px", color: "var(--text-3)", marginBottom: "10px" }}>
+        {s.type} · {s.audience}
+      </div>
+      <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.7, flex: 1, marginBottom: "14px" }}>{s.description}</p>
+      <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", borderLeft: "3px solid var(--teal)", marginBottom: "16px" }}>
+        <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "4px" }}>ALEX RIVERA&rsquo;S TIP</div>
+        <p style={{ fontSize: "12px", color: "var(--text-2)", lineHeight: 1.65, margin: 0 }}>{s.coachTip}</p>
+      </div>
+      <button
+        className="btn-teal"
+        onClick={onSelect}
+        style={{
+          justifyContent: "center",
+          transform: hovered ? "scale(1.02)" : "scale(1)",
+          transition: "transform 0.15s ease",
+          filter: hovered ? "brightness(1.15)" : "none",
+        }}
+      >
+        <Mic size={13} /> Practise this scenario
+      </button>
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 interface Props { tier: string; userName: string; initialSessions?: SessionRecord[]; }
@@ -967,10 +1018,13 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
             <span style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.08em" }}>PITCHREADY — BA COMMUNICATION PRACTICE</span>
           </div>
           <h1 style={{ fontSize: "42px", fontWeight: 900, color: "var(--text-1)", marginBottom: "16px", lineHeight: 1.08, letterSpacing: "-0.04em" }}>
-            Practise real BA situations<br />before you face them.
+            Most candidates fail not because they lack experience — but because they cannot communicate it clearly.
           </h1>
-          <p style={{ fontSize: "17px", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "32px", maxWidth: "540px" }}>
-            PitchReady helps Business Analysts practise real communication situations before they face them in interviews or at work. Speak. Get coached. Sound like a confident BA.
+          <p style={{ fontSize: "17px", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "8px", maxWidth: "540px" }}>
+            Fix that before your next interview or meeting.
+          </p>
+          <p style={{ fontSize: "15px", color: "var(--text-3)", lineHeight: 1.7, marginBottom: "32px", maxWidth: "540px" }}>
+            Speak real BA scenarios out loud. Get specific coaching from Alex Rivera on what to fix before it matters.
           </p>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px" }}>
             <button className="btn-teal" onClick={() => setView("studio")} style={{ fontSize: "15px", padding: "13px 28px" }}>
@@ -1020,7 +1074,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
             {[
               { step: "01", title: "Choose a Scenario", body: "12 workplace scenarios built for BAs — stakeholder walkthroughs, executive pitches, sprint reviews, change requests, and more. Each one mirrors a real situation.", action: () => setView("scenarios"), cta: "Browse scenarios" },
               { step: "02", title: "Record Your Delivery", body: "Press record and speak directly in the browser. Live transcript appears as you talk. A waveform shows you are being heard. Speak for 2 to 5 minutes.", action: () => setView("studio"), cta: "Open studio" },
-              { step: "03", title: "Get Specific Coaching", body: "Your AI coach scores your clarity, structure, confidence, executive presence, filler words, pacing, and audience alignment — with quotes from your actual words.", action: () => { if (sessions.length > 0) { router.push(`/pitchready/session/${sessions[0].id}`); } else setView("studio"); }, cta: sessions.length > 0 ? "View last feedback" : "See an example" },
+              { step: "03", title: "Get Specific Coaching", body: "Alex Rivera scores your clarity, structure, confidence, executive presence, filler words, pacing, and audience alignment — with direct quotes from your own words.", action: () => { if (sessions.length > 0) { router.push(`/pitchready/session/${sessions[0].id}`); } else setView("studio"); }, cta: sessions.length > 0 ? "View last feedback" : "See an example" },
             ].map(({ step, title, body, action, cta }) => (
               <div key={step} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: "12px", fontWeight: 800, color: CORAL, letterSpacing: "0.08em", marginBottom: "12px" }}>{step}</div>
@@ -1068,7 +1122,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           <div style={{ background: `linear-gradient(135deg, ${CORAL}06, transparent)`, border: `1px solid ${CORAL}20`, borderRadius: "14px", padding: "32px", textAlign: "center" }}>
             <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-1)", marginBottom: "8px" }}>Your first session is waiting</div>
             <p style={{ fontSize: "14px", color: "var(--text-2)", marginBottom: "20px", lineHeight: 1.7 }}>
-              Pick a scenario and record yourself speaking for two minutes. Your AI coach will tell you exactly what to fix before the real meeting.
+              Pick a scenario and record yourself speaking for two minutes. Alex Rivera will tell you exactly what to fix before the real meeting.
             </p>
             <button className="btn-teal" onClick={() => setView("studio")}>
               <Mic size={14} /> Start your first session
@@ -1086,9 +1140,9 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     <Layout>
       <div style={{ padding: "40px 48px" }}>
         <div style={{ marginBottom: "28px" }}>
-          <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text-1)", marginBottom: "8px" }}>Scenario Library</h2>
+          <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text-1)", marginBottom: "8px" }}>What situation do you want to handle better?</h2>
           <p style={{ fontSize: "15px", color: "var(--text-2)" }}>
-            {SCENARIOS.length} real BA communication situations — for interviews and on the job.
+            {SCENARIOS.length} real BA situations — interviews, stakeholder meetings, and on the job.
           </p>
         </div>
 
@@ -1139,35 +1193,12 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
             const diffColors: Record<string, string> = { Foundation: "var(--teal)", Professional: "#f59e0b", Executive: CORAL };
             const color = diffColors[s.difficulty];
             return (
-              <div key={s.id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "22px", display: "flex", flexDirection: "column", cursor: "pointer", transition: "border-color 0.2s" }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = color + "50"}
-                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}15`, padding: "3px 9px", borderRadius: "10px", letterSpacing: "0.06em" }}>
-                    {s.difficulty.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: "11px", color: "var(--text-3)", display: "flex", alignItems: "center", gap: "4px" }}>
-                    <Clock size={11} /> {s.duration}
-                  </span>
-                </div>
-                <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: "8px" }}>{s.title}</div>
-                <div style={{ fontSize: "11px", color: "var(--text-3)", marginBottom: "10px" }}>
-                  {s.type} · {s.audience}
-                </div>
-                <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.7, flex: 1, marginBottom: "14px" }}>{s.description}</p>
-                <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", borderLeft: "3px solid var(--teal)", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "4px" }}>COACH TIP</div>
-                  <p style={{ fontSize: "12px", color: "var(--text-2)", lineHeight: 1.65, margin: 0 }}>{s.coachTip}</p>
-                </div>
-                <button className="btn-teal" onClick={() => {
-                  setStudioSetup({ scenario: s, audience: s.audience, difficulty: s.difficulty, timeLimit: 300, focus: "clarity" });
-                  resetStudio();
-                  setStudioPhase("ready");
-                  setView("studio");
-                }} style={{ justifyContent: "center" }}>
-                  <Mic size={13} /> Practise this scenario
-                </button>
-              </div>
+              <ScenarioTile key={s.id} scenario={s} color={color} onSelect={() => {
+                setStudioSetup({ scenario: s, audience: s.audience, difficulty: s.difficulty, timeLimit: 300, focus: "clarity" });
+                resetStudio();
+                setStudioPhase("ready");
+                setView("studio");
+              }} />
             );
           })}
         </div>
@@ -1218,8 +1249,8 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                         const sel = studioSetup.scenario?.id === s.id;
                         return (
                           <button key={s.id} onClick={() => setStudioSetup(p => ({ ...p, scenario: s, audience: s.audience }))}
-                            style={{ textAlign: "left", padding: "12px 16px", borderRadius: "10px", border: `1px solid ${sel ? CORAL + "50" : "var(--border)"}`, background: sel ? `${CORAL}0a` : "transparent", cursor: "pointer", transition: "all 0.15s" }}>
-                            <div style={{ fontSize: "13px", fontWeight: 600, color: sel ? "var(--text-1)" : "var(--text-2)", marginBottom: "2px" }}>{s.title}</div>
+                            style={{ textAlign: "left", padding: "12px 16px", borderRadius: "10px", border: `2px solid ${sel ? CORAL : "var(--border)"}`, background: sel ? `${CORAL}12` : "transparent", cursor: "pointer", transition: "all 0.15s", transform: sel ? "scale(1.01)" : "scale(1)", boxShadow: sel ? `0 0 0 3px ${CORAL}18` : "none" }}>
+                            <div style={{ fontSize: "13px", fontWeight: sel ? 700 : 600, color: sel ? CORAL : "var(--text-2)", marginBottom: "2px" }}>{s.title}</div>
                             <div style={{ fontSize: "11px", color: "var(--text-3)" }}>{s.difficulty} · {s.duration}</div>
                           </button>
                         );
@@ -1240,7 +1271,8 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "10px" }}>FOCUS AREA</div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "4px" }}>FOCUS AREA</div>
+                      <div style={{ fontSize: "11px", color: "var(--text-4)", marginBottom: "8px" }}>Choose what you want feedback on</div>
                       <select value={studioSetup.focus} onChange={e => setStudioSetup(p => ({ ...p, focus: e.target.value }))}
                         style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-1)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
                         {focusOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
@@ -1269,7 +1301,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                     </div>
                     <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "16px" }}>{studioSetup.scenario.description}</p>
                     <div style={{ padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", borderLeft: "3px solid var(--teal)" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "5px" }}>COACH TIP</div>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "5px" }}>ALEX RIVERA&rsquo;S TIP</div>
                       <p style={{ fontSize: "13px", color: "var(--text-2)", margin: 0, lineHeight: 1.7 }}>{studioSetup.scenario.coachTip}</p>
                     </div>
                   </div>
@@ -1290,8 +1322,13 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                     </div>
                   )}
 
+                  <div style={{ textAlign: "center", marginBottom: "12px" }}>
+                    <span style={{ fontSize: "13px", color: "var(--text-3)" }}>
+                      You have {Math.round(studioSetup.timeLimit / 60)} minute{studioSetup.timeLimit !== 60 ? "s" : ""}. Start when ready.
+                    </span>
+                  </div>
                   <button className="btn-teal" onClick={startRecording} style={{ width: "100%", justifyContent: "center", fontSize: "16px", padding: "16px" }}>
-                    <Mic size={18} /> Start Recording
+                    <Mic size={18} /> Start your delivery
                   </button>
                 </div>
               )}
@@ -1340,9 +1377,9 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                     <div style={{ width: "56px", height: "56px", borderRadius: "50%", border: `3px solid ${CORAL}`, borderTopColor: "transparent", animation: "spin 0.9s linear infinite" }} />
                   </div>
                   <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                  <h3 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", marginBottom: "8px" }}>Analysing your delivery</h3>
-                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7, maxWidth: "380px", margin: "0 auto 24px" }}>
-                    Your AI coach is reviewing the transcript for clarity, structure, confidence, executive presence, pacing, filler words, and audience alignment.
+                  <h3 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", marginBottom: "8px" }}>Alex Rivera is reviewing how you delivered this</h3>
+                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7, maxWidth: "400px", margin: "0 auto 24px" }}>
+                    Looking at your clarity, structure, and how this would land with your audience.
                   </p>
                   {transcript.length > 0 && (
                     <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "16px", textAlign: "left", marginBottom: "24px" }}>
@@ -1352,7 +1389,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                   )}
                   <button className="btn-teal" onClick={submitForFeedback} disabled={isSubmitting}
                     style={{ justifyContent: "center", opacity: isSubmitting ? 0.7 : 1 }}>
-                    {isSubmitting ? "Analysing your delivery..." : "Generate Feedback Report"}
+                    {isSubmitting ? "Alex Rivera is reviewing your delivery..." : "Generate Feedback Report"}
                   </button>
                   {submitError && (
                     <p style={{ color: "#f87171", fontSize: "13px", marginTop: "12px", textAlign: "center" }}>{submitError}</p>
@@ -1396,7 +1433,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                   </div>
                 ))}
                 <p style={{ fontSize: "11px", color: "var(--text-4)", lineHeight: 1.65, marginTop: "12px" }}>
-                  All dimensions will be scored and explained in your feedback report with direct references to your words.
+                  Alex Rivera scores and explains each dimension with direct quotes from your delivery.
                 </p>
               </div>
             </div>
@@ -1435,6 +1472,20 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                 New scenario
               </button>
             </div>
+          </div>
+
+          {/* Now use this */}
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "12px", padding: "18px 24px", marginBottom: "28px", display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.07em", flexShrink: 0 }}>NOW USE THIS</span>
+            <a href="/resume" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", background: `${CORAL}10`, border: `1px solid ${CORAL}30`, color: CORAL, fontSize: "12px", fontWeight: 700, textDecoration: "none" }}>
+              Improve your resume
+            </a>
+            <a href="/opportunities" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", color: "var(--text-2)", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+              Review a role
+            </a>
+            <button onClick={() => { resetStudio(); setView("scenarios"); }} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", color: "var(--text-2)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+              Practice another scenario
+            </button>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start" }}>
@@ -1642,6 +1693,21 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           </div>
         ) : (
           <>
+            {/* Insight line */}
+            {dimAvgs && (() => {
+              const dimLabels: Record<string, string> = { clarity: "Clarity", structure: "Structure", confidence: "Confidence", audienceAlignment: "Audience Alignment", executivePresence: "Executive Presence" };
+              const sorted = Object.entries(dimAvgs).sort((a, b) => b[1] - a[1]);
+              const strong = dimLabels[sorted[0][0]];
+              const weak = dimLabels[sorted[sorted.length - 1][0]];
+              return (
+                <div style={{ background: `${CORAL}08`, border: `1px solid ${CORAL}22`, borderRadius: "12px", padding: "18px 24px", marginBottom: "28px" }}>
+                  <p style={{ fontSize: "15px", color: "var(--text-1)", lineHeight: 1.7, margin: 0 }}>
+                    Your strongest area is <strong style={{ color: "var(--teal)" }}>{strong}</strong>. <strong style={{ color: CORAL }}>{weak}</strong> still needs work — make it your focus next session.
+                  </p>
+                </div>
+              );
+            })()}
+
             {/* Key metrics */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
               {[
