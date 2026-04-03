@@ -110,7 +110,7 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
 
-      <AppSidebar activeHref="/dashboard" profile={isPro && profile ? { ...profile, subscription_tier: "pro" } : profile} user={user} />
+      <AppSidebar activeHref="/dashboard" profile={isPro && profile ? { full_name: profile.full_name ?? null, subscription_tier: "pro" } : profile} user={user} />
 
       {/* MAIN */}
       <main className="flex-1 overflow-y-auto">
