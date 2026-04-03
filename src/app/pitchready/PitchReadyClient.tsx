@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Mic, MicOff, Square, Play, ChevronRight, ArrowLeft,
   Clock, BarChart2, BookOpen, History, TrendingUp, Home,
@@ -469,6 +470,7 @@ function ReusableAnswerCard({ answer }: { answer: string }) {
 interface Props { tier: string; userName: string; initialSessions?: SessionRecord[]; }
 
 export default function PitchReadyClient({ userName, initialSessions = [] }: Props) {
+  const router = useRouter();
   const [view, setView] = useState<PitchView>("home");
 
   // Studio state
@@ -694,6 +696,8 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           wordCount: session.wordCount,
           overallScore: session.score,
           feedback: session.feedback,
+          focusArea: studioSetup.focus,
+          timeLimit: studioSetup.timeLimit,
         }),
       }).catch(() => { /* silent — session already in state */ });
       setView("feedback");
@@ -1016,7 +1020,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
             {[
               { step: "01", title: "Choose a Scenario", body: "12 workplace scenarios built for BAs — stakeholder walkthroughs, executive pitches, sprint reviews, change requests, and more. Each one mirrors a real situation.", action: () => setView("scenarios"), cta: "Browse scenarios" },
               { step: "02", title: "Record Your Delivery", body: "Press record and speak directly in the browser. Live transcript appears as you talk. A waveform shows you are being heard. Speak for 2 to 5 minutes.", action: () => setView("studio"), cta: "Open studio" },
-              { step: "03", title: "Get Specific Coaching", body: "Your AI coach scores your clarity, structure, confidence, executive presence, filler words, pacing, and audience alignment — with quotes from your actual words.", action: () => { if (sessions.length > 0) { setCurrentSession(sessions[0]); setCurrentFeedback(sessions[0].feedback); setView("feedback"); } else setView("studio"); }, cta: sessions.length > 0 ? "View last feedback" : "See an example" },
+              { step: "03", title: "Get Specific Coaching", body: "Your AI coach scores your clarity, structure, confidence, executive presence, filler words, pacing, and audience alignment — with quotes from your actual words.", action: () => { if (sessions.length > 0) { router.push(`/pitchready/session/${sessions[0].id}`); } else setView("studio"); }, cta: sessions.length > 0 ? "View last feedback" : "See an example" },
             ].map(({ step, title, body, action, cta }) => (
               <div key={step} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: "12px", fontWeight: 800, color: CORAL, letterSpacing: "0.08em", marginBottom: "12px" }}>{step}</div>
@@ -1053,7 +1057,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                   {sessions[0].feedback.topWin}
                 </p>
               </div>
-              <button onClick={() => { setCurrentSession(sessions[0]); setCurrentFeedback(sessions[0].feedback); setView("feedback"); }} className="btn-teal" style={{ flexShrink: 0 }}>
+              <button onClick={() => router.push(`/pitchready/session/${sessions[0].id}`)} className="btn-teal" style={{ flexShrink: 0 }}>
                 View feedback
               </button>
             </div>
@@ -1602,7 +1606,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                       </span>
                     </div>
                   </div>
-                  <button onClick={() => { setCurrentSession(s); setCurrentFeedback(s.feedback); setView("feedback"); }} className="btn-teal" style={{ flexShrink: 0, fontSize: "12px", padding: "9px 16px" }}>
+                  <button onClick={() => router.push(`/pitchready/session/${s.id}`)} className="btn-teal" style={{ flexShrink: 0, fontSize: "12px", padding: "9px 16px" }}>
                     View report
                   </button>
                 </div>

@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { id, scenarioId, scenarioTitle, audience, transcript, duration, wordCount, overallScore, feedback } = body;
+  const { id, scenarioId, scenarioTitle, audience, transcript, duration, wordCount, overallScore, feedback, focusArea, timeLimit } = body;
 
   const { error } = await admin
     .from("pitch_sessions")
@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
       word_count: wordCount,
       overall_score: overallScore,
       feedback_output: feedback,
+      selected_focus_area: focusArea ?? null,
+      selected_time_limit: timeLimit ?? null,
       created_at: new Date().toISOString(),
     });
 
