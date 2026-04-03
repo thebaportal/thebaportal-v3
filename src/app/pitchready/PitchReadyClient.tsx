@@ -11,7 +11,7 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type PitchView = "home" | "scenarios" | "studio" | "feedback" | "history" | "progress";
-type StudioPhase = "setup" | "ready" | "recording" | "processing";
+type StudioPhase = "setup" | "ready" | "recording" | "review" | "processing";
 type PulseMood = "Yay" | "Good" | "Meh" | "Tough" | "Rough";
 
 interface Scenario {
@@ -572,6 +572,22 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   const [pulseMood, setPulseMood] = useState<PulseMood | null>(null);
   const [pulseStep, setPulseStep] = useState<"mood" | "reply" | "action">("mood");
 
+  // Alex Rivera intro (shown once)
+  const [showAlexIntro, setShowAlexIntro] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("pr_alex_seen")) {
+      setShowAlexIntro(true);
+    }
+  }, []);
+
+  // Processing status
+  const [processingStatusIdx, setProcessingStatusIdx] = useState(0);
+  const processingMessages = [
+    "Transcribing your response",
+    "Reviewing your delivery",
+    "Checking how this lands with your audience",
+  ];
+
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -579,6 +595,9 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef("");
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioBlobUrlRef = useRef<string | null>(null);
+  const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
 
   // On mount: check speech support + show Pulse Check once per day
   useEffect(() => {
@@ -616,6 +635,22 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isRecording]);
 
+  // Auto-stop when time limit reached
+  useEffect(() => {
+    if (isRecording && studioSetup.timeLimit > 0 && recordingTime >= studioSetup.timeLimit) {
+      stopRecording();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingTime]);
+
+  // Processing status cycling
+  useEffect(() => {
+    if (studioPhase !== "processing") { setProcessingStatusIdx(0); return; }
+    const t1 = setTimeout(() => setProcessingStatusIdx(1), 5000);
+    const t2 = setTimeout(() => setProcessingStatusIdx(2), 12000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [studioPhase]);
+
   // ── Recording ───────────────────────────────────────────────────────────────
 
   const startRecording = useCallback(async () => {
@@ -629,9 +664,14 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
       setWordCount(0);
       setRecordingTime(0);
 
+      audioChunksRef.current = [];
+      if (audioBlobUrlRef.current) { URL.revokeObjectURL(audioBlobUrlRef.current); audioBlobUrlRef.current = null; }
+      setAudioBlobUrl(null);
+
       const recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       mediaRecorderRef.current = recorder;
-      recorder.start();
+      recorder.start(250); // collect chunks every 250ms
       setIsRecording(true);
       setStudioPhase("recording");
 
@@ -674,6 +714,14 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.onstop = () => {
+        if (audioChunksRef.current.length > 0) {
+          const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          const url = URL.createObjectURL(blob);
+          audioBlobUrlRef.current = url;
+          setAudioBlobUrl(url);
+        }
+      };
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
@@ -687,7 +735,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     }
     setIsRecording(false);
     setInterimTranscript("");
-    setStudioPhase("processing");
+    setStudioPhase("review");
   }, []);
 
   const submitForFeedback = useCallback(async () => {
@@ -758,7 +806,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
         ? "Request timed out. Check your connection and try again."
         : "Analysis failed. Please try again.";
       setSubmitError(msg);
-      setStudioPhase("ready");
+      setStudioPhase("processing"); // stay on processing screen to show error + retry
     } finally {
       setIsSubmitting(false);
     }
@@ -775,6 +823,11 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     setWordCount(0);
     setRecordingTime(0);
     finalTranscriptRef.current = "";
+    audioChunksRef.current = [];
+    if (audioBlobUrlRef.current) { URL.revokeObjectURL(audioBlobUrlRef.current); audioBlobUrlRef.current = null; }
+    setAudioBlobUrl(null);
+    setSubmitError("");
+    setProcessingStatusIdx(0);
   }
 
   // ── Filters ─────────────────────────────────────────────────────────────────
@@ -1051,6 +1104,30 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
 
       <div style={{ padding: "40px 48px", maxWidth: "1200px" }}>
 
+        {/* Alex Rivera intro — shown once */}
+        {showAlexIntro && (
+          <div style={{
+            background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-mid)",
+            borderRadius: "14px", padding: "20px 24px", marginBottom: "28px",
+            display: "flex", alignItems: "flex-start", gap: "16px",
+          }}>
+            <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: `linear-gradient(135deg, ${CORAL}, #f97316)`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: "16px", fontWeight: 800, color: "#fff" }}>AR</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "4px" }}>MEET YOUR COACH</div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-1)", marginBottom: "4px" }}>Alex Rivera</div>
+              <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.7, margin: 0 }}>
+                Senior Business Analyst who helps you structure your thinking, communicate clearly, and present with confidence in real BA situations.
+              </p>
+            </div>
+            <button onClick={() => { localStorage.setItem("pr_alex_seen", "1"); setShowAlexIntro(false); }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-4)", fontSize: "18px", lineHeight: 1, padding: "0 4px", flexShrink: 0 }}>
+              ×
+            </button>
+          </div>
+        )}
+
         {/* Stats row */}
         {sessions.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "40px" }}>
@@ -1209,7 +1286,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   // ════════════════════════════════════════════════════════════════════════════
   // PRACTICE STUDIO
   // ════════════════════════════════════════════════════════════════════════════
-  if (view === "studio" || view === "feedback" && studioPhase === "processing") {
+  if (view === "studio" || (view === "feedback" && (studioPhase === "processing" || studioPhase === "review"))) {
     const focusOptions = [
       { value: "all", label: "All aspects (recommended)" },
       { value: "clarity", label: "Clarity" },
@@ -1334,20 +1411,29 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
               )}
 
               {/* RECORDING PHASE */}
-              {studioPhase === "recording" && (
+              {studioPhase === "recording" && (() => {
+                const timeLeft = Math.max(0, studioSetup.timeLimit - recordingTime);
+                const isLastTen = timeLeft <= 10;
+                const timerColor = isLastTen ? "#ef4444" : "var(--text-1)";
+                return (
                 <div>
-                  <div style={{ background: "var(--card)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "16px", padding: "32px", marginBottom: "16px", textAlign: "center" }}>
+                  <div style={{ background: "var(--card)", border: `1px solid ${isLastTen ? "rgba(239,68,68,0.4)" : "rgba(239,68,68,0.2)"}`, borderRadius: "16px", padding: "32px", marginBottom: "16px", textAlign: "center", transition: "border-color 0.3s" }}>
                     <WaveformBars active={isRecording} />
-                    <div style={{ fontSize: "48px", fontWeight: 900, color: "#ef4444", marginTop: "16px", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>
-                      {fmtTime(recordingTime)}
+                    <div style={{
+                      fontSize: "64px", fontWeight: 900, color: timerColor, marginTop: "16px",
+                      fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
+                      animation: isLastTen ? "prWave 0.8s ease-in-out infinite" : "none",
+                      transition: "color 0.3s",
+                    }}>
+                      {fmtTime(timeLeft)}
                     </div>
-                    <div style={{ fontSize: "13px", color: "var(--text-3)", marginTop: "6px" }}>
-                      {wordCount > 0 ? `${wordCount} words · approx ${Math.round(recordingTime / 60 * 130)} wpm pace` : "Listening..."}
+                    <div style={{ fontSize: "13px", color: isLastTen ? "#ef4444" : "var(--text-3)", marginTop: "6px", transition: "color 0.3s" }}>
+                      {isLastTen ? "Finish your sentence" : wordCount > 0 ? `${wordCount} words captured` : "Listening..."}
                     </div>
                     <div style={{ marginTop: "24px" }}>
                       <button onClick={stopRecording}
                         style={{ padding: "14px 32px", borderRadius: "12px", background: "#ef4444", border: "none", color: "#fff", fontSize: "15px", fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                        <Square size={16} /> Stop Recording
+                        <Square size={16} /> Stop recording
                       </button>
                     </div>
                   </div>
@@ -1368,38 +1454,90 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                     </div>
                   </div>
                 </div>
+                );
+              })()}
+
+              {/* REVIEW PHASE */}
+              {studioPhase === "review" && (
+                <div>
+                  <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "28px", marginBottom: "16px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.09em", marginBottom: "16px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <CheckCircle size={12} /> RECORDING COMPLETE
+                    </div>
+                    <div style={{ fontSize: "13px", color: "var(--text-3)", marginBottom: "20px" }}>
+                      {fmtTime(recordingTime)} recorded · {wordCount} words
+                    </div>
+
+                    {audioBlobUrl && (
+                      <div style={{ marginBottom: "20px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "8px" }}>PLAYBACK</div>
+                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                        <audio controls src={audioBlobUrl} style={{ width: "100%", borderRadius: "8px", accentColor: CORAL }} />
+                      </div>
+                    )}
+
+                    {transcript.length > 0 && (
+                      <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: "10px", padding: "16px", marginBottom: "20px", maxHeight: "160px", overflowY: "auto" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "10px" }}>YOUR TRANSCRIPT</div>
+                        <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.8, margin: 0 }}>{transcript}</p>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: "12px" }}>
+                      <button className="btn-teal" onClick={() => { setStudioPhase("processing"); submitForFeedback(); }} style={{ flex: 1, justifyContent: "center" }}>
+                        Submit for review
+                      </button>
+                      <button onClick={() => { resetStudio(); setStudioPhase("ready"); }}
+                        style={{ flex: 1, padding: "11px", borderRadius: "10px", border: "1px solid var(--border-mid)", background: "none", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                        Re-record
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* PROCESSING PHASE */}
               {studioPhase === "processing" && (
-                <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "40px", textAlign: "center" }}>
-                  <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+                <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "48px", textAlign: "center" }}>
+                  <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
                     <div style={{ width: "56px", height: "56px", borderRadius: "50%", border: `3px solid ${CORAL}`, borderTopColor: "transparent", animation: "spin 0.9s linear infinite" }} />
                   </div>
                   <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                  <h3 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", marginBottom: "8px" }}>Alex Rivera is reviewing how you delivered this</h3>
-                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7, maxWidth: "400px", margin: "0 auto 24px" }}>
-                    Looking at your clarity, structure, and how this would land with your audience.
+                  <h3 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", marginBottom: "6px" }}>
+                    Alex Rivera is reviewing how this would land with your audience
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-3)", marginBottom: "24px" }}>
+                    Looking at your clarity, structure, and executive presence
                   </p>
-                  {transcript.length > 0 && (
-                    <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "16px", textAlign: "left", marginBottom: "24px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "10px" }}>YOUR TRANSCRIPT</div>
-                      <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.8, margin: 0 }}>{transcript}</p>
+
+                  {/* Status steps */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "280px", margin: "0 auto 24px" }}>
+                    {processingMessages.map((msg, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", opacity: i <= processingStatusIdx ? 1 : 0.3, transition: "opacity 0.5s" }}>
+                        <div style={{
+                          width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0,
+                          background: i < processingStatusIdx ? "var(--teal)" : i === processingStatusIdx ? CORAL : "var(--text-4)",
+                          transition: "background 0.5s",
+                        }} />
+                        <span style={{ fontSize: "13px", color: i === processingStatusIdx ? "var(--text-1)" : "var(--text-3)", fontWeight: i === processingStatusIdx ? 600 : 400, transition: "all 0.5s" }}>
+                          {msg}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {submitError && (
+                    <div style={{ marginTop: "16px" }}>
+                      <p style={{ color: "#f87171", fontSize: "13px", marginBottom: "12px" }}>{submitError}</p>
+                      <button className="btn-teal" onClick={() => { setStudioPhase("processing"); submitForFeedback(); }} style={{ justifyContent: "center" }}>
+                        Try again
+                      </button>
+                      <button onClick={() => setStudioPhase("review")}
+                        style={{ display: "block", margin: "10px auto 0", fontSize: "12px", color: "var(--text-3)", background: "none", border: "none", cursor: "pointer" }}>
+                        Go back to review
+                      </button>
                     </div>
                   )}
-                  <button className="btn-teal" onClick={submitForFeedback} disabled={isSubmitting}
-                    style={{ justifyContent: "center", opacity: isSubmitting ? 0.7 : 1 }}>
-                    {isSubmitting ? "Alex Rivera is reviewing your delivery..." : "Generate Feedback Report"}
-                  </button>
-                  {submitError && (
-                    <p style={{ color: "#f87171", fontSize: "13px", marginTop: "12px", textAlign: "center" }}>{submitError}</p>
-                  )}
-                  <div style={{ marginTop: "12px" }}>
-                    <button onClick={() => { setStudioPhase("ready"); setTranscript(""); finalTranscriptRef.current = ""; setRecordingTime(0); setWordCount(0); setSubmitError(""); }}
-                      style={{ fontSize: "12px", color: "var(--text-3)", background: "none", border: "none", cursor: "pointer" }}>
-                      Record again instead
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
