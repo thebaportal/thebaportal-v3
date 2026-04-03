@@ -98,10 +98,23 @@ interface RelatedJob {
   location: string | null;
 }
 
+interface ChallengeAttempt {
+  id: string;
+  mode: string;
+  status: string;
+  current_tab: string;
+  conversations: Record<string, Message[]>;
+  submission: string;
+  eval_result: EvalResult | null;
+  validation_result: ValidationResult | null;
+  question_count: number;
+}
+
 interface ChallengeClientProps {
   challenge: Challenge;
   mode: string;
   relatedJobs?: RelatedJob[];
+  initialDraft?: ChallengeAttempt | null;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -210,35 +223,57 @@ function renderDeliverable(text: string, fontSize: string, color: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ChallengeClient({ challenge, mode: initialMode, relatedJobs = [] }: ChallengeClientProps) {
+export default function ChallengeClient({ challenge, mode: initialMode, relatedJobs = [], initialDraft = null }: ChallengeClientProps) {
   const router = useRouter();
 
   const isElicitation = challenge.type === "elicitation";
   type TabType = "brief" | "interview" | "submit" | "validate";
 
-  const [activeTab,   setActiveTab]   = useState<TabType>("brief");
-  const [mode,        setMode]        = useState(initialMode || "normal");
+  const draft = initialDraft;
+  const hasDraft = draft !== null && draft.status === "draft" && draft.question_count > 0;
+
+  const [activeTab,   setActiveTab]   = useState<TabType>(
+    hasDraft ? (draft.current_tab as TabType) : "brief"
+  );
+  const [mode,        setMode]        = useState(hasDraft ? draft.mode : (initialMode || "normal"));
 
   const [activeStakeholderId, setActiveStakeholderId] = useState(challenge.stakeholders[0]?.id || "");
-  const [conversations, setConversations] = useState<Record<string, Message[]>>({});
+  const [conversations, setConversations] = useState<Record<string, Message[]>>(
+    hasDraft ? draft.conversations : {}
+  );
   const [inputValue,    setInputValue]    = useState("");
   const [isLoading,     setIsLoading]     = useState(false);
-  const [questionCount, setQuestionCount] = useState(0);
+  const [questionCount, setQuestionCount] = useState(hasDraft ? draft.question_count : 0);
   const [showHints,     setShowHints]     = useState(false);
   const [showSummary,   setShowSummary]   = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const initializedStakeholders = useRef<Set<string>>(new Set());
 
+  // Draft persistence
+  const [attemptId,     setAttemptId]     = useState<string | null>(hasDraft ? draft.id : null);
+  const [draftRestored, setDraftRestored] = useState(hasDraft);
+  // Use a ref so save callbacks always read latest state without stale closures
+  const liveRef = useRef({
+    attemptId: hasDraft ? draft.id : null as string | null,
+    conversations: hasDraft ? draft.conversations : {} as Record<string, Message[]>,
+    submission: hasDraft ? draft.submission : "",
+    mode: hasDraft ? draft.mode : (initialMode || "normal"),
+    activeTab: hasDraft ? (draft.current_tab as TabType) : "brief" as TabType,
+    questionCount: hasDraft ? draft.question_count : 0,
+    evalResult: hasDraft ? draft.eval_result : null as EvalResult | null,
+    validationResult: hasDraft ? draft.validation_result : null as ValidationResult | null,
+  });
+
   // Phase A — requirements submission
-  const [submission,   setSubmission]   = useState("");
+  const [submission,   setSubmission]   = useState(hasDraft ? draft.submission : "");
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const [evalResult,   setEvalResult]   = useState<EvalResult | null>(null);
+  const [evalResult,   setEvalResult]   = useState<EvalResult | null>(hasDraft ? draft.eval_result : null);
   const [evalError,    setEvalError]    = useState("");
 
   // Phase B — validation
   const [isValidating,     setIsValidating]     = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const [phaseASubmitted,  setPhaseASubmitted]  = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(hasDraft ? draft.validation_result : null);
+  const [phaseASubmitted,  setPhaseASubmitted]  = useState(hasDraft && !!draft.eval_result && isElicitation);
 
   const activeStakeholder = challenge.stakeholders.find(s => s.id === activeStakeholderId);
   const currentMessages   = conversations[activeStakeholderId] || [];
@@ -249,6 +284,60 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [currentMessages, isLoading]);
+
+  // Keep liveRef in sync so save callbacks are never stale
+  useEffect(() => {
+    liveRef.current = { attemptId, conversations, submission, mode, activeTab, questionCount, evalResult, validationResult };
+  });
+
+  async function saveDraft(overrideStatus?: string) {
+    const s = liveRef.current;
+    // Don't create a new record if there's nothing meaningful yet
+    if (!s.attemptId && s.questionCount === 0 && !s.submission.trim() && !s.evalResult) return;
+    try {
+      const res = await fetch("/api/challenge/attempt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: s.attemptId,
+          challengeId: challenge.id,
+          mode: s.mode,
+          status: overrideStatus ?? "draft",
+          currentTab: s.activeTab,
+          conversations: s.conversations,
+          submission: s.submission,
+          evalResult: s.evalResult,
+          validationResult: s.validationResult,
+          questionCount: s.questionCount,
+        }),
+      });
+      const data = await res.json();
+      if (data.id && !s.attemptId) {
+        setAttemptId(data.id);
+        liveRef.current.attemptId = data.id;
+      }
+    } catch {
+      // silent — autosave failures should not interrupt the user
+    }
+  }
+
+  // Debounced save for submission text changes
+  const submissionSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (!submission.trim()) return;
+    if (submissionSaveTimer.current) clearTimeout(submissionSaveTimer.current);
+    submissionSaveTimer.current = setTimeout(() => saveDraft(), 2000);
+    return () => { if (submissionSaveTimer.current) clearTimeout(submissionSaveTimer.current); };
+  }, [submission]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pre-mark stakeholders that already have messages (from draft) so greeting isn't re-inserted
+  useEffect(() => {
+    Object.keys(conversations).forEach(sid => {
+      if ((conversations[sid] || []).length > 0) {
+        initializedStakeholders.current.add(sid);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-insert stakeholder greeting when entering interview tab for the first time
   useEffect(() => {
@@ -290,6 +379,8 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
 
     if (!confirm("Reset all your work for this challenge? This cannot be undone.")) return;
     initializedStakeholders.current = new Set();
+    setAttemptId(null);
+    setDraftRestored(false);
     setConversations({});
     setQuestionCount(0);
     setInputValue("");
@@ -299,6 +390,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
     setValidationResult(null);
     setPhaseASubmitted(false);
     setActiveTab("brief");
+    liveRef.current = { attemptId: null, conversations: {}, submission: "", mode, activeTab: "brief", questionCount: 0, evalResult: null, validationResult: null };
   }
 
   async function sendMessage() {
@@ -318,7 +410,11 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
       });
       const data = await res.json();
       const aiMsg: Message = { role: "assistant", content: data.response || "Could you clarify what you mean?", stakeholderId: activeStakeholderId };
-      setConversations(prev => ({ ...prev, [activeStakeholderId]: [...updated, aiMsg] }));
+      const finalMsgs = [...updated, aiMsg];
+      setConversations(prev => ({ ...prev, [activeStakeholderId]: finalMsgs }));
+      // Save after AI responds (liveRef will have stale conversations at this point, patch it)
+      liveRef.current.conversations = { ...liveRef.current.conversations, [activeStakeholderId]: finalMsgs };
+      saveDraft();
     } catch {
       setConversations(prev => ({
         ...prev,
@@ -349,7 +445,9 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
       const data = await res.json();
       if (data.error) { setEvalError(data.error); return; }
       setEvalResult(data);
+      liveRef.current.evalResult = data;
       if (isElicitation) setPhaseASubmitted(true);
+      saveDraft("evaluated");
     } catch {
       setEvalError("Evaluation failed. Please try again.");
     } finally {
@@ -387,11 +485,20 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
     }
   }
 
+  function goToTab(tab: TabType) {
+    setActiveTab(tab);
+    liveRef.current.activeTab = tab;
+    saveDraft();
+  }
+
   function resetInterview() {
     initializedStakeholders.current = new Set();
     setConversations({});
     setQuestionCount(0);
     setInputValue("");
+    liveRef.current.conversations = {};
+    liveRef.current.questionCount = 0;
+    saveDraft();
   }
 
   const tabs: { key: TabType; label: string }[] = [
@@ -456,6 +563,12 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
             <diff.icon className="w-3.5 h-3.5" style={{ color: diff.color }} />
             <span style={{ fontSize: "13px", fontWeight: 600, color: diff.color }}>{diff.label}</span>
           </div>
+          {attemptId && (
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--teal)", opacity: 0.7 }} />
+              <span style={{ fontSize: "11px", color: "var(--text-4)" }}>Saving</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -475,7 +588,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
           return (
             <button
               key={tab.key}
-              onClick={() => !isLocked && setActiveTab(tab.key)}
+              onClick={() => !isLocked && goToTab(tab.key)}
               style={{
                 display: "flex", alignItems: "center", gap: "8px",
                 padding: "14px 20px", fontSize: "13px",
@@ -522,6 +635,38 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               transition={{ duration: 0.2 }}
               style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px 60px" }}
             >
+              {/* Draft restored banner */}
+              {draftRestored && (
+                <div style={{
+                  marginBottom: "20px", padding: "12px 18px", borderRadius: "10px",
+                  background: "rgba(31,191,159,0.06)", border: "1px solid rgba(31,191,159,0.25)",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <CheckCircle2 className="w-4 h-4" style={{ color: "var(--teal)", flexShrink: 0 }} />
+                    <div>
+                      <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--teal)" }}>Draft restored</span>
+                      <span style={{ fontSize: "13px", color: "var(--text-3)", marginLeft: "8px" }}>Your previous progress has been loaded.</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexShrink: 0 }}>
+                    <button onClick={() => goToTab(activeTab === "brief" ? "interview" : activeTab)} style={{
+                      fontSize: "13px", fontWeight: 600, color: "var(--teal)",
+                      background: "none", border: "none", cursor: "pointer", padding: 0,
+                    }}>
+                      Continue →
+                    </button>
+                    <button onClick={resetAll} style={{
+                      fontSize: "12px", color: "var(--text-4)",
+                      background: "none", border: "none", cursor: "pointer", padding: 0,
+                      textDecoration: "underline",
+                    }}>
+                      Start over
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Framing banner */}
               <div style={{ marginBottom: "28px", padding: "16px 22px", borderRadius: "12px", background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.14)" }}>
                 <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-1)", marginBottom: "4px" }}>
@@ -596,7 +741,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                         ? "Interview all four stakeholders, then document requirements (Phase A) and validate the captured document (Phase B)."
                         : "The next step opens simulated stakeholder conversations."}
                     </p>
-                    <button onClick={() => setActiveTab("interview")} className="btn-teal"
+                    <button onClick={() => goToTab("interview")} className="btn-teal"
                       style={{ width: "100%", justifyContent: "center", fontSize: "14px", padding: "12px 16px" }}>
                       Begin Stakeholder Interviews <ArrowRight className="w-4 h-4" />
                     </button>
@@ -959,7 +1104,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                   const allInterviewed = interviewedCount >= challenge.stakeholders.length;
                   return (
                     <button
-                      onClick={() => setActiveTab("submit")}
+                      onClick={() => goToTab("submit")}
                       className={allInterviewed ? "btn-teal" : "btn-outline"}
                       style={{ padding: "9px 20px", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}
                     >
@@ -1182,7 +1327,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                       <RotateCcw className="w-4 h-4" />Fix your answer and resubmit
                     </button>
                     {isElicitation ? (
-                      <button onClick={() => setActiveTab("validate")} className="btn-teal" style={{ flex: 1, justifyContent: "center", padding: "13px" }}>
+                      <button onClick={() => goToTab("validate")} className="btn-teal" style={{ flex: 1, justifyContent: "center", padding: "13px" }}>
                         Proceed to Phase B — Validate <ArrowRight className="w-4 h-4" />
                       </button>
                     ) : (

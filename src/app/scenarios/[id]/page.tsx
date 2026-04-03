@@ -82,5 +82,23 @@ export default async function ChallengePage({
     relatedJobs = data ?? [];
   }
 
-  return <ChallengeClient challenge={challenge} mode={mode} relatedJobs={relatedJobs} />;
+  // Fetch active draft for this user + challenge
+  const { data: draftData } = await admin
+    .from("challenge_attempts")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("challenge_id", params.id)
+    .eq("status", "draft")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (
+    <ChallengeClient
+      challenge={challenge}
+      mode={mode}
+      relatedJobs={relatedJobs}
+      initialDraft={draftData ?? null}
+    />
+  );
 }
