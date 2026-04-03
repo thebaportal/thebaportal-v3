@@ -100,11 +100,11 @@ interface RelatedJob {
 
 interface ChallengeAttempt {
   id: string;
-  mode: string;
+  difficulty_mode: string;
   status: string;
   current_tab: string;
   conversations: Record<string, Message[]>;
-  submission: string;
+  submission_text: string;
   eval_result: EvalResult | null;
   validation_result: ValidationResult | null;
   question_count: number;
@@ -235,11 +235,11 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   const [activeTab,   setActiveTab]   = useState<TabType>(
     hasDraft ? (draft.current_tab as TabType) : "brief"
   );
-  const [mode,        setMode]        = useState(hasDraft ? draft.mode : (initialMode || "normal"));
+  const [mode,        setMode]        = useState(hasDraft ? draft.difficulty_mode : (initialMode || "normal"));
 
   const [activeStakeholderId, setActiveStakeholderId] = useState(challenge.stakeholders[0]?.id || "");
   const [conversations, setConversations] = useState<Record<string, Message[]>>(
-    hasDraft ? draft.conversations : {}
+    hasDraft ? (draft.conversations ?? {}) : {}
   );
   const [inputValue,    setInputValue]    = useState("");
   const [isLoading,     setIsLoading]     = useState(false);
@@ -255,9 +255,9 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   // Use a ref so save callbacks always read latest state without stale closures
   const liveRef = useRef({
     attemptId: hasDraft ? draft.id : null as string | null,
-    conversations: hasDraft ? draft.conversations : {} as Record<string, Message[]>,
-    submission: hasDraft ? draft.submission : "",
-    mode: hasDraft ? draft.mode : (initialMode || "normal"),
+    conversations: hasDraft ? (draft.conversations ?? {}) : {} as Record<string, Message[]>,
+    submission: hasDraft ? draft.submission_text : "",
+    mode: hasDraft ? draft.difficulty_mode : (initialMode || "normal"),
     activeTab: hasDraft ? (draft.current_tab as TabType) : "brief" as TabType,
     questionCount: hasDraft ? draft.question_count : 0,
     evalResult: hasDraft ? draft.eval_result : null as EvalResult | null,
@@ -265,7 +265,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   });
 
   // Phase A — requirements submission
-  const [submission,   setSubmission]   = useState(hasDraft ? draft.submission : "");
+  const [submission,   setSubmission]   = useState(hasDraft ? draft.submission_text : "");
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalResult,   setEvalResult]   = useState<EvalResult | null>(hasDraft ? draft.eval_result : null);
   const [evalError,    setEvalError]    = useState("");

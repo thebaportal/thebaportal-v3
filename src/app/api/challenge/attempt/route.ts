@@ -11,7 +11,6 @@ const admin = createAdmin(
 );
 
 // GET /api/challenge/attempt?challengeId=xxx
-// Returns the most recent draft for the current user + challenge
 export async function GET(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +34,6 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/challenge/attempt
-// Creates or updates a draft attempt
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -58,15 +56,14 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
 
   if (id) {
-    // Update existing attempt
     const { data, error } = await admin
       .from("challenge_attempts")
       .update({
-        mode,
+        difficulty_mode: mode,
         status: status ?? "draft",
         current_tab: currentTab,
         conversations,
-        submission,
+        submission_text: submission,
         eval_result: evalResult ?? null,
         validation_result: validationResult ?? null,
         question_count: questionCount ?? 0,
@@ -80,21 +77,21 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ id: data.id });
   } else {
-    // Create new attempt
     const { data, error } = await admin
       .from("challenge_attempts")
       .insert({
         user_id: user.id,
         challenge_id: challengeId,
-        mode: mode ?? "normal",
+        difficulty_mode: mode ?? "normal",
         status: "draft",
         current_tab: currentTab ?? "brief",
         conversations: conversations ?? {},
-        submission: submission ?? "",
+        submission_text: submission ?? "",
         eval_result: evalResult ?? null,
         validation_result: validationResult ?? null,
         question_count: questionCount ?? 0,
         updated_at: now,
+        created_at: now,
       })
       .select("id")
       .single();
