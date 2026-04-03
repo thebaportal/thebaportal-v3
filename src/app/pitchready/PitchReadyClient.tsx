@@ -16,6 +16,7 @@ type PulseMood = "Yay" | "Good" | "Meh" | "Tough" | "Rough";
 interface Scenario {
   id: string;
   title: string;
+  mode: "get-the-job" | "perform-in-the-job";
   difficulty: "Foundation" | "Professional" | "Executive";
   audience: string;
   duration: string;
@@ -74,9 +75,85 @@ interface StudioSetup {
 // ── Scenarios Data ────────────────────────────────────────────────────────────
 
 const SCENARIOS: Scenario[] = [
+  // ── Get the Job ─────────────────────────────────────────────────────────────
+  {
+    id: "s-13",
+    title: "Introduce Yourself as a Business Analyst",
+    mode: "get-the-job",
+    difficulty: "Foundation",
+    audience: "Hiring manager and interview panel",
+    duration: "2 to 3 minutes",
+    type: "Interview",
+    category: "Career",
+    description: "You have two minutes to tell a hiring panel who you are as a BA, what you stand for, and why you are the right person for this role. Make it specific, confident, and memorable. Not a CV recital — a positioning statement.",
+    coachTip: "The strongest BA introductions end with one concrete outcome you delivered. Not your job title. What changed because of your work.",
+  },
+  {
+    id: "s-14",
+    title: "Walk Me Through a Project You Worked On",
+    mode: "get-the-job",
+    difficulty: "Foundation",
+    audience: "Senior hiring manager",
+    duration: "3 to 4 minutes",
+    type: "Interview",
+    category: "Career",
+    description: "The interviewer wants a real project walkthrough — not a job description. Pick one project and explain: what the problem was, what your role was, how you handled the requirements, what got in the way, and what the outcome was. Be specific.",
+    coachTip: "Pick one project and own it fully. Interviewers lose confidence when candidates hedge with 'we did this' instead of 'I did this.' Lead with the problem before your solution.",
+  },
+  {
+    id: "s-15",
+    title: "How Have You Handled Conflicting Stakeholder Priorities?",
+    mode: "get-the-job",
+    difficulty: "Professional",
+    audience: "Hiring panel including a technical lead",
+    duration: "3 to 4 minutes",
+    type: "Interview",
+    category: "Career",
+    description: "This is a behavioural question that tests your stakeholder management, political awareness, and decision-making. Give a real example. Do not give a textbook answer — show how you actually navigated the conflict and what you would do differently.",
+    coachTip: "Name the stakeholders and the specific conflict. Vague answers like 'I facilitated alignment' say nothing. Show that you understood what each party actually needed, not just what they asked for.",
+  },
+  {
+    id: "s-16",
+    title: "Explain a Requirement to a Non-Technical Stakeholder",
+    mode: "get-the-job",
+    difficulty: "Foundation",
+    audience: "Business owner with no technical background",
+    duration: "2 to 3 minutes",
+    type: "Interview",
+    category: "Career",
+    description: "You have been asked to explain a complex system requirement to a business owner who does not understand technical language. Make it clear, meaningful, and relevant to their world without dumbing it down.",
+    coachTip: "Use their language, not yours. Translate the requirement into a business outcome they care about. Avoid jargon. If they have to ask what something means, the explanation failed.",
+  },
+  {
+    id: "s-17",
+    title: "Tell Me About a Time a Project Didn't Go as Planned",
+    mode: "get-the-job",
+    difficulty: "Professional",
+    audience: "Hiring manager assessing judgement and accountability",
+    duration: "3 to 4 minutes",
+    type: "Interview",
+    category: "Career",
+    description: "The interviewer wants to see how you handle failure, ambiguity, and pressure. Pick a real situation where something went wrong — not something minor. Show your thinking, your response, and what you learned. Do not blame the team or the client.",
+    coachTip: "This question is about self-awareness, not perfection. The best answers name exactly what went wrong, own your part in it, and describe a concrete change in how you now work as a result.",
+  },
+  {
+    id: "s-18",
+    title: "Why Should We Hire You Over Other BAs?",
+    mode: "get-the-job",
+    difficulty: "Professional",
+    audience: "Senior hiring decision-maker",
+    duration: "2 to 3 minutes",
+    type: "Interview",
+    category: "Career",
+    description: "This is the closing question that separates confident candidates from forgettable ones. You need to articulate your specific value, not generic BA skills. What do you bring that others do not? Be direct, be specific, and do not be vague.",
+    coachTip: "Do not list BA competencies everyone has. Name the specific gap you fill — the type of project, the type of stakeholder, the type of problem you are particularly strong with. Specificity is credibility.",
+  },
+
+  // ── Perform in the Job ───────────────────────────────────────────────────────
   {
     id: "s-01",
     title: "Requirements Walkthrough to Skeptical Stakeholders",
+    mode: "perform-in-the-job",
     difficulty: "Professional",
     audience: "Mixed business and technical stakeholders",
     duration: "3 to 5 minutes",
@@ -88,6 +165,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-02",
     title: "Presenting a Change Request to Leadership",
+    mode: "perform-in-the-job",
     difficulty: "Executive",
     audience: "Senior leadership and project sponsor",
     duration: "2 to 4 minutes",
@@ -99,6 +177,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-03",
     title: "Solution Proposal to a Mixed Technical and Business Audience",
+    mode: "perform-in-the-job",
     difficulty: "Professional",
     audience: "Business owners and engineering leads",
     duration: "4 to 6 minutes",
@@ -110,6 +189,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-04",
     title: "Sprint Review Update After Delays",
+    mode: "perform-in-the-job",
     difficulty: "Professional",
     audience: "Product owner, scrum team, and business stakeholder",
     duration: "2 to 3 minutes",
@@ -121,6 +201,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-05",
     title: "Business Case Pitch with Finance Leadership",
+    mode: "perform-in-the-job",
     difficulty: "Executive",
     audience: "CFO and finance leadership",
     duration: "4 to 5 minutes",
@@ -132,6 +213,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-06",
     title: "Explaining Process Changes to Operational Teams",
+    mode: "perform-in-the-job",
     difficulty: "Foundation",
     audience: "Frontline operational staff",
     duration: "3 to 4 minutes",
@@ -143,6 +225,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-07",
     title: "Introducing Yourself as a BA in an Interview",
+    mode: "get-the-job",
     difficulty: "Foundation",
     audience: "Hiring manager and panel",
     duration: "2 to 3 minutes",
@@ -154,6 +237,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-08",
     title: "Walking Through UAT Findings to the Project Team",
+    mode: "perform-in-the-job",
     difficulty: "Professional",
     audience: "Project manager, development team, and business owner",
     duration: "3 to 4 minutes",
@@ -165,6 +249,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-09",
     title: "Defending a Recommendation with Incomplete Information",
+    mode: "perform-in-the-job",
     difficulty: "Executive",
     audience: "Steering committee",
     duration: "3 to 5 minutes",
@@ -176,6 +261,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-10",
     title: "Handling Pushback During a Stakeholder Presentation",
+    mode: "perform-in-the-job",
     difficulty: "Professional",
     audience: "Challenging senior stakeholder",
     duration: "2 to 3 minutes",
@@ -187,6 +273,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-11",
     title: "Presenting Requirements Analysis at a Project Kickoff",
+    mode: "perform-in-the-job",
     difficulty: "Foundation",
     audience: "Full project team at kickoff",
     duration: "4 to 5 minutes",
@@ -198,6 +285,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "s-12",
     title: "Summarising Analysis Findings for a Board Report",
+    mode: "perform-in-the-job",
     difficulty: "Executive",
     audience: "Board members with limited BA context",
     duration: "3 to 4 minutes",
@@ -238,22 +326,7 @@ const PULSE_FLOWS: Record<PulseMood, { reply: string; followUp: string; action: 
   },
 };
 
-// ── Session Storage ───────────────────────────────────────────────────────────
-
-const SESSIONS_KEY = "pitchready_sessions";
-
-function loadSessions(): SessionRecord[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? "[]"); }
-  catch { return []; }
-}
-
-function persistSession(session: SessionRecord) {
-  const all = loadSessions();
-  all.unshift(session);
-  if (all.length > 60) all.splice(60);
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(all));
-}
+// ── Pulse helpers ─────────────────────────────────────────────────────────────
 
 function shouldShowPulse(): boolean {
   if (typeof window === "undefined") return false;
@@ -349,11 +422,53 @@ function DimBar({ label, score, feedback, examples }: {
   );
 }
 
+// ── Reusable Answer Card ──────────────────────────────────────────────────────
+
+function ReusableAnswerCard({ answer }: { answer: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(answer).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, rgba(224,85,71,0.06), rgba(249,115,22,0.04))",
+      border: "1px solid rgba(224,85,71,0.3)",
+      borderRadius: "14px", padding: "24px", marginBottom: "20px",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+        <div>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "#e05547", letterSpacing: "0.09em", marginBottom: "2px" }}>
+            YOUR REUSABLE ANSWER
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
+            A stronger version of your response. Save it. Use it.
+          </div>
+        </div>
+        <button onClick={copy} style={{
+          padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 700,
+          background: copied ? "rgba(31,191,159,0.12)" : "rgba(224,85,71,0.1)",
+          border: `1px solid ${copied ? "rgba(31,191,159,0.3)" : "rgba(224,85,71,0.3)"}`,
+          color: copied ? "var(--teal)" : "#e05547",
+          cursor: "pointer", transition: "all 0.2s", flexShrink: 0,
+        }}>
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <p style={{ fontSize: "15px", color: "var(--text-1)", lineHeight: 1.85, margin: 0, borderLeft: "3px solid #e05547", paddingLeft: "16px" }}>
+        {answer}
+      </p>
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
-interface Props { tier: string; userName: string; }
+interface Props { tier: string; userName: string; initialSessions?: SessionRecord[]; }
 
-export default function PitchReadyClient({ userName }: Props) {
+export default function PitchReadyClient({ userName, initialSessions = [] }: Props) {
   const [view, setView] = useState<PitchView>("home");
 
   // Studio state
@@ -375,10 +490,24 @@ export default function PitchReadyClient({ userName }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  // Sessions / history
-  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  // Sessions / history — seeded from server, updated after each session
+  const [sessions, setSessions] = useState<SessionRecord[]>(
+    initialSessions.map(s => ({
+      id: s.id,
+      scenarioId: (s as any).scenario_id,
+      scenarioTitle: (s as any).scenario_title,
+      audience: (s as any).audience ?? "",
+      transcript: (s as any).transcript ?? "",
+      duration: (s as any).duration ?? 0,
+      wordCount: (s as any).word_count ?? 0,
+      feedback: (s as any).feedback_output ?? {} as FeedbackReport,
+      score: (s as any).overall_score ?? 0,
+      createdAt: (s as any).created_at,
+    }))
+  );
 
   // Scenario filters
+  const [filterMode, setFilterMode] = useState<"all" | "get-the-job" | "perform-in-the-job">("all");
   const [filterDiff, setFilterDiff] = useState("All");
   const [filterType, setFilterType] = useState("All");
 
@@ -398,9 +527,8 @@ export default function PitchReadyClient({ userName }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef("");
 
-  // Load sessions on mount + show Pulse Check once per day
+  // On mount: check speech support + show Pulse Check once per day
   useEffect(() => {
-    setSessions(loadSessions());
     setSpeechSupported("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
     if (shouldShowPulse()) {
       const t = setTimeout(() => { setPulseOpen(true); markPulseShown(); }, 1800);
@@ -551,8 +679,23 @@ export default function PitchReadyClient({ userName }: Props) {
         createdAt: new Date().toISOString(),
       };
       setCurrentSession(session);
-      persistSession(session);
-      setSessions(loadSessions());
+      setSessions(prev => [session, ...prev]);
+      // Save to DB (fire-and-forget — don't block UI)
+      fetch("/api/pitch/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: session.id,
+          scenarioId: session.scenarioId,
+          scenarioTitle: session.scenarioTitle,
+          audience: session.audience,
+          transcript: session.transcript,
+          duration: session.duration,
+          wordCount: session.wordCount,
+          overallScore: session.score,
+          feedback: session.feedback,
+        }),
+      }).catch(() => { /* silent — session already in state */ });
       setView("feedback");
     } catch (err) {
       clearTimeout(timeout);
@@ -585,6 +728,7 @@ export default function PitchReadyClient({ userName }: Props) {
   const types = ["All", ...Array.from(new Set(SCENARIOS.map(s => s.type)))];
 
   const filteredScenarios = SCENARIOS.filter(s => {
+    if (filterMode !== "all" && s.mode !== filterMode) return false;
     if (filterDiff !== "All" && s.difficulty !== filterDiff) return false;
     if (filterType !== "All" && s.type !== filterType) return false;
     return true;
@@ -816,21 +960,32 @@ export default function PitchReadyClient({ userName }: Props) {
         <div style={{ maxWidth: "720px" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: `${CORAL}12`, border: `1px solid ${CORAL}28`, borderRadius: "20px", padding: "5px 14px", marginBottom: "20px" }}>
             <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: CORAL }} />
-            <span style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.08em" }}>PITCHREADY — SPEAKING COACH</span>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.08em" }}>PITCHREADY — BA COMMUNICATION PRACTICE</span>
           </div>
-          <h1 style={{ fontSize: "44px", fontWeight: 900, color: "var(--text-1)", marginBottom: "16px", lineHeight: 1.05, letterSpacing: "-0.04em" }}>
-            Speak clearly.<br />Present confidently.<br />Lead the room.
+          <h1 style={{ fontSize: "42px", fontWeight: 900, color: "var(--text-1)", marginBottom: "16px", lineHeight: 1.08, letterSpacing: "-0.04em" }}>
+            Practise real BA situations<br />before you face them.
           </h1>
           <p style={{ fontSize: "17px", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "32px", maxWidth: "540px" }}>
-            PitchReady is a voice-first coaching studio for business analysts and professionals who need to communicate under pressure. Practice real scenarios. Get specific AI coaching. Improve with every session.
+            PitchReady helps Business Analysts practise real communication situations before they face them in interviews or at work. Speak. Get coached. Sound like a confident BA.
           </p>
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px" }}>
             <button className="btn-teal" onClick={() => setView("studio")} style={{ fontSize: "15px", padding: "13px 28px" }}>
               <Mic size={16} /> Start Practising
             </button>
             <button onClick={() => setView("scenarios")}
               style={{ padding: "13px 24px", borderRadius: "10px", border: "1px solid var(--border-mid)", background: "transparent", color: "var(--text-1)", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}>
               Browse Scenarios <ChevronRight size={15} style={{ display: "inline", verticalAlign: "middle" }} />
+            </button>
+          </div>
+          {/* Mode entry points */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button onClick={() => { setFilterMode("get-the-job"); setView("scenarios"); }}
+              style={{ padding: "8px 16px", borderRadius: "8px", border: `1px solid ${CORAL}40`, background: `${CORAL}0a`, color: CORAL, fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+              Before the interview →
+            </button>
+            <button onClick={() => { setFilterMode("perform-in-the-job"); setView("scenarios"); }}
+              style={{ padding: "8px 16px", borderRadius: "8px", border: "1px solid rgba(31,191,159,0.3)", background: "rgba(31,191,159,0.06)", color: "var(--teal)", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+              In the job →
             </button>
           </div>
         </div>
@@ -926,17 +1081,39 @@ export default function PitchReadyClient({ userName }: Props) {
   if (view === "scenarios") return (
     <Layout>
       <div style={{ padding: "40px 48px" }}>
-        <div style={{ marginBottom: "32px" }}>
+        <div style={{ marginBottom: "28px" }}>
           <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text-1)", marginBottom: "8px" }}>Scenario Library</h2>
-          <p style={{ fontSize: "15px", color: "var(--text-2)" }}>12 realistic workplace scenarios built for business analysts and professionals.</p>
+          <p style={{ fontSize: "15px", color: "var(--text-2)" }}>
+            {SCENARIOS.length} real BA communication situations — for interviews and on the job.
+          </p>
         </div>
 
-        {/* Filters */}
+        {/* Mode tabs */}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+          {([
+            { key: "all", label: "All scenarios" },
+            { key: "get-the-job", label: "Get the Job" },
+            { key: "perform-in-the-job", label: "Perform in the Job" },
+          ] as const).map(({ key, label }) => (
+            <button key={key} onClick={() => { setFilterMode(key); setFilterDiff("All"); setFilterType("All"); }}
+              style={{
+                padding: "9px 18px", borderRadius: "10px", fontSize: "13px", fontWeight: 600,
+                cursor: "pointer", transition: "all 0.15s",
+                border: `1px solid ${filterMode === key ? CORAL : "var(--border-mid)"}`,
+                background: filterMode === key ? `${CORAL}12` : "transparent",
+                color: filterMode === key ? CORAL : "var(--text-3)",
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Secondary filters */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "28px" }}>
           <div style={{ display: "flex", gap: "6px" }}>
             {difficulties.map(d => (
               <button key={d} onClick={() => setFilterDiff(d)}
-                style={{ padding: "7px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: `1px solid ${filterDiff === d ? CORAL : "var(--border-mid)"}`, background: filterDiff === d ? `${CORAL}15` : "transparent", color: filterDiff === d ? CORAL : "var(--text-3)" }}>
+                style={{ padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: `1px solid ${filterDiff === d ? CORAL : "var(--border-mid)"}`, background: filterDiff === d ? `${CORAL}15` : "transparent", color: filterDiff === d ? CORAL : "var(--text-3)" }}>
                 {d}
               </button>
             ))}
@@ -945,7 +1122,7 @@ export default function PitchReadyClient({ userName }: Props) {
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             {types.map(t => (
               <button key={t} onClick={() => setFilterType(t)}
-                style={{ padding: "7px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: `1px solid ${filterType === t ? "var(--teal)" : "var(--border-mid)"}`, background: filterType === t ? "var(--teal-soft)" : "transparent", color: filterType === t ? "var(--teal)" : "var(--text-3)" }}>
+                style={{ padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: `1px solid ${filterType === t ? "var(--teal)" : "var(--border-mid)"}`, background: filterType === t ? "var(--teal-soft)" : "transparent", color: filterType === t ? "var(--teal)" : "var(--text-3)" }}>
                 {t}
               </button>
             ))}
@@ -1275,6 +1452,11 @@ export default function PitchReadyClient({ userName }: Props) {
                   <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.75, margin: 0 }}>{fb.topFix}</p>
                 </div>
               </div>
+
+              {/* Reusable Answer */}
+              {fb.coachRewrite && (
+                <ReusableAnswerCard answer={fb.coachRewrite} />
+              )}
 
               {/* Dimension scores */}
               <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
