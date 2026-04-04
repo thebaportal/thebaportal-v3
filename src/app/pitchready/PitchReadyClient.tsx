@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Mic, MicOff, Square, Play, ChevronRight, ArrowLeft,
   Clock, BarChart2, BookOpen, History, TrendingUp, Home,
-  AlertCircle, CheckCircle, XCircle, RefreshCw, Target,
+  AlertCircle, CheckCircle, XCircle, RefreshCw, Target, X,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -559,6 +559,12 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [coachRewriteCopied, setCoachRewriteCopied] = useState(false);
+  const [attachJobOpen, setAttachJobOpen] = useState(false);
+  const [careerToolsOpen, setCareerToolsOpen] = useState(false);
+  const [jobUrl, setJobUrl] = useState("");
+  const [savedJobs, setSavedJobs] = useState<Array<{id: string; title: string; company: string; savedDays: string}>>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
 
   // Sessions / history — seeded from server, updated after each session
   const [sessions, setSessions] = useState<SessionRecord[]>(
@@ -667,6 +673,38 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     const t2 = setTimeout(() => setProcessingStatusIdx(2), 12000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [studioPhase]);
+
+  // Fetch saved jobs when attach modal opens
+  useEffect(() => {
+    if (!attachJobOpen) return;
+    setJobsLoading(true);
+    setSavedJobs([]);
+    fetch("/api/opportunities?limit=10")
+      .then(r => r.json())
+      .then(d => {
+        const list = d.opportunities ?? d.data ?? [];
+        if (!Array.isArray(list)) return;
+        const now = Date.now();
+        const tenDays = 10 * 24 * 60 * 60 * 1000;
+        setSavedJobs(
+          list
+            .filter((o: Record<string, unknown>) => new Date(String(o.created_at ?? o.savedAt ?? 0)).getTime() > now - tenDays)
+            .slice(0, 10)
+            .map((o: Record<string, unknown>) => {
+              const savedMs = now - new Date(String(o.created_at ?? o.savedAt ?? now)).getTime();
+              const days = Math.max(1, Math.round(savedMs / (24 * 60 * 60 * 1000)));
+              return {
+                id: String(o.id ?? ""),
+                title: String(o.title ?? o.job_title ?? o.role ?? "Role"),
+                company: String(o.company ?? o.employer ?? o.company_name ?? ""),
+                savedDays: days === 1 ? "1 day" : `${days} days`,
+              };
+            })
+        );
+      })
+      .catch(() => {})
+      .finally(() => setJobsLoading(false));
+  }, [attachJobOpen]);
 
   // ── Recording ───────────────────────────────────────────────────────────────
 
@@ -1649,171 +1687,283 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   if (view === "feedback" && currentFeedback) {
     const fb = currentFeedback;
     const sess = currentSession;
-    const scoreColor = fb.overallScore >= 75 ? "var(--teal)" : fb.overallScore >= 55 ? "#f59e0b" : CORAL;
+    const scoreColor = fb.overallScore >= 75 ? "#10B981" : fb.overallScore >= 55 ? "#F59E0B" : "#EF4444";
 
     return (
       <Layout>
-        <div style={{ padding: "40px 48px" }}>
+        {/* ── Main content ── */}
+        <div style={{ maxWidth: "700px", margin: "0 auto", padding: "40px 32px 96px" }}>
 
-          {/* Header row */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px" }}>
+          {/* Header: scenario + meta */}
+          <div style={{ marginBottom: "28px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 600, color: "#6B7280", letterSpacing: "0.06em", marginBottom: "10px" }}>
+              {sess?.scenarioTitle ?? "Practice Session"}
+              {sess && <> &middot; {fmtTime(sess.duration)} &middot; {sess.wordCount} words</>}
+            </div>
+
+            {/* Verdict — dominant opener */}
+            {fb.verdict && (
+              <p style={{ fontSize: "22px", fontWeight: 700, color: "#FFFFFF", lineHeight: 1.42, margin: 0, letterSpacing: "-0.01em" }}>
+                {fb.verdict}
+              </p>
+            )}
+          </div>
+
+          {/* ── THE ONE THING TO FIX — only box in the top half ── */}
+          <div style={{
+            border: "2px solid #EF4444",
+            borderRadius: "12px",
+            padding: "24px",
+            marginBottom: "28px",
+            background: "rgba(239,68,68,0.04)",
+          }}>
+            <div style={{ fontSize: "10px", fontWeight: 800, color: "#EF4444", letterSpacing: "0.1em", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Target size={11} /> THE ONE THING TO FIX
+            </div>
+            <p style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", lineHeight: 1.6, margin: 0 }}>
+              {fb.topFix}
+            </p>
+          </div>
+
+          {/* ── WHAT WORKED — no box, muted ── */}
+          {fb.topWin && (
+            <div style={{ marginBottom: "32px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT WORKED</div>
+              <p style={{ fontSize: "14px", color: "#9CA3AF", lineHeight: 1.65, margin: 0 }}>{fb.topWin}</p>
+            </div>
+          )}
+
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: "32px" }} />
+
+          {/* ── DO THIS NEXT — no container ── */}
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "10px" }}>DO THIS NEXT</div>
+            <p style={{ fontSize: "16px", color: "#FFFFFF", lineHeight: 1.7, margin: 0 }}>{fb.doThisNext}</p>
+          </div>
+
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: "32px" }} />
+
+          {/* ── HOW ALEX WOULD SAY IT — left accent line, no box ── */}
+          {fb.coachRewrite && (
+            <div style={{ marginBottom: "40px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "16px" }}>HOW ALEX WOULD SAY IT</div>
+              <div style={{ display: "flex", gap: "20px" }}>
+                <div style={{ width: "3px", background: "#10B981", borderRadius: "2px", flexShrink: 0, alignSelf: "stretch" }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: "15px", color: "#E5E7EB", lineHeight: 1.85, margin: "0 0 14px" }}>
+                    {fb.coachRewrite}
+                  </p>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(fb.coachRewrite!); setCoachRewriteCopied(true); setTimeout(() => setCoachRewriteCopied(false), 2000); }}
+                    style={{ fontSize: "12px", fontWeight: 600, color: coachRewriteCopied ? "#10B981" : "#9CA3AF", background: "none", border: `1px solid ${coachRewriteCopied ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.1)"}`, padding: "6px 14px", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s" }}
+                  >
+                    {coachRewriteCopied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TWO COLUMN: transcript (left 65%) + score card (right 35%) ── */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: "32px", alignItems: "start" }}>
+
+            {/* Left: conditional rewrites + transcript */}
             <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "6px" }}>COACHING REPORT</div>
-              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", margin: "0 0 4px" }}>{sess?.scenarioTitle ?? "Practice Session"}</h2>
-              {sess && (
-                <div style={{ fontSize: "12px", color: "var(--text-3)" }}>
-                  {new Date(sess.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · {fmtTime(sess.duration)} · {sess.wordCount} words
+              {/* Conditional rewrites (score < 65) */}
+              {(fb.improvedOpening || fb.improvedClosing) && (
+                <div style={{ marginBottom: "24px" }}>
+                  {fb.improvedOpening && (
+                    <div style={{ marginBottom: "18px" }}>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>STRONGER OPENING</div>
+                      <p style={{ fontSize: "14px", color: "#D1D5DB", lineHeight: 1.75, margin: 0 }}>{fb.improvedOpening}</p>
+                    </div>
+                  )}
+                  {fb.improvedClosing && (
+                    <div>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>STRONGER CLOSING</div>
+                      <p style={{ fontSize: "14px", color: "#D1D5DB", lineHeight: 1.75, margin: 0 }}>{fb.improvedClosing}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Transcript collapse */}
+              {sess?.transcript && (
+                <div>
+                  <button
+                    onClick={() => setTranscriptOpen(o => !o)}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  >
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#9CA3AF" }}>Your transcript</span>
+                    <span style={{ fontSize: "11px", color: "#6B7280" }}>{transcriptOpen ? "▲" : "▾"}</span>
+                  </button>
+                  {transcriptOpen && (
+                    <p style={{ marginTop: "14px", fontSize: "13px", color: "#6B7280", lineHeight: 1.85 }}>
+                      {sess.transcript}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
+
+            {/* Right: score card — secondary box */}
+            <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: "20px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "12px" }}>OVERALL SCORE</div>
+              <div style={{ marginBottom: "16px" }}>
+                <span style={{ fontSize: "42px", fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{fb.overallScore}</span>
+                <span style={{ fontSize: "14px", color: "#6B7280", marginLeft: "4px" }}>/ 100</span>
+              </div>
+              {([
+                ["Clarity", fb.dimensions.clarity?.score ?? 0],
+                ["Structure", fb.dimensions.structure?.score ?? 0],
+                ["Stakeholder", fb.dimensions.stakeholderAwareness?.score ?? 0],
+                ["Relevance", fb.dimensions.relevance?.score ?? 0],
+                ["Confidence", fb.dimensions.confidence?.score ?? 0],
+                ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
+              ] as [string, number][]).map(([label, score]) => {
+                const c = score >= 75 ? "#10B981" : score >= 55 ? "#F59E0B" : "#EF4444";
+                return (
+                  <div key={label} style={{ marginBottom: "8px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
+                      <span style={{ fontSize: "11px", color: "#9CA3AF" }}>{label}</span>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: c }}>{score}</span>
+                    </div>
+                    <div style={{ height: "3px", background: "rgba(255,255,255,0.06)", borderRadius: "2px" }}>
+                      <div style={{ height: "100%", width: `${score}%`, background: c, borderRadius: "2px", transition: "width 1s ease" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Verdict line */}
-          {fb.verdict && (
-            <p style={{ fontSize: "21px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.45, marginBottom: "28px", maxWidth: "700px" }}>
-              {fb.verdict}
-            </p>
-          )}
+        </div>
 
-          {/* Score + Fix + Win row */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "16px", marginBottom: "24px", alignItems: "start" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {/* Top Fix — dominant */}
-              <div style={{
-                background: `${CORAL}0c`, border: `2px solid ${CORAL}50`,
-                borderRadius: "14px", padding: "24px",
-                boxShadow: `0 4px 20px rgba(224,85,71,0.1)`,
-              }}>
-                <div style={{ fontSize: "10px", fontWeight: 800, color: CORAL, letterSpacing: "0.1em", marginBottom: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
-                  <Target size={11} /> THE ONE THING TO FIX
-                </div>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.65, margin: "0 0 16px" }}>{fb.topFix}</p>
-                <button onClick={() => { resetStudio(); setStudioPhase("ready"); }} className="btn-teal" style={{ fontSize: "12px", padding: "9px 18px" }}>
-                  Apply this and try again
+        {/* ── Sticky bottom action bar ── */}
+        <div style={{
+          position: "fixed", bottom: 0, left: "240px", right: 0, zIndex: 100,
+          background: "rgba(9,9,11,0.96)", backdropFilter: "blur(16px)",
+          borderTop: "1px solid rgba(255,255,255,0.07)",
+          padding: "12px 32px",
+          display: "flex", alignItems: "center", gap: "10px",
+        }}>
+          <button
+            onClick={() => { resetStudio(); setStudioPhase("ready"); }}
+            style={{ padding: "11px 20px", borderRadius: "8px", background: "#10B981", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px" }}
+          >
+            <Mic size={14} /> Fix this answer
+          </button>
+          <button
+            onClick={() => { resetStudio(); setView("scenarios"); }}
+            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
+          >
+            Try another scenario
+          </button>
+          <button
+            onClick={() => setAttachJobOpen(true)}
+            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
+          >
+            Attach a job
+          </button>
+          <button
+            onClick={() => setCareerToolsOpen(true)}
+            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
+          >
+            Career tools
+          </button>
+        </div>
+
+        {/* ── Attach a job modal ── */}
+        {attachJobOpen && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px 16px 0 0", width: "100%", maxWidth: "700px", padding: "32px", maxHeight: "80vh", overflowY: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <div style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF" }}>Attach a job to this pitch</div>
+                <button onClick={() => setAttachJobOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: "4px", borderRadius: "6px" }}>
+                  <X size={18} />
                 </button>
               </div>
-              {/* Top Win — quieter */}
-              <div style={{ background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.15)", borderRadius: "12px", padding: "18px" }}>
-                <div style={{ fontSize: "10px", fontWeight: 700, color: "rgba(31,191,159,0.7)", letterSpacing: "0.09em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
-                  <CheckCircle size={11} /> WHAT WORKED
+              <p style={{ fontSize: "13px", color: "#9CA3AF", marginBottom: "24px", lineHeight: 1.65 }}>
+                Tailor your answer to what this role actually tests.
+              </p>
+              <div style={{ marginBottom: "24px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>PASTE A JOB LINK</div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={jobUrl}
+                    onChange={e => setJobUrl(e.target.value)}
+                    style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "#0B0F14", color: "#FFFFFF", fontSize: "13px", outline: "none" }}
+                  />
+                  <button style={{ padding: "10px 18px", borderRadius: "8px", background: "#10B981", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+                    Fetch
+                  </button>
                 </div>
-                <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7, margin: 0 }}>{fb.topWin}</p>
               </div>
-            </div>
-
-            {/* Score ring */}
-            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", textAlign: "center" }}>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "16px" }}>OVERALL SCORE</div>
-              <div style={{ position: "relative", width: "100px", height: "100px", margin: "0 auto 14px" }}>
-                <ScoreRing score={fb.overallScore} size={100} />
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: "32px", fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{fb.overallScore}</span>
-                  <span style={{ fontSize: "10px", color: "var(--text-4)", marginTop: "2px" }}>/ 100</span>
-                </div>
-              </div>
-              <div style={{ fontSize: "12px", color: "var(--text-3)", lineHeight: 1.6 }}>
-                {fb.overallScore >= 80 ? "Excellent. Ready for the real thing." : fb.overallScore >= 65 ? "Solid. Apply the fix and record again." : "Good start. One session is all it takes to see a jump."}
-              </div>
-            </div>
-          </div>
-
-          {/* Do This Next */}
-          <div style={{
-            background: `${CORAL}0a`, border: `2px solid ${CORAL}35`,
-            borderRadius: "14px", padding: "22px", marginBottom: "24px",
-          }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px" }}>DO THIS NEXT</div>
-            <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.65, margin: 0 }}>{fb.doThisNext}</p>
-          </div>
-
-          {/* How Alex Would Say It */}
-          {fb.coachRewrite && <ReusableAnswerCard answer={fb.coachRewrite} />}
-
-          {/* Dimension scores */}
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>DIMENSION SCORES</div>
-            {([
-              ["Clarity", fb.dimensions.clarity?.score ?? 0],
-              ["Structure", fb.dimensions.structure?.score ?? 0],
-              ["Stakeholder Awareness", fb.dimensions.stakeholderAwareness?.score ?? 0],
-              ["Relevance", fb.dimensions.relevance?.score ?? 0],
-              ["Confidence", fb.dimensions.confidence?.score ?? 0],
-              ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
-            ] as [string, number][]).map(([label, score]) => {
-              const c = score >= 75 ? "var(--teal)" : score >= 55 ? "#f59e0b" : CORAL;
-              return (
-                <div key={label} style={{ marginBottom: "14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>{label}</span>
-                    <span style={{ fontSize: "13px", fontWeight: 800, color: c }}>{score}</span>
-                  </div>
-                  <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${score}%`, background: c, borderRadius: "3px", transition: "width 1s ease" }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Conditional rewrites */}
-          {(fb.improvedOpening || fb.improvedClosing) && (
-            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>SUGGESTED REWRITES</div>
-              {fb.improvedOpening && (
-                <div style={{ marginBottom: "18px", paddingBottom: "18px", borderBottom: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER OPENING</div>
-                  <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedOpening}</p>
-                </div>
+              {jobsLoading && (
+                <div style={{ fontSize: "13px", color: "#6B7280", padding: "12px 0" }}>Loading saved jobs...</div>
               )}
-              {fb.improvedClosing && (
+              {!jobsLoading && savedJobs.length > 0 && (
                 <div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER CLOSING</div>
-                  <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedClosing}</p>
+                  <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "12px" }}>SAVED JOBS — LAST 10 DAYS</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {savedJobs.map(job => (
+                      <div key={job.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+                        <div>
+                          <div style={{ fontSize: "14px", fontWeight: 600, color: "#E5E7EB" }}>{job.title}</div>
+                          <div style={{ fontSize: "11px", color: "#9CA3AF" }}>{job.company} &middot; Saved {job.savedDays} ago</div>
+                        </div>
+                        <button style={{ padding: "7px 14px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                          Select
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Transcript — collapsed by default */}
-          {sess?.transcript && (
-            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", marginBottom: "32px", overflow: "hidden" }}>
-              <button
-                onClick={() => setTranscriptOpen(o => !o)}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", background: "none", border: "none", cursor: "pointer" }}
-              >
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em" }}>YOUR TRANSCRIPT</div>
-                <span style={{ fontSize: "12px", color: "var(--text-3)", fontWeight: 600 }}>{transcriptOpen ? "Hide" : "See what you said"}</span>
-              </button>
-              {transcriptOpen && (
-                <div style={{ padding: "0 24px 24px", borderTop: "1px solid var(--border)" }}>
-                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.9, margin: "16px 0 0" }}>{sess.transcript}</p>
+              {!jobsLoading && savedJobs.length === 0 && (
+                <div style={{ textAlign: "center", padding: "20px 0", color: "#6B7280", fontSize: "13px" }}>
+                  No saved jobs found. Paste a link above or save roles on the Opportunities page.
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Contextual actions */}
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "28px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "16px" }}>NOW USE THIS</div>
-            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <button onClick={() => { resetStudio(); setStudioPhase("ready"); }} className="btn-teal" style={{ fontSize: "13px" }}>
-                <Mic size={14} /> Practice again
-              </button>
-              <button onClick={() => { resetStudio(); setView("scenarios"); }}
-                style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "11px 20px", borderRadius: "10px", border: "1px solid var(--border)", background: "none", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
-                <BarChart2 size={14} /> Try a different scenario
-              </button>
-              <a href="/opportunities"
-                style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "11px 20px", borderRadius: "10px", border: "1px solid var(--border)", background: "none", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
-                Review a role
-              </a>
-              <a href="/career"
-                style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "11px 20px", borderRadius: "10px", border: "1px solid var(--border)", background: "none", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
-                Career tools
-              </a>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* ── Career tools modal ── */}
+        {careerToolsOpen && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px 16px 0 0", width: "100%", maxWidth: "700px", padding: "32px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+                <div style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF" }}>Tools for this pitch</div>
+                <button onClick={() => setCareerToolsOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: "4px", borderRadius: "6px" }}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {([
+                  { label: "Fix this answer for a real role", sub: "Turn this into a job-specific answer", action: () => { setCareerToolsOpen(false); setAttachJobOpen(true); } },
+                  { label: "Review your career plan", sub: "Assess where you are and what to do next", href: "/career" },
+                  { label: "Browse open roles", sub: "Find roles that match your BA profile", href: "/opportunities" },
+                ] as Array<{ label: string; sub: string; action?: () => void; href?: string }>).map(({ label, sub, action, href }) => (
+                  <div
+                    key={label}
+                    onClick={() => { if (action) action(); else if (href) { setCareerToolsOpen(false); window.location.href = href; } }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)", cursor: "pointer" }}
+                  >
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#E5E7EB", marginBottom: "2px" }}>{label}</div>
+                      <div style={{ fontSize: "12px", color: "#9CA3AF" }}>{sub}</div>
+                    </div>
+                    <ChevronRight size={15} color="#6B7280" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
       </Layout>
     );
   }
