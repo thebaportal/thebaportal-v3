@@ -763,8 +763,9 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
       if (!feedback) throw new Error("No feedback returned");
       setCurrentFeedback(feedback);
 
+      const tempId = crypto.randomUUID();
       const session: SessionRecord = {
-        id: `${Date.now()}`,
+        id: tempId,
         scenarioId: studioSetup.scenario.id,
         scenarioTitle: studioSetup.scenario.title,
         audience: studioSetup.scenario.audience,
@@ -777,12 +778,11 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
       };
       setCurrentSession(session);
       setSessions(prev => [session, ...prev]);
-      // Save to DB (fire-and-forget — don't block UI)
+      // Save to DB — capture real UUID so history links work
       fetch("/api/pitch/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: session.id,
           scenarioId: session.scenarioId,
           scenarioTitle: session.scenarioTitle,
           audience: session.audience,
@@ -794,7 +794,12 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           focusArea: studioSetup.focus,
           timeLimit: studioSetup.timeLimit,
         }),
-      }).catch(() => { /* silent — session already in state */ });
+      }).then(r => r.json()).then(d => {
+        if (d.id) {
+          // Replace temp id with real DB uuid so history links resolve correctly
+          setSessions(prev => prev.map(s => s.id === tempId ? { ...s, id: d.id } : s));
+        }
+      }).catch(() => { /* silent — session already visible in state */ });
       setView("feedback");
     } catch (err) {
       clearTimeout(timeout);

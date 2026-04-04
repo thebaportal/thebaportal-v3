@@ -34,12 +34,15 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { id, scenarioId, scenarioTitle, audience, transcript, duration, wordCount, overallScore, feedback, focusArea, timeLimit } = body;
+  const { scenarioId, scenarioTitle, audience, transcript, duration, wordCount, overallScore, feedback, focusArea, timeLimit } = body;
 
-  const { error } = await admin
+  if (!scenarioId || !scenarioTitle || !feedback) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  const { data, error } = await admin
     .from("pitch_sessions")
-    .upsert({
-      id,
+    .insert({
       user_id: user.id,
       scenario_id: scenarioId,
       scenario_title: scenarioTitle,
@@ -51,9 +54,13 @@ export async function POST(req: NextRequest) {
       feedback_output: feedback,
       selected_focus_area: focusArea ?? null,
       selected_time_limit: timeLimit ?? null,
-      created_at: new Date().toISOString(),
-    });
+    })
+    .select("id")
+    .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  if (error) {
+    console.error("pitch session save error:", error.message, error.details);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true, id: data.id });
 }
