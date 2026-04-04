@@ -29,27 +29,23 @@ interface Scenario {
 
 interface FeedbackDimension {
   score: number;
-  feedback: string;
 }
 interface FeedbackReport {
   overallScore: number;
   dimensions: {
     clarity: FeedbackDimension;
     structure: FeedbackDimension;
+    stakeholderAwareness: FeedbackDimension;
+    relevance: FeedbackDimension;
     confidence: FeedbackDimension;
-    audienceAlignment: FeedbackDimension;
-    executivePresence: FeedbackDimension;
-    fillerWords: FeedbackDimension & { count: number; examples: string[] };
-    hedgingLanguage: FeedbackDimension & { examples: string[] };
-    pacing: FeedbackDimension & { wpm: number };
+    conciseness: FeedbackDimension;
   };
   topWin: string;
   topFix: string;
+  doThisNext: string;
   coachRewrite: string;
-  strongerOpening: string;
-  strongerClosing: string;
-  stakeholderImpact: string;
-  mostImprovedLine: string;
+  improvedOpening?: string | null;
+  improvedClosing?: string | null;
 }
 
 interface SessionRecord {
@@ -855,10 +851,10 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   })).reverse();
 
   const dimAvgs = sessions.length > 0 ? (() => {
-    const keys = ["clarity", "structure", "confidence", "audienceAlignment", "executivePresence"] as const;
+    const keys = ["clarity", "structure", "stakeholderAwareness", "relevance", "confidence", "conciseness"] as const;
     return Object.fromEntries(keys.map(k => [
       k,
-      Math.round(sessions.reduce((a, s) => a + (s.feedback.dimensions[k]?.score ?? 0), 0) / sessions.length)
+      Math.round(sessions.reduce((a, s) => a + ((s.feedback.dimensions as Record<string, FeedbackDimension>)[k]?.score ?? 0), 0) / sessions.length)
     ]));
   })() : null;
 
@@ -1651,41 +1647,62 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                 <ReusableAnswerCard answer={fb.coachRewrite} />
               )}
 
+              {/* Do This Next */}
+              <div style={{
+                background: `${CORAL}0a`, border: `2px solid ${CORAL}40`,
+                borderRadius: "14px", padding: "22px", marginBottom: "20px",
+              }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px" }}>DO THIS NEXT</div>
+                <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.65, margin: "0 0 14px" }}>{fb.doThisNext}</p>
+                <button onClick={() => { resetStudio(); setStudioPhase("ready"); }} className="btn-teal" style={{ fontSize: "12px", padding: "9px 18px" }}>
+                  Try again with this improvement
+                </button>
+              </div>
+
               {/* Dimension scores */}
               <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>DIMENSION SCORES — click any to expand</div>
-                <DimBar label="Clarity" score={fb.dimensions.clarity.score} feedback={fb.dimensions.clarity.feedback} />
-                <DimBar label="Structure" score={fb.dimensions.structure.score} feedback={fb.dimensions.structure.feedback} />
-                <DimBar label="Confidence" score={fb.dimensions.confidence.score} feedback={fb.dimensions.confidence.feedback} />
-                <DimBar label="Audience Alignment" score={fb.dimensions.audienceAlignment.score} feedback={fb.dimensions.audienceAlignment.feedback} />
-                <DimBar label="Executive Presence" score={fb.dimensions.executivePresence.score} feedback={fb.dimensions.executivePresence.feedback} />
-                <DimBar label={`Filler Words (${fb.dimensions.fillerWords.count} detected)`} score={fb.dimensions.fillerWords.score} feedback={fb.dimensions.fillerWords.feedback} examples={fb.dimensions.fillerWords.examples} />
-                <DimBar label="Hedging Language" score={fb.dimensions.hedgingLanguage.score} feedback={fb.dimensions.hedgingLanguage.feedback} examples={fb.dimensions.hedgingLanguage.examples} />
-                <DimBar label={`Pacing (${fb.dimensions.pacing.wpm} wpm)`} score={fb.dimensions.pacing.score} feedback={fb.dimensions.pacing.feedback} />
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>DIMENSION SCORES</div>
+                {([
+                  ["Clarity", fb.dimensions.clarity?.score ?? 0],
+                  ["Structure", fb.dimensions.structure?.score ?? 0],
+                  ["Stakeholder Awareness", fb.dimensions.stakeholderAwareness?.score ?? 0],
+                  ["Relevance", fb.dimensions.relevance?.score ?? 0],
+                  ["Confidence", fb.dimensions.confidence?.score ?? 0],
+                  ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
+                ] as [string, number][]).map(([label, score]) => {
+                  const c = score >= 75 ? "var(--teal)" : score >= 55 ? "#f59e0b" : CORAL;
+                  return (
+                    <div key={label} style={{ marginBottom: "14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>{label}</span>
+                        <span style={{ fontSize: "13px", fontWeight: 800, color: c }}>{score}</span>
+                      </div>
+                      <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${score}%`, background: c, borderRadius: "3px", transition: "width 1s ease" }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Coach rewrites */}
-              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>COACHING REWRITES</div>
-
-                {[
-                  { label: "Stronger Opening", content: fb.strongerOpening, color: "var(--teal)" },
-                  { label: "Stronger Closing", content: fb.strongerClosing, color: CORAL },
-                  { label: "Most Improved Line", content: fb.mostImprovedLine, color: "#f59e0b" },
-                  { label: "Coach Rewrite", content: fb.coachRewrite, color: "#8b5cf6" },
-                ].map(({ label, content, color }) => (
-                  <div key={label} style={{ marginBottom: "18px", paddingBottom: "18px", borderBottom: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: "11px", fontWeight: 700, color, letterSpacing: "0.07em", marginBottom: "8px" }}>{label.toUpperCase()}</div>
-                    <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{content}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Stakeholder impact */}
-              <div style={{ background: `${CORAL}07`, border: `1px solid ${CORAL}20`, borderRadius: "14px", padding: "24px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "12px" }}>STAKEHOLDER IMPACT</div>
-                <p style={{ fontSize: "15px", color: "var(--text-1)", lineHeight: 1.85, margin: 0 }}>{fb.stakeholderImpact}</p>
-              </div>
+              {/* Conditional rewrites */}
+              {(fb.improvedOpening || fb.improvedClosing) && (
+                <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>SUGGESTED REWRITES</div>
+                  {fb.improvedOpening && (
+                    <div style={{ marginBottom: "18px", paddingBottom: "18px", borderBottom: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER OPENING</div>
+                      <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedOpening}</p>
+                    </div>
+                  )}
+                  {fb.improvedClosing && (
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER CLOSING</div>
+                      <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedClosing}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right: score summary */}
@@ -1707,13 +1724,13 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
               {/* Quick dim summary */}
               <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px" }}>
                 <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "14px" }}>AT A GLANCE</div>
-                {[
-                  ["Clarity", fb.dimensions.clarity.score],
-                  ["Structure", fb.dimensions.structure.score],
-                  ["Confidence", fb.dimensions.confidence.score],
-                  ["Exec Presence", fb.dimensions.executivePresence.score],
-                  ["Pacing", fb.dimensions.pacing.score],
-                ].map(([label, score]) => {
+                {([
+                  ["Clarity", fb.dimensions.clarity?.score ?? 0],
+                  ["Structure", fb.dimensions.structure?.score ?? 0],
+                  ["Confidence", fb.dimensions.confidence?.score ?? 0],
+                  ["Stakeholder", fb.dimensions.stakeholderAwareness?.score ?? 0],
+                  ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
+                ] as [string, number][]).map(([label, score]) => {
                   const s = score as number;
                   const c = s >= 75 ? "var(--teal)" : s >= 55 ? "#f59e0b" : CORAL;
                   return (
@@ -1833,7 +1850,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           <>
             {/* Insight line */}
             {dimAvgs && (() => {
-              const dimLabels: Record<string, string> = { clarity: "Clarity", structure: "Structure", confidence: "Confidence", audienceAlignment: "Audience Alignment", executivePresence: "Executive Presence" };
+              const dimLabels: Record<string, string> = { clarity: "Clarity", structure: "Structure", stakeholderAwareness: "Stakeholder Awareness", relevance: "Relevance", confidence: "Confidence", conciseness: "Conciseness" };
               const sorted = Object.entries(dimAvgs).sort((a, b) => b[1] - a[1]);
               const strong = dimLabels[sorted[0][0]];
               const weak = dimLabels[sorted[sorted.length - 1][0]];
@@ -1886,7 +1903,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                 <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px" }}>
                   <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "18px" }}>DIMENSION AVERAGES</div>
                   {Object.entries(dimAvgs).map(([key, score]) => {
-                    const labels: Record<string, string> = { clarity: "Clarity", structure: "Structure", confidence: "Confidence", audienceAlignment: "Audience Alignment", executivePresence: "Executive Presence" };
+                    const labels: Record<string, string> = { clarity: "Clarity", structure: "Structure", stakeholderAwareness: "Stakeholder Awareness", relevance: "Relevance", confidence: "Confidence", conciseness: "Conciseness" };
                     const c = score >= 75 ? "var(--teal)" : score >= 55 ? "#f59e0b" : CORAL;
                     return (
                       <div key={key} style={{ marginBottom: "12px" }}>
@@ -1907,7 +1924,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                   {(() => {
                     const weakKey = Object.entries(dimAvgs).sort((a, b) => a[1] - b[1])[0];
                     const strongKey = Object.entries(dimAvgs).sort((a, b) => b[1] - a[1])[0];
-                    const dimLabels: Record<string, string> = { clarity: "Clarity", structure: "Structure", confidence: "Confidence", audienceAlignment: "Audience Alignment", executivePresence: "Executive Presence" };
+                    const dimLabels: Record<string, string> = { clarity: "Clarity", structure: "Structure", stakeholderAwareness: "Stakeholder Awareness", relevance: "Relevance", confidence: "Confidence", conciseness: "Conciseness" };
                     return (
                       <>
                         <div style={{ background: `${CORAL}07`, border: `1px solid ${CORAL}20`, borderRadius: "12px", padding: "20px" }}>

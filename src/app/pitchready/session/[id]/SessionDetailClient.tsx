@@ -24,32 +24,6 @@ function ScoreRing({ score, size = 100 }: { score: number; size?: number }) {
   );
 }
 
-function DimBar({ label, score, feedback, examples }: { label: string; score: number; feedback: string; examples?: string[] }) {
-  const [open, setOpen] = useState(false);
-  const color = scoreColor(score);
-  return (
-    <div style={{ marginBottom: "14px" }}>
-      <button onClick={() => setOpen(p => !p)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>{label}</span>
-          <span style={{ fontSize: "13px", fontWeight: 800, color }}>{score}</span>
-        </div>
-        <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${score}%`, background: color, borderRadius: "3px", transition: "width 1s ease" }} />
-        </div>
-      </button>
-      {open && (
-        <div style={{ marginTop: "10px", padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", borderLeft: `3px solid ${color}` }}>
-          <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.75, margin: 0 }}>{feedback}</p>
-          {examples?.map((ex, i) => (
-            <div key={i} style={{ fontSize: "12px", color: CORAL, fontStyle: "italic", marginTop: "4px" }}>&ldquo;{ex}&rdquo;</div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   function copy() {
@@ -74,7 +48,8 @@ function CopyButton({ text }: { text: string }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function SessionDetailClient({ session }: { session: any }) {
   const router = useRouter();
-  const fb = session.feedback_output ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fb: Record<string, any> = session.feedback_output ?? {};
   const score = session.overall_score ?? 0;
   const color = scoreColor(score);
 
@@ -85,6 +60,26 @@ export default function SessionDetailClient({ session }: { session: any }) {
   function fmtTime(s: number) {
     return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   }
+
+  // Dimension data — supports both old and new schema
+  const dimMap: [string, string][] = [
+    ["clarity", "Clarity"],
+    ["structure", "Structure"],
+    ["stakeholderAwareness", "Stakeholder Awareness"],
+    ["relevance", "Relevance"],
+    ["confidence", "Confidence"],
+    ["conciseness", "Conciseness"],
+    // legacy fields from old sessions
+    ["audienceAlignment", "Audience Alignment"],
+    ["executivePresence", "Executive Presence"],
+  ];
+
+  const dims = dimMap
+    .filter(([key]) => fb.dimensions?.[key] != null)
+    .map(([key, label]) => ({
+      label,
+      score: fb.dimensions[key].score ?? 0,
+    }));
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text-1)" }}>
@@ -160,6 +155,17 @@ export default function SessionDetailClient({ session }: { session: any }) {
           </div>
         )}
 
+        {/* Do This Next */}
+        {fb.doThisNext && (
+          <div style={{
+            background: `${CORAL}0a`, border: `2px solid ${CORAL}40`,
+            borderRadius: "14px", padding: "22px", marginBottom: "24px",
+          }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px" }}>DO THIS NEXT</div>
+            <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.65, margin: 0 }}>{fb.doThisNext}</p>
+          </div>
+        )}
+
         {/* Reusable Answer */}
         {fb.coachRewrite && (
           <div style={{
@@ -185,44 +191,44 @@ export default function SessionDetailClient({ session }: { session: any }) {
         )}
 
         {/* Dimension scores */}
-        {fb.dimensions && (
+        {dims.length > 0 && (
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
             <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>
-              DIMENSION SCORES — click any to expand
+              DIMENSION SCORES
             </div>
-            {fb.dimensions.clarity && <DimBar label="Clarity" score={fb.dimensions.clarity.score} feedback={fb.dimensions.clarity.feedback} />}
-            {fb.dimensions.structure && <DimBar label="Structure" score={fb.dimensions.structure.score} feedback={fb.dimensions.structure.feedback} />}
-            {fb.dimensions.confidence && <DimBar label="Confidence" score={fb.dimensions.confidence.score} feedback={fb.dimensions.confidence.feedback} />}
-            {fb.dimensions.audienceAlignment && <DimBar label="Audience Alignment" score={fb.dimensions.audienceAlignment.score} feedback={fb.dimensions.audienceAlignment.feedback} />}
-            {fb.dimensions.executivePresence && <DimBar label="Executive Presence" score={fb.dimensions.executivePresence.score} feedback={fb.dimensions.executivePresence.feedback} />}
-            {fb.dimensions.fillerWords && <DimBar label={`Filler Words (${fb.dimensions.fillerWords.count ?? 0} detected)`} score={fb.dimensions.fillerWords.score} feedback={fb.dimensions.fillerWords.feedback} examples={fb.dimensions.fillerWords.examples} />}
-            {fb.dimensions.hedgingLanguage && <DimBar label="Hedging Language" score={fb.dimensions.hedgingLanguage.score} feedback={fb.dimensions.hedgingLanguage.feedback} examples={fb.dimensions.hedgingLanguage.examples} />}
-            {fb.dimensions.pacing && <DimBar label={`Pacing${fb.dimensions.pacing.wpm ? ` (${fb.dimensions.pacing.wpm} wpm)` : ""}`} score={fb.dimensions.pacing.score} feedback={fb.dimensions.pacing.feedback} />}
+            {dims.map(({ label, score: s }) => {
+              const c = scoreColor(s);
+              return (
+                <div key={label} style={{ marginBottom: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>{label}</span>
+                    <span style={{ fontSize: "13px", fontWeight: 800, color: c }}>{s}</span>
+                  </div>
+                  <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${s}%`, background: c, borderRadius: "3px", transition: "width 1s ease" }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Coaching rewrites */}
-        {(fb.strongerOpening || fb.strongerClosing || fb.mostImprovedLine) && (
+        {/* Conditional rewrites */}
+        {(fb.improvedOpening || fb.improvedClosing) && (
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>COACHING REWRITES</div>
-            {[
-              { label: "Stronger Opening", content: fb.strongerOpening, color: "var(--teal)" },
-              { label: "Stronger Closing", content: fb.strongerClosing, color: CORAL },
-              { label: "Most Improved Line", content: fb.mostImprovedLine, color: "#f59e0b" },
-            ].filter(x => x.content).map(({ label, content, color: c }) => (
-              <div key={label} style={{ marginBottom: "18px", paddingBottom: "18px", borderBottom: "1px solid var(--border)" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: c, letterSpacing: "0.07em", marginBottom: "8px" }}>{label.toUpperCase()}</div>
-                <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{content}</p>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>SUGGESTED REWRITES</div>
+            {fb.improvedOpening && (
+              <div style={{ marginBottom: "18px", paddingBottom: "18px", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER OPENING</div>
+                <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedOpening}</p>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Stakeholder impact */}
-        {fb.stakeholderImpact && (
-          <div style={{ background: `${CORAL}07`, border: `1px solid ${CORAL}20`, borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "12px" }}>STAKEHOLDER IMPACT</div>
-            <p style={{ fontSize: "15px", color: "var(--text-1)", lineHeight: 1.85, margin: 0 }}>{fb.stakeholderImpact}</p>
+            )}
+            {fb.improvedClosing && (
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER CLOSING</div>
+                <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedClosing}</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -239,7 +245,7 @@ export default function SessionDetailClient({ session }: { session: any }) {
 
         {/* Next actions */}
         <div style={{ borderTop: "1px solid var(--border)", paddingTop: "28px" }}>
-          <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "16px" }}>NEXT STEPS</div>
+          <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "16px" }}>NOW USE THIS</div>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             <a href="/pitchready" style={{
               display: "inline-flex", alignItems: "center", gap: "7px",
@@ -255,7 +261,7 @@ export default function SessionDetailClient({ session }: { session: any }) {
               border: "1px solid var(--border)", background: "none",
               color: "var(--text-2)", fontSize: "13px", fontWeight: 600, textDecoration: "none",
             }}>
-              <Briefcase className="w-4 h-4" /> Review roles
+              <Briefcase className="w-4 h-4" /> Review a role
             </a>
             <a href="/career" style={{
               display: "inline-flex", alignItems: "center", gap: "7px",
