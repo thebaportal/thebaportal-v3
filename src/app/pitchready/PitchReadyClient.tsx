@@ -1287,7 +1287,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   // ════════════════════════════════════════════════════════════════════════════
   // PRACTICE STUDIO
   // ════════════════════════════════════════════════════════════════════════════
-  if (view === "studio" || (view === "feedback" && (studioPhase === "processing" || studioPhase === "review"))) {
+  if (view === "studio") {
     const focusOptions = [
       { value: "all", label: "All aspects (recommended)" },
       { value: "clarity", label: "Clarity" },
