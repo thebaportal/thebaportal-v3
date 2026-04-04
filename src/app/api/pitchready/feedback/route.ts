@@ -59,6 +59,7 @@ Return ONLY valid JSON with this exact structure. No text outside the JSON.
 
 {
   "overallScore": <0-100 integer>,
+  "verdict": "<one sentence on how this delivery would land with the audience. Be direct. No labels. Example: 'This answer would leave the panel uncertain about your actual contribution.'>",
   "dimensions": {
     "clarity": { "score": <0-100> },
     "structure": { "score": <0-100> },
@@ -79,6 +80,7 @@ CONSTRAINTS:
 - Do NOT add any fields beyond those listed
 - Do NOT include explanations outside the JSON structure
 - Do NOT generate multiple fixes — one topFix only
+- verdict must be exactly one sentence, no heading, no label
 - coachRewrite should be 60-120 words max
 - improvedOpening and improvedClosing must be null if overallScore >= 65`;
 
@@ -102,6 +104,7 @@ CONSTRAINTS:
     return Response.json({
       feedback: {
         overallScore: 60,
+        verdict: "This session could not be fully analysed — try again with a clearer recording.",
         dimensions: {
           clarity: { score: 60 },
           structure: { score: 60 },

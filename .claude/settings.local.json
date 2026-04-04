@@ -58,7 +58,8 @@
       "WebFetch(domain:jobs.bce.ca)",
       "WebFetch(domain:hiring.cafe)",
       "WebFetch(domain:fantastic.jobs)",
-      "Bash(to Pro\" button. Hover lifts card with top accent line in type color.:*)"
+      "Bash(to Pro\" button. Hover lifts card with top accent line in type color.:*)",
+      "Bash(find C:UsersAdministratorDesktopthebaportal-v3/src -type f -name *avorites* -o -name *aved*)"
     ]
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle, Target, Mic, FileText, Briefcase } from "lucide-react";
+import { ArrowLeft, CheckCircle, Target, Mic, FileText, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
 
 const CORAL = "#e05547";
 
@@ -48,6 +48,7 @@ function CopyButton({ text }: { text: string }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function SessionDetailClient({ session }: { session: any }) {
   const router = useRouter();
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fb: Record<string, any> = session.feedback_output ?? {};
   const score = session.overall_score ?? 0;
@@ -133,23 +134,30 @@ export default function SessionDetailClient({ session }: { session: any }) {
           </div>
         </div>
 
+        {/* Verdict */}
+        {fb.verdict && (
+          <p style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.45, marginBottom: "28px", maxWidth: "680px" }}>
+            {fb.verdict}
+          </p>
+        )}
+
         {/* Top win + top fix */}
         {(fb.topWin || fb.topFix) && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "24px" }}>
-            {fb.topWin && (
-              <div style={{ background: "rgba(31,191,159,0.06)", border: "1px solid rgba(31,191,159,0.2)", borderRadius: "12px", padding: "20px" }}>
-                <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.09em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
-                  <CheckCircle className="w-3 h-3" /> TOP WIN
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
+            {fb.topFix && (
+              <div style={{ background: `${CORAL}0c`, border: `2px solid ${CORAL}50`, borderRadius: "14px", padding: "22px", boxShadow: `0 4px 20px rgba(224,85,71,0.08)` }}>
+                <div style={{ fontSize: "10px", fontWeight: 800, color: CORAL, letterSpacing: "0.1em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <Target className="w-3 h-3" /> THE ONE THING TO FIX
                 </div>
-                <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.75, margin: 0 }}>{fb.topWin}</p>
+                <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.65, margin: 0 }}>{fb.topFix}</p>
               </div>
             )}
-            {fb.topFix && (
-              <div style={{ background: `${CORAL}08`, border: `1px solid ${CORAL}28`, borderRadius: "12px", padding: "20px" }}>
-                <div style={{ fontSize: "10px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
-                  <Target className="w-3 h-3" /> TOP FIX
+            {fb.topWin && (
+              <div style={{ background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.15)", borderRadius: "12px", padding: "18px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 700, color: "rgba(31,191,159,0.7)", letterSpacing: "0.09em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <CheckCircle className="w-3 h-3" /> WHAT WORKED
                 </div>
-                <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.75, margin: 0 }}>{fb.topFix}</p>
+                <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7, margin: 0 }}>{fb.topWin}</p>
               </div>
             )}
           </div>
@@ -176,7 +184,7 @@ export default function SessionDetailClient({ session }: { session: any }) {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "14px", gap: "12px" }}>
               <div>
                 <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "2px" }}>
-                  YOUR REUSABLE ANSWER
+                  HOW ALEX WOULD SAY IT
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
                   A stronger version of your response. Save it. Use it next time.
@@ -232,14 +240,27 @@ export default function SessionDetailClient({ session }: { session: any }) {
           </div>
         )}
 
-        {/* Transcript */}
+        {/* Transcript — collapsed by default */}
         {session.transcript && (
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "32px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", marginBottom: "32px", overflow: "hidden" }}>
+            <button
+              onClick={() => setTranscriptOpen(o => !o)}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", background: "none", border: "none", cursor: "pointer" }}
+            >
               <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em" }}>YOUR TRANSCRIPT</div>
-              <CopyButton text={session.transcript} />
-            </div>
-            <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.9, margin: 0 }}>{session.transcript}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "12px", color: "var(--text-3)", fontWeight: 600 }}>{transcriptOpen ? "Hide" : "See what you said"}</span>
+                {transcriptOpen ? <ChevronUp size={14} color="var(--text-3)" /> : <ChevronDown size={14} color="var(--text-3)" />}
+              </div>
+            </button>
+            {transcriptOpen && (
+              <div style={{ borderTop: "1px solid var(--border)", padding: "0 24px 24px" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px", marginBottom: "12px" }}>
+                  <CopyButton text={session.transcript} />
+                </div>
+                <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.9, margin: 0 }}>{session.transcript}</p>
+              </div>
+            )}
           </div>
         )}
 

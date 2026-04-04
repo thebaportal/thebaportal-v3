@@ -25,6 +25,7 @@ interface Scenario {
   category: string;
   description: string;
   coachTip: string;
+  tests: string;
 }
 
 interface FeedbackDimension {
@@ -32,6 +33,7 @@ interface FeedbackDimension {
 }
 interface FeedbackReport {
   overallScore: number;
+  verdict?: string;
   dimensions: {
     clarity: FeedbackDimension;
     structure: FeedbackDimension;
@@ -84,6 +86,7 @@ const SCENARIOS: Scenario[] = [
     category: "Career",
     description: "You have two minutes to tell a hiring panel who you are as a BA, what you stand for, and why you are the right person for this role. Make it specific, confident, and memorable. Not a CV recital — a positioning statement.",
     coachTip: "The strongest BA introductions end with one concrete outcome you delivered. Not your job title. What changed because of your work.",
+    tests: "Whether you open with a clear positioning hook, distinguish yourself from other BAs, and close with a specific outcome you delivered.",
   },
   {
     id: "s-14",
@@ -96,6 +99,7 @@ const SCENARIOS: Scenario[] = [
     category: "Career",
     description: "The interviewer wants a real project walkthrough — not a job description. Pick one project and explain: what the problem was, what your role was, how you handled the requirements, what got in the way, and what the outcome was. Be specific.",
     coachTip: "Pick one project and own it fully. Interviewers lose confidence when candidates hedge with 'we did this' instead of 'I did this.' Lead with the problem before your solution.",
+    tests: "Whether you name the specific problem, own your personal contribution with 'I' language, and state a measurable outcome.",
   },
   {
     id: "s-15",
@@ -108,6 +112,7 @@ const SCENARIOS: Scenario[] = [
     category: "Career",
     description: "This is a behavioural question that tests your stakeholder management, political awareness, and decision-making. Give a real example. Do not give a textbook answer — show how you actually navigated the conflict and what you would do differently.",
     coachTip: "Name the stakeholders and the specific conflict. Vague answers like 'I facilitated alignment' say nothing. Show that you understood what each party actually needed, not just what they asked for.",
+    tests: "Whether you name the actual conflict and specific stakeholders, articulate what each party truly needed, and explain a clear resolution.",
   },
   {
     id: "s-16",
@@ -120,6 +125,7 @@ const SCENARIOS: Scenario[] = [
     category: "Career",
     description: "You have been asked to explain a complex system requirement to a business owner who does not understand technical language. Make it clear, meaningful, and relevant to their world without dumbing it down.",
     coachTip: "Use their language, not yours. Translate the requirement into a business outcome they care about. Avoid jargon. If they have to ask what something means, the explanation failed.",
+    tests: "Whether you explain without jargon, anchor the requirement in a business outcome the audience cares about, and confirm understanding.",
   },
   {
     id: "s-17",
@@ -132,6 +138,7 @@ const SCENARIOS: Scenario[] = [
     category: "Career",
     description: "The interviewer wants to see how you handle failure, ambiguity, and pressure. Pick a real situation where something went wrong — not something minor. Show your thinking, your response, and what you learned. Do not blame the team or the client.",
     coachTip: "This question is about self-awareness, not perfection. The best answers name exactly what went wrong, own your part in it, and describe a concrete change in how you now work as a result.",
+    tests: "Whether you name exactly what went wrong, own your part without blaming others, and describe a concrete change in how you now work.",
   },
   {
     id: "s-18",
@@ -144,6 +151,7 @@ const SCENARIOS: Scenario[] = [
     category: "Career",
     description: "This is the closing question that separates confident candidates from forgettable ones. You need to articulate your specific value, not generic BA skills. What do you bring that others do not? Be direct, be specific, and do not be vague.",
     coachTip: "Do not list BA competencies everyone has. Name the specific gap you fill — the type of project, the type of stakeholder, the type of problem you are particularly strong with. Specificity is credibility.",
+    tests: "Whether you name a specific and distinctive value you bring, not generic BA competencies that every candidate claims.",
   },
 
   // ── Perform in the Job ───────────────────────────────────────────────────────
@@ -158,6 +166,7 @@ const SCENARIOS: Scenario[] = [
     category: "Requirements",
     description: "You are presenting a requirements document to a group that includes David from engineering, who thinks requirements are always wrong, and Priya from compliance, who has seen three similar projects fail. Walk them through what you found and why they should trust it.",
     coachTip: "Lead with your methodology before your conclusions. Skeptical stakeholders need to trust your process before they trust your output.",
+    tests: "Whether you lead with methodology before conclusions, and address skeptical stakeholders directly rather than talking past them.",
   },
   {
     id: "s-02",
@@ -170,6 +179,7 @@ const SCENARIOS: Scenario[] = [
     category: "Governance",
     description: "Scope has changed. You need to present a formal change request that adds two weeks and 15% to the budget. The sponsor is under board pressure. Make the case clearly, own the impact, and propose a path forward.",
     coachTip: "Never bury the impact. State the change, the cost, and your recommendation in the first 30 seconds. Executives respect brevity and decisiveness.",
+    tests: "Whether you state the change, cost impact, and recommendation within the first 30 seconds without burying or softening the news.",
   },
   {
     id: "s-03",
@@ -182,6 +192,7 @@ const SCENARIOS: Scenario[] = [
     category: "Solution Design",
     description: "You are recommending a solution approach that the business team will love but the technical team thinks is over-engineered. Present it in a way that speaks to both without losing either.",
     coachTip: "Structure your talk in two halves: lead with the business outcome, then transition to the technical rationale. Use a clear verbal marker between them.",
+    tests: "Whether you lead with the business outcome before technical rationale, and use a clear verbal marker between the two halves.",
   },
   {
     id: "s-04",
@@ -194,6 +205,7 @@ const SCENARIOS: Scenario[] = [
     category: "Agile",
     description: "The sprint delivered 60% of the committed stories. Two features slipped. A key stakeholder is in the room who has been asking about those features for three weeks. Give the update without deflecting.",
     coachTip: "Own the miss, explain the cause in one sentence, and pivot immediately to the recovery plan. Stakeholders forgive delays they understand.",
+    tests: "Whether you own the miss without deflecting, explain the cause in one sentence, and pivot immediately to a concrete recovery plan.",
   },
   {
     id: "s-05",
@@ -206,6 +218,7 @@ const SCENARIOS: Scenario[] = [
     category: "Strategy",
     description: "You are presenting a business case for a 400,000 investment in process automation. The CFO wants ROI, payback period, and risk. Present the financials clearly and defend your assumptions.",
     coachTip: "Finance stakeholders respond to numbers and risk transparency. State the payback period and confidence level early. Do not hide uncertainty — quantify it.",
+    tests: "Whether you state the payback period and risk early, quantify uncertainty rather than hiding it, and speak the CFO's language.",
   },
   {
     id: "s-06",
@@ -218,6 +231,7 @@ const SCENARIOS: Scenario[] = [
     category: "Change Management",
     description: "You are communicating a new approval process to a team of 20 operations staff. Some of them have been doing it the old way for eight years. Focus on what changes, what stays the same, and what it means for their daily work.",
     coachTip: "Always answer the unspoken question first: what does this mean for me tomorrow morning? People resist change they do not understand, not change itself.",
+    tests: "Whether you answer the unspoken question first (what does this mean for me tomorrow?), and make the change feel manageable rather than threatening.",
   },
   {
     id: "s-07",
@@ -230,6 +244,7 @@ const SCENARIOS: Scenario[] = [
     category: "Career",
     description: "You have 2 minutes to tell a hiring panel who you are as a BA, what you stand for, and why you are the right person for this role. Make it specific, confident, and memorable.",
     coachTip: "The strongest BA introductions include one concrete outcome you delivered. Not your job title — what changed because of your work.",
+    tests: "Whether you open with a clear positioning hook, distinguish yourself from other BAs, and close with a specific outcome you delivered.",
   },
   {
     id: "s-08",
@@ -242,6 +257,7 @@ const SCENARIOS: Scenario[] = [
     category: "Testing",
     description: "UAT surfaced 12 defects, three of which are blocking go-live. The development team thinks two of them are design issues, not defects. Walk through the findings without starting a blame conversation.",
     coachTip: "Present findings against acceptance criteria, not against people. Lead with evidence, not opinion. Frame blocking defects as go-live risks, not failures.",
+    tests: "Whether you present findings against criteria not people, frame blocking defects as go-live risks, and avoid triggering a blame dynamic.",
   },
   {
     id: "s-09",
@@ -254,6 +270,7 @@ const SCENARIOS: Scenario[] = [
     category: "Strategy",
     description: "You are recommending a direction to the steering committee but your data is incomplete — one key system was unavailable and two SMEs did not respond in time. Make the case for your recommendation while being transparent about what you do not yet know.",
     coachTip: "Distinguish what you know, what you inferred, and what remains uncertain. Executives make decisions under uncertainty every day — they need you to be honest about the confidence level of your analysis.",
+    tests: "Whether you clearly distinguish what you know, what you inferred, and what remains uncertain, while still making a confident recommendation.",
   },
   {
     id: "s-10",
@@ -266,6 +283,7 @@ const SCENARIOS: Scenario[] = [
     category: "Stakeholder Management",
     description: "Mid-presentation, a senior stakeholder challenges your methodology and suggests your analysis is incomplete. Stay composed, address the challenge, and return to your presentation thread without losing the room.",
     coachTip: "Acknowledge the challenge, validate the concern, answer concisely, and return to your thread with a bridging phrase. Do not get drawn into a debate during a presentation.",
+    tests: "Whether you acknowledge and validate the challenge, answer it concisely, and return to your thread without being drawn into a debate.",
   },
   {
     id: "s-11",
@@ -278,6 +296,7 @@ const SCENARIOS: Scenario[] = [
     category: "Requirements",
     description: "You are opening the requirements phase at a project kickoff. Explain what you will do, how long it will take, what you need from the team, and what the output will look like. Make everyone feel confident in the approach.",
     coachTip: "A kickoff audience needs to leave feeling informed and confident. Cover: what we are doing, how you will do it, what you need from each of them, and what success looks like.",
+    tests: "Whether you cover what you are doing, how you will do it, what you need from each person, and what success looks like.",
   },
   {
     id: "s-12",
@@ -290,6 +309,7 @@ const SCENARIOS: Scenario[] = [
     category: "Reporting",
     description: "The board has five minutes for your slot. Summarise six weeks of analysis into the three things they need to know, the decision they need to make, and what happens if they delay.",
     coachTip: "Board members want one thing: what is the decision and what does it cost to delay it. Everything else is supporting detail. Structure your summary around the decision, not the process.",
+    tests: "Whether you structure around the decision and its cost to delay, rather than leading with process, background, or methodology.",
   },
 ];
 
@@ -438,10 +458,10 @@ function ReusableAnswerCard({ answer }: { answer: string }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#e05547", letterSpacing: "0.09em", marginBottom: "2px" }}>
-            YOUR REUSABLE ANSWER
+            HOW ALEX WOULD SAY IT
           </div>
           <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
-            A stronger version of your response. Save it. Use it.
+            A stronger version. Save it. Use it next time.
           </div>
         </div>
         <button onClick={copy} style={{
@@ -538,6 +558,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   const [currentSession, setCurrentSession] = useState<SessionRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
 
   // Sessions / history — seeded from server, updated after each session
   const [sessions, setSessions] = useState<SessionRecord[]>(
@@ -1318,7 +1339,10 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
               {/* SETUP PHASE */}
               {studioPhase === "setup" && (
                 <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "32px" }}>
-                  <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-1)", marginBottom: "24px" }}>Configure your session</h3>
+                  <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", marginBottom: "6px" }}>You are about to be evaluated.</h3>
+                  <p style={{ fontSize: "14px", color: "var(--text-3)", marginBottom: "28px", lineHeight: 1.6 }}>
+                    Speak clearly. Answer the question directly. Alex will score how this lands.
+                  </p>
 
                   <div style={{ marginBottom: "24px" }}>
                     <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "12px" }}>SCENARIO</div>
@@ -1327,8 +1351,18 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                         const sel = studioSetup.scenario?.id === s.id;
                         return (
                           <button key={s.id} onClick={() => setStudioSetup(p => ({ ...p, scenario: s, audience: s.audience }))}
-                            style={{ textAlign: "left", padding: "12px 16px", borderRadius: "10px", border: `2px solid ${sel ? CORAL : "var(--border)"}`, background: sel ? `${CORAL}12` : "transparent", cursor: "pointer", transition: "all 0.15s", transform: sel ? "scale(1.01)" : "scale(1)", boxShadow: sel ? `0 0 0 3px ${CORAL}18` : "none" }}>
-                            <div style={{ fontSize: "13px", fontWeight: sel ? 700 : 600, color: sel ? CORAL : "var(--text-2)", marginBottom: "2px" }}>{s.title}</div>
+                            style={{
+                              textAlign: "left", padding: "14px 16px", borderRadius: "10px",
+                              border: `2px solid ${sel ? CORAL : "var(--border)"}`,
+                              background: sel ? `${CORAL}12` : "transparent",
+                              cursor: "pointer", transition: "all 0.15s",
+                              transform: sel ? "scale(1.01)" : "scale(1)",
+                              boxShadow: sel ? `0 0 0 4px ${CORAL}20, 0 4px 16px rgba(224,85,71,0.15)` : "none",
+                            }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
+                              {sel && <span style={{ fontSize: "9px", fontWeight: 800, color: "#fff", background: CORAL, padding: "2px 7px", borderRadius: "6px", letterSpacing: "0.07em" }}>SELECTED</span>}
+                              <div style={{ fontSize: "13px", fontWeight: sel ? 700 : 600, color: sel ? CORAL : "var(--text-2)" }}>{s.title}</div>
+                            </div>
                             <div style={{ fontSize: "11px", color: "var(--text-3)" }}>{s.difficulty} · {s.duration}</div>
                           </button>
                         );
@@ -1342,15 +1376,22 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                       <div style={{ display: "flex", gap: "8px" }}>
                         {[{ v: 120, l: "2 min" }, { v: 300, l: "5 min" }, { v: 480, l: "8 min" }].map(({ v, l }) => (
                           <button key={v} onClick={() => setStudioSetup(p => ({ ...p, timeLimit: v }))}
-                            style={{ flex: 1, padding: "9px 6px", borderRadius: "8px", border: `1px solid ${studioSetup.timeLimit === v ? CORAL + "50" : "var(--border)"}`, background: studioSetup.timeLimit === v ? `${CORAL}0f` : "transparent", color: studioSetup.timeLimit === v ? CORAL : "var(--text-2)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                            style={{
+                              flex: 1, padding: "9px 6px", borderRadius: "8px",
+                              border: `2px solid ${studioSetup.timeLimit === v ? CORAL : "var(--border)"}`,
+                              background: studioSetup.timeLimit === v ? `${CORAL}15` : "transparent",
+                              color: studioSetup.timeLimit === v ? CORAL : "var(--text-2)",
+                              fontSize: "12px", fontWeight: studioSetup.timeLimit === v ? 800 : 600,
+                              cursor: "pointer", transition: "all 0.15s",
+                            }}>
                             {l}
                           </button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "4px" }}>FOCUS AREA</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-4)", marginBottom: "8px" }}>Choose what you want feedback on</div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "4px" }}>WHAT SHOULD ALEX FOCUS ON?</div>
+                      <div style={{ fontSize: "11px", color: "var(--text-4)", marginBottom: "8px" }}>Choose one dimension for extra weight</div>
                       <select value={studioSetup.focus} onChange={e => setStudioSetup(p => ({ ...p, focus: e.target.value }))}
                         style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-1)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
                         {focusOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
@@ -1359,9 +1400,9 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                   </div>
 
                   <button className="btn-teal" onClick={() => studioSetup.scenario && setStudioPhase("ready")}
-                    style={{ justifyContent: "center", width: "100%", opacity: studioSetup.scenario ? 1 : 0.4 }}
+                    style={{ justifyContent: "center", width: "100%", opacity: studioSetup.scenario ? 1 : 0.4, fontSize: "15px", padding: "14px" }}
                     disabled={!studioSetup.scenario}>
-                    Continue to Studio <ChevronRight size={15} />
+                    <Mic size={16} /> Start your delivery
                   </button>
                 </div>
               )}
@@ -1564,16 +1605,36 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
               )}
 
               <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "12px", padding: "20px" }}>
-                <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "14px" }}>COACHING DIMENSIONS</div>
-                {["Clarity", "Structure", "Confidence", "Audience alignment", "Executive presence", "Filler words", "Pacing"].map(d => (
-                  <div key={d} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                    <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: CORAL, flexShrink: 0 }} />
-                    <span style={{ fontSize: "12px", color: "var(--text-3)" }}>{d}</span>
-                  </div>
-                ))}
-                <p style={{ fontSize: "11px", color: "var(--text-4)", lineHeight: 1.65, marginTop: "12px" }}>
-                  Alex Rivera scores and explains each dimension with direct quotes from your delivery.
-                </p>
+                {studioSetup.scenario ? (
+                  <>
+                    <div style={{ fontSize: "10px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px" }}>WHAT ALEX IS LISTENING FOR</div>
+                    <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.75, margin: "0 0 14px" }}>
+                      {studioSetup.scenario.tests}
+                    </p>
+                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "8px" }}>SCORED ON</div>
+                      {["Clarity", "Structure", "Confidence", "Stakeholder Awareness", "Relevance", "Conciseness"].map(d => (
+                        <div key={d} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                          <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: "var(--text-4)", flexShrink: 0 }} />
+                          <span style={{ fontSize: "12px", color: "var(--text-3)" }}>{d}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "10px" }}>SCORED ON</div>
+                    {["Clarity", "Structure", "Confidence", "Stakeholder Awareness", "Relevance", "Conciseness"].map(d => (
+                      <div key={d} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                        <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: CORAL, flexShrink: 0 }} />
+                        <span style={{ fontSize: "12px", color: "var(--text-3)" }}>{d}</span>
+                      </div>
+                    ))}
+                    <p style={{ fontSize: "11px", color: "var(--text-4)", lineHeight: 1.65, marginTop: "12px" }}>
+                      Select a scenario to see what Alex is specifically listening for.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1593,172 +1654,165 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     return (
       <Layout>
         <div style={{ padding: "40px 48px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
+
+          {/* Header row */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px" }}>
             <div>
               <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "6px" }}>COACHING REPORT</div>
-              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{sess?.scenarioTitle ?? "Practice Session"}</h2>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", margin: "0 0 4px" }}>{sess?.scenarioTitle ?? "Practice Session"}</h2>
               {sess && (
-                <div style={{ fontSize: "12px", color: "var(--text-3)", marginTop: "4px" }}>
+                <div style={{ fontSize: "12px", color: "var(--text-3)" }}>
                   {new Date(sess.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · {fmtTime(sess.duration)} · {sess.wordCount} words
                 </div>
               )}
             </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={() => { resetStudio(); setView("studio"); }} className="btn-teal">
-                <Mic size={14} /> Practice again
-              </button>
-              <button onClick={() => setView("scenarios")} style={{ padding: "11px 18px", borderRadius: "10px", border: "1px solid var(--border-mid)", background: "transparent", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                New scenario
-              </button>
-            </div>
           </div>
 
-          {/* Now use this */}
-          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "12px", padding: "18px 24px", marginBottom: "28px", display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.07em", flexShrink: 0 }}>NOW USE THIS</span>
-            <a href="/resume" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", background: `${CORAL}10`, border: `1px solid ${CORAL}30`, color: CORAL, fontSize: "12px", fontWeight: 700, textDecoration: "none" }}>
-              Improve your resume
-            </a>
-            <a href="/opportunities" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", color: "var(--text-2)", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
-              Review a role
-            </a>
-            <button onClick={() => { resetStudio(); setView("scenarios"); }} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", color: "var(--text-2)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-              Practice another scenario
-            </button>
-          </div>
+          {/* Verdict line */}
+          {fb.verdict && (
+            <p style={{ fontSize: "21px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.45, marginBottom: "28px", maxWidth: "700px" }}>
+              {fb.verdict}
+            </p>
+          )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start" }}>
-
-            {/* Left: full report */}
-            <div>
-              {/* Top win / top fix */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "24px" }}>
-                <div style={{ background: "rgba(31,191,159,0.06)", border: "1px solid rgba(31,191,159,0.2)", borderRadius: "12px", padding: "20px" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.09em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
-                    <CheckCircle size={12} /> TOP WIN
-                  </div>
-                  <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.75, margin: 0 }}>{fb.topWin}</p>
-                </div>
-                <div style={{ background: `${CORAL}08`, border: `1px solid ${CORAL}28`, borderRadius: "12px", padding: "20px" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
-                    <Target size={12} /> TOP FIX
-                  </div>
-                  <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.75, margin: 0 }}>{fb.topFix}</p>
-                </div>
-              </div>
-
-              {/* Reusable Answer */}
-              {fb.coachRewrite && (
-                <ReusableAnswerCard answer={fb.coachRewrite} />
-              )}
-
-              {/* Do This Next */}
+          {/* Score + Fix + Win row */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "16px", marginBottom: "24px", alignItems: "start" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* Top Fix — dominant */}
               <div style={{
-                background: `${CORAL}0a`, border: `2px solid ${CORAL}40`,
-                borderRadius: "14px", padding: "22px", marginBottom: "20px",
+                background: `${CORAL}0c`, border: `2px solid ${CORAL}50`,
+                borderRadius: "14px", padding: "24px",
+                boxShadow: `0 4px 20px rgba(224,85,71,0.1)`,
               }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px" }}>DO THIS NEXT</div>
-                <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.65, margin: "0 0 14px" }}>{fb.doThisNext}</p>
+                <div style={{ fontSize: "10px", fontWeight: 800, color: CORAL, letterSpacing: "0.1em", marginBottom: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <Target size={11} /> THE ONE THING TO FIX
+                </div>
+                <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.65, margin: "0 0 16px" }}>{fb.topFix}</p>
                 <button onClick={() => { resetStudio(); setStudioPhase("ready"); }} className="btn-teal" style={{ fontSize: "12px", padding: "9px 18px" }}>
-                  Try again with this improvement
+                  Apply this and try again
                 </button>
               </div>
-
-              {/* Dimension scores */}
-              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>DIMENSION SCORES</div>
-                {([
-                  ["Clarity", fb.dimensions.clarity?.score ?? 0],
-                  ["Structure", fb.dimensions.structure?.score ?? 0],
-                  ["Stakeholder Awareness", fb.dimensions.stakeholderAwareness?.score ?? 0],
-                  ["Relevance", fb.dimensions.relevance?.score ?? 0],
-                  ["Confidence", fb.dimensions.confidence?.score ?? 0],
-                  ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
-                ] as [string, number][]).map(([label, score]) => {
-                  const c = score >= 75 ? "var(--teal)" : score >= 55 ? "#f59e0b" : CORAL;
-                  return (
-                    <div key={label} style={{ marginBottom: "14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>{label}</span>
-                        <span style={{ fontSize: "13px", fontWeight: 800, color: c }}>{score}</span>
-                      </div>
-                      <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${score}%`, background: c, borderRadius: "3px", transition: "width 1s ease" }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Conditional rewrites */}
-              {(fb.improvedOpening || fb.improvedClosing) && (
-                <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>SUGGESTED REWRITES</div>
-                  {fb.improvedOpening && (
-                    <div style={{ marginBottom: "18px", paddingBottom: "18px", borderBottom: "1px solid var(--border)" }}>
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER OPENING</div>
-                      <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedOpening}</p>
-                    </div>
-                  )}
-                  {fb.improvedClosing && (
-                    <div>
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER CLOSING</div>
-                      <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedClosing}</p>
-                    </div>
-                  )}
+              {/* Top Win — quieter */}
+              <div style={{ background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.15)", borderRadius: "12px", padding: "18px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 700, color: "rgba(31,191,159,0.7)", letterSpacing: "0.09em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <CheckCircle size={11} /> WHAT WORKED
                 </div>
-              )}
+                <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7, margin: 0 }}>{fb.topWin}</p>
+              </div>
             </div>
 
-            {/* Right: score summary */}
-            <div>
-              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "16px", textAlign: "center" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "16px" }}>OVERALL SCORE</div>
-                <div style={{ position: "relative", width: "120px", height: "120px", margin: "0 auto 12px" }}>
-                  <ScoreRing score={fb.overallScore} size={120} />
-                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: "36px", fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{fb.overallScore}</span>
-                    <span style={{ fontSize: "10px", color: "var(--text-4)", marginTop: "2px" }}>out of 100</span>
-                  </div>
-                </div>
-                <div style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.65 }}>
-                  {fb.overallScore >= 80 ? "Excellent delivery. You are ready for the real meeting." : fb.overallScore >= 65 ? "Solid session. Apply the top fix and record again." : "Good start. Focus on the top fix first. One session is all it takes to see a jump."}
+            {/* Score ring */}
+            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", textAlign: "center" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "16px" }}>OVERALL SCORE</div>
+              <div style={{ position: "relative", width: "100px", height: "100px", margin: "0 auto 14px" }}>
+                <ScoreRing score={fb.overallScore} size={100} />
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: "32px", fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{fb.overallScore}</span>
+                  <span style={{ fontSize: "10px", color: "var(--text-4)", marginTop: "2px" }}>/ 100</span>
                 </div>
               </div>
-
-              {/* Quick dim summary */}
-              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px" }}>
-                <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "14px" }}>AT A GLANCE</div>
-                {([
-                  ["Clarity", fb.dimensions.clarity?.score ?? 0],
-                  ["Structure", fb.dimensions.structure?.score ?? 0],
-                  ["Confidence", fb.dimensions.confidence?.score ?? 0],
-                  ["Stakeholder", fb.dimensions.stakeholderAwareness?.score ?? 0],
-                  ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
-                ] as [string, number][]).map(([label, score]) => {
-                  const s = score as number;
-                  const c = s >= 75 ? "var(--teal)" : s >= 55 ? "#f59e0b" : CORAL;
-                  return (
-                    <div key={label} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-                      <span style={{ fontSize: "12px", color: "var(--text-3)", width: "90px", flexShrink: 0 }}>{label}</span>
-                      <div style={{ flex: 1, height: "4px", background: "rgba(255,255,255,0.05)", borderRadius: "2px" }}>
-                        <div style={{ height: "100%", width: `${s}%`, background: c, borderRadius: "2px", transition: "width 1s" }} />
-                      </div>
-                      <span style={{ fontSize: "12px", fontWeight: 800, color: c, width: "28px", textAlign: "right" }}>{s}</span>
-                    </div>
-                  );
-                })}
+              <div style={{ fontSize: "12px", color: "var(--text-3)", lineHeight: 1.6 }}>
+                {fb.overallScore >= 80 ? "Excellent. Ready for the real thing." : fb.overallScore >= 65 ? "Solid. Apply the fix and record again." : "Good start. One session is all it takes to see a jump."}
               </div>
             </div>
           </div>
 
-          {/* Transcript review */}
-          {sess?.transcript && (
-            <div style={{ marginTop: "24px", background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "14px" }}>YOUR TRANSCRIPT</div>
-              <p style={{ fontSize: "15px", color: "var(--text-2)", lineHeight: 1.9, margin: 0 }}>{sess.transcript}</p>
+          {/* Do This Next */}
+          <div style={{
+            background: `${CORAL}0a`, border: `2px solid ${CORAL}35`,
+            borderRadius: "14px", padding: "22px", marginBottom: "24px",
+          }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.09em", marginBottom: "10px" }}>DO THIS NEXT</div>
+            <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.65, margin: 0 }}>{fb.doThisNext}</p>
+          </div>
+
+          {/* How Alex Would Say It */}
+          {fb.coachRewrite && <ReusableAnswerCard answer={fb.coachRewrite} />}
+
+          {/* Dimension scores */}
+          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>DIMENSION SCORES</div>
+            {([
+              ["Clarity", fb.dimensions.clarity?.score ?? 0],
+              ["Structure", fb.dimensions.structure?.score ?? 0],
+              ["Stakeholder Awareness", fb.dimensions.stakeholderAwareness?.score ?? 0],
+              ["Relevance", fb.dimensions.relevance?.score ?? 0],
+              ["Confidence", fb.dimensions.confidence?.score ?? 0],
+              ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
+            ] as [string, number][]).map(([label, score]) => {
+              const c = score >= 75 ? "var(--teal)" : score >= 55 ? "#f59e0b" : CORAL;
+              return (
+                <div key={label} style={{ marginBottom: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>{label}</span>
+                    <span style={{ fontSize: "13px", fontWeight: 800, color: c }}>{score}</span>
+                  </div>
+                  <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${score}%`, background: c, borderRadius: "3px", transition: "width 1s ease" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Conditional rewrites */}
+          {(fb.improvedOpening || fb.improvedClosing) && (
+            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "20px" }}>SUGGESTED REWRITES</div>
+              {fb.improvedOpening && (
+                <div style={{ marginBottom: "18px", paddingBottom: "18px", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER OPENING</div>
+                  <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedOpening}</p>
+                </div>
+              )}
+              {fb.improvedClosing && (
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.07em", marginBottom: "8px" }}>STRONGER CLOSING</div>
+                  <p style={{ fontSize: "14px", color: "var(--text-1)", lineHeight: 1.8, margin: 0 }}>{fb.improvedClosing}</p>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Transcript — collapsed by default */}
+          {sess?.transcript && (
+            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "14px", marginBottom: "32px", overflow: "hidden" }}>
+              <button
+                onClick={() => setTranscriptOpen(o => !o)}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", background: "none", border: "none", cursor: "pointer" }}
+              >
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em" }}>YOUR TRANSCRIPT</div>
+                <span style={{ fontSize: "12px", color: "var(--text-3)", fontWeight: 600 }}>{transcriptOpen ? "Hide" : "See what you said"}</span>
+              </button>
+              {transcriptOpen && (
+                <div style={{ padding: "0 24px 24px", borderTop: "1px solid var(--border)" }}>
+                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.9, margin: "16px 0 0" }}>{sess.transcript}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Contextual actions */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "28px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "16px" }}>NOW USE THIS</div>
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              <button onClick={() => { resetStudio(); setStudioPhase("ready"); }} className="btn-teal" style={{ fontSize: "13px" }}>
+                <Mic size={14} /> Practice again
+              </button>
+              <button onClick={() => { resetStudio(); setView("scenarios"); }}
+                style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "11px 20px", borderRadius: "10px", border: "1px solid var(--border)", background: "none", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
+                <BarChart2 size={14} /> Try a different scenario
+              </button>
+              <a href="/opportunities"
+                style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "11px 20px", borderRadius: "10px", border: "1px solid var(--border)", background: "none", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                Review a role
+              </a>
+              <a href="/career"
+                style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "11px 20px", borderRadius: "10px", border: "1px solid var(--border)", background: "none", color: "var(--text-2)", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                Career tools
+              </a>
+            </div>
+          </div>
         </div>
       </Layout>
     );
