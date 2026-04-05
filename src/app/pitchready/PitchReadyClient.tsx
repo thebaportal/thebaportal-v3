@@ -11,8 +11,8 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type PitchView = "home" | "scenarios" | "studio" | "feedback" | "history" | "progress";
-type StudioPhase = "setup" | "ready" | "recording" | "review" | "processing";
-type PulseMood = "Yay" | "Good" | "Meh" | "Tough" | "Rough";
+type StudioPhase = "setup" | "pulse" | "ready" | "recording" | "review" | "processing";
+type PulseMood = "Locked in" | "Ready to go" | "A bit off" | "Struggling to focus" | "Not in it today";
 
 interface Scenario {
   id: string;
@@ -315,46 +315,6 @@ const SCENARIOS: Scenario[] = [
 
 // ── Pulse Check Data ──────────────────────────────────────────────────────────
 
-const PULSE_FLOWS: Record<PulseMood, { reply: string; followUp: string; action: string }> = {
-  "Yay": {
-    reply: "Good energy is worth channeling. The sharpest sessions tend to happen when you show up already engaged.",
-    followUp: "What would make today feel like a proper win for you?",
-    action: "Try the Business Case Pitch — it rewards clear thinking under pressure.",
-  },
-  "Good": {
-    reply: "Solid footing. Consistent days build real progress more reliably than the occasional brilliant one.",
-    followUp: "Is there a scenario that has been on your mind — one you keep avoiding?",
-    action: "Pick something slightly outside your comfort zone today.",
-  },
-  "Meh": {
-    reply: "Meh days are honest days. Sometimes showing up and doing the work anyway is the whole practice.",
-    followUp: "Low energy or low motivation? The approach changes depending on which one it is.",
-    action: "A short 2-minute Foundation session might be the right warm-up.",
-  },
-  "Tough": {
-    reply: "Noted. Tough days have a way of making everything feel heavier than it is.",
-    followUp: "If you do practice today, something low-stakes might be the right call. No pressure to push hard.",
-    action: "Try the Process Changes scenario — it is structured and low intensity.",
-  },
-  "Rough": {
-    reply: "That is okay. Some days are just rough. You do not have to perform today.",
-    followUp: "If you want a quiet distraction, reviewing a past feedback report requires no energy at all.",
-    action: "Come back when the time is right. The scenarios will be here.",
-  },
-};
-
-// ── Pulse helpers ─────────────────────────────────────────────────────────────
-
-function shouldShowPulse(): boolean {
-  if (typeof window === "undefined") return false;
-  const last = localStorage.getItem("pitchready_pulse_date");
-  return last !== new Date().toDateString();
-}
-
-function markPulseShown() {
-  localStorage.setItem("pitchready_pulse_date", new Date().toDateString());
-}
-
 // ── Waveform Component ────────────────────────────────────────────────────────
 
 function WaveformBars({ active }: { active: boolean }) {
@@ -591,9 +551,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   const [showExitGuard, setShowExitGuard] = useState(false);
 
   // Pulse Check
-  const [pulseOpen, setPulseOpen] = useState(false);
   const [pulseMood, setPulseMood] = useState<PulseMood | null>(null);
-  const [pulseStep, setPulseStep] = useState<"mood" | "reply" | "action">("mood");
 
   // Alex Rivera intro (shown once)
   const [showAlexIntro, setShowAlexIntro] = useState(false);
@@ -622,13 +580,9 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   const audioBlobUrlRef = useRef<string | null>(null);
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
 
-  // On mount: check speech support + show Pulse Check once per day
+  // On mount: check speech support
   useEffect(() => {
     setSpeechSupported("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
-    if (shouldShowPulse()) {
-      const t = setTimeout(() => { setPulseOpen(true); markPulseShown(); }, 1800);
-      return () => clearTimeout(t);
-    }
   }, []);
 
   // Back button guard during recording
@@ -819,6 +773,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           duration: recordingTime,
           wordCount,
           focus: studioSetup.focus,
+          mood: pulseMood,
           previousScore,
           previousTopFix,
         }),
@@ -891,6 +846,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
 
   function resetStudio() {
     setStudioPhase("setup");
+    setPulseMood(null);
     setTranscript("");
     setInterimTranscript("");
     setWordCount(0);
@@ -950,92 +906,6 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   function Layout({ children }: { children: React.ReactNode }) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}>
-
-        {/* Pulse Check Modal */}
-        {pulseOpen && (
-          <div style={{
-            position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(0,0,0,0.6)", display: "flex",
-            alignItems: "center", justifyContent: "center",
-          }}>
-            <div style={{
-              background: "var(--card)", border: "1px solid var(--border-mid)",
-              borderRadius: "20px", padding: "36px", maxWidth: "420px", width: "90%",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.6)",
-            }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", color: "var(--text-3)", marginBottom: "12px" }}>
-                PULSE CHECK
-              </div>
-              {pulseStep === "mood" && (
-                <>
-                  <h3 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-1)", marginBottom: "6px" }}>
-                    How are you showing up today?
-                  </h3>
-                  <p style={{ fontSize: "14px", color: "var(--text-2)", marginBottom: "24px", lineHeight: 1.7 }}>
-                    Take 10 seconds. Be honest.
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
-                    {(["Yay", "Good", "Meh", "Tough", "Rough"] as PulseMood[]).map((m) => {
-                      const colors: Record<PulseMood, string> = { Yay: "#1fbf9f", Good: "#4ade80", Meh: "#f59e0b", Tough: "#f97316", Rough: CORAL };
-                      return (
-                        <button key={m} onClick={() => { setPulseMood(m); setPulseStep("reply"); }}
-                          style={{
-                            padding: "12px 18px", borderRadius: "10px", fontSize: "14px", fontWeight: 600,
-                            cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-                            background: "rgba(255,255,255,0.04)", border: "1px solid var(--border-mid)",
-                            color: colors[m],
-                          }}>
-                          {m}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button onClick={() => setPulseOpen(false)} style={{ fontSize: "12px", color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "center" }}>
-                    Not today
-                  </button>
-                </>
-              )}
-              {pulseStep === "reply" && pulseMood && (
-                <>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.08em", marginBottom: "12px" }}>
-                    {pulseMood.toUpperCase()}
-                  </div>
-                  <p style={{ fontSize: "15px", color: "var(--text-1)", lineHeight: 1.8, marginBottom: "12px" }}>
-                    {PULSE_FLOWS[pulseMood].reply}
-                  </p>
-                  <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.7, marginBottom: "24px" }}>
-                    {PULSE_FLOWS[pulseMood].followUp}
-                  </p>
-                  <button onClick={() => setPulseStep("action")} className="btn-teal" style={{ width: "100%", justifyContent: "center" }}>
-                    Continue
-                  </button>
-                  <button onClick={() => setPulseOpen(false)} style={{ fontSize: "12px", color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "center", marginTop: "12px" }}>
-                    Not today
-                  </button>
-                </>
-              )}
-              {pulseStep === "action" && pulseMood && (
-                <>
-                  <p style={{ fontSize: "15px", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "24px" }}>
-                    {PULSE_FLOWS[pulseMood].action}
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <button onClick={() => { setPulseOpen(false); setView("studio"); }} className="btn-teal" style={{ justifyContent: "center" }}>
-                      Go to Practice Studio
-                    </button>
-                    <button onClick={() => { setPulseOpen(false); setView("scenarios"); }}
-                      style={{ padding: "11px", borderRadius: "10px", border: "1px solid var(--border-mid)", background: "none", color: "var(--text-2)", fontSize: "14px", cursor: "pointer" }}>
-                      Browse Scenarios
-                    </button>
-                    <button onClick={() => setPulseOpen(false)} style={{ fontSize: "12px", color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", textAlign: "center", marginTop: "4px" }}>
-                      Not today
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Exit guard modal */}
         {showExitGuard && (
@@ -1450,11 +1320,40 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                     </div>
                   </div>
 
-                  <button className="btn-teal" onClick={() => studioSetup.scenario && setStudioPhase("ready")}
+                  <button className="btn-teal" onClick={() => studioSetup.scenario && setStudioPhase("pulse")}
                     style={{ justifyContent: "center", width: "100%", opacity: studioSetup.scenario ? 1 : 0.4, fontSize: "15px", padding: "14px" }}
                     disabled={!studioSetup.scenario}>
                     <Mic size={16} /> Start your delivery
                   </button>
+                </div>
+              )}
+
+              {/* PULSE CHECK PHASE */}
+              {studioPhase === "pulse" && (
+                <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "32px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", color: "var(--text-3)", marginBottom: "16px" }}>PULSE CHECK</div>
+                  <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", margin: "0 0 6px" }}>
+                    How are you showing up right now?
+                  </h3>
+                  <p style={{ fontSize: "14px", color: "var(--text-3)", marginBottom: "28px", lineHeight: 1.6 }}>
+                    Your answer will reflect this.
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {(["Locked in", "Ready to go", "A bit off", "Struggling to focus", "Not in it today"] as PulseMood[]).map((m) => {
+                      const color = m === "Locked in" ? "#1fbf9f" : m === "Ready to go" ? "#4ade80" : m === "A bit off" ? "#f59e0b" : m === "Struggling to focus" ? "#f97316" : CORAL;
+                      return (
+                        <button key={m} onClick={() => { setPulseMood(m); setStudioPhase("ready"); }}
+                          style={{
+                            padding: "14px 18px", borderRadius: "10px", fontSize: "14px", fontWeight: 600,
+                            cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                            background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.08)`,
+                            color,
+                          }}>
+                          {m}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
