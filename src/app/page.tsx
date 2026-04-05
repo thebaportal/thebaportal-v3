@@ -401,14 +401,32 @@ function PricingCard({ plan, price, period, features, cta, href, featured }: {
 }
 
 // ── Platform Dropdown ─────────────────────────────────────────────────────────
-const PLATFORM_ITEMS = [
-  { label: "Simulations",   desc: "Simulate real BA scenarios with AI stakeholders", href: "/scenarios",      color: "#38bdf8", icon: "🎯" },
-  { label: "Learning",      desc: "Six-module SDLC case story from first principles", href: "/learning",      color: "#fb923c", icon: "📚" },
-  { label: "PitchReady",    desc: "Nail your BA interview answers under pressure",    href: "/pitchready",    color: "#a78bfa", icon: "🎤" },
-  { label: "Exam Prep",     desc: "CBAP, CCBA and PMI-PBA practice questions",        href: "/exam",          color: "#facc15", icon: "📝" },
-  { label: "Career Suite",  desc: "Advisor, resume, cover letters and salary guide",  href: "/career",        color: "#1fbf9f", icon: "💼" },
-  { label: "Jobs in Canada", desc: "Fresh BA job listings refreshed every 2 hours",  href: "/opportunities", color: "#34d399", icon: "🌐" },
+const PLATFORM_GROUPS = [
+  {
+    group: "Practice", color: "#38bdf8",
+    items: [
+      { label: "Simulation Lab", desc: "Practice real BA scenarios with simulated stakeholders", href: "/scenarios",   color: "#38bdf8", icon: "🎯" },
+      { label: "PitchReady",     desc: "Practice how you structure and deliver answers",          href: "/pitchready",  color: "#a78bfa", icon: "🎤" },
+    ],
+  },
+  {
+    group: "Learn", color: "#fb923c",
+    items: [
+      { label: "Learning",  desc: "Structured BA concepts and SDLC understanding", href: "/learning", color: "#fb923c", icon: "📚" },
+      { label: "Exam Prep", desc: "Prepare for CBAP, CCBA, PMI-PBA",               href: "/exam",     color: "#facc15", icon: "📝" },
+    ],
+  },
+  {
+    group: "Advance", color: "#1fbf9f",
+    items: [
+      { label: "Career Suite", desc: "Build your resume, positioning, and career plan", href: "/career",        color: "#1fbf9f", icon: "💼" },
+      { label: "Jobs",         desc: "Find BA roles and learn how to win them",         href: "/opportunities",  color: "#34d399", icon: "🌐" },
+    ],
+  },
 ];
+
+// Flat list for mobile nav
+const PLATFORM_ITEMS = PLATFORM_GROUPS.flatMap(g => g.items);
 
 function PlatformDropdown() {
   const [open, setOpen] = useState(false);
@@ -448,8 +466,8 @@ function PlatformDropdown() {
           position: "absolute", top: "calc(100% + 16px)", left: "50%", transform: "translateX(-50%)",
           background: "rgba(10,10,15,0.98)",
           border: "1px solid rgba(255,255,255,0.09)",
-          borderRadius: 18, padding: "6px",
-          width: 312,
+          borderRadius: 18, padding: "10px",
+          width: 360,
           boxShadow: "0 32px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.03)",
           backdropFilter: "blur(32px)",
           WebkitBackdropFilter: "blur(32px)",
@@ -461,35 +479,41 @@ function PlatformDropdown() {
             <div style={{ width: 8, height: 8, background: "rgba(255,255,255,0.09)", transform: "rotate(45deg) translateY(3px)", margin: "0 auto", borderTop: "1px solid rgba(255,255,255,0.09)", borderLeft: "1px solid rgba(255,255,255,0.09)" }} />
           </div>
 
-          <div style={{ padding: "10px 14px 8px" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--t4)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>The Platform</div>
-          </div>
-
-          {PLATFORM_ITEMS.map(item => (
-            <Link key={item.label} href={item.href}
-              onClick={() => setOpen(false)}
-              style={{
-                display: "flex", alignItems: "center", gap: 14,
-                padding: "12px 14px", borderRadius: 12,
-                textDecoration: "none", marginBottom: 2,
-                transition: "background .15s",
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = `${item.color}09`; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: 11,
-                background: `${item.color}12`, border: `1px solid ${item.color}22`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, flexShrink: 0,
-              }}>
-                {item.icon}
+          {PLATFORM_GROUPS.map((group, gi) => (
+            <div key={group.group} style={{ marginBottom: gi < PLATFORM_GROUPS.length - 1 ? 4 : 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: group.color, letterSpacing: "0.1em", textTransform: "uppercase" as const, padding: "8px 12px 6px", opacity: 0.8 }}>
+                {group.group}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 3, letterSpacing: "-0.01em" }}>{item.label}</div>
-                <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.4 }}>{item.desc}</div>
-              </div>
-            </Link>
+              {group.items.map(item => (
+                <Link key={item.label} href={item.href}
+                  onClick={() => setOpen(false)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    padding: "10px 12px", borderRadius: 12,
+                    textDecoration: "none", marginBottom: 2,
+                    transition: "background .15s",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = `${item.color}09`; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+                >
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: `${item.color}12`, border: `1px solid ${item.color}22`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, flexShrink: 0,
+                  }}>
+                    {item.icon}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 2, letterSpacing: "-0.01em" }}>{item.label}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--t3)", lineHeight: 1.4 }}>{item.desc}</div>
+                  </div>
+                </Link>
+              ))}
+              {gi < PLATFORM_GROUPS.length - 1 && (
+                <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "4px 0 2px" }} />
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -817,16 +841,20 @@ export default function LandingPage() {
 
             {/* Platform items */}
             <div style={{ marginBottom: 6 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--t4)", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 10, paddingLeft: 4 }}>Platform</div>
-              {PLATFORM_ITEMS.map(item => (
-                <Link key={item.label} href={item.href} onClick={() => setMobileNavOpen(false)}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px", borderRadius: 10, textDecoration: "none", marginBottom: 2, transition: "background .15s" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.05)"}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
-                >
-                  <div style={{ width: 34, height: 34, borderRadius: 9, background: `${item.color}12`, border: `1px solid ${item.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>{item.icon}</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>{item.label}</div>
-                </Link>
+              {PLATFORM_GROUPS.map((group, gi) => (
+                <div key={group.group} style={{ marginBottom: gi < PLATFORM_GROUPS.length - 1 ? 10 : 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: group.color, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 6, paddingLeft: 4, opacity: 0.8 }}>{group.group}</div>
+                  {group.items.map(item => (
+                    <Link key={item.label} href={item.href} onClick={() => setMobileNavOpen(false)}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px", borderRadius: 10, textDecoration: "none", marginBottom: 2, transition: "background .15s" }}
+                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.05)"}
+                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
+                    >
+                      <div style={{ width: 34, height: 34, borderRadius: 9, background: `${item.color}12`, border: `1px solid ${item.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>{item.icon}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>{item.label}</div>
+                    </Link>
+                  ))}
+                </div>
               ))}
             </div>
 
