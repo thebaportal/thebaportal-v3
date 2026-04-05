@@ -1689,154 +1689,160 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     const sess = currentSession;
     const scoreColor = fb.overallScore >= 75 ? "#10B981" : fb.overallScore >= 55 ? "#F59E0B" : "#EF4444";
 
-    return (
-      <Layout>
-        {/* ── Main content ── */}
-        <div style={{ maxWidth: "700px", margin: "0 auto", padding: "40px 32px 96px" }}>
-
-          {/* Header: scenario + meta */}
-          <div style={{ marginBottom: "28px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 600, color: "#6B7280", letterSpacing: "0.06em", marginBottom: "10px" }}>
-              {sess?.scenarioTitle ?? "Practice Session"}
-              {sess && <> &middot; {fmtTime(sess.duration)} &middot; {sess.wordCount} words</>}
-            </div>
-
-            {/* Verdict — dominant opener */}
-            {fb.verdict && (
-              <p style={{ fontSize: "22px", fontWeight: 700, color: "#FFFFFF", lineHeight: 1.42, margin: 0, letterSpacing: "-0.01em" }}>
-                {fb.verdict}
-              </p>
-            )}
-          </div>
-
-          {/* ── THE ONE THING TO FIX — only box in the top half ── */}
-          <div style={{
-            border: "2px solid #EF4444",
-            borderRadius: "12px",
-            padding: "24px",
-            marginBottom: "28px",
-            background: "rgba(239,68,68,0.04)",
-          }}>
-            <div style={{ fontSize: "10px", fontWeight: 800, color: "#EF4444", letterSpacing: "0.1em", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
-              <Target size={11} /> THE ONE THING TO FIX
-            </div>
-            <p style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", lineHeight: 1.6, margin: 0 }}>
-              {fb.topFix}
-            </p>
-          </div>
-
-          {/* ── WHAT WORKED — no box, muted ── */}
-          {fb.topWin && (
-            <div style={{ marginBottom: "32px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>WHAT WORKED</div>
-              <p style={{ fontSize: "14px", color: "#9CA3AF", lineHeight: 1.65, margin: 0 }}>{fb.topWin}</p>
-            </div>
-          )}
-
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: "32px" }} />
-
-          {/* ── DO THIS NEXT — no container ── */}
-          <div style={{ marginBottom: "32px" }}>
-            <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "10px" }}>DO THIS NEXT</div>
-            <p style={{ fontSize: "16px", color: "#FFFFFF", lineHeight: 1.7, margin: 0 }}>{fb.doThisNext}</p>
-          </div>
-
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: "32px" }} />
-
-          {/* ── HOW ALEX WOULD SAY IT — left accent line, no box ── */}
-          {fb.coachRewrite && (
-            <div style={{ marginBottom: "40px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "16px" }}>HOW ALEX WOULD SAY IT</div>
-              <div style={{ display: "flex", gap: "20px" }}>
-                <div style={{ width: "3px", background: "#10B981", borderRadius: "2px", flexShrink: 0, alignSelf: "stretch" }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: "15px", color: "#E5E7EB", lineHeight: 1.85, margin: "0 0 14px" }}>
-                    {fb.coachRewrite}
-                  </p>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(fb.coachRewrite!); setCoachRewriteCopied(true); setTimeout(() => setCoachRewriteCopied(false), 2000); }}
-                    style={{ fontSize: "12px", fontWeight: 600, color: coachRewriteCopied ? "#10B981" : "#9CA3AF", background: "none", border: `1px solid ${coachRewriteCopied ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.1)"}`, padding: "6px 14px", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s" }}
-                  >
-                    {coachRewriteCopied ? "Copied" : "Copy"}
-                  </button>
-                </div>
+    // ── Score card (rendered in right sticky column) ──────────────────────────
+    const ScoreCard = (
+      <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: "22px" }}>
+        <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "12px" }}>OVERALL SCORE</div>
+        <div style={{ marginBottom: "18px" }}>
+          <span style={{ fontSize: "44px", fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{fb.overallScore}</span>
+          <span style={{ fontSize: "13px", color: "#6B7280", marginLeft: "4px" }}>/ 100</span>
+        </div>
+        {([
+          ["Clarity", fb.dimensions.clarity?.score ?? 0],
+          ["Structure", fb.dimensions.structure?.score ?? 0],
+          ["Stakeholder", fb.dimensions.stakeholderAwareness?.score ?? 0],
+          ["Relevance", fb.dimensions.relevance?.score ?? 0],
+          ["Confidence", fb.dimensions.confidence?.score ?? 0],
+          ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
+        ] as [string, number][]).map(([label, score]) => {
+          const c = score >= 75 ? "#10B981" : score >= 55 ? "#F59E0B" : "#EF4444";
+          return (
+            <div key={label} style={{ marginBottom: "9px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                <span style={{ fontSize: "11px", color: "#9CA3AF" }}>{label}</span>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: c }}>{score}</span>
+              </div>
+              <div style={{ height: "3px", background: "rgba(255,255,255,0.06)", borderRadius: "2px" }}>
+                <div style={{ height: "100%", width: `${score}%`, background: c, borderRadius: "2px", transition: "width 1s ease" }} />
               </div>
             </div>
-          )}
+          );
+        })}
+      </div>
+    );
 
-          {/* ── TWO COLUMN: transcript (left 65%) + score card (right 35%) ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: "32px", alignItems: "start" }}>
+    return (
+      <Layout>
 
-            {/* Left: conditional rewrites + transcript */}
+        {/* ── Main content wrapper ── */}
+        <div style={{ maxWidth: "960px", margin: "0 auto", padding: "40px 40px 96px" }}>
+
+          {/* Scenario meta — small, muted */}
+          <div style={{ fontSize: "11px", fontWeight: 500, color: "#6B7280", letterSpacing: "0.04em", marginBottom: "32px" }}>
+            {sess?.scenarioTitle ?? "Practice Session"}
+            {sess && <> &middot; {fmtTime(sess.duration)} &middot; {sess.wordCount} words</>}
+          </div>
+
+          {/* ── TWO-COLUMN HERO ── */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: "48px", alignItems: "start" }}>
+
+            {/* LEFT COLUMN — all content */}
             <div>
-              {/* Conditional rewrites (score < 65) */}
+
+              {/* Verdict */}
+              {fb.verdict && (
+                <p style={{ fontSize: "22px", fontWeight: 700, color: "#FFFFFF", lineHeight: 1.42, margin: "0 0 28px", letterSpacing: "-0.01em" }}>
+                  {fb.verdict}
+                </p>
+              )}
+
+              {/* THE ONE THING TO FIX — only red box on the page */}
+              <div style={{
+                border: "2px solid #EF4444",
+                borderRadius: "12px",
+                padding: "22px 24px",
+                marginBottom: "28px",
+                background: "rgba(239,68,68,0.04)",
+              }}>
+                <div style={{ fontSize: "10px", fontWeight: 800, color: "#EF4444", letterSpacing: "0.1em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <Target size={11} /> THE ONE THING TO FIX
+                </div>
+                <p style={{ fontSize: "16px", fontWeight: 700, color: "#FFFFFF", lineHeight: 1.6, margin: 0 }}>
+                  {fb.topFix}
+                </p>
+              </div>
+
+              {/* WHAT WORKED — no box, muted */}
+              {fb.topWin && (
+                <div style={{ marginBottom: "32px" }}>
+                  <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "7px" }}>WHAT WORKED</div>
+                  <p style={{ fontSize: "14px", color: "#9CA3AF", lineHeight: 1.65, margin: 0 }}>{fb.topWin}</p>
+                </div>
+              )}
+
+              {/* DO THIS NEXT — no container */}
+              <div style={{ marginBottom: "40px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "9px" }}>DO THIS NEXT</div>
+                <p style={{ fontSize: "15px", color: "#FFFFFF", lineHeight: 1.7, margin: 0 }}>{fb.doThisNext}</p>
+              </div>
+
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: "40px" }} />
+
+              {/* HOW ALEX WOULD SAY IT — left teal line, no box */}
+              {fb.coachRewrite && (
+                <div style={{ marginBottom: "40px" }}>
+                  <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "16px" }}>HOW ALEX WOULD SAY IT</div>
+                  <div style={{ display: "flex", gap: "18px" }}>
+                    <div style={{ width: "3px", background: "#10B981", borderRadius: "2px", flexShrink: 0, alignSelf: "stretch" }} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: "15px", color: "#E5E7EB", lineHeight: 1.85, margin: "0 0 12px" }}>
+                        {fb.coachRewrite}
+                      </p>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(fb.coachRewrite!); setCoachRewriteCopied(true); setTimeout(() => setCoachRewriteCopied(false), 2000); }}
+                        style={{ fontSize: "11px", fontWeight: 600, color: coachRewriteCopied ? "#10B981" : "#6B7280", background: "none", border: `1px solid ${coachRewriteCopied ? "rgba(16,185,129,0.25)" : "rgba(255,255,255,0.08)"}`, padding: "5px 12px", borderRadius: "5px", cursor: "pointer", transition: "all 0.2s" }}
+                      >
+                        {coachRewriteCopied ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Conditional rewrites — plain text, no cards */}
               {(fb.improvedOpening || fb.improvedClosing) && (
-                <div style={{ marginBottom: "24px" }}>
+                <div style={{ marginBottom: "40px" }}>
                   {fb.improvedOpening && (
-                    <div style={{ marginBottom: "18px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>STRONGER OPENING</div>
-                      <p style={{ fontSize: "14px", color: "#D1D5DB", lineHeight: 1.75, margin: 0 }}>{fb.improvedOpening}</p>
+                    <div style={{ marginBottom: "20px" }}>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "7px" }}>STRONGER OPENING</div>
+                      <p style={{ fontSize: "14px", color: "#D1D5DB", lineHeight: 1.7, margin: 0 }}>{fb.improvedOpening}</p>
                     </div>
                   )}
                   {fb.improvedClosing && (
                     <div>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>STRONGER CLOSING</div>
-                      <p style={{ fontSize: "14px", color: "#D1D5DB", lineHeight: 1.75, margin: 0 }}>{fb.improvedClosing}</p>
+                      <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "7px" }}>STRONGER CLOSING</div>
+                      <p style={{ fontSize: "14px", color: "#D1D5DB", lineHeight: 1.7, margin: 0 }}>{fb.improvedClosing}</p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Transcript collapse */}
+              {/* Transcript — collapsed, no container */}
               {sess?.transcript && (
                 <div>
                   <button
                     onClick={() => setTranscriptOpen(o => !o)}
                     style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                   >
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#9CA3AF" }}>Your transcript</span>
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "#9CA3AF" }}>Your transcript</span>
                     <span style={{ fontSize: "11px", color: "#6B7280" }}>{transcriptOpen ? "▲" : "▾"}</span>
                   </button>
                   {transcriptOpen && (
-                    <p style={{ marginTop: "14px", fontSize: "13px", color: "#6B7280", lineHeight: 1.85 }}>
+                    <p style={{ marginTop: "14px", fontSize: "13px", color: "#6B7280", lineHeight: 1.85, margin: "14px 0 0" }}>
                       {sess.transcript}
                     </p>
                   )}
                 </div>
               )}
+
             </div>
 
-            {/* Right: score card — secondary box */}
-            <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: "20px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "12px" }}>OVERALL SCORE</div>
-              <div style={{ marginBottom: "16px" }}>
-                <span style={{ fontSize: "42px", fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{fb.overallScore}</span>
-                <span style={{ fontSize: "14px", color: "#6B7280", marginLeft: "4px" }}>/ 100</span>
-              </div>
-              {([
-                ["Clarity", fb.dimensions.clarity?.score ?? 0],
-                ["Structure", fb.dimensions.structure?.score ?? 0],
-                ["Stakeholder", fb.dimensions.stakeholderAwareness?.score ?? 0],
-                ["Relevance", fb.dimensions.relevance?.score ?? 0],
-                ["Confidence", fb.dimensions.confidence?.score ?? 0],
-                ["Conciseness", fb.dimensions.conciseness?.score ?? 0],
-              ] as [string, number][]).map(([label, score]) => {
-                const c = score >= 75 ? "#10B981" : score >= 55 ? "#F59E0B" : "#EF4444";
-                return (
-                  <div key={label} style={{ marginBottom: "8px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
-                      <span style={{ fontSize: "11px", color: "#9CA3AF" }}>{label}</span>
-                      <span style={{ fontSize: "11px", fontWeight: 700, color: c }}>{score}</span>
-                    </div>
-                    <div style={{ height: "3px", background: "rgba(255,255,255,0.06)", borderRadius: "2px" }}>
-                      <div style={{ height: "100%", width: `${score}%`, background: c, borderRadius: "2px", transition: "width 1s ease" }} />
-                    </div>
-                  </div>
-                );
-              })}
+            {/* RIGHT COLUMN — score card, sticky */}
+            <div style={{ position: "sticky", top: "24px" }}>
+              {ScoreCard}
             </div>
+
           </div>
-
         </div>
 
         {/* ── Sticky bottom action bar ── */}
@@ -1844,7 +1850,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           position: "fixed", bottom: 0, left: "240px", right: 0, zIndex: 100,
           background: "rgba(9,9,11,0.96)", backdropFilter: "blur(16px)",
           borderTop: "1px solid rgba(255,255,255,0.07)",
-          padding: "12px 32px",
+          padding: "12px 40px",
           display: "flex", alignItems: "center", gap: "10px",
         }}>
           <button
@@ -1853,22 +1859,16 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           >
             <Mic size={14} /> Fix this answer
           </button>
-          <button
-            onClick={() => { resetStudio(); setView("scenarios"); }}
-            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
-          >
+          <button onClick={() => { resetStudio(); setView("scenarios"); }}
+            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
             Try another scenario
           </button>
-          <button
-            onClick={() => setAttachJobOpen(true)}
-            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
-          >
+          <button onClick={() => setAttachJobOpen(true)}
+            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
             Attach a job
           </button>
-          <button
-            onClick={() => setCareerToolsOpen(true)}
-            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
-          >
+          <button onClick={() => setCareerToolsOpen(true)}
+            style={{ padding: "11px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
             Career tools
           </button>
         </div>
@@ -1879,7 +1879,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
             <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px 16px 0 0", width: "100%", maxWidth: "700px", padding: "32px", maxHeight: "80vh", overflowY: "auto" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <div style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF" }}>Attach a job to this pitch</div>
-                <button onClick={() => setAttachJobOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: "4px", borderRadius: "6px" }}>
+                <button onClick={() => setAttachJobOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: "4px" }}>
                   <X size={18} />
                 </button>
               </div>
@@ -1889,21 +1889,12 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
               <div style={{ marginBottom: "24px" }}>
                 <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>PASTE A JOB LINK</div>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={jobUrl}
-                    onChange={e => setJobUrl(e.target.value)}
-                    style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "#0B0F14", color: "#FFFFFF", fontSize: "13px", outline: "none" }}
-                  />
-                  <button style={{ padding: "10px 18px", borderRadius: "8px", background: "#10B981", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
-                    Fetch
-                  </button>
+                  <input type="url" placeholder="https://..." value={jobUrl} onChange={e => setJobUrl(e.target.value)}
+                    style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "#0B0F14", color: "#FFFFFF", fontSize: "13px", outline: "none" }} />
+                  <button style={{ padding: "10px 18px", borderRadius: "8px", background: "#10B981", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Fetch</button>
                 </div>
               </div>
-              {jobsLoading && (
-                <div style={{ fontSize: "13px", color: "#6B7280", padding: "12px 0" }}>Loading saved jobs...</div>
-              )}
+              {jobsLoading && <div style={{ fontSize: "13px", color: "#6B7280", padding: "12px 0" }}>Loading saved jobs...</div>}
               {!jobsLoading && savedJobs.length > 0 && (
                 <div>
                   <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "12px" }}>SAVED JOBS — LAST 10 DAYS</div>
@@ -1914,9 +1905,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                           <div style={{ fontSize: "14px", fontWeight: 600, color: "#E5E7EB" }}>{job.title}</div>
                           <div style={{ fontSize: "11px", color: "#9CA3AF" }}>{job.company} &middot; Saved {job.savedDays} ago</div>
                         </div>
-                        <button style={{ padding: "7px 14px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                          Select
-                        </button>
+                        <button style={{ padding: "7px 14px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>Select</button>
                       </div>
                     ))}
                   </div>
@@ -1937,7 +1926,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
             <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px 16px 0 0", width: "100%", maxWidth: "700px", padding: "32px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
                 <div style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF" }}>Tools for this pitch</div>
-                <button onClick={() => setCareerToolsOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: "4px", borderRadius: "6px" }}>
+                <button onClick={() => setCareerToolsOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: "4px" }}>
                   <X size={18} />
                 </button>
               </div>
@@ -1947,8 +1936,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                   { label: "Review your career plan", sub: "Assess where you are and what to do next", href: "/career" },
                   { label: "Browse open roles", sub: "Find roles that match your BA profile", href: "/opportunities" },
                 ] as Array<{ label: string; sub: string; action?: () => void; href?: string }>).map(({ label, sub, action, href }) => (
-                  <div
-                    key={label}
+                  <div key={label}
                     onClick={() => { if (action) action(); else if (href) { setCareerToolsOpen(false); window.location.href = href; } }}
                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)", cursor: "pointer" }}
                   >
