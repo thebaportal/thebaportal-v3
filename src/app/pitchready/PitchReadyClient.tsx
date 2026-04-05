@@ -496,7 +496,7 @@ function ScenarioTile({ scenario: s, color, onSelect }: { scenario: Scenario; co
 
 interface Props { tier: string; userName: string; initialSessions?: SessionRecord[]; }
 
-export default function PitchReadyClient({ userName, initialSessions = [] }: Props) {
+export default function PitchReadyClient({ tier, userName, initialSessions = [] }: Props) {
   const router = useRouter();
   const [view, setView] = useState<PitchView>("home");
 
@@ -520,6 +520,13 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
   const [submitError, setSubmitError] = useState("");
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [coachRewriteCopied, setCoachRewriteCopied] = useState(false);
+  // Ask Alex state
+  const [askAlexQuestion, setAskAlexQuestion] = useState("");
+  const [askAlexAnswer, setAskAlexAnswer] = useState("");
+  const [askAlexLoading, setAskAlexLoading] = useState(false);
+  const [askAlexError, setAskAlexError] = useState("");
+  const [askAlexCount, setAskAlexCount] = useState(0);
+  const FREE_ASK_LIMIT = 3;
   const [attachJobOpen, setAttachJobOpen] = useState(false);
   const [careerToolsOpen, setCareerToolsOpen] = useState(false);
   const [jobUrl, setJobUrl] = useState("");
@@ -783,6 +790,9 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
       const feedback: FeedbackReport = data.feedback;
       if (!feedback) throw new Error("No feedback returned");
       setCurrentFeedback(feedback);
+      setAskAlexQuestion("");
+      setAskAlexAnswer("");
+      setAskAlexError("");
 
       const tempId = crypto.randomUUID();
       const session: SessionRecord = {
@@ -1710,6 +1720,133 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
                   </div>
                 </div>
               )}
+
+              {/* ASK ALEX */}
+              {currentFeedback && (() => {
+                const fb2 = currentFeedback;
+                const isPaid = tier !== "free";
+                const atLimit = !isPaid && askAlexCount >= FREE_ASK_LIMIT;
+
+                async function submitAskAlex(q: string) {
+                  if (!q.trim() || askAlexLoading || atLimit) return;
+                  setAskAlexLoading(true);
+                  setAskAlexError("");
+                  setAskAlexAnswer("");
+                  try {
+                    const res = await fetch("/api/pitchready/ask-alex", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        scenarioTitle: currentSession?.scenarioTitle ?? "",
+                        overallScore: fb2.overallScore,
+                        topFix: fb2.topFix,
+                        doThisNext: fb2.doThisNext,
+                        userQuestion: q,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.answer) {
+                      setAskAlexAnswer(data.answer);
+                      if (!isPaid) setAskAlexCount(c => c + 1);
+                    } else {
+                      setAskAlexError(data.error ?? "Something went wrong.");
+                    }
+                  } catch {
+                    setAskAlexError("Alex is unavailable right now.");
+                  } finally {
+                    setAskAlexLoading(false);
+                  }
+                }
+
+                const chips = [
+                  "Why did I score low on clarity?",
+                  "How do I fix my opening?",
+                  "What would a stronger structure look like?",
+                  "Can you give me a sharper example?",
+                  "What should I work on next?",
+                ];
+
+                return (
+                  <div style={{ marginBottom: "40px" }}>
+                    <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "12px" }}>ASK ALEX</div>
+                    <p style={{ fontSize: "13px", color: "#9CA3AF", marginBottom: "16px", lineHeight: 1.5 }}>
+                      Need quick guidance? Ask Alex for a focused tip before your next attempt.
+                    </p>
+
+                    {atLimit ? (
+                      <div style={{ background: "rgba(224,85,71,0.07)", border: "1px solid rgba(224,85,71,0.2)", borderRadius: "10px", padding: "18px", textAlign: "center" }}>
+                        <p style={{ fontSize: "13px", color: "#9CA3AF", margin: "0 0 12px" }}>You have used your questions for this session.</p>
+                        <a href="/pricing" style={{ display: "inline-block", padding: "9px 20px", borderRadius: "8px", background: "#e05547", color: "#fff", fontSize: "12px", fontWeight: 700, textDecoration: "none" }}>
+                          Unlock unlimited coaching
+                        </a>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Chips */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+                          {chips.map(chip => (
+                            <button key={chip}
+                              onClick={() => { setAskAlexQuestion(chip); submitAskAlex(chip); }}
+                              style={{
+                                padding: "7px 13px", borderRadius: "20px", fontSize: "12px", fontWeight: 500,
+                                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                                color: "#D1D5DB", cursor: "pointer", transition: "all 0.15s",
+                              }}>
+                              {chip}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Input + button */}
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <input
+                            value={askAlexQuestion}
+                            onChange={e => setAskAlexQuestion(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && submitAskAlex(askAlexQuestion)}
+                            placeholder="Ask a focused question…"
+                            maxLength={300}
+                            style={{
+                              flex: 1, padding: "10px 14px", borderRadius: "8px", fontSize: "13px",
+                              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                              color: "#E5E7EB", outline: "none",
+                            }}
+                          />
+                          <button
+                            onClick={() => submitAskAlex(askAlexQuestion)}
+                            disabled={!askAlexQuestion.trim() || askAlexLoading}
+                            style={{
+                              padding: "10px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
+                              background: askAlexLoading ? "rgba(16,185,129,0.3)" : "#10B981",
+                              color: "#fff", border: "none", cursor: askAlexLoading ? "not-allowed" : "pointer",
+                              opacity: !askAlexQuestion.trim() ? 0.4 : 1, transition: "all 0.15s", whiteSpace: "nowrap",
+                            }}>
+                            {askAlexLoading ? "Thinking…" : "Ask Alex"}
+                          </button>
+                        </div>
+
+                        {/* Counter */}
+                        {!isPaid && (
+                          <div style={{ fontSize: "11px", color: "#6B7280", marginTop: "8px", textAlign: "right" }}>
+                            {FREE_ASK_LIMIT - askAlexCount} of {FREE_ASK_LIMIT} questions remaining
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Response */}
+                    {(askAlexAnswer || askAlexError) && (
+                      <div style={{ marginTop: "16px", background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.15)", borderRadius: "10px", padding: "18px" }}>
+                        {askAlexAnswer && (
+                          <p style={{ fontSize: "14px", color: "#E5E7EB", lineHeight: 1.8, margin: 0, whiteSpace: "pre-line" }}>{askAlexAnswer}</p>
+                        )}
+                        {askAlexError && (
+                          <p style={{ fontSize: "13px", color: "#f87171", margin: 0 }}>{askAlexError}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Conditional rewrites — plain text, no cards */}
               {(fb.improvedOpening || fb.improvedClosing) && (
