@@ -1854,7 +1854,7 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           display: "flex", alignItems: "center", gap: "10px",
         }}>
           <button
-            onClick={() => { resetStudio(); setStudioPhase("ready"); }}
+            onClick={() => { resetStudio(); setStudioPhase("ready"); setView("studio"); }}
             style={{ padding: "11px 20px", borderRadius: "8px", background: "#10B981", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px" }}
           >
             <Mic size={14} /> Fix this answer
