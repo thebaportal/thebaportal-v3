@@ -43,7 +43,8 @@ Rules:
 - Focus only on what will increase the user's score in their next attempt
 - Keep total output concise and structured
 - Do not over-explain
-- Do not repeat the user's words back to them`;
+- Do not repeat the user's words back to them
+- When rewriting their answer, write like a real person speaks — not like a polished LinkedIn profile. Imperfect sentences are fine. Buzzwords are not.`;
 
   const userPrompt = `Analyse this BA practice session and return structured coaching as JSON.
 
@@ -71,7 +72,7 @@ Return ONLY valid JSON with this exact structure. No text outside the JSON.
   "topWin": "<one short sentence — what they did well, be specific>",
   "topFix": "<the single most important thing limiting their score — specific and actionable>",
   "doThisNext": "<one direct instruction they must apply in their next attempt. Not advice. A direct action. Example: 'Start with the business outcome before describing your steps'>",
-  "coachRewrite": "<rewrite their response as a strong but realistic BA answer. Keep it concise and natural. Do not make it perfect. Maintain their intent but improve clarity, structure, and impact>",
+  "coachRewrite": "<rewrite their response as something a real person would actually say out loud in a room. Use their words and rhythm, not yours. Sound like a confident human being, not a LinkedIn profile. No business buzzwords. No 'I specialise in', no 'delivery cycles', no 'shift the needle', no 'cross-functional'. Short sentences. Natural pauses. Keep their intent but make it land. 50-80 words max.>",
   "improvedOpening": <if overallScore < 65: "a stronger opening line, 1-2 sentences max", else: null>,
   "improvedClosing": <if overallScore < 65: "a stronger closing line, 1-2 sentences max", else: null>
 }
@@ -81,7 +82,7 @@ CONSTRAINTS:
 - Do NOT include explanations outside the JSON structure
 - Do NOT generate multiple fixes — one topFix only
 - verdict must be exactly one sentence, no heading, no label
-- coachRewrite should be 60-120 words max
+- coachRewrite must sound spoken, not written — short sentences, no buzzwords, 50-80 words max
 - improvedOpening and improvedClosing must be null if overallScore >= 65`;
 
   try {
