@@ -16,14 +16,13 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { transcript, scenario, audience, duration, wordCount, focus, mood, previousScore, previousTopFix } = await req.json() as {
+  const { transcript, scenario, audience, duration, wordCount, focus, previousScore, previousTopFix } = await req.json() as {
     transcript: string;
     scenario: string;
     audience: string;
     duration: number;
     wordCount: number;
     focus?: string;
-    mood?: string;
     previousScore?: number;
     previousTopFix?: string;
   };
@@ -34,10 +33,6 @@ export async function POST(req: Request) {
 
   const focusNote = focus && focus !== "all"
     ? `\nFOCUS: Pay extra attention to ${focus} when scoring and writing the topFix and doThisNext.`
-    : "";
-
-  const moodNote = mood
-    ? `\nUSER MOOD: The user reported they are "${mood}" before this session. Factor that into your coaching tone.\n- "Locked in" or "Ready to go": apply full pressure, no allowances — they showed up ready\n- "A bit off": keep tone firm, focused, and practical — acknowledge the context without softening standards\n- "Struggling to focus" or "Not in it today": briefly acknowledge the effort, keep standards high, but do not pile on unnecessarily\n- Mood influences tone only. Do not change the rubric or lower scoring expectations.`
     : "";
 
   const retryNote = previousScore != null && previousTopFix
@@ -70,7 +65,7 @@ Transcript handling:
 SCENARIO: ${scenario}
 AUDIENCE: ${audience}
 DURATION: ${duration} seconds
-WORD COUNT: ${wordCount}${focusNote}${moodNote}${retryNote}
+WORD COUNT: ${wordCount}${focusNote}${retryNote}
 
 TRANSCRIPT:
 ${transcript}

@@ -11,8 +11,7 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type PitchView = "home" | "scenarios" | "studio" | "feedback" | "history" | "progress";
-type StudioPhase = "setup" | "pulse" | "ready" | "recording" | "review" | "processing";
-type PulseMood = "Locked in" | "Ready to go" | "A bit off" | "Struggling to focus" | "Not in it today";
+type StudioPhase = "setup" | "ready" | "recording" | "review" | "processing";
 
 interface Scenario {
   id: string;
@@ -557,8 +556,6 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
   // Back guard
   const [showExitGuard, setShowExitGuard] = useState(false);
 
-  // Pulse Check
-  const [pulseMood, setPulseMood] = useState<PulseMood | null>(null);
 
   // Alex Rivera intro (shown once)
   const [showAlexIntro, setShowAlexIntro] = useState(false);
@@ -780,7 +777,6 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
           duration: recordingTime,
           wordCount,
           focus: studioSetup.focus,
-          mood: pulseMood,
           previousScore,
           previousTopFix,
         }),
@@ -856,7 +852,6 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
 
   function resetStudio() {
     setStudioPhase("setup");
-    setPulseMood(null);
     setTranscript("");
     setInterimTranscript("");
     setWordCount(0);
@@ -1330,40 +1325,11 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
                     </div>
                   </div>
 
-                  <button className="btn-teal" onClick={() => studioSetup.scenario && setStudioPhase("pulse")}
+                  <button className="btn-teal" onClick={() => studioSetup.scenario && setStudioPhase("ready")}
                     style={{ justifyContent: "center", width: "100%", opacity: studioSetup.scenario ? 1 : 0.4, fontSize: "15px", padding: "14px" }}
                     disabled={!studioSetup.scenario}>
                     <Mic size={16} /> Start your delivery
                   </button>
-                </div>
-              )}
-
-              {/* PULSE CHECK PHASE */}
-              {studioPhase === "pulse" && (
-                <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "32px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", color: "var(--text-3)", marginBottom: "16px" }}>PULSE CHECK</div>
-                  <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text-1)", margin: "0 0 6px" }}>
-                    How are you showing up right now?
-                  </h3>
-                  <p style={{ fontSize: "14px", color: "var(--text-3)", marginBottom: "28px", lineHeight: 1.6 }}>
-                    Your answer will reflect this.
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {(["Locked in", "Ready to go", "A bit off", "Struggling to focus", "Not in it today"] as PulseMood[]).map((m) => {
-                      const color = m === "Locked in" ? "#1fbf9f" : m === "Ready to go" ? "#4ade80" : m === "A bit off" ? "#f59e0b" : m === "Struggling to focus" ? "#f97316" : CORAL;
-                      return (
-                        <button key={m} onClick={() => { setPulseMood(m); setStudioPhase("ready"); }}
-                          style={{
-                            padding: "14px 18px", borderRadius: "10px", fontSize: "14px", fontWeight: 600,
-                            cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-                            background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.08)`,
-                            color,
-                          }}>
-                          {m}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
 
