@@ -464,13 +464,11 @@ function PlatformDropdown() {
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 16px)", left: "50%", transform: "translateX(-50%)",
-          background: "rgba(10,10,15,0.98)",
-          border: "1px solid rgba(255,255,255,0.09)",
-          borderRadius: 18, padding: "10px",
+          background: "#0B0F14",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 16, padding: "10px",
           width: 360,
-          boxShadow: "0 32px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.03)",
-          backdropFilter: "blur(32px)",
-          WebkitBackdropFilter: "blur(32px)",
+          boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
           zIndex: 300,
           animation: "slide-down-fade .18s ease both",
         }}>
@@ -505,8 +503,8 @@ function PlatformDropdown() {
                     {item.icon}
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 2, letterSpacing: "-0.01em" }}>{item.label}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--t3)", lineHeight: 1.4 }}>{item.desc}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#ffffff", marginBottom: 2, letterSpacing: "-0.01em" }}>{item.label}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 500, color: "#D1D5DB", lineHeight: 1.6 }}>{item.desc}</div>
                   </div>
                 </Link>
               ))}
