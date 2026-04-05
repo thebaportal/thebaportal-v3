@@ -402,7 +402,7 @@ function PricingCard({ plan, price, period, features, cta, href, featured }: {
 
 // ── Platform Dropdown ─────────────────────────────────────────────────────────
 const PLATFORM_ITEMS = [
-  { label: "Challenges",    desc: "Simulate real BA scenarios with AI stakeholders", href: "/scenarios",      color: "#38bdf8", icon: "🎯" },
+  { label: "Simulations",   desc: "Simulate real BA scenarios with AI stakeholders", href: "/scenarios",      color: "#38bdf8", icon: "🎯" },
   { label: "Learning",      desc: "Six-module SDLC case story from first principles", href: "/learning",      color: "#fb923c", icon: "📚" },
   { label: "PitchReady",    desc: "Nail your BA interview answers under pressure",    href: "/pitchready",    color: "#a78bfa", icon: "🎤" },
   { label: "Exam Prep",     desc: "CBAP, CCBA and PMI-PBA practice questions",        href: "/exam",          color: "#facc15", icon: "📝" },
@@ -531,7 +531,7 @@ function GuestCTAs() {
         onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
         onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
       >
-        Start Your First Challenge
+        Start Your First Simulation
       </Link>
     </div>
   );
@@ -858,7 +858,7 @@ export default function LandingPage() {
                 <>
                   <Link href="/login" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--t1)", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", textDecoration: "none" }}>Sign in</Link>
                   <Link href="/signup" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
-                    Start Your First Challenge <ArrowRight size={14} />
+                    Start Your First Simulation <ArrowRight size={14} />
                   </Link>
                 </>
               )}
@@ -889,8 +889,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="a3" style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.72, maxWidth: 430, marginBottom: 38 }}>
-                Practice with simulated stakeholders. Get scored by Alex Rivera.
-                Build your portfolio.{" "}<strong style={{ color: "var(--t1)", fontWeight: 600 }}>Land the job.</strong>
+                Practice real stakeholder scenarios. Get scored on how you think and communicate.{" "}<strong style={{ color: "var(--t1)", fontWeight: 600 }}>Get ready for real BA roles.</strong>
               </p>
 
               <div className="a4" style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 48, flexWrap: "wrap" }}>
@@ -898,13 +897,13 @@ export default function LandingPage() {
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 40px rgba(31,191,159,.36)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)"; }}
                 >
-                  Start Free <ArrowRight size={16} />
+                  Start Simulation <ArrowRight size={16} />
                 </Link>
                 <Link href="/scenarios" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "15px 22px", borderRadius: "var(--radius)", background: "rgba(255,255,255,.04)", border: "1px solid var(--border)", transition: "all .2s", textDecoration: "none" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--t1)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(255,255,255,.14)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--t2)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border)"; }}
                 >
-                  View Challenges <ChevronRight />
+                  Browse Simulations <ChevronRight />
                 </Link>
               </div>
 
@@ -930,15 +929,56 @@ export default function LandingPage() {
       {/* ── TICKER ──────────────────────────────────────────────────────── */}
       <Ticker />
 
+      {/* ── SYSTEM SECTION ──────────────────────────────────────────────── */}
+      <section style={{ padding: "80px 0 60px" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <Eyebrow>The System</Eyebrow>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", margin: 0 }}>
+              From practice to job-ready
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+            {[
+              {
+                label: "Practice", color: "#38bdf8",
+                tools: ["Simulation Lab", "PitchReady"],
+                desc: "Practice real scenarios. Improve how you think and speak.",
+              },
+              {
+                label: "Learn", color: "#fb923c",
+                tools: ["Learning", "Exam Prep"],
+                desc: "Understand the frameworks behind real BA work.",
+              },
+              {
+                label: "Advance", color: "#1fbf9f",
+                tools: ["Career Suite", "Jobs"],
+                desc: "Position yourself, apply strategically, and land the role.",
+              },
+            ].map(col => (
+              <div key={col.label} style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "32px 28px" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: col.color, marginBottom: 16, textTransform: "uppercase" as const }}>{col.label}</div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" as const }}>
+                  {col.tools.map(t => (
+                    <span key={t} style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6, background: `${col.color}10`, border: `1px solid ${col.color}22`, color: col.color }}>{t}</span>
+                  ))}
+                </div>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.65, margin: 0 }}>{col.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── STATS ───────────────────────────────────────────────────────── */}
       <section style={{ padding: "80px 0" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
           <div ref={statsReveal.ref} style={{ ...statsReveal.style, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 2, background: "var(--border)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
             {[
-              { val: "7",   label: "Live Challenges",    sub: "across 5 industries" },
+              { val: "7",   label: "Live Simulations",    sub: "across 5 industries" },
               { val: "3",   label: "Difficulty Modes",   sub: "Normal · Hard · Expert" },
               { val: "4",   label: "Eval Dimensions",    sub: "scored by Alex Rivera" },
-              { val: "60+", label: "Challenges Roadmap", sub: "BABOK-aligned curriculum" },
+              { val: "60+", label: "Simulations Roadmap", sub: "BABOK-aligned curriculum" },
             ].map((s, i) => (
               <div key={i} style={{ background: "var(--bg-1)", padding: "36px 28px", textAlign: "center", transition: "background .2s", cursor: "default" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-2)")}
@@ -958,7 +998,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
           <div ref={hiwReveal.ref} style={{ ...hiwReveal.style, textAlign: "center", marginBottom: 64 }}>
             <Eyebrow>Your Journey</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(30px, 4vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>From first challenge to career-ready</h2>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(30px, 4vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>From first simulation to career-ready</h2>
             <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 520, margin: "0 auto", lineHeight: 1.68 }}>Every tool on the platform has a role. Here is how they connect into a single progression.</p>
           </div>
 
@@ -968,7 +1008,7 @@ export default function LandingPage() {
             <div style={{ position: "absolute", top: 44, left: "calc(12.5% + 10px)", right: "calc(12.5% + 10px)", height: 1, background: "linear-gradient(to right, transparent 0%, rgba(31,191,159,0.25) 15%, rgba(31,191,159,0.25) 85%, transparent 100%)", pointerEvents: "none", zIndex: 0 }} />
 
             {[
-              { num: "01", phase: "Practice",  color: "#38bdf8", title: "Run real scenarios",   desc: "Run real scenarios with simulated stakeholders. Get scored on how you frame problems and use evidence.", tools: ["Challenges"] },
+              { num: "01", phase: "Practice",  color: "#38bdf8", title: "Run real scenarios",   desc: "Run real scenarios with simulated stakeholders. Get scored on how you frame problems and use evidence.", tools: ["Simulation Lab"] },
               { num: "02", phase: "Learn",     color: "#fb923c", title: "Build the theory",     desc: "Build the theory. Follow Vela, a Lagos fintech, through the full SDLC.", tools: ["Learning"] },
               { num: "03", phase: "Prepare",   color: "#a78bfa", title: "Nail the interview",   desc: "Nail your interview answers. Practice under pressure.", tools: ["PitchReady", "Exam Prep"] },
               { num: "04", phase: "Advance",   color: "#1fbf9f", title: "Land the role",        desc: "Personalized career plan, resume builder, and salary benchmarks.", tools: ["Career Suite"] },
@@ -1004,18 +1044,18 @@ export default function LandingPage() {
       </section>
 
       {/* ── CHALLENGES ──────────────────────────────────────────────────── */}
-      <section style={{ padding: "0 0 100px" }} id="challenges">
+      <section style={{ padding: "0 0 100px" }} id="simulations">
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
           <div ref={challengesHeadReveal.ref} style={{ ...challengesHeadReveal.style, display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 44 }}>
             <div>
-              <Eyebrow>Challenges</Eyebrow>
+              <Eyebrow>Simulations</Eyebrow>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)" }}>Real scenarios.<br />Real deliverables.</h2>
             </div>
             <Link href="/scenarios" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13.5, fontWeight: 600, color: "var(--t2)", padding: "10px 18px", borderRadius: "var(--radius-sm)", background: "var(--bg-2)", border: "1px solid var(--border)", transition: "color .15s, border-color .15s", flexShrink: 0, textDecoration: "none" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--t1)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(255,255,255,.14)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--t2)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border)"; }}
             >
-              View all challenges <ChevronRight />
+              Browse simulations <ChevronRight />
             </Link>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
@@ -1038,7 +1078,7 @@ export default function LandingPage() {
               {
                 href: "/scenarios",
                 color: "#38bdf8",
-                title: "Challenges",
+                title: "Simulation Lab",
                 desc: "Run real scenarios with simulated stakeholders. Get scored by Alex Rivera.",
                 icon: <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>,
               },
@@ -1046,7 +1086,7 @@ export default function LandingPage() {
                 href: "/learning",
                 color: "#fb923c",
                 title: "Learning",
-                desc: "Follow Vela, a Lagos fintech, through the full SDLC. Six modules, each with a challenge.",
+                desc: "Follow Vela, a Lagos fintech, through the full SDLC. Six modules, each with a simulation.",
                 icon: <svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>,
               },
               {
@@ -1177,7 +1217,7 @@ export default function LandingPage() {
                 Build the habit. One scenario a day.
               </h2>
               <p style={{ fontSize: 15, color: "var(--t2)", lineHeight: 1.72, marginBottom: 32 }}>
-                The BAs who improve fastest are the ones who show up consistently. A new challenge drops every day. It takes 30 minutes. The feedback is immediate.
+                The BAs who improve fastest are the ones who show up consistently. A new simulation drops every day. It takes 30 minutes. The feedback is immediate.
               </p>
               <div style={{ display: "flex", gap: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
@@ -1193,7 +1233,7 @@ export default function LandingPage() {
 
             {/* Right: Today's Challenge card */}
             <div style={{ position: "relative", zIndex: 1 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--t4)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>Today&apos;s Challenge</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--t4)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>Today&apos;s Simulation</div>
               <div style={{ background: "var(--bg-2)", border: "1px solid rgba(56,189,248,.18)", borderRadius: "var(--radius)", padding: "28px 28px 24px", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, #38bdf8, transparent)" }} />
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
@@ -1242,11 +1282,11 @@ export default function LandingPage() {
           <div ref={pricingReveal.ref} style={{ ...pricingReveal.style, display: "flex", gap: 16, maxWidth: 820, margin: "0 auto" }}>
             <PricingCard
               plan="Free" price="$0" period="forever" href="/signup" cta="Get Started" featured={false}
-              features={["3 BA challenge simulations", "Normal difficulty mode", "AI stakeholder interviews", "Alex Rivera evaluation and scoring", "Progress tracking", "Career advisor starter flows"]}
+              features={["3 BA simulations", "Normal difficulty mode", "AI stakeholder interviews", "Alex Rivera evaluation and scoring", "Progress tracking", "Career advisor starter flows"]}
             />
             <PricingCard
               plan="Pro" price={billingAnnual ? "$19" : "$29"} period={billingAnnual ? "/mo · billed annually" : "/month"} href="/pricing" cta="Upgrade to Pro" featured={true}
-              features={["All BA challenge simulations", "Hard and Expert difficulty modes", "Full career advisor suite (5 flows)", "Portfolio case study builder", "Resume bullet and interview answer generator", "Exam prep module", "Advanced analytics", "Priority support"]}
+              features={["All BA simulations", "Hard and Expert difficulty modes", "Full career advisor suite (5 flows)", "Portfolio case study builder", "Resume bullet and interview answer generator", "Exam prep module", "Advanced analytics", "Priority support"]}
             />
           </div>
         </div>
@@ -1261,13 +1301,13 @@ export default function LandingPage() {
               Stop studying.<br />Start doing.
             </h2>
             <p style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 38px", position: "relative" }}>
-              Your first challenge is free. No credit card. No setup. Real BA work starting in 60 seconds.
+              Start in under 60 seconds.
             </p>
             <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "17px 36px", borderRadius: 14, textDecoration: "none", transition: "all .2s", boxShadow: "0 0 52px rgba(31,191,159,.28)", position: "relative" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 12px 56px rgba(31,191,159,.38)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 52px rgba(31,191,159,.28)"; }}
             >
-              Start a Challenge Free <ArrowRight size={19} />
+              Start Your First Simulation <ArrowRight size={19} />
             </Link>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--t4)", marginTop: 14 }}>
               Free forever · No credit card required · Cancel anytime
@@ -1284,7 +1324,7 @@ export default function LandingPage() {
             The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </div>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            {[["Challenges","#challenges"],["How it Works","#how-it-works"],["Jobs","/opportunities"],["Pricing","#pricing"],["FAQ","/faq"],["Contact","/contact"],["Privacy","/privacy"],["Terms","/terms"]].map(([l, href]) => (
+            {[["Simulations","#simulations"],["How it Works","#how-it-works"],["Jobs","/opportunities"],["Pricing","#pricing"],["FAQ","/faq"],["Contact","/contact"],["Privacy","/privacy"],["Terms","/terms"]].map(([l, href]) => (
               <Link key={l} href={href} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "var(--t2)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "var(--t3)")}
