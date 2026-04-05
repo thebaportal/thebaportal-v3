@@ -16,13 +16,15 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { transcript, scenario, audience, duration, wordCount, focus } = await req.json() as {
+  const { transcript, scenario, audience, duration, wordCount, focus, previousScore, previousTopFix } = await req.json() as {
     transcript: string;
     scenario: string;
     audience: string;
     duration: number;
     wordCount: number;
     focus?: string;
+    previousScore?: number;
+    previousTopFix?: string;
   };
 
   if (!transcript || transcript.trim().length < 20) {
@@ -31,6 +33,10 @@ export async function POST(req: Request) {
 
   const focusNote = focus && focus !== "all"
     ? `\nFOCUS: Pay extra attention to ${focus} when scoring and writing the topFix and doThisNext.`
+    : "";
+
+  const retryNote = previousScore != null && previousTopFix
+    ? `\nRETRY CONTEXT: This user previously scored ${previousScore}/100 on this scenario. Alex told them to fix: "${previousTopFix}". Evaluate whether they applied that fix in this attempt.\n- If they clearly applied it: their score MUST increase by at least 8 points vs ${previousScore}, and topWin must acknowledge the specific improvement.\n- If they partially applied it: score must increase by at least 3 points, acknowledge the partial progress in topWin.\n- If they ignored it entirely: maintain pressure, do not acknowledge improvement that did not happen.\n- Never repeat the same harsh verdict if the user made a real correction. The verdict must reflect the actual new state of this delivery.\n- A response built on Alex's coachRewrite should generally score materially higher than the original unless delivery quality clearly collapses.`
     : "";
 
   const systemPrompt = `You are Alex Rivera, a senior Business Analyst coach.
@@ -51,7 +57,7 @@ Rules:
 SCENARIO: ${scenario}
 AUDIENCE: ${audience}
 DURATION: ${duration} seconds
-WORD COUNT: ${wordCount}${focusNote}
+WORD COUNT: ${wordCount}${focusNote}${retryNote}
 
 TRANSCRIPT:
 ${transcript}

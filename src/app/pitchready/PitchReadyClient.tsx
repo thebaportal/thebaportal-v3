@@ -799,6 +799,11 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
     setIsSubmitting(true);
     setSubmitError("");
 
+    // Detect previous attempt for the same scenario to enable improvement detection
+    const previousSession = sessions.find(s => s.scenarioId === studioSetup.scenario!.id);
+    const previousScore = previousSession?.score;
+    const previousTopFix = previousSession?.feedback?.topFix;
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
 
@@ -814,6 +819,8 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           duration: recordingTime,
           wordCount,
           focus: studioSetup.focus,
+          previousScore,
+          previousTopFix,
         }),
       });
       clearTimeout(timeout);
