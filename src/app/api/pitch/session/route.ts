@@ -40,27 +40,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Core insert — optional columns added only if present to avoid schema errors
+  const row: Record<string, unknown> = {
+    user_id: user.id,
+    scenario_id: scenarioId,
+    scenario_title: scenarioTitle,
+    audience: audience ?? null,
+    transcript: transcript ?? null,
+    duration: duration ?? null,
+    word_count: wordCount ?? null,
+    overall_score: overallScore ?? null,
+    feedback_output: feedback,
+  };
+  if (focusArea !== undefined) row.selected_focus_area = focusArea;
+  if (timeLimit !== undefined) row.selected_time_limit = timeLimit;
+
   const { data, error } = await admin
     .from("pitch_sessions")
-    .insert({
-      user_id: user.id,
-      scenario_id: scenarioId,
-      scenario_title: scenarioTitle,
-      audience,
-      transcript,
-      duration,
-      word_count: wordCount,
-      overall_score: overallScore,
-      feedback_output: feedback,
-      selected_focus_area: focusArea ?? null,
-      selected_time_limit: timeLimit ?? null,
-    })
+    .insert(row)
     .select("id")
     .single();
 
   if (error) {
-    console.error("pitch session save error:", error.message, error.details);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("pitch session save error:", error.message, error.details, error.hint);
+    return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
   }
+  console.log("pitch session saved:", data.id, "user:", user.id);
   return NextResponse.json({ ok: true, id: data.id });
 }

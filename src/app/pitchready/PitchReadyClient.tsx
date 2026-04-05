@@ -853,12 +853,18 @@ export default function PitchReadyClient({ userName, initialSessions = [] }: Pro
           focusArea: studioSetup.focus,
           timeLimit: studioSetup.timeLimit,
         }),
-      }).then(r => r.json()).then(d => {
+      }).then(async r => {
+        const d = await r.json();
+        if (!r.ok) {
+          console.error("[PitchReady] session save failed:", r.status, d);
+          return;
+        }
         if (d.id) {
           // Replace temp id with real DB uuid so history links resolve correctly
           setSessions(prev => prev.map(s => s.id === tempId ? { ...s, id: d.id } : s));
+          console.log("[PitchReady] session saved:", d.id);
         }
-      }).catch(() => { /* silent — session already visible in state */ });
+      }).catch(err => { console.error("[PitchReady] session save error:", err); });
       setView("feedback");
     } catch (err) {
       clearTimeout(timeout);
