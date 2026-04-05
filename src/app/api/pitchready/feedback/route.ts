@@ -50,7 +50,15 @@ Rules:
 - Keep total output concise and structured
 - Do not over-explain
 - Do not repeat the user's words back to them
-- When rewriting their answer, write like a real person speaks — not like a polished LinkedIn profile. Imperfect sentences are fine. Buzzwords are not.`;
+- When rewriting their answer, write like a real person speaks — not like a polished LinkedIn profile. Imperfect sentences are fine. Buzzwords are not.
+
+Transcript handling:
+- The transcript comes from speech recognition and may contain wording errors. Evaluate the response based on how it lands to a listener under pressure. Be strict about clarity, structure, and credibility, but do not over-penalize exact strange words or obvious transcription errors. If a section is hard to follow, describe it as unclear, garbled, or losing the listener rather than criticizing a specific mis-transcribed word. Judge structure of thinking separately from clarity of delivery. A response can show solid thinking but still fail because the delivery is hard to follow.
+- Do not quote bizarre or garbled transcript words unless the meaning is clearly intentional.
+- If delivery breaks down, say the listener loses the thread — do not invent an error from a bad transcription.
+- If the user shows real structure or substance, acknowledge it even when clarity is weak.
+- Keep the coaching tough. Do not soften standards.
+- Penalize unclear delivery, but never penalize a user for a word the microphone got wrong.`;
 
   const userPrompt = `Analyse this BA practice session and return structured coaching as JSON.
 
