@@ -1234,6 +1234,84 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
   // ════════════════════════════════════════════════════════════════════════════
   // PRACTICE STUDIO
   // ════════════════════════════════════════════════════════════════════════════
+  const FREE_SESSION_LIMIT = 3;
+  const freeSessionsUsed = tier === "free" ? sessions.length : 0;
+  const isSessionLocked = tier === "free" && freeSessionsUsed >= FREE_SESSION_LIMIT;
+
+  if (view === "studio" && isSessionLocked) {
+    // Show last 3 sessions oldest → newest for the trend
+    const trend = [...sessions].slice(0, FREE_SESSION_LIMIT).reverse();
+    const firstScore = trend[0]?.score ?? 0;
+    const lastScore = trend[trend.length - 1]?.score ?? 0;
+    const delta = lastScore - firstScore;
+
+    return (
+      <Layout>
+        <div style={{ padding: "40px 48px", maxWidth: "600px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.09em", marginBottom: "24px" }}>YOUR PROGRESS SO FAR</div>
+
+          {/* Score trend */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", marginBottom: "28px" }}>
+            {trend.map((s, i) => {
+              const c = s.score >= 75 ? "#1fbf9f" : s.score >= 55 ? "#f59e0b" : "#e05547";
+              return (
+                <div key={s.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "22px", fontWeight: 900, color: c }}>{s.score}</span>
+                  <div style={{ width: "40px", height: `${Math.max(12, (s.score / 100) * 60)}px`, background: c, borderRadius: "4px", opacity: 0.8 }} />
+                  <span style={{ fontSize: "11px", color: "#6B7280", fontWeight: 500 }}>Session {i + 1}</span>
+                </div>
+              );
+            })}
+            {trend.length > 1 && (
+              <div style={{ marginLeft: "8px", paddingBottom: "28px" }}>
+                <span style={{ fontSize: "28px", fontWeight: 900, color: delta >= 0 ? "#1fbf9f" : "#e05547" }}>
+                  {delta >= 0 ? "+" : ""}{delta}
+                </span>
+                <div style={{ fontSize: "12px", color: "#9CA3AF", fontWeight: 500 }}>points</div>
+              </div>
+            )}
+          </div>
+
+          {/* Message */}
+          <p style={{ fontSize: "20px", fontWeight: 700, color: "#E5E7EB", lineHeight: 1.45, marginBottom: "8px" }}>
+            {delta >= 10
+              ? `You improved ${delta} points. Let's get you to ${Math.min(lastScore + 15, 95)}+.`
+              : delta >= 1
+              ? `You're improving. Let's push further.`
+              : `You've put in the reps. Keep the momentum going.`}
+          </p>
+          <p style={{ fontSize: "14px", color: "#6B7280", lineHeight: 1.7, marginBottom: "32px" }}>
+            Unlock full coaching to continue your sessions, get unlimited Ask Alex, and track your progress over time.
+          </p>
+
+          {/* CTA */}
+          <a href="/pricing" style={{
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            padding: "14px 28px", borderRadius: "10px",
+            background: "#e05547", color: "#fff",
+            fontSize: "15px", fontWeight: 700, textDecoration: "none",
+          }}>
+            Unlock full coaching
+          </a>
+
+          {/* Locked session preview */}
+          <div style={{ marginTop: "40px", opacity: 0.35, pointerEvents: "none", userSelect: "none" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.09em", marginBottom: "12px" }}>NEXT SESSION</div>
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Mic size={16} color="#6B7280" />
+              </div>
+              <div>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#9CA3AF" }}>Continue practicing</div>
+                <div style={{ fontSize: "12px", color: "#6B7280" }}>Unlock to access all scenarios</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (view === "studio") {
     const focusOptions = [
       { value: "all", label: "All aspects (recommended)" },
@@ -1691,7 +1769,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
               {currentFeedback && (() => {
                 const fb2 = currentFeedback;
                 const isPaid = tier !== "free";
-                const atLimit = !isPaid && askAlexCount >= FREE_ASK_LIMIT;
+                const atLimit = !isPaid && (askAlexCount >= FREE_ASK_LIMIT || isSessionLocked);
 
                 async function submitAskAlex(q: string) {
                   if (!q.trim() || askAlexLoading || atLimit) return;
