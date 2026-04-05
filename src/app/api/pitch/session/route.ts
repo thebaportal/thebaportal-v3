@@ -45,13 +45,13 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     scenario_id: scenarioId,
     scenario_title: scenarioTitle,
-    audience: audience ?? null,
     transcript: transcript ?? null,
     duration: duration ?? null,
     word_count: wordCount ?? null,
     overall_score: overallScore ?? null,
     feedback_output: feedback,
   };
+  if (audience !== undefined) row.audience = audience;
   if (focusArea !== undefined) row.selected_focus_area = focusArea;
   if (timeLimit !== undefined) row.selected_time_limit = timeLimit;
 
