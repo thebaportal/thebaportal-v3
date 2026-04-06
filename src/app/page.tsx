@@ -919,7 +919,7 @@ export default function LandingPage() {
               </p>
 
               <div className="a4" style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 48, flexWrap: "wrap" }}>
-                <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "15px 30px", borderRadius: "var(--radius)", transition: "all .2s", letterSpacing: "0.01em", boxShadow: "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)", textDecoration: "none" }}
+                <Link href={authState === "authenticated" ? "/scenarios" : "/signup"} style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "15px 30px", borderRadius: "var(--radius)", transition: "all .2s", letterSpacing: "0.01em", boxShadow: "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)", textDecoration: "none" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 40px rgba(31,191,159,.36)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)"; }}
                 >
@@ -1329,7 +1329,7 @@ export default function LandingPage() {
             <p style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 38px", position: "relative" }}>
               Start in under 60 seconds.
             </p>
-            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "17px 36px", borderRadius: 14, textDecoration: "none", transition: "all .2s", boxShadow: "0 0 52px rgba(31,191,159,.28)", position: "relative" }}
+            <Link href={authState === "authenticated" ? "/scenarios" : "/signup"} style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "17px 36px", borderRadius: 14, textDecoration: "none", transition: "all .2s", boxShadow: "0 0 52px rgba(31,191,159,.28)", position: "relative" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 12px 56px rgba(31,191,159,.38)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 52px rgba(31,191,159,.28)"; }}
             >

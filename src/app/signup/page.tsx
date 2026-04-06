@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { siteUrl } from "@/lib/siteUrl";
+import { getPostAuthRedirect } from "@/lib/postAuthRedirect";
 
 function BAPortalLogo({ size = 32 }: { size?: number }) {
   return (
@@ -71,7 +72,7 @@ export default function SignupPage() {
       if (authError) { setError(authError.message); return; }
       // When Supabase "Confirm email" is disabled, signUp returns a live session
       // and the user is already authenticated — skip the check-your-email screen.
-      if (data.session) { router.push("/dashboard"); return; }
+      if (data.session) { router.push(await getPostAuthRedirect()); return; }
       setDone(true);
     } catch {
       setError("Something went wrong. Please try again.");
