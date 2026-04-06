@@ -115,6 +115,7 @@ interface ChallengeClientProps {
   mode: string;
   relatedJobs?: RelatedJob[];
   initialDraft?: ChallengeAttempt | null;
+  isFirstAttempt?: boolean;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -181,6 +182,25 @@ const defaultHints = [
   "What would a successful resolution look like to you?",
 ];
 
+const preStartCues: Record<string, string[]> = {
+  "discovery":           ["Ask open-ended questions.", "Clarify assumptions early.", "Summarize what you're hearing."],
+  "requirements":        ["Separate needs from solutions.", "Challenge vague language.", "Define scope clearly."],
+  "facilitation":        ["Keep the discussion focused.", "Surface disagreements early.", "Drive toward a decision."],
+  "uat":                 ["Validate expected vs actual behavior.", "Call out defects clearly.", "Stay structured."],
+  "solution-analysis":   ["Weigh trade-offs explicitly.", "Question assumptions.", "Think beyond immediate impact."],
+  "elicitation":         ["Draw out what's unsaid.", "Ask why before what.", "Probe for hidden constraints."],
+  "change-management":   ["Acknowledge resistance.", "Focus on people impact.", "Tie change to outcomes."],
+  "production-incident": ["Stay calm and methodical.", "Separate symptoms from root cause.", "Communicate clearly."],
+  "data-migration":      ["Clarify ownership early.", "Surface data risks.", "Confirm rollback plans."],
+  "erp-implementation":  ["Map current and future state.", "Identify process gaps.", "Align stakeholders on scope."],
+};
+
+/** Trim brief.situation to at most 2 sentences for the pre-start modal */
+function trimSituation(text: string): string {
+  const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [];
+  return sentences.slice(0, 2).join(" ").trim() || text.slice(0, 180).trim();
+}
+
 function renderDeliverable(text: string, fontSize: string, color: string) {
   const numbered = text.match(/\(?\d+\)?[.)]\s+[^()\d.]+/g);
   if (numbered && numbered.length >= 2) {
@@ -223,7 +243,7 @@ function renderDeliverable(text: string, fontSize: string, color: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ChallengeClient({ challenge, mode: initialMode, relatedJobs = [], initialDraft = null }: ChallengeClientProps) {
+export default function ChallengeClient({ challenge, mode: initialMode, relatedJobs = [], initialDraft = null, isFirstAttempt = true }: ChallengeClientProps) {
   const router = useRouter();
 
   const isElicitation = challenge.type === "elicitation";
@@ -246,6 +266,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   const [questionCount, setQuestionCount] = useState(hasDraft ? draft.question_count : 0);
   const [showHints,     setShowHints]     = useState(false);
   const [showSummary,   setShowSummary]   = useState(false);
+  const [showPreStart,  setShowPreStart]  = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const initializedStakeholders = useRef<Set<string>>(new Set());
 
@@ -741,7 +762,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                         ? "Interview all four stakeholders, then document requirements (Phase A) and validate the captured document (Phase B)."
                         : "The next step opens simulated stakeholder conversations."}
                     </p>
-                    <button onClick={() => goToTab("interview")} className="btn-teal"
+                    <button onClick={() => setShowPreStart(true)} className="btn-teal"
                       style={{ width: "100%", justifyContent: "center", fontSize: "14px", padding: "12px 16px" }}>
                       Begin Stakeholder Interviews <ArrowRight className="w-4 h-4" />
                     </button>
@@ -1388,6 +1409,172 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
 
         </AnimatePresence>
       </div>
+
+      {/* ── Pre-start modal ──────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showPreStart && (() => {
+          const cues = preStartCues[challenge.type] ?? preStartCues["discovery"];
+          const context = trimSituation(challenge.brief.situation);
+          return (
+            <motion.div
+              key="prestart-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              style={{
+                position: "fixed", inset: 0, zIndex: 500,
+                background: "rgba(0,0,0,0.72)",
+                backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                padding: "24px",
+              }}
+              onClick={e => { if (e.target === e.currentTarget) setShowPreStart(false); }}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1,    y: 0  }}
+                exit={{    opacity: 0, scale: 0.96, y: 8  }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  background: "#0d0d12",
+                  border: "1px solid rgba(31,191,159,0.22)",
+                  borderRadius: 20,
+                  padding: "36px 36px 32px",
+                  maxWidth: 480, width: "100%",
+                  position: "relative",
+                  boxShadow: "0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)",
+                }}
+              >
+                {/* Close */}
+                <button
+                  onClick={() => setShowPreStart(false)}
+                  style={{
+                    position: "absolute", top: 16, right: 16,
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "var(--text-3)", padding: 4,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+
+                {/* Eyebrow */}
+                <div style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
+                  textTransform: "uppercase" as const, color: "#1fbf9f",
+                  fontFamily: "monospace", marginBottom: 10,
+                }}>
+                  {challenge.type.replace(/-/g, " ")}
+                </div>
+
+                {/* Dynamic title */}
+                <h2 style={{
+                  fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em",
+                  color: "var(--text-1)", margin: "0 0 6px", lineHeight: 1.15,
+                  fontFamily: "'Inter','Open Sans',sans-serif",
+                }}>
+                  {isFirstAttempt ? "Your first simulation" : "Ready to try again?"}
+                </h2>
+
+                {/* Scenario name */}
+                <div style={{
+                  fontSize: 13, fontWeight: 600, color: "var(--text-3)",
+                  marginBottom: 20,
+                }}>
+                  {challenge.title}
+                </div>
+
+                {/* Context */}
+                <p style={{
+                  fontSize: 14, lineHeight: 1.7, color: "var(--text-2)",
+                  margin: "0 0 24px",
+                  paddingBottom: 24,
+                  borderBottom: "1px solid var(--border)",
+                }}>
+                  {context}
+                </p>
+
+                {/* Coaching cues */}
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+                    textTransform: "uppercase" as const, color: "var(--text-3)",
+                    fontFamily: "monospace", marginBottom: 12,
+                  }}>
+                    What good looks like
+                  </div>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                    {cues.map((cue, i) => (
+                      <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                        <span style={{
+                          flexShrink: 0, marginTop: 2,
+                          width: 18, height: 18, borderRadius: "50%",
+                          background: "rgba(31,191,159,0.1)", border: "1px solid rgba(31,191,159,0.22)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 10, fontWeight: 700, color: "#1fbf9f",
+                          fontFamily: "'Inter','Open Sans',sans-serif",
+                        }}>
+                          {i + 1}
+                        </span>
+                        <span style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6 }}>{cue}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Time hint */}
+                <div style={{
+                  fontSize: 12, color: "var(--text-3)", marginBottom: 24,
+                  display: "flex", alignItems: "center", gap: 6, fontFamily: "monospace",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                  </svg>
+                  This will take about 3–5 minutes
+                </div>
+
+                {/* CTAs */}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={() => { setShowPreStart(false); goToTab("interview"); }}
+                    style={{
+                      flex: 1, padding: "13px 20px", borderRadius: 12,
+                      fontSize: 14, fontWeight: 700,
+                      background: "#1fbf9f", color: "#041a13",
+                      border: "none", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      fontFamily: "'Inter','Open Sans',sans-serif",
+                      boxShadow: "0 0 20px rgba(31,191,159,0.2)",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#25d4b0"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1fbf9f"; }}
+                  >
+                    Start simulation
+                    <ArrowRight size={14} />
+                  </button>
+                  <button
+                    onClick={() => setShowPreStart(false)}
+                    style={{
+                      padding: "13px 18px", borderRadius: 12,
+                      fontSize: 14, fontWeight: 600,
+                      background: "transparent", color: "var(--text-2)",
+                      border: "1px solid var(--border)", cursor: "pointer",
+                      fontFamily: "'Inter','Open Sans',sans-serif",
+                      transition: "border-color 0.15s, color 0.15s",
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.15)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)"; }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }

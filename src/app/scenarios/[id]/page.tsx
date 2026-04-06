@@ -82,23 +82,34 @@ export default async function ChallengePage({
     relatedJobs = data ?? [];
   }
 
-  // Fetch active draft for this user + challenge
-  const { data: draftData } = await admin
-    .from("challenge_attempts")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("challenge_id", params.id)
-    .eq("status", "draft")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Fetch active draft + prior attempt count for this user + challenge
+  const [draftResult, attemptCountResult] = await Promise.all([
+    admin
+      .from("challenge_attempts")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("challenge_id", params.id)
+      .eq("status", "draft")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("challenge_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("challenge_id", params.id)
+      .neq("status", "draft"),
+  ]);
+
+  const isFirstAttempt = (attemptCountResult.count ?? 0) === 0;
 
   return (
     <ChallengeClient
       challenge={challenge}
       mode={mode}
       relatedJobs={relatedJobs}
-      initialDraft={draftData ?? null}
+      initialDraft={draftResult.data ?? null}
+      isFirstAttempt={isFirstAttempt}
     />
   );
 }
