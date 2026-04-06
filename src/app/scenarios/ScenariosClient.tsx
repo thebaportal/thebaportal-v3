@@ -308,16 +308,22 @@ interface ScenariosClientProps {
   profile: { subscription_tier: string; full_name: string | null } | null;
   user: { email: string };
   practiceContext?: PracticeContext | null;
+  isFirstTime?: boolean;
+  confirmed?: boolean;
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function ScenariosClient({ profile, user, practiceContext: practiceContextProp }: ScenariosClientProps) {
+const RECOMMENDED_ID = "banking-discovery-001";
+
+export default function ScenariosClient({ profile, user, practiceContext: practiceContextProp, isFirstTime = false, confirmed = false }: ScenariosClientProps) {
   const router = useRouter();
   const [activeType,       setActiveType]       = useState<string>("All");
   const [activeDifficulty, setActiveDifficulty] = useState("All");
   const [activeIndustry,   setActiveIndustry]   = useState("All");
   const [practiceContext,  setPracticeContext]   = useState<PracticeContext | null>(practiceContextProp ?? null);
+  const [showFirstTime,    setShowFirstTime]     = useState(isFirstTime);
+  const [showToast,        setShowToast]         = useState(confirmed);
 
   // Pick up context from sessionStorage when redirected after sign-up
   useEffect(() => {
@@ -338,6 +344,13 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-dismiss confirmation toast after 5 s
+  useEffect(() => {
+    if (!showToast) return;
+    const t = setTimeout(() => setShowToast(false), 5000);
+    return () => clearTimeout(t);
+  }, [showToast]);
 
   // Inject responsive grid CSS
   useEffect(() => {
@@ -404,6 +417,25 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
           )}
         </header>
 
+        {/* Confirmation toast */}
+        {showToast && (
+          <div style={{
+            position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)",
+            zIndex: 9999, pointerEvents: "none",
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "12px 20px", borderRadius: 12,
+            background: "rgba(31,191,159,0.12)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(31,191,159,0.3)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            whiteSpace: "nowrap",
+          }}>
+            <span style={{ fontSize: 15 }}>✓</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#1fbf9f", fontFamily: "'Inter', sans-serif" }}>
+              You did it. Now let&apos;s get to work. Your first simulation is waiting.
+            </span>
+          </div>
+        )}
+
         <div style={{ padding: "40px 32px", maxWidth: 1240, margin: "0 auto" }}>
 
           {/* Practice context banner */}
@@ -452,8 +484,135 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
             </p>
           </div>
 
+          {/* First-time onboarding block */}
+          {showFirstTime && (() => {
+            const rec = challenges.find(c => c.id === RECOMMENDED_ID);
+            if (!rec) return null;
+            const recType = typeConfig[rec.type];
+            const recDiff = difficultyConfig[rec.difficulty];
+            return (
+              <div style={{
+                marginBottom: 48,
+                padding: "36px 36px 32px",
+                borderRadius: 20,
+                background: "linear-gradient(135deg, rgba(31,191,159,0.07) 0%, rgba(31,191,159,0.03) 100%)",
+                border: "1px solid rgba(31,191,159,0.22)",
+                position: "relative", overflow: "hidden",
+              }}>
+                {/* Ambient glow */}
+                <div style={{
+                  position: "absolute", top: "-40px", right: "-40px",
+                  width: 200, height: 200,
+                  background: "radial-gradient(ellipse, rgba(31,191,159,0.1) 0%, transparent 70%)",
+                  pointerEvents: "none",
+                }} />
+
+                {/* Eyebrow */}
+                <div style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const,
+                  color: "#1fbf9f", fontFamily: "monospace", marginBottom: 12,
+                }}>
+                  Start here
+                </div>
+
+                {/* Title + subtitle */}
+                <h2 style={{
+                  fontSize: "clamp(22px, 2.8vw, 30px)", fontWeight: 800,
+                  letterSpacing: "-0.03em", color: "var(--text-1)",
+                  margin: "0 0 8px", lineHeight: 1.15,
+                }}>
+                  Start your first simulation
+                </h2>
+                <p style={{ fontSize: 15, color: "var(--text-2)", lineHeight: 1.6, margin: "0 0 28px", maxWidth: 540 }}>
+                  We&apos;ve picked the best starting point for you. Complete it and you&apos;ll have a real score, real feedback, and a clear picture of where to improve.
+                </p>
+
+                {/* Recommended card */}
+                <div style={{
+                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(31,191,159,0.25)",
+                  borderRadius: 16, padding: "22px 24px 20px",
+                  marginBottom: 24, maxWidth: 520, position: "relative",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
+                    {recType && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5,
+                        background: recType.bg, color: recType.color, border: `1px solid ${recType.color}28`,
+                      }}>
+                        {recType.label}
+                      </span>
+                    )}
+                    <span style={{ color: "var(--border)", fontSize: 12 }}>•</span>
+                    {recDiff && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 5,
+                        background: `${recDiff.color}12`, color: recDiff.color, border: `1px solid ${recDiff.color}22`,
+                      }}>
+                        {recDiff.label}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 8 }}>
+                    {rec.title}
+                  </div>
+                  <p style={{
+                    fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: "0 0 14px",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical" as const,
+                    overflow: "hidden",
+                  }}>
+                    {rec.brief.situation}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12, color: "var(--text-3)", fontFamily: "monospace" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <ClockIcon size={12} /> {rec.duration}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <UsersIcon size={12} /> {rec.stakeholders.length} stakeholder{rec.stakeholders.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+
+                {/* CTAs */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
+                  <button
+                    onClick={() => router.push(`/scenarios/${RECOMMENDED_ID}?mode=normal`)}
+                    style={{
+                      padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+                      background: "#1fbf9f", color: "#041a13", border: "none", cursor: "pointer",
+                      boxShadow: "0 0 20px rgba(31,191,159,0.25)",
+                      display: "flex", alignItems: "center", gap: 8,
+                      fontFamily: "'Inter', sans-serif",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#25d4b0"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1fbf9f"; }}
+                  >
+                    Start this simulation
+                    <ArrowRight size={14} />
+                  </button>
+                  <button
+                    onClick={() => setShowFirstTime(false)}
+                    style={{
+                      padding: "12px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600,
+                      background: "transparent", color: "var(--text-2)",
+                      border: "1px solid var(--border)", cursor: "pointer",
+                      fontFamily: "'Inter', sans-serif",
+                      transition: "border-color 0.15s, color 0.15s",
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.15)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; }}
+                  >
+                    Browse all simulations
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 2. Filter bar */}
-          <div style={{ marginBottom: 36 }}>
+          <div style={{ marginBottom: 36, opacity: showFirstTime ? 0.5 : 1, transition: "opacity 0.2s", pointerEvents: showFirstTime ? "none" : "auto" }}>
 
             {/* Type tabs */}
             <div className="sc-type-tabs" style={{ marginBottom: 12 }}>
