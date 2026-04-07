@@ -268,10 +268,13 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   const [inputValue,    setInputValue]    = useState("");
   const [isLoading,     setIsLoading]     = useState(false);
   const [questionCount, setQuestionCount] = useState(hasDraft ? draft.question_count : 0);
-  const [showHints,       setShowHints]       = useState(false);
-  const [showSummary,     setShowSummary]     = useState(false);
-  const [showPreStart,    setShowPreStart]    = useState(false);
-  const [skipNextTime,    setSkipNextTime]    = useState(false);
+  const [showHints,             setShowHints]             = useState(false);
+  const [showSummary,           setShowSummary]           = useState(false);
+  const [showPreStart,          setShowPreStart]          = useState(false);
+  const [skipNextTime,          setSkipNextTime]          = useState(false);
+  const [retryTopFix,           setRetryTopFix]           = useState<string | null>(null);
+  const [previousScore,         setPreviousScore]         = useState<number | null>(null);
+  const [retryBannerDismissed,  setRetryBannerDismissed]  = useState(false);
   const preStartKey = `prestart_skip_${challenge.id}`;
   const chatEndRef = useRef<HTMLDivElement>(null);
   const initializedStakeholders = useRef<Set<string>>(new Set());
@@ -811,6 +814,44 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                 width: "100%", padding: "0 clamp(16px, 4vw, 48px)",
               }}
             >
+              {/* Retry focus banner */}
+              {retryTopFix && !retryBannerDismissed && (
+                <div style={{
+                  display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
+                  padding: "10px 14px", marginBottom: 2, marginTop: 8, borderRadius: 10, flexShrink: 0,
+                  background: "rgba(251,146,60,0.07)", border: "1px solid rgba(251,146,60,0.22)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#fb923c", letterSpacing: "0.06em", textTransform: "uppercase" as const, fontFamily: "monospace", whiteSpace: "nowrap", paddingTop: 1 }}>
+                      Focus:
+                    </span>
+                    <span style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>{retryTopFix}</span>
+                    {evalResult && (
+                      <button
+                        onClick={() => {
+                          resetInterview();
+                          setSubmission("");
+                          setEvalResult(null);
+                          setAttemptId(null);
+                          liveRef.current.attemptId = null;
+                        }}
+                        style={{
+                          flexShrink: 0, whiteSpace: "nowrap", fontSize: 12, fontWeight: 600,
+                          color: "#fb923c", background: "rgba(251,146,60,0.1)",
+                          border: "1px solid rgba(251,146,60,0.22)", borderRadius: 7,
+                          padding: "3px 10px", cursor: "pointer", marginLeft: 4,
+                        }}
+                      >
+                        Start fresh
+                      </button>
+                    )}
+                  </div>
+                  <button onClick={() => setRetryBannerDismissed(true)} style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--text-4)", padding: 2, lineHeight: 1 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
               {/* Stakeholder tabs */}
               <div style={{ display: "flex", gap: "8px", padding: "10px 0 8px", flexShrink: 0, alignItems: "center" }}>
                 {challenge.stakeholders.map(s => {
@@ -1160,6 +1201,25 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               transition={{ duration: 0.2 }}
               style={{ maxWidth: "820px", margin: "0 auto", padding: "36px 24px 60px" }}
             >
+              {/* Retry focus banner */}
+              {retryTopFix && !retryBannerDismissed && (
+                <div style={{
+                  display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
+                  padding: "10px 14px", marginBottom: 24, borderRadius: 10,
+                  background: "rgba(251,146,60,0.07)", border: "1px solid rgba(251,146,60,0.22)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#fb923c", letterSpacing: "0.06em", textTransform: "uppercase" as const, fontFamily: "monospace", whiteSpace: "nowrap", paddingTop: 1 }}>
+                      Focus:
+                    </span>
+                    <span style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>{retryTopFix}</span>
+                  </div>
+                  <button onClick={() => setRetryBannerDismissed(true)} style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--text-4)", padding: 2, lineHeight: 1 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
               {!evalResult ? (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: "28px", alignItems: "start" }}>
                   <div>
@@ -1257,6 +1317,13 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                         {evalResult.totalScore}
                       </div>
                       <div style={{ fontSize: "12px", color: "var(--text-3)", marginTop: "2px" }}>/ 100</div>
+                      {previousScore !== null && (
+                        <div style={{ marginTop: 8, fontSize: 12, fontFamily: "monospace", display: "flex", alignItems: "center", gap: 5, justifyContent: "center" }}>
+                          <span style={{ color: "var(--text-4)" }}>{previousScore}</span>
+                          <span style={{ color: "var(--text-4)" }}>→</span>
+                          <span style={{ color: scoreColor(evalResult.totalScore), fontWeight: 700 }}>{evalResult.totalScore}</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ flex: 1, position: "relative" }}>
                       <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "18px", color: "var(--text-1)", marginBottom: "6px", letterSpacing: "-0.02em" }}>
@@ -1326,7 +1393,12 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
 
                   {/* ── 5. Primary CTA ────────────────────────────────── */}
                   <div style={{ marginBottom: "36px" }}>
-                    <button onClick={() => { setEvalResult(null); setSubmission(""); }} className="btn-teal"
+                    <button onClick={() => {
+                      if (evalResult.topFix) setRetryTopFix(evalResult.topFix);
+                      setPreviousScore(evalResult.totalScore);
+                      setRetryBannerDismissed(false);
+                      goToTab("interview");
+                    }} className="btn-teal"
                       style={{ width: "100%", justifyContent: "center", padding: "14px", fontSize: "15px" }}>
                       <RotateCcw className="w-4 h-4" />
                       Try again with this improvement
