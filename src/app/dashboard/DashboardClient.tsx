@@ -1,494 +1,476 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  ChevronRight, ChevronUp, ArrowRight, Bell,
-  Zap, Award, Target, CheckCircle2,
-  Flame, Clock, Users,
-} from "lucide-react";
+import { ArrowRight, Zap, Award } from "lucide-react";
 import AppSidebar from "@/components/AppSidebar";
-import type { ChallengeAttempt, UserBadge, UserProgress } from "@/lib/progress";
-import { BADGE_DEFINITIONS } from "@/lib/progress";
+import type { ChallengeAttempt, UserProgress } from "@/lib/progress";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Stats {
-  attempts: ChallengeAttempt[];
-  badges: UserBadge[];
-  progress: UserProgress;
-  skills: { elicitation: number; requirements: number; solutionAnalysis: number; stakeholderMgmt: number };
+  attempts:  ChallengeAttempt[];
+  progress:  UserProgress;
+  skills:    { elicitation: number; requirements: number; solutionAnalysis: number; stakeholderMgmt: number };
   levelInfo: { level: string; nextLevel: string; progressPct: number; challengesNeeded: number };
+  badges:    { badge_id: string }[];
 }
 
 interface DashboardClientProps {
-  profile: { full_name: string | null; subscription_tier: string | null } | null;
-  user: { email: string };
+  profile:        { full_name: string | null; subscription_tier: string | null } | null;
+  user:           { email: string };
   upgradeSuccess?: boolean;
   emailConfirmed?: boolean;
-  stats: Stats;
+  stats:          Stats;
 }
 
-const featuredChallenges = [
-  {
-    id: "banking-discovery-001",
-    title: "Rising Customer Churn at First National Bank",
-    type: "Discovery",
-    industry: "Banking/Finance",
-    duration: "30–45 min",
-    stakeholders: 2,
-    typeColor: "#38bdf8",
-    img: "https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=600&q=80",
-    imgAlt: "Bank branch interior",
-  },
-  {
-    id: "healthcare-requirements-001",
-    title: "Patient Referral System Overhaul",
-    type: "Requirements",
-    industry: "Healthcare",
-    duration: "45–60 min",
-    stakeholders: 2,
-    typeColor: "#a78bfa",
-    img: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80",
-    imgAlt: "Hospital corridor",
-  },
-  {
-    id: "energy-solution-001",
-    title: "Field Inspection Digitization at Cascade Energy",
-    type: "Solution Analysis",
-    industry: "Energy/Oil & Gas",
-    duration: "45–60 min",
-    stakeholders: 2,
-    typeColor: "#fb923c",
-    img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80",
-    imgAlt: "Energy industrial operations",
-  },
-];
+interface JobContext { title: string; company: string; source: "practice" | "interview" | "pitch" }
 
-const HERO_IMG = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1400&q=80";
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-// ── Progress helpers ───────────────────────────────────────────────────────
-
-function pctColor(score: number): string {
-  if (score >= 80) return "#1fbf9f";
-  if (score >= 60) return "#fb923c";
-  return "#f87171";
+function scoreColor(s: number): string {
+  if (s >= 80) return "#1fbf9f";
+  if (s >= 60) return "#eab308";
+  return "#ef4444";
 }
 
 function avgOf(nums: number[]): number {
   if (!nums.length) return 0;
-  return Math.round(nums.reduce((s, n) => s + n, 0) / nums.length);
+  return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
 }
 
-interface DimStat { key: string; label: string; color: string; avg: number; weakInsight: string; strongInsight: string }
+const DIM_LABELS: Record<string, string> = {
+  pf: "Problem Framing",
+  rc: "Root Cause",
+  eu: "Evidence Use",
+  rq: "Recommendation",
+};
 
-function buildDimStats(attempts: ChallengeAttempt[]): DimStat[] {
+function buildDimStats(attempts: ChallengeAttempt[]) {
   const r = attempts.slice(0, 5);
   return [
-    { key: "pf", label: "Problem Framing",  color: "#38bdf8", avg: avgOf(r.map(a => a.score_problem_framing)),  weakInsight: "You tend to jump to solutions before the problem is fully understood.",       strongInsight: "Your strongest move is framing the problem clearly before diving in."         },
-    { key: "rc", label: "Root Cause",        color: "#a78bfa", avg: avgOf(r.map(a => a.score_root_cause)),       weakInsight: "You accept the first explanation too quickly — probe deeper.",             strongInsight: "You consistently dig past surface symptoms to find the real root cause."     },
-    { key: "eu", label: "Evidence Use",      color: "#fb923c", avg: avgOf(r.map(a => a.score_evidence_use)),     weakInsight: "You tend to under-use the evidence gathered in your stakeholder conversations.", strongInsight: "You effectively tie stakeholder evidence to your recommendations."        },
-    { key: "rq", label: "Recommendation",    color: "#1fbf9f", avg: avgOf(r.map(a => a.score_recommendation)),   weakInsight: "Your recommendations often lack the specificity needed in a real BA setting.", strongInsight: "Your recommendations are consistently clear, specific, and actionable."   },
+    { key: "pf", color: "#38bdf8", avg: avgOf(r.map(a => a.score_problem_framing)),  weak: "You tend to jump to solutions before the problem is fully understood.",         strong: "Your strongest move is framing the problem clearly before diving in."       },
+    { key: "rc", color: "#a78bfa", avg: avgOf(r.map(a => a.score_root_cause)),        weak: "You accept the first explanation too quickly — probe deeper.",                  strong: "You consistently dig past surface symptoms to find the real root cause."   },
+    { key: "eu", color: "#fb923c", avg: avgOf(r.map(a => a.score_evidence_use)),      weak: "You tend to under-use the evidence from your stakeholder conversations.",       strong: "You effectively tie stakeholder evidence to your recommendations."          },
+    { key: "rq", color: "#1fbf9f", avg: avgOf(r.map(a => a.score_recommendation)),    weak: "Your recommendations often lack the specificity needed in a real BA setting.",  strong: "Your recommendations are consistently clear, specific, and actionable."     },
   ];
 }
 
-function getPatternInsights(dimStats: DimStat[]): string[] {
-  const sorted = [...dimStats].sort((a, b) => a.avg - b.avg);
-  const weakest  = sorted[0];
-  const strongest = sorted[sorted.length - 1];
-  const overall  = avgOf(dimStats.map(d => d.avg));
-  const insights = [weakest.weakInsight];
-  if (strongest.avg >= overall + 3) insights.push(strongest.strongInsight);
-  return insights;
+function deltaLabel(delta: number): string {
+  if (delta > 10) return "Strong improvement. Keep that momentum.";
+  if (delta > 0)  return "Moving in the right direction. Push deeper next time.";
+  if (delta === 0) return "Consistent. Push for more depth on your next attempt.";
+  return "A dip — that happens. Look at where you dropped and focus there.";
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DashboardClient({ profile, user, upgradeSuccess, emailConfirmed, stats }: DashboardClientProps) {
-  const router = useRouter();
-  const [rightColOpen, setRightColOpen] = useState(false);
-  const [isPro, setIsPro] = useState(
+  const router    = useRouter();
+  const [isPro,   setIsPro]   = useState(
     profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise"
   );
+  const [jobCtx,  setJobCtx]  = useState<JobContext | null>(null);
 
-  // On mount: read params directly from the URL (useSearchParams is unreliable inside Suspense)
+  const firstName = profile?.full_name?.split(" ")[0] || "there";
+  const { attempts, progress } = stats;
+
+  // ── Stripe upgrade verification ────────────────────────────────────────────
   useEffect(() => {
     const params    = new URLSearchParams(window.location.search);
     const upgrade   = params.get("upgrade");
     const sessionId = params.get("session_id");
     if (upgrade !== "success" || !sessionId) return;
-
     fetch("/api/stripe/verify-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: sessionId }),
     })
-      .then(async res => {
-        const data = await res.json();
-        console.log("[dashboard] verify-session response:", res.status, data);
-        if (data.success) {
-          setIsPro(true);
-          window.history.replaceState({}, "", "/dashboard");
-        }
-      })
-      .catch(err => console.error("[dashboard] verify-session fetch error:", err));
+      .then(res => res.json())
+      .then(data => { if (data.success) { setIsPro(true); window.history.replaceState({}, "", "/dashboard"); } })
+      .catch(() => {});
   }, []);
-  const firstName = profile?.full_name?.split(" ")[0] || "there";
 
-  const { progress, skills, levelInfo, badges, attempts } = stats;
+  // ── Job context (from localStorage, written by job action buttons) ──────────
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("dashboardJobContext");
+      if (raw) setJobCtx(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
 
-  const statCards = [
-    { label: "Challenges Done", value: String(progress.challenges_completed), sub: "of 6 available",          color: "#1fbf9f", icon: CheckCircle2 },
-    { label: "Day Streak",      value: String(progress.current_streak),        sub: progress.current_streak > 0 ? "Keep it going" : "Start today", color: "#fb923c", icon: Flame },
-    { label: "Avg Score",       value: progress.avg_score > 0 ? String(progress.avg_score) : "—", sub: progress.avg_score > 0 ? progress.avg_score >= 80 ? "Excellent" : "Keep improving" : "Submit a challenge", color: "#a78bfa", icon: Target },
-    { label: "Hours Practiced", value: progress.total_hours > 0 ? `${progress.total_hours}h` : "0h", sub: "Goal: 1 hr / week", color: "#38bdf8", icon: Clock },
-  ];
+  // ── Derived data ───────────────────────────────────────────────────────────
+  const n          = attempts.length;
+  const lastAttempt = attempts[0] ?? null;
+  const prevAttempt = attempts[1] ?? null;
+  const scoreDelta  = lastAttempt && prevAttempt ? lastAttempt.total_score - prevAttempt.total_score : null;
+
+  const dimStats   = n >= 2 ? buildDimStats(attempts) : [];
+  const sorted     = [...dimStats].sort((a, b) => a.avg - b.avg);
+  const weakest    = sorted[0] ?? null;
+  const strongest  = sorted[sorted.length - 1] ?? null;
+
+  const isLastInterview = lastAttempt?.attempt_type === "interview" || lastAttempt?.challenge_type === "interview";
+
+  // ── Next action ────────────────────────────────────────────────────────────
+  const nextAction = (() => {
+    if (n === 0) return { label: "Start your first simulation", href: "/scenarios", sub: "Simulation Lab" };
+    if (isLastInterview) return { label: "Run another interview", href: "/interview/session", sub: "Interview Lab" };
+    return { label: `Retry: ${lastAttempt?.challenge_title ?? "last challenge"}`, href: `/scenarios/${lastAttempt?.challenge_id}`, sub: "Simulation Lab" };
+  })();
+
+  const secondaryAction = (() => {
+    if (n === 0) return { label: "Try Interview Lab", href: "/interview" };
+    if (isLastInterview) return { label: "Practice a simulation", href: "/scenarios" };
+    return { label: "Run an interview", href: "/interview" };
+  })();
+
+  // ── Focus copy ─────────────────────────────────────────────────────────────
+  const focusLine = (() => {
+    if (jobCtx) return null; // handled separately
+    if (n === 0) return "Complete your first simulation to see where you stand.";
+    if (weakest) return weakest.weak;
+    return "Keep practicing to see patterns in your performance.";
+  })();
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
 
-      <AppSidebar activeHref="/dashboard" profile={isPro && profile ? { full_name: profile.full_name ?? null, subscription_tier: "pro" } : profile} user={user} />
+      <AppSidebar
+        activeHref="/dashboard"
+        profile={isPro && profile ? { ...profile, subscription_tier: "pro" } : profile}
+        user={user}
+      />
 
-      {/* MAIN */}
-      <main className="flex-1 overflow-y-auto">
-        <header className="px-8 py-5 flex items-center justify-between sticky top-0 z-20" style={{ background: "rgba(9,9,11,0.88)", backdropFilter: "blur(24px)", borderBottom: "1px solid var(--border)" }}>
+      <main style={{ flex: 1, overflowY: "auto" }}>
+
+        {/* Header */}
+        <header style={{
+          padding: "0 32px", height: 60,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          position: "sticky", top: 0, zIndex: 20,
+          background: "rgba(9,9,11,0.9)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          borderBottom: "1px solid var(--border)",
+        }}>
           <div>
-            <h1 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "22px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>Dashboard</h1>
-            <p className="type-meta" style={{ marginTop: "4px" }}>Good to see you, {firstName}</p>
+            <h1 style={{ fontWeight: 800, fontSize: 20, color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+              Dashboard
+            </h1>
+            <p style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, fontFamily: "monospace" }}>
+              Good to see you, {firstName}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ border: "1px solid var(--border)", color: "var(--text-3)", background: "none", cursor: "pointer" }}>
-              <Bell className="w-4 h-4" />
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {isPro
-              ? <span className="badge-teal"><Award className="w-3 h-3" />Pro</span>
-              : <button onClick={() => router.push("/pricing")} className="btn-teal" style={{ padding: "8px 18px", fontSize: "13px" }}><Zap className="w-3.5 h-3.5" />Upgrade</button>
+              ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--teal)", background: "var(--teal-soft)", border: "1px solid var(--teal-border)", borderRadius: 20, padding: "5px 12px" }}>
+                  <Award size={12} /> Pro
+                </span>
+              : <button onClick={() => router.push("/pricing")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: "var(--teal)", color: "#041a13", border: "none", cursor: "pointer" }}>
+                  <Zap size={13} /> Upgrade
+                </button>
             }
           </div>
         </header>
 
-        <div className="px-8 py-8" style={{ maxWidth: "1100px" }}>
+        <div style={{ padding: "32px 32px 80px", maxWidth: 820, margin: "0 auto" }}>
 
+          {/* Alerts */}
           {emailConfirmed && (
-            <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="portal-card-static px-6 py-4 flex items-center gap-3 mb-6" style={{ borderColor: "var(--teal-border)", background: "var(--teal-soft)" }}>
-              <div className="teal-dot" />
-              <p style={{ fontWeight: 600, fontSize: "14px", color: "var(--teal)" }}>Email confirmed. You are all set.</p>
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+              style={{ padding: "14px 20px", borderRadius: 12, marginBottom: 20, background: "rgba(31,191,159,0.08)", border: "1px solid rgba(31,191,159,0.25)", fontSize: 14, fontWeight: 600, color: "var(--teal)" }}>
+              Email confirmed. You are all set.
             </motion.div>
           )}
-
           {upgradeSuccess && (
-            <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="portal-card-static px-6 py-4 flex items-center gap-3 mb-6" style={{ borderColor: "var(--teal-border)", background: "var(--teal-soft)" }}>
-              <div className="teal-dot" />
-              <p style={{ fontWeight: 600, fontSize: "14px", color: "var(--teal)" }}>Welcome to Pro — all challenges and features are now unlocked.</p>
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+              style={{ padding: "14px 20px", borderRadius: 12, marginBottom: 20, background: "rgba(31,191,159,0.08)", border: "1px solid rgba(31,191,159,0.25)", fontSize: 14, fontWeight: 600, color: "var(--teal)" }}>
+              Welcome to Pro — all challenges and features are now unlocked.
             </motion.div>
           )}
 
-          {/* HERO */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative overflow-hidden mb-6" style={{ borderRadius: "20px", border: "1px solid var(--border)", minHeight: "240px" }}>
-            <img src={HERO_IMG} alt="Business analysis workspace" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.18) saturate(0.45)" }} />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(105deg, rgba(9,9,11,0.97) 0%, rgba(9,9,11,0.88) 50%, rgba(9,9,11,0.3) 100%)" }} />
-            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 15% 60%, rgba(31,191,159,0.05) 0%, transparent 55%)" }} />
-            <div className="relative px-10 py-9">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="badge-teal" style={{ fontSize: "11px" }}>Recommended</span>
-                <span className="badge-zinc" style={{ fontSize: "11px" }}>Banking/Finance · Discovery</span>
-              </div>
-              <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "26px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1.15, marginBottom: "10px", maxWidth: "480px" }}>
-                Rising Customer Churn<br /><span style={{ color: "var(--teal)" }}>at First National Bank</span>
-              </h2>
-              <p className="type-body" style={{ maxWidth: "420px", marginBottom: "24px", fontSize: "14px" }}>A 23% spike in account closures. Two stakeholders with conflicting stories. Find the root cause before the board meeting.</p>
-              <div className="flex items-center gap-8 mb-7">
-                {[{ label: "Duration", value: "30–45 min" }, { label: "Stakeholders", value: "2 interviews" }, { label: "Modes", value: "Normal / Hard / Expert" }].map(item => (
-                  <div key={item.label}>
-                    <div className="type-label" style={{ marginBottom: "2px" }}>{item.label}</div>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-2)" }}>{item.value}</div>
+          {/* ── 1. CURRENT FOCUS ─────────────────────────────────────────── */}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+            {jobCtx ? (
+              <div style={{
+                padding: "24px 28px", borderRadius: 16, marginBottom: 20,
+                background: "rgba(31,191,159,0.06)", border: "1px solid rgba(31,191,159,0.22)",
+                display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap",
+              }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 6 }}>
+                    Preparing for
                   </div>
-                ))}
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 4 }}>
+                    {jobCtx.title}
+                    {jobCtx.company && <span style={{ color: "var(--text-3)", fontWeight: 500 }}> — {jobCtx.company}</span>}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-4)", fontFamily: "monospace" }}>
+                    From selected job
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+                  <button onClick={() => router.push("/scenarios")} style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12, fontWeight: 700, background: "rgba(31,191,159,0.1)", color: "var(--teal)", border: "1px solid rgba(31,191,159,0.25)", cursor: "pointer" }}>
+                    Practice
+                  </button>
+                  <button onClick={() => router.push("/interview/session")} style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.04)", color: "var(--text-2)", border: "1px solid var(--border)", cursor: "pointer" }}>
+                    Interview
+                  </button>
+                  <button onClick={() => { try { localStorage.removeItem("dashboardJobContext"); } catch {} setJobCtx(null); }} style={{ padding: "9px 14px", borderRadius: 9, fontSize: 12, fontWeight: 600, background: "transparent", color: "var(--text-4)", border: "1px solid transparent", cursor: "pointer" }}>
+                    Clear
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => router.push("/scenarios/banking-discovery-001?mode=normal")} className="btn-teal" style={{ fontSize: "14px" }}>Begin Challenge <ArrowRight className="w-4 h-4" /></button>
-                <button onClick={() => router.push("/scenarios")} className="btn-outline" style={{ fontSize: "14px" }}>Browse all challenges</button>
+            ) : (
+              <div style={{
+                padding: "22px 28px", borderRadius: 16, marginBottom: 20,
+                background: "var(--card)", border: "1px solid var(--border)",
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 8 }}>
+                  Your current focus
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text-2)", margin: "0 0 10px", lineHeight: 1.5 }}>
+                  {focusLine}
+                </p>
+                {n === 0 && (
+                  <button onClick={() => router.push("/opportunities")} style={{ fontSize: 12, fontWeight: 600, color: "var(--teal)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                    Or browse jobs to prepare for a specific role →
+                  </button>
+                )}
+              </div>
+            )}
+          </motion.div>
+
+          {/* ── 2. PROGRESS SNAPSHOT + NEXT ACTION ───────────────────────── */}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.35 }}
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+
+            {/* Progress snapshot */}
+            <div style={{ padding: "24px 26px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 16 }}>
+                Progress
+              </div>
+              {n === 0 ? (
+                <p style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.6, margin: 0 }}>
+                  No attempts yet. Your scores will appear here after your first simulation.
+                </p>
+              ) : n === 1 ? (
+                <div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 48, fontWeight: 900, color: scoreColor(lastAttempt!.total_score), letterSpacing: "-0.04em", lineHeight: 1 }}>
+                      {lastAttempt!.total_score}
+                    </span>
+                    <span style={{ fontSize: 13, color: "var(--text-4)", fontFamily: "monospace" }}>/100</span>
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--text-3)", margin: 0, lineHeight: 1.6 }}>
+                    First attempt. Run another to start seeing your trajectory.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: "var(--text-3)", letterSpacing: "-0.03em" }}>
+                      {prevAttempt!.total_score}
+                    </span>
+                    <ArrowRight size={16} style={{ color: "var(--text-4)", flexShrink: 0 }} />
+                    <span style={{ fontSize: 42, fontWeight: 900, color: scoreColor(lastAttempt!.total_score), letterSpacing: "-0.04em", lineHeight: 1 }}>
+                      {lastAttempt!.total_score}
+                    </span>
+                    {scoreDelta !== null && (
+                      <span style={{
+                        fontSize: 13, fontWeight: 700,
+                        color: scoreDelta > 0 ? "#1fbf9f" : scoreDelta < 0 ? "#ef4444" : "var(--text-4)",
+                        fontFamily: "monospace",
+                      }}>
+                        {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--text-3)", margin: 0, lineHeight: 1.6 }}>
+                    {scoreDelta !== null ? deltaLabel(scoreDelta) : ""}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Next action */}
+            <div style={{
+              padding: "24px 26px", borderRadius: 16,
+              background: "rgba(31,191,159,0.05)", border: "1px solid rgba(31,191,159,0.2)",
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 12 }}>
+                Next
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 4, lineHeight: 1.4 }}>
+                  {nextAction.label}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", fontFamily: "monospace", marginBottom: 20 }}>
+                  {nextAction.sub}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button
+                  onClick={() => router.push(nextAction.href)}
+                  style={{
+                    padding: "12px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                    background: "var(--teal)", color: "#041a13", border: "none", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}
+                >
+                  Go now <ArrowRight size={13} />
+                </button>
+                <button
+                  onClick={() => router.push(secondaryAction.href)}
+                  style={{
+                    padding: "10px 16px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+                    background: "transparent", color: "var(--text-3)", border: "1px solid rgba(31,191,159,0.2)", cursor: "pointer",
+                  }}
+                >
+                  {secondaryAction.label}
+                </button>
               </div>
             </div>
           </motion.div>
 
-          {/* STAT CARDS */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {statCards.map((stat, i) => (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }} className="relative overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "22px 20px" }}>
-                <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 85% 15%, ${stat.color}0d 0%, transparent 60%)` }} />
-                <div className="relative">
-                  <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "32px", color: "var(--text-1)", letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "6px" }}>{stat.value}</div>
-                  <div style={{ fontSize: "13px", fontWeight: 600, color: stat.color, marginBottom: "3px" }}>{stat.label}</div>
-                  <div className="type-meta">{stat.sub}</div>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(to right, ${stat.color}22, transparent)` }} />
-              </motion.div>
-            ))}
-          </div>
-
-          {/* ── PROGRESS SECTION ──────────────────────────────────────── */}
-          {(() => {
-            const n = attempts.length;
-
-            // 0 attempts
-            if (n === 0) return (
-              <div style={{ marginBottom: 24, padding: "32px 36px", borderRadius: 18, background: "var(--card)", border: "1px solid var(--border)", textAlign: "center" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 8, fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                  You haven&apos;t started yet.
-                </div>
-                <p style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.65, marginBottom: 20, maxWidth: 380, margin: "0 auto 20px" }}>
-                  Start your first simulation to see how you think under pressure.
-                </p>
-                <button onClick={() => router.push("/scenarios")} className="btn-teal" style={{ fontSize: "14px" }}>
-                  Start simulation <ArrowRight className="w-4 h-4" />
-                </button>
+          {/* ── 3. PATTERN INSIGHTS (2+ attempts) ────────────────────────── */}
+          {n >= 2 && dimStats.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14, duration: 0.35 }}
+              style={{ padding: "22px 26px", borderRadius: 16, marginBottom: 20, background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 16 }}>
+                What the data shows
               </div>
-            );
-
-            // 1 attempt
-            if (n === 1) return (
-              <div style={{ marginBottom: 24, padding: "28px 32px", borderRadius: 18, background: "var(--card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" as const }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 6, fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                    You&apos;ve completed your first simulation.
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+                {weakest && (
+                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fb923c", flexShrink: 0, marginTop: 6 }} />
+                    <p style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6, margin: 0 }}>{weakest.weak}</p>
                   </div>
-                  <p style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.6, margin: 0 }}>
-                    Run a few more to start seeing patterns in your performance.
-                  </p>
-                </div>
-                <button onClick={() => router.push("/scenarios")} className="btn-teal" style={{ fontSize: "13px", flexShrink: 0 }}>
-                  Try another simulation <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            );
-
-            // 2+ attempts — full progress view
-            const trend = attempts.slice(0, 5).reverse(); // oldest → newest
-            const maxScore = Math.max(...trend.map(a => a.total_score), 1);
-            const dimStats = buildDimStats(attempts);
-            const sortedDims = [...dimStats].sort((a, b) => a.avg - b.avg);
-            const weakestDim = sortedDims[0];
-            const strongestDim = sortedDims[sortedDims.length - 1];
-            const insights = getPatternInsights(dimStats);
-
-            return (
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "var(--text-4)", fontFamily: "monospace", marginBottom: 14 }}>
-                  Your Progress
-                </div>
-
-                {/* Score Trend + Pattern Insights row */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-
-                  {/* Score Trend */}
-                  <div style={{ padding: "22px 24px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 20, fontFamily: "'Inter','Open Sans',sans-serif" }}>Score Trend</div>
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 80 }}>
-                      {trend.map((a, i) => {
-                        const h = Math.max(8, Math.round((a.total_score / maxScore) * 72));
-                        const isLatest = i === trend.length - 1;
-                        return (
-                          <div key={a.id} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: pctColor(a.total_score), fontFamily: "monospace" }}>{a.total_score}</span>
-                            <motion.div
-                              initial={{ height: 0 }} animate={{ height: h }}
-                              transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.06 }}
-                              style={{
-                                width: "100%", borderRadius: 4,
-                                background: isLatest ? pctColor(a.total_score) : `${pctColor(a.total_score)}55`,
-                                border: isLatest ? `1px solid ${pctColor(a.total_score)}` : "none",
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-                      {trend.map((a) => (
-                        <div key={a.id} style={{ flex: 1, fontSize: 9, color: "var(--text-4)", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, fontFamily: "monospace" }}>
-                          {a.challenge_type}
-                        </div>
-                      ))}
-                    </div>
+                )}
+                {strongest && strongest.avg >= (weakest?.avg ?? 0) + 3 && (
+                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#1fbf9f", flexShrink: 0, marginTop: 6 }} />
+                    <p style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6, margin: 0 }}>{strongest.strong}</p>
                   </div>
-
-                  {/* Pattern Insights */}
-                  <div style={{ padding: "22px 24px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 16, fontFamily: "'Inter','Open Sans',sans-serif" }}>Pattern Insights</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {insights.map((insight, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                          <div style={{
-                            flexShrink: 0, width: 6, height: 6, borderRadius: "50%", marginTop: 6,
-                            background: i === 0 ? "#fb923c" : "#1fbf9f",
-                          }} />
-                          <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: 0 }}>{insight}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-4)" }}>
-                      Based on your last {Math.min(n, 5)} simulation{Math.min(n, 5) !== 1 ? "s" : ""}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Strength vs Weakness */}
-                <div style={{ padding: "22px 24px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 16, fontFamily: "'Inter','Open Sans',sans-serif" }}>Dimension Breakdown</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    {dimStats.map(d => {
-                      const isWeak   = d.key === weakestDim.key;
-                      const isStrong = d.key === strongestDim.key;
-                      return (
-                        <div key={d.key} style={{
-                          padding: "14px 16px", borderRadius: 12,
-                          background: "rgba(255,255,255,0.02)",
-                          border: isWeak   ? "1px solid rgba(251,146,60,0.3)"
-                               : isStrong ? "1px solid rgba(31,191,159,0.3)"
-                               : "1px solid var(--border)",
-                        }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: d.color }}>{d.label}</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                              {isWeak   && <span style={{ fontSize: 9, fontWeight: 700, color: "#fb923c", background: "rgba(251,146,60,0.1)", padding: "1px 6px", borderRadius: 4 }}>WEAKEST</span>}
-                              {isStrong && <span style={{ fontSize: 9, fontWeight: 700, color: "#1fbf9f", background: "rgba(31,191,159,0.1)", padding: "1px 6px", borderRadius: 4 }}>STRONGEST</span>}
-                              <span style={{ fontSize: 13, fontWeight: 700, color: pctColor(d.avg * 4), fontFamily: "monospace" }}>{d.avg}<span style={{ fontSize: 10, color: "var(--text-4)", fontWeight: 400 }}>/25</span></span>
-                            </div>
-                          </div>
-                          <div style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                            <motion.div
-                              initial={{ width: 0 }} animate={{ width: `${(d.avg / 25) * 100}%` }}
-                              transition={{ duration: 0.7, ease: "easeOut" }}
-                              style={{ height: "100%", borderRadius: 99, background: d.color }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* BOTTOM GRID */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            <div className="lg:col-span-2">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "17px", color: "var(--text-1)", letterSpacing: "-0.02em" }}>Start Practicing</h2>
-                  <p className="type-meta" style={{ marginTop: "3px" }}>Three challenges to build your foundation</p>
-                </div>
-                <button onClick={() => router.push("/scenarios")} style={{ fontSize: "13px", fontWeight: 600, color: "var(--teal)", display: "flex", alignItems: "center", gap: "4px", background: "none", border: "none", cursor: "pointer" }}>
-                  View all 6 <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                )}
               </div>
 
-              <div className="space-y-3">
-                {featuredChallenges.map((ch, i) => {
-                  const isCompleted = attempts.some(a => a.challenge_id === ch.id);
-                  const bestScore   = attempts.filter(a => a.challenge_id === ch.id).reduce((best, a) => Math.max(best, a.total_score), 0);
+              {/* Dimension bars */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {dimStats.map(d => {
+                  const isWk = d.key === weakest?.key;
+                  const isSt = d.key === strongest?.key;
                   return (
-                    <motion.div key={ch.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.08 }}
-                      onClick={() => router.push(`/scenarios/${ch.id}?mode=normal`)}
-                      className="group relative overflow-hidden cursor-pointer"
-                      style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px", display: "flex", alignItems: "stretch", minHeight: "108px", transition: "all 0.22s ease" }}
-                      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = `${ch.typeColor}30`; el.style.boxShadow = "0 8px 30px rgba(0,0,0,0.45)"; el.style.transform = "translateY(-2px)"; }}
-                      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "var(--border)"; el.style.boxShadow = "none"; el.style.transform = "none"; }}>
-                      <div className="relative flex-shrink-0 overflow-hidden" style={{ width: "120px", borderRadius: "16px 0 0 16px" }}>
-                        <img src={ch.img} alt={ch.imgAlt} className="w-full h-full object-cover" style={{ filter: "brightness(0.38) saturate(0.65)" }} />
-                        <div className="absolute inset-0" style={{ background: "linear-gradient(to right, transparent 45%, var(--card) 100%)" }} />
+                    <div key={d.key} style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: isWk ? "1px solid rgba(251,146,60,0.25)" : isSt ? "1px solid rgba(31,191,159,0.25)" : "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: d.color }}>{DIM_LABELS[d.key]}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(d.avg * 4), fontFamily: "monospace" }}>
+                          {d.avg}<span style={{ fontSize: 10, color: "var(--text-4)", fontWeight: 400 }}>/25</span>
+                        </span>
                       </div>
-                      <div className="flex-1 px-5 py-4 flex flex-col justify-center">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "5px", background: `${ch.typeColor}12`, color: ch.typeColor, border: `1px solid ${ch.typeColor}22`, letterSpacing: "0.05em" }}>{ch.type.toUpperCase()}</span>
-                          {isCompleted && <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "5px", background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid var(--teal-border)" }}>DONE · {bestScore}/100</span>}
-                        </div>
-                        <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 600, fontSize: "14px", color: "var(--text-1)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ch.title}</div>
-                        <div className="flex items-center gap-4 mt-1.5">
-                          <span className="type-meta flex items-center gap-1.5"><Clock className="w-3 h-3" />{ch.duration}</span>
-                          <span className="type-meta flex items-center gap-1.5"><Users className="w-3 h-3" />{ch.stakeholders} stakeholders</span>
-                        </div>
+                      <div style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${(d.avg / 25) * 100}%` }} transition={{ duration: 0.7, ease: "easeOut" }}
+                          style={{ height: "100%", borderRadius: 99, background: d.color }} />
                       </div>
-                      <div className="flex items-center pr-5 flex-shrink-0">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${ch.typeColor}10`, border: `1px solid ${ch.typeColor}22` }}>
-                          <ChevronRight className="w-4 h-4" style={{ color: ch.typeColor }} />
-                        </div>
-                      </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
-            </div>
-
-            <div className="space-y-4">
-              <button
-                className="w-full flex items-center justify-between lg:cursor-default"
-                onClick={() => setRightColOpen(o => !o)}
-                style={{ background: "none", border: "none", padding: 0, textAlign: "left" }}
-              >
-                <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "17px", color: "var(--text-1)", letterSpacing: "-0.02em" }}>Skills & Badges</h2>
-                <ChevronUp className="w-4 h-4 lg:hidden" style={{ color: "var(--text-3)", flexShrink: 0, transform: rightColOpen ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.2s ease" }} />
-              </button>
-
-              <div className={`space-y-4 ${rightColOpen ? "block" : "hidden"} lg:block`}>
-              <div className="portal-card-static p-5" style={{ borderRadius: "16px" }}>
-                <p className="type-meta" style={{ marginBottom: "16px" }}>Skill Progress</p>
-                {[
-                  { label: "Elicitation",      pct: skills.elicitation,      color: "var(--teal)" },
-                  { label: "Requirements",      pct: skills.requirements,     color: "#a78bfa"     },
-                  { label: "Solution Analysis", pct: skills.solutionAnalysis, color: "#fb923c"     },
-                  { label: "Stakeholder Mgmt",  pct: skills.stakeholderMgmt,  color: "#38bdf8"     },
-                ].map((skill, i) => (
-                  <div key={skill.label} style={{ marginBottom: i < 3 ? "14px" : 0 }}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-2)" }}>{skill.label}</span>
-                      <span style={{ fontSize: "11px", color: "var(--text-3)", fontFamily: "'JetBrains Mono',monospace" }}>{skill.pct}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${skill.pct}%` }} transition={{ delay: 0.5 + i * 0.1, duration: 0.8, ease: "easeOut" }} className="h-full rounded-full" style={{ background: skill.color }} />
-                    </div>
-                  </div>
-                ))}
-                {attempts.length === 0 && <p className="type-meta" style={{ marginTop: "12px", textAlign: "center" }}>Complete a challenge to see scores</p>}
+              <div style={{ fontSize: 11, color: "var(--text-4)", fontFamily: "monospace", marginTop: 12 }}>
+                Based on your last {Math.min(n, 5)} simulation{Math.min(n, 5) !== 1 ? "s" : ""}
               </div>
+            </motion.div>
+          )}
 
-              <div className="portal-card-static p-5" style={{ borderRadius: "16px" }}>
-                <p className="type-meta" style={{ marginBottom: "14px" }}>Badges — {badges.length} of {BADGE_DEFINITIONS.length} earned</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {BADGE_DEFINITIONS.map(badge => {
-                    const earned = badges.some(b => b.badge_id === badge.id);
-                    return (
-                      <div key={badge.id} title={`${badge.name}: ${badge.description}`} className="flex flex-col items-center gap-1.5 p-2 rounded-xl"
-                        style={{ background: earned ? `${badge.color}0d` : "rgba(255,255,255,0.02)", border: `1px solid ${earned ? badge.color + "20" : "rgba(255,255,255,0.05)"}`, opacity: earned ? 1 : 0.35 }}>
-                        <span style={{ fontSize: "18px", filter: earned ? "none" : "grayscale(1)" }}>{badge.icon}</span>
-                        <span style={{ fontSize: "9px", fontWeight: 600, color: earned ? badge.color : "var(--text-4)", textAlign: "center", lineHeight: 1.2 }}>{badge.name}</span>
-                      </div>
-                    );
-                  })}
+          {/* ── 4. RECENT ACTIVITY ───────────────────────────────────────── */}
+          {n > 0 && (
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.35 }}
+              style={{ padding: "22px 26px", borderRadius: 16, marginBottom: 20, background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace" }}>
+                  Recent Activity
                 </div>
-                <button onClick={() => router.push("/progress")} style={{ width: "100%", marginTop: "14px", fontSize: "13px", fontWeight: 600, color: "var(--teal)", background: "none", border: "none", cursor: "pointer", paddingTop: "12px", borderTop: "1px solid var(--border)" }}>
-                  View full progress →
+                <button onClick={() => router.push("/progress")} style={{ fontSize: 12, fontWeight: 600, color: "var(--teal)", background: "none", border: "none", cursor: "pointer" }}>
+                  View all →
                 </button>
               </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {attempts.slice(0, 3).map(a => {
+                  const isIntv = a.attempt_type === "interview" || a.challenge_type === "interview";
+                  const daysAgo = Math.floor((Date.now() - new Date(a.completed_at).getTime()) / 86400000);
+                  const when = daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : `${daysAgo}d ago`;
+                  return (
+                    <div key={a.id} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "12px 14px", borderRadius: 10,
+                      background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
+                      cursor: isIntv ? "default" : "pointer",
+                    }}
+                    onClick={() => !isIntv && router.push(`/scenarios/${a.challenge_id}`)}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
+                          {a.challenge_title}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text-4)", fontFamily: "monospace" }}>
+                          {isIntv ? "Interview" : "Simulation"} · {when}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: scoreColor(a.total_score), letterSpacing: "-0.02em", flexShrink: 0, marginLeft: 12 }}>
+                        {a.total_score}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
 
-              {!isPro && (
-                <div className="relative overflow-hidden p-5" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "16px" }}>
-                  <div className="absolute top-0 right-0 w-28 h-28 pointer-events-none" style={{ background: "radial-gradient(ellipse, rgba(31,191,159,0.06) 0%, transparent 70%)", transform: "translate(20%, -20%)" }} />
-                  <div className="relative">
-                    <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "15px", color: "var(--text-1)", marginBottom: "6px" }}>Unlock Pro</div>
-                    <p className="type-body" style={{ fontSize: "13px", marginBottom: "14px" }}>All 6 challenges, Expert mode, full AI evaluation and scoring.</p>
-                    <button onClick={() => router.push("/pricing")} className="btn-teal" style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "13px" }}>
-                      <Zap className="w-3.5 h-3.5" />Upgrade — $29/mo
-                    </button>
-                  </div>
-                </div>
-              )}
-              </div>{/* end collapsible */}
+          {/* ── 5. QUICK LINKS ───────────────────────────────────────────── */}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26, duration: 0.35 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 12 }}>
+              Jump In
             </div>
-          </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              {[
+                { label: "Simulation Lab",  sub: "Practice the job",         href: "/scenarios",        color: "#38bdf8" },
+                { label: "Interview Lab",    sub: "Practice getting the job",  href: "/interview",        color: "#1fbf9f" },
+                { label: "Opportunities",    sub: "Browse BA jobs",            href: "/opportunities",    color: "#a78bfa" },
+              ].map(item => (
+                <button key={item.href} onClick={() => router.push(item.href)}
+                  style={{
+                    padding: "18px 20px", borderRadius: 14, textAlign: "left",
+                    background: "var(--card)", border: "1px solid var(--border)", cursor: "pointer",
+                    transition: "border-color 0.15s, transform 0.15s",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = `${item.color}30`; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLButtonElement).style.transform = "none"; }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginBottom: 3 }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-4)", fontFamily: "monospace" }}>{item.sub}</div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
 
-          <div style={{ height: "48px" }} />
+          {/* Pro upsell */}
+          {!isPro && (
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.35 }}
+              style={{ marginTop: 20, padding: "22px 26px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, right: 0, width: 120, height: 120, background: "radial-gradient(ellipse, rgba(31,191,159,0.07) 0%, transparent 70%)", transform: "translate(20%, -20%)", pointerEvents: "none" }} />
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", marginBottom: 6 }}>Unlock Pro</div>
+              <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.6 }}>
+                All challenges, Expert mode, full AI evaluation.
+              </p>
+              <button onClick={() => router.push("/pricing")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: "var(--teal)", color: "#041a13", border: "none", cursor: "pointer" }}>
+                <Zap size={13} /> Upgrade
+              </button>
+            </motion.div>
+          )}
+
         </div>
       </main>
     </div>

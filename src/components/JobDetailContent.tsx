@@ -161,13 +161,25 @@ export default function JobDetailContent({
     setInsightLoading(true);
   }
 
+  function saveJobContextForDashboard(source: "practice" | "interview" | "pitch") {
+    try {
+      localStorage.setItem("dashboardJobContext", JSON.stringify({
+        title:   job.title,
+        company: job.company ?? "",
+        source,
+      }));
+    } catch { /* ignore */ }
+  }
+
   function handlePractice() {
+    saveJobContextForDashboard("practice");
     onClose?.();
     router.push(getPracticeUrl(job, isLoggedIn));
   }
 
   function handleInterview() {
     if (!isLoggedIn) { onClose?.(); router.push("/signup"); return; }
+    saveJobContextForDashboard("interview");
     try {
       sessionStorage.setItem("interviewJobContext", JSON.stringify({
         jd:      rawDescriptionText(job.description),
@@ -500,6 +512,7 @@ export default function JobDetailContent({
                         <button
                           onClick={() => {
                             if (!isLoggedIn) { onClose?.(); router.push("/signup"); return; }
+                            saveJobContextForDashboard("pitch");
                             try {
                               sessionStorage.setItem("pitchReadyJobContext", JSON.stringify({
                                 title:   job.title,
