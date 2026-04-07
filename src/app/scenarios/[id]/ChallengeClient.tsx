@@ -264,9 +264,11 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   const [inputValue,    setInputValue]    = useState("");
   const [isLoading,     setIsLoading]     = useState(false);
   const [questionCount, setQuestionCount] = useState(hasDraft ? draft.question_count : 0);
-  const [showHints,     setShowHints]     = useState(false);
-  const [showSummary,   setShowSummary]   = useState(false);
-  const [showPreStart,  setShowPreStart]  = useState(false);
+  const [showHints,       setShowHints]       = useState(false);
+  const [showSummary,     setShowSummary]     = useState(false);
+  const [showPreStart,    setShowPreStart]    = useState(false);
+  const [skipNextTime,    setSkipNextTime]    = useState(false);
+  const preStartKey = `prestart_skip_${challenge.id}`;
   const chatEndRef = useRef<HTMLDivElement>(null);
   const initializedStakeholders = useRef<Set<string>>(new Set());
 
@@ -762,7 +764,13 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                         ? "Interview all four stakeholders, then document requirements (Phase A) and validate the captured document (Phase B)."
                         : "The next step opens simulated stakeholder conversations."}
                     </p>
-                    <button onClick={() => setShowPreStart(true)} className="btn-teal"
+                    <button onClick={() => {
+                      try {
+                        if (localStorage.getItem(preStartKey) === "1") { goToTab("interview"); return; }
+                      } catch {}
+                      setSkipNextTime(false);
+                      setShowPreStart(true);
+                    }} className="btn-teal"
                       style={{ width: "100%", justifyContent: "center", fontSize: "14px", padding: "12px 16px" }}>
                       Begin Stakeholder Interviews <ArrowRight className="w-4 h-4" />
                     </button>
@@ -1537,7 +1545,11 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                 {/* CTAs */}
                 <div style={{ display: "flex", gap: 10 }}>
                   <button
-                    onClick={() => { setShowPreStart(false); goToTab("interview"); }}
+                    onClick={() => {
+                      if (skipNextTime) { try { localStorage.setItem(preStartKey, "1"); } catch {} }
+                      setShowPreStart(false);
+                      goToTab("interview");
+                    }}
                     style={{
                       flex: 1, padding: "13px 20px", borderRadius: 12,
                       fontSize: 14, fontWeight: 700,
@@ -1570,6 +1582,22 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                     Cancel
                   </button>
                 </div>
+
+                {/* Don't show again */}
+                <label style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  marginTop: 16, cursor: "pointer",
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={skipNextTime}
+                    onChange={e => setSkipNextTime(e.target.checked)}
+                    style={{ accentColor: "#1fbf9f", width: 14, height: 14, cursor: "pointer" }}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--text-3)" }}>
+                    Don&apos;t show this again for scenario
+                  </span>
+                </label>
               </motion.div>
             </motion.div>
           );
