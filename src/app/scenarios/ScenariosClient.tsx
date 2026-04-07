@@ -325,6 +325,33 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
   const [showFirstTime,    setShowFirstTime]     = useState(isFirstTime);
   const [showToast,        setShowToast]         = useState(confirmed);
 
+  // Read initial filter state from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("type");
+    const d = params.get("difficulty");
+    const i = params.get("industry");
+    if (t) setActiveType(t);
+    if (d) setActiveDifficulty(d);
+    if (i) setActiveIndustry(i);
+  }, []);
+
+  // Sync URL when filters change (skip initial mount)
+  const filtersSyncedRef = useRef(false);
+  useEffect(() => {
+    if (!filtersSyncedRef.current) {
+      filtersSyncedRef.current = true;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (activeType !== "All")       params.set("type",       activeType);
+    if (activeDifficulty !== "All") params.set("difficulty", activeDifficulty);
+    if (activeIndustry !== "All")   params.set("industry",   activeIndustry);
+    const qs = params.toString();
+    router.replace(`/scenarios${qs ? `?${qs}` : ""}`, { scroll: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeType, activeDifficulty, activeIndustry]);
+
   // Pick up context from sessionStorage when redirected after sign-up
   useEffect(() => {
     if (!practiceContext) {
@@ -594,7 +621,7 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
           })()}
 
           {/* 2. Filter bar */}
-          <div style={{ marginBottom: 36, opacity: showFirstTime ? 0.5 : 1, transition: "opacity 0.2s", pointerEvents: showFirstTime ? "none" : "auto" }}>
+          <div style={{ marginBottom: 36 }}>
 
             {/* Type tabs */}
             <div className="sc-type-tabs" style={{ marginBottom: 12 }}>
