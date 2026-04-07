@@ -275,6 +275,7 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
   const [retryTopFix,           setRetryTopFix]           = useState<string | null>(null);
   const [previousScore,         setPreviousScore]         = useState<number | null>(null);
   const [retryBannerDismissed,  setRetryBannerDismissed]  = useState(false);
+  const [showResetModal,        setShowResetModal]        = useState(false);
   const preStartKey = `prestart_skip_${challenge.id}`;
   const chatEndRef = useRef<HTMLDivElement>(null);
   const initializedStakeholders = useRef<Set<string>>(new Set());
@@ -405,9 +406,17 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
       evalResult !== null ||
       validationResult !== null;
 
-    if (!hasWork) return;
+    if (!hasWork) {
+      // Nothing to clear — just reset draft state directly
+      setDraftRestored(false);
+      return;
+    }
 
-    if (!confirm("Reset all your work for this challenge? This cannot be undone.")) return;
+    setShowResetModal(true);
+  }
+
+  function confirmReset() {
+    setShowResetModal(false);
     initializedStakeholders.current = new Set();
     setAttemptId(null);
     setDraftRestored(false);
@@ -665,33 +674,41 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
               transition={{ duration: 0.2 }}
               style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px 60px" }}
             >
-              {/* Draft restored banner */}
+              {/* Draft restored card */}
               {draftRestored && (
                 <div style={{
-                  marginBottom: "20px", padding: "12px 18px", borderRadius: "10px",
-                  background: "rgba(31,191,159,0.06)", border: "1px solid rgba(31,191,159,0.25)",
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  marginBottom: "24px", padding: "20px 24px", borderRadius: "16px",
+                  background: "var(--card)",
+                  border: "1px solid rgba(31,191,159,0.25)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <CheckCircle2 className="w-4 h-4" style={{ color: "var(--teal)", flexShrink: 0 }} />
-                    <div>
-                      <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--teal)" }}>Draft restored</span>
-                      <span style={{ fontSize: "13px", color: "var(--text-3)", marginLeft: "8px" }}>Your previous progress has been loaded.</span>
+                  <div>
+                    <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-1)", marginBottom: "4px", fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                      Pick up where you left off
+                    </div>
+                    <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
+                      Your previous attempt is ready.
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexShrink: 0 }}>
-                    <button onClick={() => goToTab(activeTab === "brief" ? "interview" : activeTab)} style={{
-                      fontSize: "13px", fontWeight: 600, color: "var(--teal)",
-                      background: "none", border: "none", cursor: "pointer", padding: 0,
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexShrink: 0 }}>
+                    <button onClick={() => { setDraftRestored(false); goToTab("interview"); }} style={{
+                      fontSize: "13px", fontWeight: 700,
+                      padding: "9px 18px", borderRadius: "9px",
+                      background: "var(--teal)", color: "#041a13",
+                      border: "none", cursor: "pointer",
+                      fontFamily: "'Inter','Open Sans',sans-serif",
                     }}>
-                      Continue →
+                      Continue
                     </button>
                     <button onClick={resetAll} style={{
-                      fontSize: "12px", color: "var(--text-4)",
-                      background: "none", border: "none", cursor: "pointer", padding: 0,
-                      textDecoration: "underline",
+                      fontSize: "13px", fontWeight: 600,
+                      padding: "9px 16px", borderRadius: "9px",
+                      background: "transparent", color: "var(--text-2)",
+                      border: "1px solid var(--border)", cursor: "pointer",
+                      fontFamily: "'Inter','Open Sans',sans-serif",
                     }}>
-                      Start over
+                      Start fresh
                     </button>
                   </div>
                 </div>
@@ -1542,6 +1559,79 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
 
         </AnimatePresence>
       </div>
+
+      {/* ── Reset confirmation modal ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {showResetModal && (
+          <motion.div
+            key="reset-overlay"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "fixed", inset: 0, zIndex: 500,
+              background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+            }}
+            onClick={e => { if (e.target === e.currentTarget) setShowResetModal(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1,    y: 0  }}
+              exit={{    opacity: 0, scale: 0.96, y: 6  }}
+              transition={{ duration: 0.18 }}
+              style={{
+                background: "#0d0d12", border: "1px solid var(--border)",
+                borderRadius: 18, padding: "32px 32px 28px",
+                maxWidth: 420, width: "100%",
+                boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
+              }}
+            >
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em", margin: "0 0 10px", fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                Start a new attempt?
+              </h3>
+              <p style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.65, margin: "0 0 20px" }}>
+                We&apos;ll clear your current work so you can apply what you&apos;ve learned.
+              </p>
+              {retryTopFix && (
+                <div style={{
+                  padding: "12px 16px", borderRadius: 10, marginBottom: 20,
+                  background: "rgba(251,146,60,0.07)", border: "1px solid rgba(251,146,60,0.22)",
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#fb923c", letterSpacing: "0.08em", textTransform: "uppercase" as const, fontFamily: "monospace", marginBottom: 6 }}>
+                    Focus for this attempt
+                  </div>
+                  <p style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.55, margin: 0 }}>
+                    {retryTopFix}
+                  </p>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={confirmReset}
+                  style={{
+                    flex: 1, padding: "12px 20px", borderRadius: 11, fontSize: 14, fontWeight: 700,
+                    background: "#1fbf9f", color: "#041a13", border: "none", cursor: "pointer",
+                    fontFamily: "'Inter','Open Sans',sans-serif",
+                  }}
+                >
+                  Start fresh
+                </button>
+                <button
+                  onClick={() => setShowResetModal(false)}
+                  style={{
+                    flex: 1, padding: "12px 20px", borderRadius: 11, fontSize: 14, fontWeight: 600,
+                    background: "transparent", color: "var(--text-2)",
+                    border: "1px solid var(--border)", cursor: "pointer",
+                    fontFamily: "'Inter','Open Sans',sans-serif",
+                  }}
+                >
+                  Keep my work
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Pre-start modal ──────────────────────────────────────────────── */}
       <AnimatePresence>
