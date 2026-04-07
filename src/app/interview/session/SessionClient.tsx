@@ -89,6 +89,18 @@ export default function SessionClient({ profile, user }: Props) {
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLTextAreaElement>(null);
 
+  // Pre-populate JD from job page if navigated via "Interview for this role"
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("interviewJobContext");
+      if (raw) {
+        const ctx = JSON.parse(raw) as { jd?: string; title?: string; company?: string };
+        if (ctx.jd) setJd(ctx.jd);
+        sessionStorage.removeItem("interviewJobContext");
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   // ── Scroll to bottom on new message ───────────────────────────────────────
 
   useEffect(() => {

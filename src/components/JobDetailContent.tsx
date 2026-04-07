@@ -166,6 +166,19 @@ export default function JobDetailContent({
     router.push(getPracticeUrl(job, isLoggedIn));
   }
 
+  function handleInterview() {
+    if (!isLoggedIn) { onClose?.(); router.push("/signup"); return; }
+    try {
+      sessionStorage.setItem("interviewJobContext", JSON.stringify({
+        jd:      rawDescriptionText(job.description),
+        title:   job.title,
+        company: job.company ?? "",
+      }));
+    } catch { /* sessionStorage unavailable */ }
+    onClose?.();
+    router.push("/interview/session");
+  }
+
   // ── Column grid behaviour changes by mode ─────────────────────────────────
   // modal: fixed-height grid columns with internal overflow scroll
   // page:  natural-height columns, stacked on mobile via CSS class
@@ -464,40 +477,36 @@ export default function JobDetailContent({
                       </div>
                     </div>
 
-                    {/* Practice CTAs */}
-                    <div style={{ display: "flex", gap: 7, marginBottom: 20 }}>
-                      <button
-                        onClick={handlePractice}
-                        style={{ flex: 1, padding: "9px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: A.tealSoft, color: A.teal, border: `1px solid ${A.tealBorder}` }}
-                      >
-                        Practice questions
-                      </button>
-                      <button
-                        onClick={handlePractice}
-                        style={{ flex: 1, padding: "9px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "transparent", color: A.text3, border: `1px solid ${A.border}` }}
-                      >
-                        BA challenge
-                      </button>
-                    </div>
-
-                    {/* COACHING TOOLKIT */}
-                    <div style={{ borderRadius: 12, border: `1px solid ${A.tealBorder}`, background: A.tealSoft, padding: "14px 16px", marginBottom: 20 }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: A.teal, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>
-                        Get my full coaching toolkit for this role
-                      </p>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <Link href={isLoggedIn ? "/career" : "/signup"}
-                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, background: "#fff", border: `1px solid ${A.border}`, textDecoration: "none" }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 700, color: A.text1 }}>Tailor my resume for this role</span>
-                          <span style={{ fontSize: 10.5, color: A.teal, fontWeight: 700 }}>Career Suite</span>
-                        </Link>
-                        <Link href={isLoggedIn ? "/pitchready" : "/signup"}
-                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, background: "#fff", border: `1px solid ${A.border}`, textDecoration: "none" }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: A.text1 }}>Pitch ready — practice with feedback</span>
-                          <span style={{ fontSize: 10.5, color: A.teal, fontWeight: 700 }}>Pitch Ready</span>
-                        </Link>
+                    {/* Prepare for this role — 3 actions */}
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: A.teal, textTransform: "uppercase", letterSpacing: "0.11em", marginBottom: 10 }}>
+                        Prepare for this role
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                        <button
+                          onClick={handlePractice}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: A.tealSoft, color: A.teal, border: `1px solid ${A.tealBorder}`, textAlign: "left" }}
+                        >
+                          <span>Practice this role</span>
+                          <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.7 }}>Simulation Lab →</span>
+                        </button>
+                        <button
+                          onClick={handleInterview}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: A.bgCard, color: A.text1, border: `1px solid ${A.border}`, textAlign: "left" }}
+                        >
+                          <span>Interview for this role</span>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: A.teal, opacity: 0.8 }}>Interview Lab →</span>
+                        </button>
+                        <button
+                          onClick={() => { onClose?.(); router.push(isLoggedIn ? "/pitchready" : "/signup"); }}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: A.bgCard, color: A.text2, border: `1px solid ${A.border}`, textAlign: "left" }}
+                        >
+                          <span>Tailor your pitch</span>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: A.teal, opacity: 0.8 }}>PitchReady →</span>
+                        </button>
                       </div>
                     </div>
+
 
                     {/* Apply */}
                     <div style={{ borderTop: `1px solid ${A.border}`, paddingTop: 16, marginBottom: 16 }}>
