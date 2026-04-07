@@ -83,19 +83,23 @@ export default function SessionClient({ profile, user }: Props) {
   const [alexIdx,    setAlexIdx]    = useState(0);   // next Alex message index (0–11)
   const [input,      setInput]      = useState("");
   const [jd,         setJd]         = useState("");
+  const [jobTitle,   setJobTitle]   = useState("");
+  const [jobCompany, setJobCompany] = useState("");
   const [evalResult, setEvalResult] = useState<EvalResult | null>(null);
   const [error,      setError]      = useState<string | null>(null);
 
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLTextAreaElement>(null);
 
-  // Pre-populate JD from job page if navigated via "Interview for this role"
+  // Pre-populate JD + job context when arriving from "Interview for this role"
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("interviewJobContext");
       if (raw) {
         const ctx = JSON.parse(raw) as { jd?: string; title?: string; company?: string };
-        if (ctx.jd) setJd(ctx.jd);
+        if (ctx.jd)      setJd(ctx.jd);
+        if (ctx.title)   setJobTitle(ctx.title);
+        if (ctx.company) setJobCompany(ctx.company);
         sessionStorage.removeItem("interviewJobContext");
       }
     } catch { /* ignore */ }
@@ -223,9 +227,14 @@ export default function SessionClient({ profile, user }: Props) {
               border: `1px solid ${scoreColor(evalResult.totalScore)}30`,
               boxShadow: `0 0 40px ${scoreColor(evalResult.totalScore)}08`,
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.1em", textTransform: "uppercase" as const, fontFamily: "monospace", marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.1em", textTransform: "uppercase" as const, fontFamily: "monospace", marginBottom: jobTitle ? 8 : 16 }}>
                 Interview Complete
               </div>
+              {jobTitle && (
+                <div style={{ fontSize: 13, color: "var(--teal)", fontWeight: 600, marginBottom: 16 }}>
+                  {jobTitle}{jobCompany && <span style={{ color: "var(--text-3)", fontWeight: 400 }}> at {jobCompany}</span>}
+                </div>
+              )}
               <div style={{ fontSize: "clamp(64px, 8vw, 88px)", fontWeight: 900, color: scoreColor(evalResult.totalScore), lineHeight: 1, letterSpacing: "-0.04em", marginBottom: 8 }}>
                 {evalResult.totalScore}
               </div>
@@ -276,7 +285,7 @@ export default function SessionClient({ profile, user }: Props) {
             {/* Retry CTA */}
             <div style={{ display: "flex", gap: 12, marginBottom: 48 }}>
               <button
-                onClick={() => { setPhase("setup"); setMessages([]); setAlexIdx(0); setEvalResult(null); setInput(""); }}
+                onClick={() => { setPhase("setup"); setMessages([]); setAlexIdx(0); setEvalResult(null); setInput(""); setJd(""); setJobTitle(""); setJobCompany(""); }}
                 style={{
                   padding: "12px 24px", borderRadius: 11, fontSize: 13, fontWeight: 700,
                   background: "var(--teal)", color: "#041a13", border: "none", cursor: "pointer",
@@ -375,12 +384,20 @@ export default function SessionClient({ profile, user }: Props) {
           background: "rgba(9,9,11,0.9)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
           borderBottom: "1px solid var(--border)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>Interview Lab</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", flexShrink: 0 }}>Interview Lab</span>
+            {jobTitle && (
+              <>
+                <span style={{ color: "var(--border)", fontSize: 12, flexShrink: 0 }}>·</span>
+                <span style={{ fontSize: 12, color: "var(--teal)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {jobTitle}{jobCompany && ` · ${jobCompany}`}
+                </span>
+              </>
+            )}
             {phase !== "setup" && (
               <>
-                <span style={{ color: "var(--border)", fontSize: 12 }}>·</span>
-                <span style={{ fontSize: 12, color: "var(--text-4)", fontFamily: "monospace" }}>
+                <span style={{ color: "var(--border)", fontSize: 12, flexShrink: 0 }}>·</span>
+                <span style={{ fontSize: 12, color: "var(--text-4)", fontFamily: "monospace", flexShrink: 0 }}>
                   {phase === "evaluating"
                     ? "Evaluating..."
                     : sentCount > 0
@@ -408,6 +425,23 @@ export default function SessionClient({ profile, user }: Props) {
         {phase === "setup" && (
           <div style={{ flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
             <div style={{ width: "100%", maxWidth: 560 }}>
+
+              {/* Job context banner */}
+              {jobTitle && (
+                <div style={{
+                  marginBottom: 24, padding: "12px 16px", borderRadius: 10,
+                  background: "rgba(31,191,159,0.07)", border: "1px solid rgba(31,191,159,0.22)",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.1em", textTransform: "uppercase" as const, fontFamily: "monospace", flexShrink: 0 }}>
+                    Preparing for
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", minWidth: 0 }}>
+                    {jobTitle}
+                    {jobCompany && <span style={{ color: "var(--text-3)", fontWeight: 400 }}> at {jobCompany}</span>}
+                  </div>
+                </div>
+              )}
 
               {/* Alex intro */}
               <div style={{
