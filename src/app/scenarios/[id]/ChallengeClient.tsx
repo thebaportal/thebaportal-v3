@@ -61,6 +61,10 @@ interface EvalResult {
     recommendationQuality: { score: number; verdict: string; tip: string };
   };
   feedback: string;
+  // New fields — optional for legacy record compatibility
+  topFix?:      string;
+  doThisNext?:  string;
+  betterMove?:  string;
 }
 
 interface ValidationFinding {
@@ -1239,106 +1243,167 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                 </div>
               ) : (
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-                  {/* Score hero */}
+
+                  {/* ── 1. Score hero ─────────────────────────────────── */}
                   <div style={{
                     display: "flex", alignItems: "center", gap: "32px",
-                    padding: "32px 36px", borderRadius: "20px",
+                    padding: "28px 32px", borderRadius: "18px",
                     background: "var(--card)", border: `1px solid ${scoreColor(evalResult.totalScore)}30`,
-                    marginBottom: "24px", position: "relative", overflow: "hidden",
+                    marginBottom: "20px", position: "relative", overflow: "hidden",
                   }}>
                     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse at 80% 50%, ${scoreColor(evalResult.totalScore)}08 0%, transparent 60%)` }} />
-                    <div style={{ position: "relative" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "6px" }}>Evaluation Score</div>
-                      <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "56px", color: scoreColor(evalResult.totalScore), letterSpacing: "-0.04em", lineHeight: 1 }}>
+                    <div style={{ position: "relative", textAlign: "center", minWidth: 80 }}>
+                      <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "52px", color: scoreColor(evalResult.totalScore), letterSpacing: "-0.04em", lineHeight: 1 }}>
                         {evalResult.totalScore}
                       </div>
-                      <div style={{ fontSize: "14px", color: "var(--text-3)", marginTop: "4px" }}>/ 100</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-3)", marginTop: "2px" }}>/ 100</div>
                     </div>
                     <div style={{ flex: 1, position: "relative" }}>
-                      <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "20px", color: "var(--text-1)", marginBottom: "8px", letterSpacing: "-0.02em" }}>
+                      <div style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "18px", color: "var(--text-1)", marginBottom: "6px", letterSpacing: "-0.02em" }}>
                         {evalResult.totalScore >= 85 ? "Excellent work." : evalResult.totalScore >= 70 ? "Solid effort." : evalResult.totalScore >= 50 ? "Developing." : "Needs significant work."}
                       </div>
-                      <p style={{ fontSize: "14px", color: "var(--text-3)", margin: 0, lineHeight: 1.6 }}>
-                        {evalResult.totalScore >= 85 ? "You demonstrated strong BA thinking across all dimensions." : evalResult.totalScore >= 70 ? "A solid submission with some gaps to address." : evalResult.totalScore >= 50 ? "Core understanding is present but depth is missing." : "Review the feedback below and resubmit with a stronger approach."}
-                      </p>
-                      <div style={{ height: "5px", borderRadius: "99px", background: "rgba(255,255,255,0.07)", marginTop: "16px", overflow: "hidden" }}>
+                      <div style={{ height: "4px", borderRadius: "99px", background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
                         <motion.div initial={{ width: 0 }} animate={{ width: `${evalResult.totalScore}%` }} transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
                           style={{ height: "100%", borderRadius: "99px", background: scoreColor(evalResult.totalScore) }} />
                       </div>
                     </div>
                   </div>
 
-                  {/* Dimension cards */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
-                    {dimensionMeta.map(dim => {
-                      const d = evalResult.dimensions[dim.key as keyof typeof evalResult.dimensions];
-                      return (
-                        <motion.div key={dim.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                          style={{ padding: "20px 22px", borderRadius: "16px", background: "var(--card)", border: "1px solid var(--border)" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                            <span style={{ fontSize: "12px", fontWeight: 700, padding: "3px 10px", borderRadius: "6px", background: `${dim.color}12`, color: dim.color, border: `1px solid ${dim.color}22` }}>
-                              {dim.label}
-                            </span>
-                            <span style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "18px", color: scoreColor(d.score, 25), letterSpacing: "-0.02em" }}>
-                              {d.score}<span style={{ fontSize: "12px", color: "var(--text-4)", fontWeight: 400 }}>/25</span>
-                            </span>
-                          </div>
-                          <div style={{ height: "3px", borderRadius: "99px", background: "rgba(255,255,255,0.06)", marginBottom: "14px", overflow: "hidden" }}>
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${(d.score / 25) * 100}%` }} transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-                              style={{ height: "100%", borderRadius: "99px", background: scoreColor(d.score, 25) }} />
-                          </div>
-                          <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.6, marginBottom: "10px" }}>{d.verdict}</p>
-                          <p style={{ fontSize: "12px", color: dim.color, lineHeight: 1.55, margin: 0, paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                            → {d.tip}
-                          </p>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Low score reality check */}
-                  {evalResult.totalScore < 60 && (
-                    <div style={{ marginBottom: "20px", padding: "12px 18px", borderRadius: "10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.18)" }}>
-                      <div style={{ fontSize: "13.5px", fontWeight: 700, color: "#ef4444", marginBottom: "3px" }}>This would not pass in a real BA setting.</div>
-                      <div style={{ fontSize: "12.5px", color: "var(--text-3)" }}>Here is exactly why.</div>
-                    </div>
+                  {/* ── 2. Top Fix ────────────────────────────────────── */}
+                  {evalResult.topFix && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                      style={{
+                        padding: "24px 28px", borderRadius: "18px", marginBottom: "14px",
+                        background: "rgba(251,146,60,0.06)",
+                        border: "1px solid rgba(251,146,60,0.28)",
+                        position: "relative", overflow: "hidden",
+                      }}>
+                      <div style={{ position: "absolute", top: 0, left: 0, width: 4, bottom: 0, background: "#fb923c", borderRadius: "18px 0 0 18px" }} />
+                      <div style={{ paddingLeft: 4 }}>
+                        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#fb923c", fontFamily: "monospace", marginBottom: 10 }}>
+                          Top Fix
+                        </div>
+                        <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.5, margin: 0, fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                          {evalResult.topFix}
+                        </p>
+                      </div>
+                    </motion.div>
                   )}
 
-                  {/* Alex Rivera */}
-                  <div style={{ padding: "28px 32px", borderRadius: "18px", background: "var(--card)", border: "1px solid var(--border)", marginBottom: "28px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-                      <div style={{ width: "38px", height: "38px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 700, background: "rgba(167,139,250,0.12)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.2)", fontFamily: "'Inter','Open Sans',sans-serif", flexShrink: 0 }}>
+                  {/* ── 3. Do This Next ───────────────────────────────── */}
+                  {evalResult.doThisNext && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                      style={{
+                        padding: "20px 24px", borderRadius: "14px", marginBottom: "14px",
+                        background: "rgba(31,191,159,0.06)",
+                        border: "1px solid rgba(31,191,159,0.22)",
+                      }}>
+                      <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#1fbf9f", fontFamily: "monospace", marginBottom: 8 }}>
+                        Do This Next
+                      </div>
+                      <p style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.55, margin: 0 }}>
+                        {evalResult.doThisNext}
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {/* ── 4. Better Move ────────────────────────────────── */}
+                  {evalResult.betterMove && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                      style={{
+                        padding: "20px 24px", borderRadius: "14px", marginBottom: "24px",
+                        background: "rgba(167,139,250,0.05)",
+                        border: "1px solid rgba(167,139,250,0.2)",
+                      }}>
+                      <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#a78bfa", fontFamily: "monospace", marginBottom: 10 }}>
+                        Better Move
+                      </div>
+                      <p style={{ fontSize: "13.5px", color: "var(--text-2)", lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>
+                        {evalResult.betterMove}
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {/* ── 5. Primary CTA ────────────────────────────────── */}
+                  <div style={{ marginBottom: "36px" }}>
+                    <button onClick={() => { setEvalResult(null); setSubmission(""); }} className="btn-teal"
+                      style={{ width: "100%", justifyContent: "center", padding: "14px", fontSize: "15px" }}>
+                      <RotateCcw className="w-4 h-4" />
+                      Try again with this improvement
+                    </button>
+                    {isElicitation && (
+                      <button onClick={() => goToTab("validate")} className="btn-outline"
+                        style={{ width: "100%", justifyContent: "center", padding: "12px", fontSize: "14px", marginTop: "10px" }}>
+                        Proceed to Phase B — Validate <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* ── Divider ───────────────────────────────────────── */}
+                  <div style={{ height: "1px", background: "var(--border)", marginBottom: "28px" }} />
+
+                  {/* ── 6. Dimension breakdown (demoted) ─────────────── */}
+                  <div style={{ marginBottom: "28px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "var(--text-4)", fontFamily: "monospace", marginBottom: "14px" }}>
+                      Dimension Breakdown
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                      {dimensionMeta.map(dim => {
+                        const d = evalResult.dimensions[dim.key as keyof typeof evalResult.dimensions];
+                        return (
+                          <div key={dim.key} style={{ padding: "16px 18px", borderRadius: "12px", background: "var(--card)", border: "1px solid var(--border)" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: dim.color }}>{dim.label}</span>
+                              <span style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 700, fontSize: "14px", color: scoreColor(d.score, 25) }}>
+                                {d.score}<span style={{ fontSize: "11px", color: "var(--text-4)", fontWeight: 400 }}>/25</span>
+                              </span>
+                            </div>
+                            <div style={{ height: "2px", borderRadius: "99px", background: "rgba(255,255,255,0.06)", marginBottom: "10px", overflow: "hidden" }}>
+                              <motion.div initial={{ width: 0 }} animate={{ width: `${(d.score / 25) * 100}%` }} transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+                                style={{ height: "100%", borderRadius: "99px", background: scoreColor(d.score, 25) }} />
+                            </div>
+                            <p style={{ fontSize: "12px", color: "var(--text-3)", lineHeight: 1.55, margin: "0 0 8px" }}>{d.verdict}</p>
+                            <p style={{ fontSize: "11.5px", color: dim.color, lineHeight: 1.5, margin: 0, paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.05)", opacity: 0.85 }}>
+                              {d.tip}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* ── 7. Alex Rivera full feedback (demoted) ────────── */}
+                  <div style={{ padding: "22px 26px", borderRadius: "14px", background: "var(--card)", border: "1px solid var(--border)", marginBottom: "24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                      <div style={{ width: "34px", height: "34px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700, background: "rgba(167,139,250,0.12)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.2)", fontFamily: "'Inter','Open Sans',sans-serif", flexShrink: 0 }}>
                         AR
                       </div>
                       <div>
-                        <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>Alex Rivera</div>
-                        <div style={{ fontSize: "12px", color: "var(--text-3)" }}>Senior BA Coach · TheBAPortal</div>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>Alex Rivera</div>
+                        <div style={{ fontSize: "11px", color: "var(--text-4)" }}>Senior BA Coach · TheBAPortal</div>
                       </div>
                     </div>
-                    <div style={{ fontSize: "15px", lineHeight: 1.8, color: "var(--text-2)" }}>
+                    <div style={{ fontSize: "14px", lineHeight: 1.75, color: "var(--text-3)" }}>
                       {evalResult.feedback.split("\n\n").map((para, i, arr) => (
-                        <p key={i} style={{ marginBottom: i < arr.length - 1 ? "18px" : 0 }}>{para}</p>
+                        <p key={i} style={{ marginBottom: i < arr.length - 1 ? "14px" : 0 }}>{para}</p>
                       ))}
-                    </div>
-                    <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border)", fontSize: "13px", color: "var(--text-4)", fontStyle: "italic" }}>
-                      — Alex Rivera, Senior BA Coach at TheBAPortal
                     </div>
                   </div>
 
-                  {/* Related jobs */}
+                  {/* ── 8. Related jobs ───────────────────────────────── */}
                   {relatedJobs.length > 0 && (
-                    <div style={{ marginBottom: "28px" }}>
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: "12px" }}>
+                    <div style={{ marginBottom: "24px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, marginBottom: "12px" }}>
                         Roles that expect this level
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         {relatedJobs.map(job => (
                           <div key={job.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px 16px", background: "var(--card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.title}</div>
-                              <div style={{ fontSize: "12px", color: "var(--text-3)" }}>{job.company}{job.location ? ` · ${job.location}` : ""}</div>
+                              <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.title}</div>
+                              <div style={{ fontSize: "11px", color: "var(--text-3)" }}>{job.company}{job.location ? ` · ${job.location}` : ""}</div>
                             </div>
-                            <a href={`/jobs/${job.id}`} style={{ flexShrink: 0, fontSize: "12px", fontWeight: 600, color: "var(--teal)", textDecoration: "none", whiteSpace: "nowrap", padding: "6px 12px", borderRadius: "7px", border: "1px solid rgba(31,191,159,0.25)", background: "rgba(31,191,159,0.05)" }}>
+                            <a href={`/jobs/${job.id}`} style={{ flexShrink: 0, fontSize: "12px", fontWeight: 600, color: "var(--teal)", textDecoration: "none", whiteSpace: "nowrap", padding: "5px 10px", borderRadius: "7px", border: "1px solid rgba(31,191,159,0.25)", background: "rgba(31,191,159,0.05)" }}>
                               See how to win this role
                             </a>
                           </div>
@@ -1347,24 +1412,12 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <p style={{ fontSize: "12px", color: "var(--text-4)", textAlign: "center", margin: "0 0 12px", fontStyle: "italic" }}>
-                    Strong candidates refine. They don&apos;t submit once.
-                  </p>
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <button onClick={() => { setEvalResult(null); setSubmission(""); }} className="btn-outline" style={{ flex: 1, justifyContent: "center", padding: "13px" }}>
-                      <RotateCcw className="w-4 h-4" />Fix your answer and resubmit
-                    </button>
-                    {isElicitation ? (
-                      <button onClick={() => goToTab("validate")} className="btn-teal" style={{ flex: 1, justifyContent: "center", padding: "13px" }}>
-                        Proceed to Phase B — Validate <ArrowRight className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button onClick={() => router.push("/scenarios")} className="btn-teal" style={{ flex: 1, justifyContent: "center", padding: "13px" }}>
-                        Next Challenge <ArrowRight className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+                  {/* ── 9. Secondary action ───────────────────────────── */}
+                  <button onClick={() => router.push("/scenarios")} className="btn-outline"
+                    style={{ width: "100%", justifyContent: "center", padding: "12px", fontSize: "14px" }}>
+                    Browse other simulations <ArrowRight className="w-4 h-4" />
+                  </button>
+
                 </motion.div>
               )}
             </motion.div>

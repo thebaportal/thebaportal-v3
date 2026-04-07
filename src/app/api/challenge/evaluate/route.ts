@@ -170,7 +170,10 @@ You must respond ONLY with a valid JSON object in this exact structure, with no 
     "evidenceUse": { "score": <0-25>, "verdict": "<1 sentence>", "tip": "<1 specific coaching tip>" },
     "recommendationQuality": { "score": <0-25>, "verdict": "<1 sentence>", "tip": "<1 specific coaching tip>" }
   },
-  "feedback": "<3-4 paragraph written feedback as Alex Rivera. Be specific to their actual submission. Reference what they did well and what they missed. Give concrete next steps.>"
+  "feedback": "<3-4 paragraph written feedback as Alex Rivera. Be specific to their actual submission. Reference what they did well and what they missed. Give concrete next steps.>",
+  "topFix": "<The single most important issue holding this candidate back. One sentence, direct and specific. Not generic — name the actual gap from this submission.>",
+  "doThisNext": "<One concrete action the candidate must take on their next attempt to fix the topFix. Start with a verb. One sentence only.>",
+  "betterMove": "<Find one specific question or statement the candidate actually made in the stakeholder conversation. Quote it directly, then show a stronger version. Format exactly: 'You asked: [their actual words]. A stronger move: [improved version]'. If the candidate made no conversation moves, write: 'No conversation recorded — interview your stakeholders before submitting.'>"
 }
 
 Scoring guidance:
@@ -209,7 +212,7 @@ Evaluate this submission now. Return only the JSON object.`;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 1800,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt,
     });
@@ -230,6 +233,9 @@ Evaluate this submission now. Return only the JSON object.`;
           recommendationQuality: { score: 13, verdict: "Recommendations are present but vague.", tip: "Make your recommendations measurable and time-bound." },
         },
         feedback: "Your submission shows effort but needs more depth. Focus on connecting your stakeholder insights directly to your recommendations. Review the challenge brief and ensure you addressed every aspect of the required deliverable.",
+        topFix: "Your recommendations lack direct connection to the evidence gathered in your stakeholder interviews.",
+        doThisNext: "Revise your submission to reference at least two specific data points or quotes from your interviews in your final recommendation.",
+        betterMove: "No conversation recorded — interview your stakeholders before submitting.",
       };
     }
 
