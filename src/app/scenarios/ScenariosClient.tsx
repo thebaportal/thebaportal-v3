@@ -527,55 +527,8 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
                   We&apos;ve picked the best starting point for you. Complete it and you&apos;ll have a real score, real feedback, and a clear picture of where to improve.
                 </p>
 
-                {/* Recommended card */}
-                <div style={{
-                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(31,191,159,0.25)",
-                  borderRadius: 16, padding: "22px 24px 20px",
-                  marginBottom: 24, maxWidth: 520, position: "relative",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
-                    {recType && (
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5,
-                        background: recType.bg, color: recType.color, border: `1px solid ${recType.color}28`,
-                      }}>
-                        {recType.label}
-                      </span>
-                    )}
-                    <span style={{ color: "var(--border)", fontSize: 12 }}>•</span>
-                    {recDiff && (
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 5,
-                        background: `${recDiff.color}12`, color: recDiff.color, border: `1px solid ${recDiff.color}22`,
-                      }}>
-                        {recDiff.label}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 8 }}>
-                    {rec.title}
-                  </div>
-                  <p style={{
-                    fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: "0 0 14px",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical" as const,
-                    overflow: "hidden",
-                  }}>
-                    {rec.brief.situation}
-                  </p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12, color: "var(--text-3)", fontFamily: "monospace" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <ClockIcon size={12} /> {rec.duration}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <UsersIcon size={12} /> {rec.stakeholders.length} stakeholder{rec.stakeholders.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-
                 {/* CTAs */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const, marginBottom: 28 }}>
                   <button
                     onClick={() => router.push(`/scenarios/${RECOMMENDED_ID}?mode=normal`)}
                     style={{
@@ -606,6 +559,35 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
                   >
                     Browse all simulations
                   </button>
+                </div>
+
+                {/* Recommended card */}
+                <div style={{
+                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(31,191,159,0.25)",
+                  borderRadius: 16, padding: "22px 24px 20px",
+                  maxWidth: 520, position: "relative",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
+                    {recType && (
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5, background: recType.bg, color: recType.color, border: `1px solid ${recType.color}28` }}>
+                        {recType.label}
+                      </span>
+                    )}
+                    <span style={{ color: "var(--border)", fontSize: 12 }}>•</span>
+                    {recDiff && (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 5, background: `${recDiff.color}12`, color: recDiff.color, border: `1px solid ${recDiff.color}22` }}>
+                        {recDiff.label}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 8 }}>{rec.title}</div>
+                  <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: "0 0 14px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }}>
+                    {rec.brief.situation}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12, color: "var(--text-3)", fontFamily: "monospace" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}><ClockIcon size={12} /> {rec.duration}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}><UsersIcon size={12} /> {rec.stakeholders.length} stakeholder{rec.stakeholders.length !== 1 ? "s" : ""}</span>
+                  </div>
                 </div>
               </div>
             );
