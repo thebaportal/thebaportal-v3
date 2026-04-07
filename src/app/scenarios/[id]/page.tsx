@@ -107,6 +107,7 @@ export default async function ChallengePage({
     <ChallengeClient
       challenge={challenge}
       mode={mode}
+      isPro={isPro}
       relatedJobs={relatedJobs}
       initialDraft={draftResult.data ?? null}
       isFirstAttempt={isFirstAttempt}

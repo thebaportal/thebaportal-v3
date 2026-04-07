@@ -7,7 +7,7 @@ import {
   ArrowLeft, Send, RotateCcw, ChevronRight,
   ChevronDown, Shield, Zap, AlertTriangle,
   MessageSquare, CheckCircle2, ArrowRight,
-  Lightbulb, User, FileText, X, ClipboardCheck,
+  Lightbulb, User, FileText, X, ClipboardCheck, Lock,
 } from "lucide-react";
 import ValidationClient from "./ValidationClient";
 
@@ -117,6 +117,7 @@ interface ChallengeAttempt {
 interface ChallengeClientProps {
   challenge: Challenge;
   mode: string;
+  isPro?: boolean;
   relatedJobs?: RelatedJob[];
   initialDraft?: ChallengeAttempt | null;
   isFirstAttempt?: boolean;
@@ -247,7 +248,7 @@ function renderDeliverable(text: string, fontSize: string, color: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ChallengeClient({ challenge, mode: initialMode, relatedJobs = [], initialDraft = null, isFirstAttempt = true }: ChallengeClientProps) {
+export default function ChallengeClient({ challenge, mode: initialMode, isPro = false, relatedJobs = [], initialDraft = null, isFirstAttempt = true }: ChallengeClientProps) {
   const router = useRouter();
 
   const isElicitation = challenge.type === "elicitation";
@@ -1353,58 +1354,116 @@ export default function ChallengeClient({ challenge, mode: initialMode, relatedJ
                     </div>
                   </div>
 
-                  {/* ── 2. Top Fix ────────────────────────────────────── */}
-                  {evalResult.topFix && (
+                  {/* ── 2–4. Top Fix / Do This Next / Better Move (Pro-gated) ── */}
+                  {isPro ? (
+                    <>
+                      {evalResult.topFix && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                          style={{ padding: "24px 28px", borderRadius: "18px", marginBottom: "14px", background: "rgba(251,146,60,0.06)", border: "1px solid rgba(251,146,60,0.28)", position: "relative", overflow: "hidden" }}>
+                          <div style={{ position: "absolute", top: 0, left: 0, width: 4, bottom: 0, background: "#fb923c", borderRadius: "18px 0 0 18px" }} />
+                          <div style={{ paddingLeft: 4 }}>
+                            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#fb923c", fontFamily: "monospace", marginBottom: 10 }}>Top Fix</div>
+                            <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.5, margin: 0, fontFamily: "'Inter','Open Sans',sans-serif" }}>{evalResult.topFix}</p>
+                          </div>
+                        </motion.div>
+                      )}
+                      {evalResult.doThisNext && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                          style={{ padding: "20px 24px", borderRadius: "14px", marginBottom: "14px", background: "rgba(31,191,159,0.06)", border: "1px solid rgba(31,191,159,0.22)" }}>
+                          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#1fbf9f", fontFamily: "monospace", marginBottom: 8 }}>Do This Next</div>
+                          <p style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.55, margin: 0 }}>{evalResult.doThisNext}</p>
+                        </motion.div>
+                      )}
+                      {evalResult.betterMove && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                          style={{ padding: "20px 24px", borderRadius: "14px", marginBottom: "24px", background: "rgba(167,139,250,0.05)", border: "1px solid rgba(167,139,250,0.2)" }}>
+                          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#a78bfa", fontFamily: "monospace", marginBottom: 10 }}>Better Move</div>
+                          <p style={{ fontSize: "13.5px", color: "var(--text-2)", lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>{evalResult.betterMove}</p>
+                        </motion.div>
+                      )}
+                    </>
+                  ) : (
+                    /* ── Locked preview + upgrade block (free users) ── */
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                      style={{
-                        padding: "24px 28px", borderRadius: "18px", marginBottom: "14px",
-                        background: "rgba(251,146,60,0.06)",
-                        border: "1px solid rgba(251,146,60,0.28)",
+                      style={{ marginBottom: "24px" }}>
+
+                      {/* Locked: Top Fix */}
+                      {evalResult.topFix && (
+                        <div style={{ padding: "24px 28px", borderRadius: "18px", marginBottom: "10px", background: "rgba(251,146,60,0.04)", border: "1px solid rgba(251,146,60,0.18)", position: "relative", overflow: "hidden" }}>
+                          <div style={{ position: "absolute", top: 0, left: 0, width: 4, bottom: 0, background: "rgba(251,146,60,0.4)", borderRadius: "18px 0 0 18px" }} />
+                          <div style={{ paddingLeft: 4, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "rgba(251,146,60,0.5)", fontFamily: "monospace", marginBottom: 10 }}>Top Fix</div>
+                              <p style={{ fontSize: "16px", fontWeight: 700, color: "transparent", lineHeight: 1.5, margin: 0, filter: "blur(5px)", userSelect: "none", background: "linear-gradient(90deg, rgba(251,146,60,0.3), rgba(251,146,60,0.15))", WebkitBackgroundClip: "text" }}>
+                                {evalResult.topFix}
+                              </p>
+                            </div>
+                            <Lock size={15} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Locked: Do This Next */}
+                      {evalResult.doThisNext && (
+                        <div style={{ padding: "18px 24px", borderRadius: "14px", marginBottom: "10px", background: "rgba(31,191,159,0.03)", border: "1px solid rgba(31,191,159,0.12)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "rgba(31,191,159,0.4)", fontFamily: "monospace", marginBottom: 8 }}>Do This Next</div>
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "transparent", lineHeight: 1.55, margin: 0, filter: "blur(5px)", userSelect: "none", background: "linear-gradient(90deg, rgba(31,191,159,0.25), rgba(31,191,159,0.1))", WebkitBackgroundClip: "text" }}>
+                              {evalResult.doThisNext}
+                            </p>
+                          </div>
+                          <Lock size={14} />
+                        </div>
+                      )}
+
+                      {/* Locked: Better Move */}
+                      {evalResult.betterMove && (
+                        <div style={{ padding: "18px 24px", borderRadius: "14px", marginBottom: "20px", background: "rgba(167,139,250,0.03)", border: "1px solid rgba(167,139,250,0.12)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "rgba(167,139,250,0.4)", fontFamily: "monospace", marginBottom: 8 }}>Better Move</div>
+                            <p style={{ fontSize: "13px", color: "transparent", lineHeight: 1.7, margin: 0, filter: "blur(5px)", userSelect: "none", fontStyle: "italic", background: "linear-gradient(90deg, rgba(167,139,250,0.25), rgba(167,139,250,0.1))", WebkitBackgroundClip: "text" }}>
+                              {evalResult.betterMove}
+                            </p>
+                          </div>
+                          <Lock size={14} />
+                        </div>
+                      )}
+
+                      {/* Upgrade block */}
+                      <div style={{
+                        padding: "24px 28px", borderRadius: "16px",
+                        background: "linear-gradient(135deg, rgba(31,191,159,0.07) 0%, rgba(31,191,159,0.03) 100%)",
+                        border: "1px solid rgba(31,191,159,0.25)",
                         position: "relative", overflow: "hidden",
                       }}>
-                      <div style={{ position: "absolute", top: 0, left: 0, width: 4, bottom: 0, background: "#fb923c", borderRadius: "18px 0 0 18px" }} />
-                      <div style={{ paddingLeft: 4 }}>
-                        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#fb923c", fontFamily: "monospace", marginBottom: 10 }}>
-                          Top Fix
-                        </div>
-                        <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.5, margin: 0, fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                          {evalResult.topFix}
-                        </p>
+                        <div style={{ position: "absolute", top: "-30px", right: "-30px", width: 120, height: 120, background: "radial-gradient(ellipse, rgba(31,191,159,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
+                        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#1fbf9f", fontFamily: "monospace", marginBottom: 10 }}>Pro</div>
+                        <h3 style={{ fontSize: "17px", fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em", margin: "0 0 10px", fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                          See exactly what to fix next
+                        </h3>
+                        <ul style={{ margin: "0 0 20px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 7 }}>
+                          {["Your Top Fix — the one issue holding you back", "Exactly what to do on your next attempt", "A stronger example pulled from your own conversation"].map((item, i) => (
+                            <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: "13px", color: "var(--text-2)", lineHeight: 1.5 }}>
+                              <span style={{ color: "#1fbf9f", fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          onClick={() => router.push("/pricing")}
+                          style={{
+                            padding: "12px 24px", borderRadius: "11px", fontSize: "14px", fontWeight: 700,
+                            background: "#1fbf9f", color: "#041a13", border: "none", cursor: "pointer",
+                            fontFamily: "'Inter','Open Sans',sans-serif",
+                            boxShadow: "0 0 20px rgba(31,191,159,0.25)",
+                            transition: "background 0.15s",
+                          }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#25d4b0"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1fbf9f"; }}
+                        >
+                          Upgrade to Pro
+                        </button>
                       </div>
-                    </motion.div>
-                  )}
-
-                  {/* ── 3. Do This Next ───────────────────────────────── */}
-                  {evalResult.doThisNext && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                      style={{
-                        padding: "20px 24px", borderRadius: "14px", marginBottom: "14px",
-                        background: "rgba(31,191,159,0.06)",
-                        border: "1px solid rgba(31,191,159,0.22)",
-                      }}>
-                      <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#1fbf9f", fontFamily: "monospace", marginBottom: 8 }}>
-                        Do This Next
-                      </div>
-                      <p style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text-1)", lineHeight: 1.55, margin: 0 }}>
-                        {evalResult.doThisNext}
-                      </p>
-                    </motion.div>
-                  )}
-
-                  {/* ── 4. Better Move ────────────────────────────────── */}
-                  {evalResult.betterMove && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                      style={{
-                        padding: "20px 24px", borderRadius: "14px", marginBottom: "24px",
-                        background: "rgba(167,139,250,0.05)",
-                        border: "1px solid rgba(167,139,250,0.2)",
-                      }}>
-                      <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#a78bfa", fontFamily: "monospace", marginBottom: 10 }}>
-                        Better Move
-                      </div>
-                      <p style={{ fontSize: "13.5px", color: "var(--text-2)", lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>
-                        {evalResult.betterMove}
-                      </p>
                     </motion.div>
                   )}
 
