@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, LayoutDashboard, TrendingUp, GraduationCap,
   Target, BriefcaseBusiness, Trophy, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, FolderOpen,
+  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, FolderOpen, MessageSquare,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard,    label: "Dashboard",      href: "/dashboard" },
   { icon: BookOpen,           label: "Simulation Lab", href: "/scenarios" },
+  { icon: MessageSquare,      label: "Interview Lab",  href: "/interview" },
   { icon: TrendingUp,         label: "Progress",       href: "/progress" },
   { icon: GraduationCap,      label: "Learning",       href: "/learning" },
   { icon: Mic,                label: "PitchReady",     href: "/pitchready" },

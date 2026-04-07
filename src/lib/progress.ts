@@ -3,6 +3,7 @@ export interface ChallengeAttempt {
   challenge_id: string;
   challenge_title: string;
   challenge_type: string;
+  attempt_type?: string; // 'simulation' | 'interview'
   industry: string;
   difficulty_mode: string;
   total_score: number;

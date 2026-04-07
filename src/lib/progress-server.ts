@@ -14,6 +14,7 @@ export async function saveAttempt(params: {
   challengeId: string;
   challengeTitle: string;
   challengeType: string;
+  attemptType?: "simulation" | "interview";
   industry: string;
   difficultyMode: string;
   totalScore: number;
@@ -35,6 +36,7 @@ export async function saveAttempt(params: {
       challenge_id: params.challengeId,
       challenge_title: params.challengeTitle,
       challenge_type: params.challengeType,
+      attempt_type: params.attemptType ?? "simulation",
       industry: params.industry,
       difficulty_mode: params.difficultyMode,
       total_score: params.totalScore,
@@ -51,11 +53,13 @@ export async function saveAttempt(params: {
     throw new Error(attemptError.message || "Failed to save attempt");
   }
 
-  // Fetch all attempts to recalculate
+  // Fetch simulation-only attempts for progress recalculation
+  // Interview attempts are tracked separately and must not skew simulation metrics
   const { data: allAttempts } = await supabase
     .from("challenge_attempts")
     .select("*")
-    .eq("user_id", params.userId);
+    .eq("user_id", params.userId)
+    .or("attempt_type.eq.simulation,attempt_type.is.null");
 
   if (!allAttempts) return;
 
@@ -103,7 +107,7 @@ export async function getUserStats(userId: string) {
   const supabase = await createClient();
 
   const [attemptsRes, badgesRes, progressRes] = await Promise.all([
-    supabase.from("challenge_attempts").select("*").eq("user_id", userId).order("completed_at", { ascending: false }),
+    supabase.from("challenge_attempts").select("*").eq("user_id", userId).or("attempt_type.eq.simulation,attempt_type.is.null").order("completed_at", { ascending: false }),
     supabase.from("user_badges").select("*").eq("user_id", userId).order("earned_at", { ascending: false }),
     supabase.from("user_progress").select("*").eq("user_id", userId).single(),
   ]);
