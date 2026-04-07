@@ -498,6 +498,21 @@ interface Props { tier: string; userName: string; initialSessions?: SessionRecor
 export default function PitchReadyClient({ tier, userName, initialSessions = [] }: Props) {
   const router = useRouter();
   const [view, setView] = useState<PitchView>("home");
+  const [jobTitle,   setJobTitle]   = useState("");
+  const [jobCompany, setJobCompany] = useState("");
+
+  // Read job context if arriving from "Tailor your pitch" on a job page
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("pitchReadyJobContext");
+      if (raw) {
+        const ctx = JSON.parse(raw) as { title?: string; company?: string };
+        if (ctx.title)   setJobTitle(ctx.title);
+        if (ctx.company) setJobCompany(ctx.company);
+        sessionStorage.removeItem("pitchReadyJobContext");
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Studio state
   const [studioPhase, setStudioPhase] = useState<StudioPhase>("setup");
@@ -1014,6 +1029,20 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
         padding: "64px 48px 48px",
       }}>
         <div style={{ maxWidth: "720px" }}>
+          {jobTitle && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "rgba(31,191,159,0.07)", border: "1px solid rgba(31,191,159,0.22)",
+              borderRadius: 8, padding: "7px 14px", marginBottom: 16,
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.08em", textTransform: "uppercase" as const, fontFamily: "monospace" }}>
+                Context
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>
+                {jobTitle}{jobCompany && <span style={{ color: "var(--text-3)", fontWeight: 400 }}> — {jobCompany}</span>}
+              </span>
+            </div>
+          )}
           <div style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: `${CORAL}12`, border: `1px solid ${CORAL}28`, borderRadius: "20px", padding: "5px 14px", marginBottom: "20px" }}>
             <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: CORAL }} />
             <span style={{ fontSize: "11px", fontWeight: 700, color: CORAL, letterSpacing: "0.08em" }}>PITCHREADY — BA COMMUNICATION PRACTICE</span>

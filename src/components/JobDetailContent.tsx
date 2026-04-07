@@ -498,7 +498,17 @@ export default function JobDetailContent({
                           <span style={{ fontSize: 10, fontWeight: 600, color: A.teal, opacity: 0.8 }}>Interview Lab →</span>
                         </button>
                         <button
-                          onClick={() => { onClose?.(); router.push(isLoggedIn ? "/pitchready" : "/signup"); }}
+                          onClick={() => {
+                            if (!isLoggedIn) { onClose?.(); router.push("/signup"); return; }
+                            try {
+                              sessionStorage.setItem("pitchReadyJobContext", JSON.stringify({
+                                title:   job.title,
+                                company: job.company ?? "",
+                              }));
+                            } catch { /* ignore */ }
+                            onClose?.();
+                            router.push("/pitchready");
+                          }}
                           style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: A.bgCard, color: A.text2, border: `1px solid ${A.border}`, textAlign: "left" }}
                         >
                           <span>Tailor your pitch</span>
