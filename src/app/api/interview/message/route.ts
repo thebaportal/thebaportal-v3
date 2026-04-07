@@ -31,11 +31,26 @@ export async function POST(request: Request) {
       ? `JOB DESCRIPTION PROVIDED:\n${jd.trim()}\n\nUse this JD to tailor your questions. Extract key skills (e.g. Agile, SQL, stakeholder management), domain, and seniority signals. Weight your questions toward what this specific role demands. When JD mentions specific skills, ask follow-ups that surface whether the candidate actually has depth in those areas.`
       : "";
 
+    const mainQuestionGuidance: Record<string, string> = {
+      "Behavioral (STAR)": jd?.trim()
+        ? `Ask about a specific past experience tied to a skill or situation visible in the JD. Use "Tell me about a time when..." and name the context from the JD. Do not ask a generic behavioral question you could ask anyone.`
+        : `Ask about a specific past experience using "Tell me about a time when..." — choose a situation a BA regularly faces: requirements conflict, unclear scope, difficult stakeholder, missed deadline.`,
+      "BA Technical": jd?.trim()
+        ? `Pick a core BA skill explicitly or implicitly required by the JD. Ask them to walk you through exactly how they do it. Be specific: name the skill. "Walk me through how you [specific skill]." Do not ask about BA in general.`
+        : `Pick one core BA skill: elicitation, requirements documentation, process mapping, gap analysis, or stakeholder sign-off. Ask them to walk through how they do it on a real project.`,
+      "Situational": jd?.trim()
+        ? `Present a realistic scenario tied to the specific challenges in this role (use JD signals for context). Build in a tension or ambiguity. Start with "Imagine you've just..." or "You've been brought in to..." — make it specific to this type of role, not abstract.`
+        : `Present a realistic BA scenario with a built-in tension: conflicting stakeholders, moving requirements, unclear scope, or a stakeholder who won't engage. Start with "You've just been handed..." — make it feel real.`,
+      "Role Fit": jd?.trim()
+        ? `Ask about their motivation or self-awareness tied to this specific role. Avoid "Why BA?" — instead connect to something specific in the JD: the domain, the type of work, the seniority level. "What draws you to this kind of work specifically?" or "What about [domain from JD] interests you?"`
+        : `Ask about self-awareness or motivation. Not "why BA?" — something more probing: "What type of BA work do you find easiest?" or "Where do you think you still have the most to learn?"`,
+    };
+
     const followUpInstruction = isFollowUp
-      ? `You just asked your main question. Now ask ONE specific follow-up that digs deeper into what they just said. Reference something concrete from their actual answer — a specific detail, a claim, a gap. Do not ask a generic follow-up.`
+      ? `You just asked your main question. Now ask ONE follow-up that targets a specific gap or unsupported claim in what they just said. Quote 3–5 words directly from their answer, then probe. Format: "You said [their exact words] — [targeted question about the gap]." Do not ask anything generic. Do not ask anything you could have asked without hearing their answer.`
       : questionNumber === 3 || questionNumber === 6
-      ? `Ask a Deep Dive question. Look back at everything the candidate has said so far. Pick the single most interesting or specific thing they mentioned and probe deeper. Quote or reference what they said (e.g. "You mentioned X — tell me more about...").`
-      : `Ask the ${questionType} question appropriate for this stage of the interview.`;
+      ? `Ask a Deep Dive question. Look back at everything the candidate has said so far. Pick the single most interesting or specific thing they mentioned and probe deeper. Quote their exact words (e.g. "You mentioned [X] — what was the actual disagreement there?"). Do not ask anything new — this is about going deeper on what they already said.`
+      : mainQuestionGuidance[questionType] ?? `Ask the ${questionType} question appropriate for this stage of the interview.`;
 
     const systemPrompt = `You are Alex Rivera, Senior Hiring Manager. You have 12 years of experience building BA teams at enterprise companies. You are conducting a structured BA job interview.
 
@@ -59,9 +74,10 @@ ${followUpInstruction}
 RULES:
 - Ask ONE question only. Never two questions at once.
 - Keep your response to 2–3 sentences maximum.
-- Do NOT give affirmations like "Great answer!" or "That's interesting!" — acknowledge very briefly if needed (one word: "Understood." / "Right."), then ask your question.
+- No affirmations. No "Great answer!", "That's interesting!", "Good point." — acknowledge with a single word at most ("Understood." / "Right." / "Go on."), then your question.
 - Do NOT evaluate or score the candidate mid-interview.
-- For Deep Dive and follow-ups: be specific. Reference what they actually said. Make them feel you were listening.`;
+- Every question must reflect what you know about this specific candidate. If you could have asked the same question at the start of the interview without hearing anything they said — it is too generic. Rewrite it.
+- For follow-ups and Deep Dive: quote their actual words. Do not paraphrase. Do not invent a gap — find a real one.`;
 
     // Build Anthropic messages — always starts with a synthetic user opener
     const anthropicMessages: { role: "user" | "assistant"; content: string }[] = [

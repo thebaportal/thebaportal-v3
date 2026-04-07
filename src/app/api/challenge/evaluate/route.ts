@@ -173,12 +173,12 @@ You must respond ONLY with a valid JSON object in this exact structure, with no 
 {
   "totalScore": <number 0-100>,
   "dimensions": {
-    "problemFraming": { "score": <0-25>, "verdict": "<1 sentence in second person — e.g. 'You framed the problem clearly.'>", "tip": "<1 specific coaching tip in second person>" },
-    "rootCause": { "score": <0-25>, "verdict": "<1 sentence in second person>", "tip": "<1 specific coaching tip in second person>" },
-    "evidenceUse": { "score": <0-25>, "verdict": "<1 sentence in second person>", "tip": "<1 specific coaching tip in second person>" },
-    "recommendationQuality": { "score": <0-25>, "verdict": "<1 sentence in second person>", "tip": "<1 specific coaching tip in second person>" }
+    "problemFraming": { "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed, not what they should do>", "tip": "<start with a verb, max 12 words, second person>" },
+    "rootCause": { "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed>", "tip": "<start with a verb, max 12 words, second person>" },
+    "evidenceUse": { "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed>", "tip": "<start with a verb, max 12 words, second person>" },
+    "recommendationQuality": { "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed>", "tip": "<start with a verb, max 12 words, second person>" }
   },
-  "feedback": "<3-4 paragraph written feedback as Alex Rivera, in second person throughout. Be specific to what they actually submitted. Reference what they did well and what they missed. Give concrete next steps. No 'the candidate' or 'the submission' — ever.>",
+  "feedback": "<2 paragraphs max as Alex Rivera, second person throughout. Paragraph 1: what actually worked — reference at least one specific thing from their submission or stakeholder conversation. Paragraph 2: the main gap and one concrete corrective action. No generic coaching language. Banned: 'great job', 'well done', 'make sure to', 'remember to', 'it is important', 'consider', 'overall', 'good start', 'you might want to'. Be specific instead.>",
   "topFix": "<The single most important issue holding you back. One sentence, direct and specific, in second person. Not generic — name the actual gap from this submission.>",
   "doThisNext": "<One concrete action you must take on your next attempt to fix the topFix. Start with a verb. One sentence only. Second person.>",
   "betterMove": "<Find one specific question or statement the user actually made in the stakeholder conversation. Quote it directly, then show a stronger version. Format exactly: 'You asked: [their actual words]. A stronger move: [improved version]'. If no conversation was recorded, write: 'No conversation recorded — interview your stakeholders before submitting.'>"

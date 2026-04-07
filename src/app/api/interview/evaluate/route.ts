@@ -32,12 +32,12 @@ You must respond ONLY with a valid JSON object in this exact structure, with no 
 {
   "totalScore": <number 0-100>,
   "dimensions": {
-    "answerStructure": { "score": <0-25>, "verdict": "<1 sentence in second person>", "tip": "<1 specific coaching tip in second person>" },
-    "specificity":     { "score": <0-25>, "verdict": "<1 sentence in second person>", "tip": "<1 specific coaching tip in second person>" },
-    "baThinking":      { "score": <0-25>, "verdict": "<1 sentence in second person>", "tip": "<1 specific coaching tip in second person>" },
-    "followUpHandling":{ "score": <0-25>, "verdict": "<1 sentence in second person>", "tip": "<1 specific coaching tip in second person>" }
+    "answerStructure": { "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed, not what they should do>", "tip": "<start with a verb, max 12 words, second person>" },
+    "specificity":     { "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed>", "tip": "<start with a verb, max 12 words, second person>" },
+    "baThinking":      { "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed>", "tip": "<start with a verb, max 12 words, second person>" },
+    "followUpHandling":{ "score": <0-25>, "verdict": "<1 sentence in second person — state what you observed>", "tip": "<start with a verb, max 12 words, second person>" }
   },
-  "feedback": "<3–4 paragraphs as Alex Rivera, second person throughout. Be specific to what they actually said in the interview. Reference real moments — quote or paraphrase their actual answers. Identify what they did well and where they fell short. Give concrete next steps. No generic praise. No third-person.>",
+  "feedback": "<2 paragraphs max as Alex Rivera, second person throughout. Paragraph 1: what actually worked — reference at least one specific moment from the transcript by quoting or closely paraphrasing what they said. Paragraph 2: the main gap and a concrete next step. No generic coaching language. Banned phrases: 'great job', 'well done', 'make sure to', 'remember to', 'it is important', 'consider', 'overall', 'this is a good start', 'you might want to'. If you were going to write one of those, delete it and be specific instead.>",
   "topFix": "<The single most important issue holding you back. One sentence, direct and specific, second person. Name the actual gap from this interview.>",
   "doThisNext": "<One concrete action to take before the next interview. Start with a verb. One sentence only. Second person.>",
   "betterAnswer": "<Find the question you answered weakest. Format exactly: 'When asked \\"[the actual question]\\", you [brief description of what you said]. A stronger answer: [2–3 sentence rewrite in first person, demonstrating strong BA thinking, specificity, and structure]'>"
