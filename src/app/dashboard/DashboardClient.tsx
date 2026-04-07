@@ -66,6 +66,41 @@ const featuredChallenges = [
 
 const HERO_IMG = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1400&q=80";
 
+// ── Progress helpers ───────────────────────────────────────────────────────
+
+function pctColor(score: number): string {
+  if (score >= 80) return "#1fbf9f";
+  if (score >= 60) return "#fb923c";
+  return "#f87171";
+}
+
+function avgOf(nums: number[]): number {
+  if (!nums.length) return 0;
+  return Math.round(nums.reduce((s, n) => s + n, 0) / nums.length);
+}
+
+interface DimStat { key: string; label: string; color: string; avg: number; weakInsight: string; strongInsight: string }
+
+function buildDimStats(attempts: ChallengeAttempt[]): DimStat[] {
+  const r = attempts.slice(0, 5);
+  return [
+    { key: "pf", label: "Problem Framing",  color: "#38bdf8", avg: avgOf(r.map(a => a.score_problem_framing)),  weakInsight: "You tend to jump to solutions before the problem is fully understood.",       strongInsight: "Your strongest move is framing the problem clearly before diving in."         },
+    { key: "rc", label: "Root Cause",        color: "#a78bfa", avg: avgOf(r.map(a => a.score_root_cause)),       weakInsight: "You accept the first explanation too quickly — probe deeper.",             strongInsight: "You consistently dig past surface symptoms to find the real root cause."     },
+    { key: "eu", label: "Evidence Use",      color: "#fb923c", avg: avgOf(r.map(a => a.score_evidence_use)),     weakInsight: "You tend to under-use the evidence gathered in your stakeholder conversations.", strongInsight: "You effectively tie stakeholder evidence to your recommendations."        },
+    { key: "rq", label: "Recommendation",    color: "#1fbf9f", avg: avgOf(r.map(a => a.score_recommendation)),   weakInsight: "Your recommendations often lack the specificity needed in a real BA setting.", strongInsight: "Your recommendations are consistently clear, specific, and actionable."   },
+  ];
+}
+
+function getPatternInsights(dimStats: DimStat[]): string[] {
+  const sorted = [...dimStats].sort((a, b) => a.avg - b.avg);
+  const weakest  = sorted[0];
+  const strongest = sorted[sorted.length - 1];
+  const overall  = avgOf(dimStats.map(d => d.avg));
+  const insights = [weakest.weakInsight];
+  if (strongest.avg >= overall + 3) insights.push(strongest.strongInsight);
+  return insights;
+}
+
 
 export default function DashboardClient({ profile, user, upgradeSuccess, emailConfirmed, stats }: DashboardClientProps) {
   const router = useRouter();
@@ -189,6 +224,151 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
               </motion.div>
             ))}
           </div>
+
+          {/* ── PROGRESS SECTION ──────────────────────────────────────── */}
+          {(() => {
+            const n = attempts.length;
+
+            // 0 attempts
+            if (n === 0) return (
+              <div style={{ marginBottom: 24, padding: "32px 36px", borderRadius: 18, background: "var(--card)", border: "1px solid var(--border)", textAlign: "center" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 8, fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                  You haven&apos;t started yet.
+                </div>
+                <p style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.65, marginBottom: 20, maxWidth: 380, margin: "0 auto 20px" }}>
+                  Start your first simulation to see how you think under pressure.
+                </p>
+                <button onClick={() => router.push("/scenarios")} className="btn-teal" style={{ fontSize: "14px" }}>
+                  Start simulation <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            );
+
+            // 1 attempt
+            if (n === 1) return (
+              <div style={{ marginBottom: 24, padding: "28px 32px", borderRadius: 18, background: "var(--card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" as const }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 6, fontFamily: "'Inter','Open Sans',sans-serif" }}>
+                    You&apos;ve completed your first simulation.
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.6, margin: 0 }}>
+                    Run a few more to start seeing patterns in your performance.
+                  </p>
+                </div>
+                <button onClick={() => router.push("/scenarios")} className="btn-teal" style={{ fontSize: "13px", flexShrink: 0 }}>
+                  Try another simulation <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            );
+
+            // 2+ attempts — full progress view
+            const trend = attempts.slice(0, 5).reverse(); // oldest → newest
+            const maxScore = Math.max(...trend.map(a => a.total_score), 1);
+            const dimStats = buildDimStats(attempts);
+            const sortedDims = [...dimStats].sort((a, b) => a.avg - b.avg);
+            const weakestDim = sortedDims[0];
+            const strongestDim = sortedDims[sortedDims.length - 1];
+            const insights = getPatternInsights(dimStats);
+
+            return (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "var(--text-4)", fontFamily: "monospace", marginBottom: 14 }}>
+                  Your Progress
+                </div>
+
+                {/* Score Trend + Pattern Insights row */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+
+                  {/* Score Trend */}
+                  <div style={{ padding: "22px 24px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 20, fontFamily: "'Inter','Open Sans',sans-serif" }}>Score Trend</div>
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 80 }}>
+                      {trend.map((a, i) => {
+                        const h = Math.max(8, Math.round((a.total_score / maxScore) * 72));
+                        const isLatest = i === trend.length - 1;
+                        return (
+                          <div key={a.id} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: pctColor(a.total_score), fontFamily: "monospace" }}>{a.total_score}</span>
+                            <motion.div
+                              initial={{ height: 0 }} animate={{ height: h }}
+                              transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.06 }}
+                              style={{
+                                width: "100%", borderRadius: 4,
+                                background: isLatest ? pctColor(a.total_score) : `${pctColor(a.total_score)}55`,
+                                border: isLatest ? `1px solid ${pctColor(a.total_score)}` : "none",
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                      {trend.map((a) => (
+                        <div key={a.id} style={{ flex: 1, fontSize: 9, color: "var(--text-4)", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, fontFamily: "monospace" }}>
+                          {a.challenge_type}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pattern Insights */}
+                  <div style={{ padding: "22px 24px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 16, fontFamily: "'Inter','Open Sans',sans-serif" }}>Pattern Insights</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {insights.map((insight, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          <div style={{
+                            flexShrink: 0, width: 6, height: 6, borderRadius: "50%", marginTop: 6,
+                            background: i === 0 ? "#fb923c" : "#1fbf9f",
+                          }} />
+                          <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: 0 }}>{insight}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-4)" }}>
+                      Based on your last {Math.min(n, 5)} simulation{Math.min(n, 5) !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Strength vs Weakness */}
+                <div style={{ padding: "22px 24px", borderRadius: 16, background: "var(--card)", border: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 16, fontFamily: "'Inter','Open Sans',sans-serif" }}>Dimension Breakdown</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    {dimStats.map(d => {
+                      const isWeak   = d.key === weakestDim.key;
+                      const isStrong = d.key === strongestDim.key;
+                      return (
+                        <div key={d.key} style={{
+                          padding: "14px 16px", borderRadius: 12,
+                          background: "rgba(255,255,255,0.02)",
+                          border: isWeak   ? "1px solid rgba(251,146,60,0.3)"
+                               : isStrong ? "1px solid rgba(31,191,159,0.3)"
+                               : "1px solid var(--border)",
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: d.color }}>{d.label}</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                              {isWeak   && <span style={{ fontSize: 9, fontWeight: 700, color: "#fb923c", background: "rgba(251,146,60,0.1)", padding: "1px 6px", borderRadius: 4 }}>WEAKEST</span>}
+                              {isStrong && <span style={{ fontSize: 9, fontWeight: 700, color: "#1fbf9f", background: "rgba(31,191,159,0.1)", padding: "1px 6px", borderRadius: 4 }}>STRONGEST</span>}
+                              <span style={{ fontSize: 13, fontWeight: 700, color: pctColor(d.avg * 4), fontFamily: "monospace" }}>{d.avg}<span style={{ fontSize: 10, color: "var(--text-4)", fontWeight: 400 }}>/25</span></span>
+                            </div>
+                          </div>
+                          <div style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                            <motion.div
+                              initial={{ width: 0 }} animate={{ width: `${(d.avg / 25) * 100}%` }}
+                              transition={{ duration: 0.7, ease: "easeOut" }}
+                              style={{ height: "100%", borderRadius: 99, background: d.color }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* BOTTOM GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
