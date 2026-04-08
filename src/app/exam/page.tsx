@@ -18,8 +18,14 @@ export default async function ExamPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("profiles").select("subscription_tier")
+    .from("profiles").select("subscription_tier, full_name")
     .eq("id", user.id).single();
 
-  return <ExamClient tier={profile?.subscription_tier ?? "free"} />;
+  return (
+    <ExamClient
+      tier={profile?.subscription_tier ?? "free"}
+      profile={profile ?? null}
+      user={{ email: user.email ?? "" }}
+    />
+  );
 }

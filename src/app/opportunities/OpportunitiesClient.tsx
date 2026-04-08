@@ -7,12 +7,15 @@ import { Search, Briefcase, RefreshCw, AlertTriangle, X, Bookmark } from "lucide
 import type { JobListing, PrepLink } from "@/lib/jobInsights";
 import JobDetailContent from "@/components/JobDetailContent";
 import { useAnalytics } from "@/lib/posthog";
+import AppSidebar from "@/components/AppSidebar";
 
 interface Props {
   initialJobs: JobListing[];
   isLoggedIn: boolean;
   savedJobIds?: string[];
   syncError?: string;
+  profile?: { full_name: string | null; subscription_tier: string | null } | null;
+  user?: { email: string };
 }
 
 interface PracticeModal {
@@ -449,7 +452,7 @@ function generateAlexCardInsight(job: JobListing, cardIndex: number): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobIds = [], syncError }: Props) {
+export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobIds = [], syncError, profile, user }: Props) {
   const router = useRouter();
   const { track } = useAnalytics();
   const [keyword,     setKeyword]     = useState("");
@@ -533,31 +536,37 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobI
     return true;
   }), [initialJobs, keyword, workType, level, province]);
 
-  return (
-    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Inter','Open Sans',sans-serif", WebkitFontSmoothing: "antialiased", color: C.text1 }}>
+  const withSidebar = isLoggedIn && !!profile && !!user;
 
-      {/* ── Nav ── */}
-      <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, height: 58, display: "flex", alignItems: "center", padding: "0 24px", background: "rgba(9,9,11,0.92)", borderBottom: `1px solid ${C.border}`, backdropFilter: "blur(20px)" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", fontSize: 16, fontWeight: 800, color: C.text1, letterSpacing: "-0.01em" }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: C.teal, fontFamily: "monospace" }}>BA</div>
-            The<span style={{ color: C.teal }}>BA</span>Portal
-          </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {isLoggedIn ? (
-              <Link href="/dashboard" style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Dashboard</Link>
-            ) : (
-              <>
-                <Link href="/login"  style={{ fontSize: 13, color: C.text3, textDecoration: "none" }}>Sign in</Link>
-                <Link href="/signup" style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
-              </>
-            )}
+  return (
+    <div style={{
+      background: C.bg, fontFamily: "'Inter','Open Sans',sans-serif", WebkitFontSmoothing: "antialiased", color: C.text1,
+      ...(withSidebar ? { display: "flex", height: "100vh", overflow: "hidden" } : { minHeight: "100vh" }),
+    }}>
+
+      {/* Global sidebar (logged in) or top nav (logged out) */}
+      {withSidebar ? (
+        <AppSidebar activeHref="/opportunities" profile={profile!} user={user!} />
+      ) : (
+        <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, height: 58, display: "flex", alignItems: "center", padding: "0 24px", background: "rgba(9,9,11,0.92)", borderBottom: `1px solid ${C.border}`, backdropFilter: "blur(20px)" }}>
+          <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", fontSize: 16, fontWeight: 800, color: C.text1, letterSpacing: "-0.01em" }}>
+              <div style={{ width: 26, height: 26, borderRadius: 7, background: C.tealSoft, border: `1px solid ${C.tealBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: C.teal, fontFamily: "monospace" }}>BA</div>
+              The<span style={{ color: C.teal }}>BA</span>Portal
+            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Link href="/login"  style={{ fontSize: 13, color: C.text3, textDecoration: "none" }}>Sign in</Link>
+              <Link href="/signup" style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
+
+      {/* Scrollable content */}
+      <div style={withSidebar ? { flex: 1, overflowY: "auto" } : {}}>
 
       {/* ── Hero ── */}
-      <div style={{ paddingTop: 58, borderBottom: `1px solid ${C.border}`, background: `linear-gradient(180deg, #0c1118 0%, ${C.bg} 100%)` }}>
+      <div style={{ paddingTop: withSidebar ? 0 : 58, borderBottom: `1px solid ${C.border}`, background: `linear-gradient(180deg, #0c1118 0%, ${C.bg} 100%)` }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "52px 32px 44px" }}>
           <h1 style={{ fontSize: "clamp(28px, 3.6vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", color: C.text1, lineHeight: 1.12, marginBottom: 14 }}>
             Curated BA jobs in Canada.
@@ -897,6 +906,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobI
         </div>
       )}
 
+      </div>
     </div>
   );
 }

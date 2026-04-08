@@ -10,6 +10,7 @@ import {
   AREA_LABELS, AREA_SHORT, BABOKArea, ExamQuestion, QUESTIONS,
   selectPracticeQuestions, selectMockQuestions,
 } from "@/data/examQuestions";
+import AppSidebar from "@/components/AppSidebar";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type View =
@@ -209,9 +210,13 @@ const btnDanger: React.CSSProperties = {
 };
 
 // ── Main Component ───────────────────────────────────────────────────────────
-interface ExamClientProps { tier: string; }
+interface ExamClientProps {
+  tier: string;
+  profile: { full_name: string | null; subscription_tier: string | null } | null;
+  user: { email: string };
+}
 
-export default function ExamClient({ tier: _tier }: ExamClientProps) {
+export default function ExamClient({ tier: _tier, profile, user }: ExamClientProps) {
   const [view, setView] = useState<View>("home");
   const [setup, setSetup] = useState<PracticeSetup>({ area: "planning", count: 20, difficulty: "mixed" });
 
@@ -444,7 +449,9 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
     const sessionActive = view === "practice-session" || view === "mock-session";
 
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg-1)", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-1)" }}>
+        <AppSidebar activeHref="/exam" profile={profile} user={user} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
         {ExitWarningModal}
 
         {/* TOP CONTROL BAR */}
@@ -639,6 +646,7 @@ export default function ExamClient({ tier: _tier }: ExamClientProps) {
               {rightPanel}
             </div>
           )}
+        </div>
         </div>
       </div>
     );

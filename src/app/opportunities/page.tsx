@@ -52,14 +52,16 @@ export default async function OpportunitiesPage() {
       .order("posted_at",     { ascending: false })
       .limit(200);
 
-  // Fetch saved job IDs for logged-in users
+  // Fetch saved job IDs + profile for logged-in users
   let savedJobIds: string[] = [];
+  let userProfile: { full_name: string | null; subscription_tier: string | null } | null = null;
   if (user) {
-    const { data: saved } = await adminDb
-      .from("saved_jobs")
-      .select("job_id")
-      .eq("user_id", user.id);
-    savedJobIds = (saved ?? []).map(s => s.job_id);
+    const [savedRes, profileRes] = await Promise.all([
+      adminDb.from("saved_jobs").select("job_id").eq("user_id", user.id),
+      adminDb.from("profiles").select("full_name, subscription_tier").eq("id", user.id).single(),
+    ]);
+    savedJobIds = (savedRes.data ?? []).map(s => s.job_id);
+    userProfile = profileRes.data ?? null;
   }
 
   let { data: raw } = await fetchJobs();
@@ -91,6 +93,8 @@ export default async function OpportunitiesPage() {
           isLoggedIn={!!user}
           savedJobIds={savedJobIds}
           syncError={undefined}
+          profile={userProfile}
+          user={user ? { email: user.email ?? "" } : undefined}
         />
       );
     }
@@ -102,6 +106,8 @@ export default async function OpportunitiesPage() {
       isLoggedIn={!!user}
       savedJobIds={savedJobIds}
       syncError={syncError}
+      profile={userProfile}
+      user={user ? { email: user.email ?? "" } : undefined}
     />
   );
 }
