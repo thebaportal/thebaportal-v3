@@ -144,11 +144,11 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
     if (isCollapsed) return <div style={{ height: 8 }} />;
     return (
       <div style={{
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: 600,
-        letterSpacing: "0.1em",
+        letterSpacing: "0.12em",
         textTransform: "uppercase",
-        color: "var(--text-4)",
+        color: "var(--text-3)",
         padding: "0 12px 6px",
         fontFamily: "'Inter','Open Sans',sans-serif",
       }}>
@@ -222,7 +222,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
         ))}
 
         {/* Section divider */}
-        <div style={{ height: 1, background: "var(--border)", margin: "20px 4px" }} />
+        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "24px 4px 20px" }} />
 
         {/* Section 2: Growth */}
         <SectionLabel label="Growth" isCollapsed={isCollapsed} />
