@@ -8,18 +8,24 @@ import {
   User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, FolderOpen, MessageSquare,
 } from "lucide-react";
 
-const NAV_ITEMS = [
+const CORE_ITEMS = [
   { icon: LayoutDashboard,    label: "Dashboard",      href: "/dashboard" },
   { icon: BookOpen,           label: "Simulation Lab", href: "/scenarios" },
   { icon: MessageSquare,      label: "Interview Lab",  href: "/interview" },
-  { icon: TrendingUp,         label: "Progress",       href: "/progress" },
-  { icon: GraduationCap,      label: "Learning",       href: "/learning" },
-  { icon: Mic,                label: "PitchReady",     href: "/pitchready" },
-  { icon: Target,             label: "Exam Prep",      href: "/exam" },
-  { icon: BriefcaseBusiness,  label: "Career Suite",   href: "/career" },
-  { icon: Globe2,             label: "Opportunities",  href: "/opportunities" },
-  { icon: FolderOpen,         label: "My Workspace",   href: "/workspace" },
-  { icon: Trophy,             label: "Portfolio",      href: "/portfolio" },
+  { icon: Globe2,             label: "Jobs",           href: "/opportunities" },
+];
+
+const SECONDARY_ITEMS = [
+  { icon: Mic,    label: "PitchReady", href: "/pitchready" },
+  { icon: Target, label: "Exam Prep",  href: "/exam" },
+];
+
+const MORE_ITEMS = [
+  { icon: TrendingUp,        label: "Progress",      href: "/progress" },
+  { icon: BriefcaseBusiness, label: "Career Suite",  href: "/career" },
+  { icon: FolderOpen,        label: "My Workspace",  href: "/workspace" },
+  { icon: Trophy,            label: "Portfolio",     href: "/portfolio" },
+  { icon: GraduationCap,     label: "Learning",      href: "/learning" },
 ];
 
 interface AppSidebarProps {
@@ -163,17 +169,9 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
 
       {/* Nav items */}
       <nav style={{ flex: 1, padding: "10px 8px", overflowY: "auto", overflowX: "hidden" }}>
-        {!isCollapsed && (
-          <div style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
-            color: "var(--text-4)", textTransform: "uppercase",
-            padding: "0 8px 8px",
-          }}>
-            Platform
-          </div>
-        )}
 
-        {NAV_ITEMS.map(item => {
+        {/* Core items */}
+        {CORE_ITEMS.map(item => {
           const active = activeHref === item.href ||
             (item.href !== "/dashboard" && activeHref.startsWith(item.href));
           return (
@@ -219,13 +217,61 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
                 <>
                   <span style={{ flex: 1 }}>{item.label}</span>
                   {active && (
-                    <div style={{
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: "var(--teal)", flexShrink: 0,
-                    }} />
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--teal)", flexShrink: 0 }} />
                   )}
                 </>
               )}
+            </button>
+          );
+        })}
+
+        {/* Secondary items — de-emphasized */}
+        <div style={{ height: 1, background: "var(--border)", margin: "8px 8px" }} />
+        {SECONDARY_ITEMS.map(item => {
+          const active = activeHref.startsWith(item.href);
+          return (
+            <button
+              key={item.href}
+              onClick={() => { router.push(item.href); if (isMobile) setMobileOpen(false); }}
+              title={isCollapsed ? item.label : undefined}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: isCollapsed ? "center" : "flex-start",
+                gap: isCollapsed ? 0 : 10,
+                padding: isCollapsed ? "10px 0" : "9px 12px",
+                borderRadius: 10,
+                marginBottom: 2,
+                background: active ? "var(--teal-soft)" : "transparent",
+                border: active ? "1px solid var(--teal-border)" : "1px solid transparent",
+                color: active ? "var(--teal)" : "var(--text-3)",
+                fontSize: 12.5,
+                fontWeight: active ? 600 : 400,
+                fontFamily: "'Inter','Open Sans',sans-serif",
+                cursor: "pointer",
+                transition: "background 0.12s, color 0.12s",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                opacity: active ? 1 : 0.7,
+              }}
+              onMouseEnter={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)";
+                  (e.currentTarget as HTMLButtonElement).style.opacity = "1";
+                }
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--text-3)";
+                  (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
+                }
+              }}
+            >
+              <item.icon size={15} style={{ flexShrink: 0 }} />
+              {!isCollapsed && <span style={{ flex: 1 }}>{item.label}</span>}
             </button>
           );
         })}
@@ -296,6 +342,25 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
               }}>
                 {isPro ? "⚡ Pro Member" : "Free Plan"}
               </div>
+            </div>
+            {/* More — hidden nav items */}
+            <div style={{ padding: "6px 6px 0", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              {!isCollapsed && (
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-4)", textTransform: "uppercase", padding: "4px 12px 6px", fontFamily: "monospace" }}>
+                  More
+                </div>
+              )}
+              {MORE_ITEMS.map(it => (
+                <button
+                  key={it.href}
+                  onClick={() => { setMenuOpen(false); router.push(it.href); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10, background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", fontSize: 13, fontWeight: 400, fontFamily: "'Inter','Open Sans',sans-serif", textAlign: "left" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                >
+                  <it.icon size={14} style={{ flexShrink: 0 }} />{it.label}
+                </button>
+              ))}
             </div>
             <div style={{ padding: 6 }}>
               {[

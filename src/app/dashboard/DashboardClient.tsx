@@ -236,7 +236,7 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
                 </p>
                 {n === 0 && (
                   <button onClick={() => router.push("/opportunities")} style={{ fontSize: 12, fontWeight: 600, color: "var(--teal)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                    Or browse jobs to prepare for a specific role →
+                    Browse Jobs to prepare for a specific role →
                   </button>
                 )}
               </div>
@@ -438,7 +438,7 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
               {[
                 { label: "Simulation Lab",  sub: "Practice the job",         href: "/scenarios",        color: "#38bdf8" },
                 { label: "Interview Lab",    sub: "Practice getting the job",  href: "/interview",        color: "#1fbf9f" },
-                { label: "Opportunities",    sub: "Browse BA jobs",            href: "/opportunities",    color: "#a78bfa" },
+                { label: "Jobs",             sub: "Browse BA jobs",            href: "/opportunities",    color: "#a78bfa" },
               ].map(item => (
                 <button key={item.href} onClick={() => router.push(item.href)}
                   style={{
