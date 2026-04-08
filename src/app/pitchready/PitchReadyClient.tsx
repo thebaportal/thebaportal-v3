@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Mic, MicOff, Square, Play, ChevronRight, ArrowLeft,
+  Mic, MicOff, Square, Play, ChevronRight,
   Clock, BarChart2, BookOpen, History, TrendingUp, Home,
   AlertCircle, CheckCircle, XCircle, RefreshCw, Target, X,
 } from "lucide-react";
+import AppSidebar from "@/components/AppSidebar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -493,9 +494,15 @@ function ScenarioTile({ scenario: s, color, onSelect }: { scenario: Scenario; co
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-interface Props { tier: string; userName: string; initialSessions?: SessionRecord[]; }
+interface Props {
+  tier: string;
+  userName: string;
+  initialSessions?: SessionRecord[];
+  profile: { full_name: string | null; subscription_tier: string | null } | null;
+  user: { email: string };
+}
 
-export default function PitchReadyClient({ tier, userName, initialSessions = [] }: Props) {
+export default function PitchReadyClient({ tier, userName, initialSessions = [], profile, user }: Props) {
   const router = useRouter();
   const [view, setView] = useState<PitchView>("home");
   const [jobTitle,   setJobTitle]   = useState("");
@@ -918,14 +925,13 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
     { view: "scenarios" as PitchView, label: "Scenario Library", icon: BookOpen },
     { view: "studio" as PitchView, label: "Practice Studio", icon: Mic },
     { view: "history" as PitchView, label: "Session History", icon: History },
-    { view: "progress" as PitchView, label: "Progress", icon: TrendingUp },
   ];
 
   const CORAL = "#e05547";
 
   function Layout({ children }: { children: React.ReactNode }) {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}>
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
 
         {/* Exit guard modal */}
         {showExitGuard && (
@@ -948,71 +954,77 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [] 
           </div>
         )}
 
-        {/* LEFT SIDEBAR */}
-        <div style={{
-          width: "240px", flexShrink: 0, borderRight: "1px solid var(--border)",
-          display: "flex", flexDirection: "column", minHeight: "100vh",
-          position: "sticky", top: 0, height: "100vh", overflowY: "auto",
-        }}>
-          <div style={{ padding: "24px 20px 16px" }}>
-            <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-3)", textDecoration: "none", marginBottom: "14px", opacity: 0.7 }}>
-              <ArrowLeft size={12} /> Dashboard
-            </a>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: `linear-gradient(135deg, ${CORAL}, #f97316)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Mic size={14} color="#fff" />
-              </div>
-              <div style={{ fontSize: "17px", fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em" }}>PitchReady</div>
-            </div>
-          </div>
+        {/* Global sidebar */}
+        <AppSidebar activeHref="/pitchready" profile={profile} user={user} />
 
-          <div style={{ padding: "0 10px", flex: 1 }}>
+        {/* Main content */}
+        <main style={{ flex: 1, minWidth: 0, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+
+          {/* Page header */}
+          <header style={{
+            padding: "0 32px", height: 60, flexShrink: 0,
+            display: "flex", alignItems: "center",
+            position: "sticky", top: 0, zIndex: 20,
+            background: "rgba(9,9,11,0.9)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+            borderBottom: "1px solid var(--border)",
+          }}>
+            <div>
+              <h1 style={{ fontWeight: 800, fontSize: 20, color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+                PitchReady
+              </h1>
+              <p style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, fontFamily: "monospace" }}>
+                BA communication practice
+              </p>
+            </div>
+          </header>
+
+          {/* Internal tab nav */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 2,
+            padding: "0 24px", flexShrink: 0,
+            borderBottom: "1px solid var(--border)",
+            background: "var(--surface)",
+            position: "sticky", top: 60, zIndex: 19,
+            overflowX: "auto",
+          }}>
             {navItems.map(({ view: v, label, icon: Icon }) => {
               const active = view === v || (view === "feedback" && v === "studio");
               return (
-                <button key={v} onClick={() => {
-                  if (isRecording) { setShowExitGuard(true); return; }
-                  setView(v);
-                  if (v === "studio") resetStudio();
-                }}
+                <button
+                  key={v}
+                  onClick={() => {
+                    if (isRecording) { setShowExitGuard(true); return; }
+                    setView(v);
+                    if (v === "studio") resetStudio();
+                  }}
                   style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: "10px",
-                    padding: "10px 12px", borderRadius: "8px", border: "none",
-                    background: active ? `${CORAL}12` : "transparent",
-                    borderLeft: active ? `3px solid ${CORAL}` : "3px solid transparent",
-                    cursor: "pointer", marginBottom: "2px", transition: "all 0.15s",
-                    paddingLeft: active ? "9px" : "12px",
-                  }}>
-                  <Icon size={15} color={active ? CORAL : "var(--text-3)"} />
-                  <span style={{ fontSize: "13px", fontWeight: active ? 700 : 500, color: active ? "var(--text-1)" : "var(--text-2)" }}>
-                    {label}
-                  </span>
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "14px 14px 12px",
+                    background: "none", border: "none",
+                    borderBottom: active ? `2px solid ${CORAL}` : "2px solid transparent",
+                    marginBottom: -1,
+                    cursor: "pointer",
+                    color: active ? CORAL : "var(--text-3)",
+                    fontSize: 13, fontWeight: active ? 600 : 500,
+                    fontFamily: "'Inter','Open Sans',sans-serif",
+                    whiteSpace: "nowrap",
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)"; }}
+                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--text-3)"; }}
+                >
+                  <Icon size={13} />
+                  {label}
                 </button>
               );
             })}
           </div>
 
-          {sessions.length > 0 && (
-            <div style={{ padding: "16px 20px", borderTop: "1px solid var(--border)", margin: "0 0 0" }}>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "8px" }}>YOUR PROGRESS</div>
-              {avgScore !== null && (
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "5px" }}>
-                  <span style={{ color: "var(--text-3)" }}>Avg score</span>
-                  <span style={{ fontWeight: 800, color: avgScore >= 70 ? "var(--teal)" : "#f59e0b" }}>{avgScore}</span>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-                <span style={{ color: "var(--text-3)" }}>Sessions</span>
-                <span style={{ fontWeight: 800, color: CORAL }}>{sessions.length}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* MAIN CONTENT */}
-        <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
-          {children}
-        </div>
+          {/* View content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {children}
+          </div>
+        </main>
       </div>
     );
   }

@@ -34,6 +34,8 @@ export default async function PitchReadyPage() {
       tier={profile?.subscription_tier ?? "free"}
       userName={profile?.full_name ?? ""}
       initialSessions={sessionsData ?? []}
+      profile={profile ?? null}
+      user={{ email: user.email ?? "" }}
     />
   );
 }
