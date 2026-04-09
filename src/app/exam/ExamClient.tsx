@@ -43,6 +43,22 @@ const AREAS: BABOKArea[] = [
   "bi", "architecture", "it", "bpm", "competencies",
 ];
 
+const AREA_OPTIONS: { value: AreaOrAll; label: string }[] = [
+  { value: "all",           label: "All Knowledge Areas" },
+  { value: "planning",      label: "Planning and Monitoring" },
+  { value: "elicitation",   label: "Elicitation and Collaboration" },
+  { value: "lifecycle",     label: "Requirements Lifecycle" },
+  { value: "strategy",      label: "Strategy Analysis" },
+  { value: "analysis",      label: "Analysis and Design Definition" },
+  { value: "evaluation",    label: "Solution Evaluation" },
+  { value: "agile",         label: "Agile Perspective" },
+  { value: "bi",            label: "BI Perspective" },
+  { value: "architecture",  label: "Business Architecture" },
+  { value: "it",            label: "IT Perspective" },
+  { value: "bpm",           label: "BPM Perspective" },
+  { value: "competencies",  label: "Underlying Competencies" },
+];
+
 const MOCK_DURATION = 90 * 60;
 
 const AREA_COLORS: Record<BABOKArea, string> = {
@@ -430,22 +446,6 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
     rightPanel?: React.ReactNode;
     centerTitle?: string;
   }) {
-    const areaOptions: { value: AreaOrAll; label: string }[] = [
-      { value: "all", label: "All Knowledge Areas" },
-      { value: "planning", label: "Planning and Monitoring" },
-      { value: "elicitation", label: "Elicitation and Collaboration" },
-      { value: "lifecycle", label: "Requirements Lifecycle" },
-      { value: "strategy", label: "Strategy Analysis" },
-      { value: "analysis", label: "Analysis and Design Definition" },
-      { value: "evaluation", label: "Solution Evaluation" },
-      { value: "agile", label: "Agile Perspective" },
-      { value: "bi", label: "BI Perspective" },
-      { value: "architecture", label: "Business Architecture" },
-      { value: "it", label: "IT Perspective" },
-      { value: "bpm", label: "BPM Perspective" },
-      { value: "competencies", label: "Underlying Competencies" },
-    ];
-
     const sessionActive = view === "practice-session" || view === "mock-session";
 
     return (
@@ -460,43 +460,6 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
           background: "var(--bg-1)", borderBottom: "1px solid var(--border)",
           padding: "0 24px",
         }}>
-          {/* Readiness strip */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: "32px",
-            padding: "8px 0", borderBottom: "1px solid var(--border)",
-            fontSize: "11px", color: "var(--text-4)",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: avgScore != null && avgScore >= 70 ? "#10b981" : "#f59e0b" }} />
-              <span style={{ fontWeight: 600, color: "var(--text-3)" }}>Practice Accuracy</span>
-              <span style={{ fontWeight: 800, color: avgScore != null ? (avgScore >= 70 ? "#10b981" : "#f59e0b") : "var(--text-4)" }}>
-                {avgScore != null ? `${avgScore}%` : "No data yet"}
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: mockAvg != null && mockAvg >= 70 ? "#10b981" : "#8b5cf6" }} />
-              <span style={{ fontWeight: 600, color: "var(--text-3)" }}>Mock Average</span>
-              <span style={{ fontWeight: 800, color: mockAvg != null ? (mockAvg >= 70 ? "#10b981" : "#8b5cf6") : "var(--text-4)" }}>
-                {mockAvg != null ? `${mockAvg}%` : "Not attempted"}
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#06b6d4" }} />
-              <span style={{ fontWeight: 600, color: "var(--text-3)" }}>Sessions</span>
-              <span style={{ fontWeight: 800, color: "#06b6d4" }}>{results.length}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontWeight: 600, color: "var(--text-3)" }}>450 questions across 12 BABOK knowledge areas</span>
-            </div>
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-              <button
-                onClick={() => setView("my-results")}
-                style={{ ...btnSecondary, padding: "5px 12px", fontSize: "11px" }}>
-                <BarChart2 size={11} /> My Results
-              </button>
-            </div>
-          </div>
-
           {/* Main control bar */}
           {!sessionActive && (
             <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0" }}>
@@ -508,7 +471,7 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
                 value={setup.area}
                 onChange={e => setSetup(p => ({ ...p, area: e.target.value as AreaOrAll }))}
                 style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "7px", padding: "7px 10px", fontSize: "12px", color: "var(--text-1)", cursor: "pointer", fontWeight: 600, minWidth: "200px" }}>
-                {areaOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {AREA_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
 
               <div style={{ width: "1px", height: "28px", background: "var(--border)" }} />
@@ -585,47 +548,6 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
         {/* MAIN WORKSPACE */}
         <div style={{ display: "flex", flex: 1, maxWidth: "1400px", width: "100%", margin: "0 auto", alignItems: "flex-start" }}>
 
-          {/* LEFT SIDEBAR */}
-          <div style={{
-            width: "240px", flexShrink: 0, borderRight: "1px solid var(--border)",
-            minHeight: "calc(100vh - 100px)", padding: "20px 0", position: "sticky", top: "100px",
-            overflowY: "auto",
-          }}>
-            <div style={{ padding: "0 16px 12px", fontSize: "10px", fontWeight: 800, color: "var(--text-4)", letterSpacing: "0.1em" }}>
-              BABOK KNOWLEDGE AREAS
-            </div>
-            {AREAS.map(area => {
-              const stats = areaStats[area];
-              const isActive = setup.area === area;
-              const color = AREA_COLORS[area];
-              return (
-                <button key={area}
-                  onClick={() => { setSetup(p => ({ ...p, area })); }}
-                  style={{
-                    width: "100%", textAlign: "left", background: isActive ? `${color}0f` : "transparent",
-                    border: "none", borderLeft: `3px solid ${isActive ? color : "transparent"}`,
-                    padding: "10px 16px 10px 13px", cursor: "pointer", transition: "all 0.15s",
-                  }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                    <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: color, flexShrink: 0 }} />
-                    <span style={{ fontSize: "11px", fontWeight: 700, color: isActive ? color : "var(--text-2)", lineHeight: 1.3 }}>
-                      {AREA_SHORT[area]}
-                    </span>
-                  </div>
-                  <div style={{ paddingLeft: "15px" }}>
-                    <div style={{ fontSize: "10px", color: "var(--text-4)", marginBottom: "4px" }}>
-                      {stats.done > 0 ? `${stats.done} questions done` : "Not started"}
-                      {stats.avg != null && ` · ${stats.avg}% avg`}
-                    </div>
-                    <div style={{ height: "3px", background: "var(--border)", borderRadius: "2px" }}>
-                      <div style={{ height: "100%", width: `${Math.min(100, (stats.done / 40) * 100)}%`, background: color, borderRadius: "2px" }} />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
           {/* CENTER WORKSPACE */}
           <div style={{ flex: 1, minWidth: 0, padding: "28px 32px" }}>
             {centerTitle && (
@@ -656,147 +578,125 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
   // HOME
   // ════════════════════════════════════════════════════════════════════════════
   if (view === "home") {
-    const sessionEstimate = setup.count <= 10 ? "10 to 15 min" : setup.count <= 20 ? "20 to 30 min" : "50 to 60 min";
     return (
-      <Workspace
-        centerTitle="Business Analysis Certification Practice"
-        rightPanel={
-          <div>
-            <div style={{ fontSize: "10px", fontWeight: 800, color: "var(--text-4)", letterSpacing: "0.1em", marginBottom: "16px" }}>SESSION CONFIGURATION</div>
-            <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "10px", padding: "16px", marginBottom: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "10px" }}>
-                <span style={{ color: "var(--text-4)" }}>Knowledge Area</span>
-                <span style={{ fontWeight: 700, color: "var(--text-1)", fontSize: "11px", textAlign: "right", maxWidth: "120px" }}>
-                  {setup.area === "all" ? "All Areas" : AREA_SHORT[setup.area as BABOKArea]}
-                </span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "10px" }}>
-                <span style={{ color: "var(--text-4)" }}>Questions</span>
-                <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{setup.count}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "10px" }}>
-                <span style={{ color: "var(--text-4)" }}>Difficulty</span>
-                <span style={{ fontWeight: 700, color: "var(--text-1)" }}>
-                  {setup.difficulty === "mixed" ? "Mixed" : setup.difficulty.toUpperCase()}
-                </span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-                <span style={{ color: "var(--text-4)" }}>Est. time</span>
-                <span style={{ fontWeight: 700, color: "#06b6d4" }}>{sessionEstimate}</span>
-              </div>
-            </div>
-            <button style={{ ...btnPrimary, width: "100%", justifyContent: "center" }} onClick={startPractice}>
-              <Play size={14} /> Start Session
-            </button>
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-1)" }}>
+        <AppSidebar activeHref="/exam" profile={profile} user={user} />
+        <main style={{ flex: 1, overflowY: "auto" }}>
 
-            <div style={{ marginTop: "24px", fontSize: "10px", fontWeight: 800, color: "var(--text-4)", letterSpacing: "0.1em", marginBottom: "12px" }}>MOCK EXAM</div>
-            <div style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: "10px", padding: "14px", marginBottom: "12px" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: "#8b5cf6", marginBottom: "6px" }}>Full Simulation</div>
-              <div style={{ fontSize: "11px", color: "var(--text-4)", lineHeight: 1.6, marginBottom: "12px" }}>
-                120 questions across all 7 core BABOK knowledge areas. 90 minute timer. No feedback until submission.
+          {/* Page header */}
+          <header style={{
+            padding: "0 32px", height: 60, flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            position: "sticky", top: 0, zIndex: 20,
+            background: "rgba(9,9,11,0.9)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+            borderBottom: "1px solid var(--border)",
+          }}>
+            <div>
+              <h1 style={{ fontWeight: 800, fontSize: 20, color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+                Exam Prep
+              </h1>
+              <p style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, fontFamily: "monospace" }}>
+                ECBA · CCBA · CBAP
+              </p>
+            </div>
+            <button
+              onClick={() => setView("my-results")}
+              style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", background: "none", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 14px", cursor: "pointer" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-3)"; }}
+            >
+              My Results
+            </button>
+          </header>
+
+          <div style={{ maxWidth: 640, margin: "0 auto", padding: "56px 32px 80px" }}>
+
+            {/* ── Section 1: Practice by Topic ── */}
+            <div style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 8, lineHeight: 1.2 }}>
+                Practice by Topic
+              </h2>
+              <p style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.7, marginBottom: 28 }}>
+                Practice specific knowledge areas with instant feedback after each question.
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 28 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, marginBottom: 7, fontFamily: "monospace" }}>
+                    Knowledge Area
+                  </label>
+                  <select
+                    value={setup.area}
+                    onChange={e => setSetup(p => ({ ...p, area: e.target.value as AreaOrAll }))}
+                    style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "var(--text-1)", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter','Open Sans',sans-serif" }}
+                  >
+                    {AREA_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, marginBottom: 7, fontFamily: "monospace" }}>
+                      Questions
+                    </label>
+                    <select
+                      value={setup.count}
+                      onChange={e => setSetup(p => ({ ...p, count: Number(e.target.value) as 10 | 20 | 50 }))}
+                      style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "var(--text-1)", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter','Open Sans',sans-serif" }}
+                    >
+                      <option value={10}>10 questions</option>
+                      <option value={20}>20 questions</option>
+                      <option value={50}>50 questions</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, marginBottom: 7, fontFamily: "monospace" }}>
+                      Difficulty
+                    </label>
+                    <select
+                      value={setup.difficulty}
+                      onChange={e => setSetup(p => ({ ...p, difficulty: e.target.value as PracticeSetup["difficulty"] }))}
+                      style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "var(--text-1)", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter','Open Sans',sans-serif" }}
+                    >
+                      <option value="mixed">Mixed</option>
+                      <option value="ecba">ECBA</option>
+                      <option value="ccba">CCBA</option>
+                      <option value="cbap">CBAP</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <button style={{ ...btnDanger, width: "100%", justifyContent: "center", fontSize: "12px", padding: "8px" }} onClick={() => setView("mock-intro")}>
-                <Zap size={12} /> Start Mock Exam
+
+              <button
+                style={{ ...btnPrimary, width: "100%", justifyContent: "center", padding: "14px", fontSize: 14 }}
+                onClick={startPractice}
+              >
+                <Play size={15} /> Start Practice
               </button>
             </div>
-          </div>
-        }
-      >
-        {/* Exam readiness stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px", marginBottom: "28px" }}>
-          {[
-            { label: "Practice Accuracy", value: avgScore != null ? `${avgScore}%` : "No data", color: avgScore != null ? (avgScore >= 70 ? "#10b981" : "#f59e0b") : "var(--text-3)", sub: `${results.filter(r => r.mode === "practice").length} practice sessions` },
-            { label: "Mock Exam Average", value: mockAvg != null ? `${mockAvg}%` : "Not taken", color: mockAvg != null ? (mockAvg >= 70 ? "#10b981" : "#8b5cf6") : "var(--text-3)", sub: `${mockResults.length} mock exams completed` },
-            { label: "Questions Answered", value: String(results.reduce((s, r) => s + r.total, 0) || 0), color: "#06b6d4", sub: "Across all sessions" },
-          ].map(({ label, value, color, sub }) => (
-            <div key={label} style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "12px", padding: "18px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "8px" }}>{label.toUpperCase()}</div>
-              <div style={{ fontSize: "28px", fontWeight: 900, color, lineHeight: 1, marginBottom: "4px" }}>{value}</div>
-              <div style={{ fontSize: "11px", color: "var(--text-4)" }}>{sub}</div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: "var(--border)", marginBottom: 48 }} />
+
+            {/* ── Section 2: Mock Exam ── */}
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 8, lineHeight: 1.2 }}>
+                Mock Exam
+              </h2>
+              <p style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.7, marginBottom: 28 }}>
+                Simulate the real exam. 120 questions across all BABOK areas. Timed with no feedback until completion.
+              </p>
+              <button
+                style={{ ...btnSecondary, width: "100%", justifyContent: "center", padding: "14px", fontSize: 14 }}
+                onClick={() => setView("mock-intro")}
+              >
+                <Zap size={15} /> Start Mock Exam
+              </button>
             </div>
-          ))}
-        </div>
 
-        {/* Two column: diagram + mode cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: "24px", marginBottom: "28px" }}>
-          {/* BABOK Wheel */}
-          <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div style={{ fontSize: "10px", fontWeight: 800, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "12px" }}>BABOK v3 FRAMEWORK</div>
-            <BABOKWheelDiagram />
-            <div style={{ fontSize: "10px", color: "var(--text-4)", marginTop: "10px", textAlign: "center", lineHeight: 1.5 }}>
-              Seven core knowledge areas tested in ECBA, CCBA, and CBAP examinations
-            </div>
           </div>
-
-          {/* Study modes */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {[
-              {
-                color: "#06b6d4", bg: "rgba(6,182,212,0.08)", border: "rgba(6,182,212,0.25)",
-                icon: <BookOpen size={18} color="#06b6d4" />,
-                title: "Practice by Knowledge Area",
-                desc: "Select a BABOK area, choose your question count and difficulty level. Instant explanation after every answer — including why the wrong options are wrong.",
-                cta: "Configure and start", action: () => { /* already configured in top bar */ startPractice(); },
-                badge: "450 questions",
-              },
-              {
-                color: "#8b5cf6", bg: "rgba(139,92,246,0.08)", border: "rgba(139,92,246,0.25)",
-                icon: <Zap size={18} color="#8b5cf6" />,
-                title: "Mock Certification Exam",
-                desc: "120 questions across all seven core knowledge areas. 90 minute timer with no answer feedback until you submit. Designed to simulate exam conditions exactly.",
-                cta: "Start mock exam", action: () => setView("mock-intro"),
-                badge: "Exam simulation",
-              },
-              {
-                color: "#10b981", bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.25)",
-                icon: <BarChart2 size={18} color="#10b981" />,
-                title: "Performance Analytics",
-                desc: "Radar chart of your performance across all BABOK areas. Score history, weak area identification, and targeted study recommendations.",
-                cta: "View my results", action: () => setView("my-results"),
-                badge: "Progress tracking",
-              },
-            ].map(({ color, bg, border, icon, title, desc, cta, action, badge }) => (
-              <div key={title}
-                onClick={action}
-                style={{ background: bg, border: `1px solid ${border}`, borderRadius: "12px", padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "flex-start", gap: "16px", transition: "border-color 0.2s" }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = color}
-                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = border}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                    <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-1)" }}>{title}</span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}15`, padding: "2px 8px", borderRadius: "10px" }}>{badge}</span>
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-3)", lineHeight: 1.6, marginBottom: "10px" }}>{desc}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px", color, fontSize: "12px", fontWeight: 700 }}>
-                    {cta} <ChevronRight size={13} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Exam tracks */}
-        <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "12px", padding: "20px" }}>
-          <div style={{ fontSize: "10px", fontWeight: 800, color: "var(--text-4)", letterSpacing: "0.08em", marginBottom: "16px" }}>CERTIFICATION TRACKS SUPPORTED</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
-            {[
-              { level: "ECBA", full: "Entry Certificate in Business Analysis", desc: "Foundation level. Tests core BA concepts and BABOK knowledge area definitions.", color: "#06b6d4" },
-              { level: "CCBA", full: "Certification of Competency in Business Analysis", desc: "Intermediate level. Tests application of BA techniques in realistic scenarios.", color: "#8b5cf6" },
-              { level: "CBAP", full: "Certified Business Analysis Professional", desc: "Expert level. Tests strategic judgment, governance, and complex stakeholder situations.", color: "#10b981" },
-            ].map(({ level, full, desc, color }) => (
-              <div key={level} style={{ borderLeft: `3px solid ${color}`, paddingLeft: "14px" }}>
-                <div style={{ fontSize: "16px", fontWeight: 900, color, marginBottom: "3px" }}>{level}</div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-2)", marginBottom: "5px" }}>{full}</div>
-                <div style={{ fontSize: "11px", color: "var(--text-4)", lineHeight: 1.6 }}>{desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Workspace>
+        </main>
+      </div>
     );
   }
 
