@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MapPin, Building2, Clock, ExternalLink, X, ArrowLeft } from "lucide-react";
@@ -67,6 +67,98 @@ function rawDescriptionText(html: string | null): string {
     .replace(/&nbsp;/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+// ── Job description structured renderer ──────────────────────────────────────
+
+const SECTION_HEADING_RE = /^(responsibilities|key responsibilities|duties|what you.ll do|your role|role overview|in this role|requirements?|must.have|required qualifications?|minimum qualifications?|qualifications?|what you (need|bring|have)|nice.to.have|preferred qualifications?|bonus|assets?|about (us|the role|the company|the team)|who we are|overview|summary|what we offer|benefits?|compensation|about the position|the opportunity)s*:?\s*$/i;
+
+const BOLD_KEYWORDS = [
+  "stakeholder management","stakeholder engagement","requirements gathering","requirements elicitation",
+  "business requirements","data analysis","data analytics","process mapping","process improvement",
+  "change management","user acceptance testing","business case","gap analysis","agile methodology",
+  "user stories","use cases","SAP","Salesforce","SQL","Power BI","Tableau","Azure","AWS","BABOK","CBAP","CCBA",
+  "BPMN","UAT","BRD","scrum","sprint","backlog","ERP","CRM",
+];
+
+interface DescSection { heading: string | null; items: string[] }
+
+function parseDescSections(html: string | null): DescSection[] {
+  if (!html) return [];
+  const text = rawDescriptionText(html);
+  const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+
+  const sections: DescSection[] = [];
+  let current: DescSection = { heading: null, items: [] };
+
+  for (const line of lines) {
+    // Short line that matches a known heading pattern
+    if (line.length <= 90 && SECTION_HEADING_RE.test(line.replace(/:$/, "").trim())) {
+      if (current.items.length > 0 || current.heading) sections.push(current);
+      current = { heading: line.replace(/:$/, "").trim(), items: [] };
+      continue;
+    }
+    // Strip leading bullet chars and whitespace
+    const clean = line.replace(/^[\s•·●▪\-\*\u2013\u2014\d+\.\)]+\s*/, "").trim();
+    if (clean.length > 4) current.items.push(clean);
+  }
+  if (current.items.length > 0 || current.heading) sections.push(current);
+
+  // Fallback: if nothing was parsed into sections, return one unlabelled section
+  if (sections.length === 0) return [{ heading: null, items: lines }];
+  return sections;
+}
+
+function highlightKeywords(text: string): React.ReactNode {
+  const sorted = [...BOLD_KEYWORDS].sort((a, b) => b.length - a.length);
+  const escaped = sorted.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const re = new RegExp(`(${escaped.join("|")})`, "gi");
+  const parts = text.split(re);
+  return parts.map((part, i) =>
+    sorted.some(k => k.toLowerCase() === part.toLowerCase())
+      ? <strong key={i} style={{ color: C.text1, fontWeight: 600 }}>{part}</strong>
+      : part
+  );
+}
+
+function DescriptionRenderer({ html }: { html: string | null }) {
+  const sections = parseDescSections(html);
+  if (sections.length === 0) return <p style={{ fontSize: 13, color: C.text3, margin: 0 }}>No description provided.</p>;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {sections.map((sec, si) => (
+        <div key={si} style={{
+          paddingBottom: 24,
+          marginBottom: si < sections.length - 1 ? 4 : 0,
+          borderBottom: si < sections.length - 1 ? `1px solid rgba(255,255,255,0.04)` : "none",
+        }}>
+          {sec.heading && (
+            <div style={{
+              fontSize: 11, fontWeight: 700, color: C.teal,
+              textTransform: "uppercase", letterSpacing: "0.09em",
+              fontFamily: "monospace", marginBottom: 14,
+            }}>
+              {sec.heading}
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {sec.items.map((item, ii) => (
+              <div key={ii} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ color: C.teal, flexShrink: 0, marginTop: 3, fontSize: 9, opacity: 0.7 }}>▸</span>
+                <p style={{
+                  fontSize: 13.5, color: C.text2, lineHeight: 1.75,
+                  margin: 0, wordBreak: "break-word",
+                }}>
+                  {highlightKeywords(item)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function formatLocation(location: string | null): string {
@@ -326,23 +418,23 @@ export default function JobDetailContent({
           padding: "28px 32px 40px",
           borderRight: `1px solid ${C.border}`,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace" }}>
-              Job description
-            </span>
-            <span style={{ fontSize: 10, color: C.text4, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "1px 6px" }}>
-              from employer
-            </span>
+          <div style={{
+            position: "sticky", top: 0, zIndex: 2,
+            background: C.bg, paddingBottom: 16, marginBottom: 4,
+            borderBottom: `1px solid ${C.border}`,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.text4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace" }}>
+                Job description
+              </span>
+              <span style={{ fontSize: 10, color: C.text4, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "1px 6px" }}>
+                as posted
+              </span>
+            </div>
           </div>
-          {job.description ? (
-            <p style={{ fontSize: 13.5, color: C.text2, lineHeight: 1.85, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {rawDescriptionText(job.description)}
-            </p>
-          ) : (
-            <p style={{ fontSize: 13, color: C.text3, margin: 0, lineHeight: 1.7 }}>
-              No description provided. View the full posting for details.
-            </p>
-          )}
+          <div style={{ paddingTop: 20 }}>
+            <DescriptionRenderer html={job.description ?? null} />
+          </div>
         </div>
 
         {/* RIGHT — Alex Rivera coaching panel (warm light background) */}
@@ -406,9 +498,45 @@ export default function JobDetailContent({
 
               {/* Coaching content */}
               <div style={{ padding: "20px 22px 32px", flex: 1 }}>
-                <p style={{ fontSize: 12.5, color: A.text3, marginBottom: 24, lineHeight: 1.7, fontStyle: "italic" }}>
+                <p style={{ fontSize: 12.5, color: A.text3, marginBottom: 18, lineHeight: 1.7, fontStyle: "italic" }}>
                   &ldquo;I&apos;ve reviewed this role. Here&apos;s what I&apos;d tell you before you apply.&rdquo;
                 </p>
+
+                {/* ── Decision CTA ── */}
+                <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: `1px solid ${A.border}` }}>
+                  <p style={{ fontSize: 11, color: A.text4, margin: "0 0 10px", letterSpacing: "0.01em" }}>
+                    Most candidates choose wrong here.
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <button
+                      onClick={handlePractice}
+                      style={{
+                        display: "block", width: "100%", padding: "11px 16px",
+                        borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                        background: A.teal, color: "#fff", border: "none", textAlign: "center",
+                        letterSpacing: "-0.01em",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.88"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
+                    >
+                      See how to win this role
+                    </button>
+                    <a
+                      href={apply.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "block", width: "100%", padding: "9px 16px",
+                        borderRadius: 9, fontSize: 12.5, fontWeight: 500, cursor: "pointer",
+                        background: "transparent", color: A.text3,
+                        border: `1px solid ${A.border}`, textAlign: "center",
+                        textDecoration: "none", boxSizing: "border-box",
+                      }}
+                    >
+                      Apply anyway
+                    </a>
+                  </div>
+                </div>
 
                 {insightLoading ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
