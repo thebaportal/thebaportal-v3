@@ -683,6 +683,7 @@ export default function LandingPage() {
   const industriesHeadReveal = useReveal();
   const industriesGridReveal = useReveal();
   const habitReveal = useReveal();
+  const proofReveal = useReveal();
   const pricingHeadReveal = useReveal();
   const pricingReveal = useReveal();
   const finalReveal = useReveal();
@@ -1288,6 +1289,194 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── PROOF LAYER ─────────────────────────────────────────────────── */}
+      <section style={{ padding: "0 0 100px" }} id="proof">
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
+
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <Eyebrow>Real Output</Eyebrow>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px,3.5vw,40px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 14 }}>
+              See exactly what you get
+            </h2>
+            <p style={{ fontSize: 16, color: "var(--t2)", lineHeight: 1.7, maxWidth: 480, margin: "0 auto" }}>
+              This is what happens inside a real simulation. Not a description — an actual output.
+            </p>
+          </div>
+
+          {/* ── 1. Real output demo ── */}
+          <div ref={proofReveal.ref} style={{ ...proofReveal.style }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", overflow: "hidden", marginBottom: 24 }}>
+
+              {/* LEFT — scenario + user response */}
+              <div style={{ padding: "36px 40px", borderRight: "1px solid var(--border)" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--t4)", letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 18 }}>
+                  Scenario · Discovery · Beginner
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "var(--t1)", lineHeight: 1.45, marginBottom: 10 }}>
+                  Rising Customer Churn at First National Bank
+                </div>
+                <p style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.7, marginBottom: 28, borderLeft: "2px solid rgba(255,255,255,0.07)", paddingLeft: 14 }}>
+                  You are in your first meeting with Marcus Webb, VP of Retail Banking. Customer churn has jumped 18% over six months. No one has documented why. You have 20 minutes. Go.
+                </p>
+
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--t4)", letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 12 }}>
+                  Sample response
+                </div>
+                <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "18px 20px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#a78bfa", flexShrink: 0 }}>You</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t4)" }}>Your answer</div>
+                  </div>
+                  <p style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.7, margin: 0 }}>
+                    &ldquo;I asked about the churn data and what customer segments were affected. I also asked if there were any recent product changes or complaints we could look at. I suggested we run a survey to get direct feedback.&rdquo;
+                  </p>
+                </div>
+              </div>
+
+              {/* RIGHT — Alex Rivera feedback */}
+              <div style={{ background: "#FAF8F5", padding: "36px 40px" }}>
+                {/* Alex identity */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(15,118,110,0.10)", border: "1px solid rgba(15,118,110,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#0F766E", flexShrink: 0 }}>AR</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>Alex Rivera</div>
+                    <div style={{ fontSize: 10.5, color: "#0F766E", fontWeight: 600 }}>Senior BA Coach</div>
+                  </div>
+                  {/* Score */}
+                  <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: "#0F172A", lineHeight: 1, letterSpacing: "-0.04em" }}>62</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#64748B" }}>/100</div>
+                  </div>
+                </div>
+
+                {/* Score bar */}
+                <div style={{ height: 4, borderRadius: 99, background: "#E2D8CC", overflow: "hidden", marginBottom: 28 }}>
+                  <div style={{ height: "100%", width: "62%", borderRadius: 99, background: "#eab308" }} />
+                </div>
+
+                {/* What you did well */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "#059669", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 8 }}>
+                    What you did well
+                  </div>
+                  <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, margin: 0 }}>
+                    You moved to data immediately — that is the right instinct. Asking about segments shows systems thinking. Most beginners jump to solutions before they understand scope.
+                  </p>
+                </div>
+
+                {/* What you missed */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "#DC2626", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 8 }}>
+                    What you missed
+                  </div>
+                  <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, margin: 0 }}>
+                    You proposed a survey before forming a hypothesis. That signals you have not diagnosed the problem yet. A VP will lose confidence in your judgment fast.
+                  </p>
+                </div>
+
+                {/* Rewrite */}
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "#0F766E", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 8 }}>
+                    Stronger answer
+                  </div>
+                  <div style={{ background: "#F0EBE3", border: "1px solid #E2D8CC", borderLeft: "3px solid #0F766E", borderRadius: "var(--radius-sm)", padding: "14px 16px" }}>
+                    <p style={{ fontSize: 13, color: "#0F172A", lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>
+                      &ldquo;Before I pull in more data, I want to test a hypothesis with you — is the churn concentrated in a specific product, tenure band, or geography? That tells us whether this is a service problem, a product-fit problem, or a pricing problem. Then we decide what data we actually need.&rdquo;
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── 2–4. Supporting panels ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+
+              {/* How scoring works */}
+              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "32px 30px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 14 }}>
+                  How scoring works
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 20, letterSpacing: "-0.02em" }}>
+                  Four things Alex measures
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {[
+                    { label: "Clarity", body: "Can someone unfamiliar with your project follow your logic in one read?" },
+                    { label: "Structure", body: "Did you frame the problem before jumping to solutions?" },
+                    { label: "Stakeholder thinking", body: "Did you consider who owns what and what they actually care about?" },
+                    { label: "Business impact", body: "Does your answer connect to a real outcome — not just a deliverable?" },
+                  ].map(({ label, body }) => (
+                    <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--teal)", flexShrink: 0, marginTop: 7 }} />
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--t1)", marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>{body}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* What you walk away with */}
+              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "32px 30px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 14 }}>
+                  What you walk away with
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 20, letterSpacing: "-0.02em" }}>
+                  Real outputs, not just a score
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {[
+                    { icon: "✦", label: "Resume bullet", body: "Your best response rewritten as a measurable impact statement you can paste directly." },
+                    { icon: "✦", label: "Interview story", body: "A structured STAR-format story built from what you actually said." },
+                    { icon: "✦", label: "Portfolio case", body: "A one-page case study ready to show in interviews or attach to applications." },
+                  ].map(({ icon, label, body }) => (
+                    <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                      <span style={{ color: "var(--teal)", fontSize: 10, flexShrink: 0, marginTop: 4 }}>{icon}</span>
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--t1)", marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>{body}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* The loop */}
+              <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "32px 30px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 14 }}>
+                  How it works
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 20, letterSpacing: "-0.02em" }}>
+                  Attempt. Score. Improve. Ship.
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  {[
+                    { n: "01", label: "Attempt the scenario", body: "You respond to a real BA situation with live stakeholders." },
+                    { n: "02", label: "Get scored", body: "Alex evaluates your response across four dimensions. Immediate." },
+                    { n: "03", label: "See what to fix", body: "One clear improvement — not a wall of feedback." },
+                    { n: "04", label: "Turn it into output", body: "Your best answer becomes a resume bullet, story, or case study." },
+                  ].map(({ n, label, body }, i, arr) => (
+                    <div key={n} style={{ display: "flex", gap: 14, alignItems: "flex-start", paddingBottom: i < arr.length - 1 ? 16 : 0, marginBottom: i < arr.length - 1 ? 0 : 0, position: "relative" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(31,191,159,0.10)", border: "1px solid rgba(31,191,159,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 700, color: "var(--teal)" }}>{n}</div>
+                        {i < arr.length - 1 && <div style={{ width: 1, flex: 1, minHeight: 14, background: "rgba(31,191,159,0.15)", marginTop: 4 }} />}
+                      </div>
+                      <div style={{ paddingBottom: i < arr.length - 1 ? 14 : 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--t1)", marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>{body}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
