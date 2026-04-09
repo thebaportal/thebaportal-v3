@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   BookOpen, Zap, BarChart2, ChevronRight, ChevronLeft,
   Clock, CheckCircle, XCircle, RotateCcw, ArrowLeft,
@@ -11,6 +11,113 @@ import {
   selectPracticeQuestions, selectMockQuestions,
 } from "@/data/examQuestions";
 import AppSidebar from "@/components/AppSidebar";
+
+// ── CustomSelect ─────────────────────────────────────────────────────────────
+function CustomSelect({ value, onChange, options }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: "100%",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          background: "var(--bg-2)",
+          border: `1px solid ${open ? "var(--teal)" : "var(--border)"}`,
+          borderRadius: 9,
+          padding: "10px 12px",
+          fontSize: 13,
+          color: "var(--text-1)",
+          fontWeight: 600,
+          cursor: "pointer",
+          fontFamily: "'Inter','Open Sans',sans-serif",
+          transition: "border-color 0.15s",
+          textAlign: "left",
+        }}
+      >
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selected?.label ?? "Select…"}
+        </span>
+        <ChevronRight
+          size={13}
+          style={{
+            flexShrink: 0,
+            color: "var(--text-4)",
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            transition: "transform 0.15s",
+          }}
+        />
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute",
+          top: "calc(100% + 6px)",
+          left: 0, right: 0,
+          background: "#18181f",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 10,
+          overflow: "hidden",
+          overflowY: "auto",
+          maxHeight: 280,
+          zIndex: 200,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
+        }}>
+          {options.map(opt => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false); }}
+                style={{
+                  width: "100%",
+                  display: "block",
+                  textAlign: "left",
+                  padding: "10px 14px",
+                  background: isSelected ? "rgba(31,191,159,0.12)" : "transparent",
+                  border: "none",
+                  borderLeft: isSelected ? "2px solid var(--teal)" : "2px solid transparent",
+                  color: isSelected ? "var(--teal)" : "var(--text-1)",
+                  fontSize: 13,
+                  fontWeight: isSelected ? 600 : 400,
+                  cursor: "pointer",
+                  fontFamily: "'Inter','Open Sans',sans-serif",
+                  transition: "background 0.1s",
+                }}
+                onMouseEnter={e => {
+                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)";
+                }}
+                onMouseLeave={e => {
+                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type View =
@@ -625,13 +732,11 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
                   <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, marginBottom: 7, fontFamily: "monospace" }}>
                     Knowledge Area
                   </label>
-                  <select
+                  <CustomSelect
                     value={setup.area}
-                    onChange={e => setSetup(p => ({ ...p, area: e.target.value as AreaOrAll }))}
-                    style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "var(--text-1)", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter','Open Sans',sans-serif" }}
-                  >
-                    {AREA_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                    onChange={v => setSetup(p => ({ ...p, area: v as AreaOrAll }))}
+                    options={AREA_OPTIONS}
+                  />
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -639,30 +744,30 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
                     <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, marginBottom: 7, fontFamily: "monospace" }}>
                       Questions
                     </label>
-                    <select
-                      value={setup.count}
-                      onChange={e => setSetup(p => ({ ...p, count: Number(e.target.value) as 10 | 20 | 50 }))}
-                      style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "var(--text-1)", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter','Open Sans',sans-serif" }}
-                    >
-                      <option value={10}>10 questions</option>
-                      <option value={20}>20 questions</option>
-                      <option value={50}>50 questions</option>
-                    </select>
+                    <CustomSelect
+                      value={String(setup.count)}
+                      onChange={v => setSetup(p => ({ ...p, count: Number(v) as 10 | 20 | 50 }))}
+                      options={[
+                        { value: "10", label: "10 questions" },
+                        { value: "20", label: "20 questions" },
+                        { value: "50", label: "50 questions" },
+                      ]}
+                    />
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, marginBottom: 7, fontFamily: "monospace" }}>
                       Difficulty
                     </label>
-                    <select
+                    <CustomSelect
                       value={setup.difficulty}
-                      onChange={e => setSetup(p => ({ ...p, difficulty: e.target.value as PracticeSetup["difficulty"] }))}
-                      style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "var(--text-1)", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter','Open Sans',sans-serif" }}
-                    >
-                      <option value="mixed">Mixed</option>
-                      <option value="ecba">ECBA</option>
-                      <option value="ccba">CCBA</option>
-                      <option value="cbap">CBAP</option>
-                    </select>
+                      onChange={v => setSetup(p => ({ ...p, difficulty: v as PracticeSetup["difficulty"] }))}
+                      options={[
+                        { value: "mixed", label: "Mixed" },
+                        { value: "ecba",  label: "ECBA" },
+                        { value: "ccba",  label: "CCBA" },
+                        { value: "cbap",  label: "CBAP" },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
