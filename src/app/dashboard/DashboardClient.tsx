@@ -258,6 +258,9 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
                 </p>
               ) : n === 1 ? (
                 <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", fontFamily: "monospace", marginBottom: 8, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+                    Latest score
+                  </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
                     <span style={{ fontSize: 48, fontWeight: 900, color: scoreColor(lastAttempt!.total_score), letterSpacing: "-0.04em", lineHeight: 1 }}>
                       {lastAttempt!.total_score}
@@ -270,21 +273,21 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
                 </div>
               ) : (
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                    <span style={{ fontSize: 28, fontWeight: 800, color: "var(--text-3)", letterSpacing: "-0.03em" }}>
-                      {prevAttempt!.total_score}
-                    </span>
-                    <ArrowRight size={16} style={{ color: "var(--text-4)", flexShrink: 0 }} />
-                    <span style={{ fontSize: 42, fontWeight: 900, color: scoreColor(lastAttempt!.total_score), letterSpacing: "-0.04em", lineHeight: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", fontFamily: "monospace", marginBottom: 8, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+                    Latest score
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 48, fontWeight: 900, color: scoreColor(lastAttempt!.total_score), letterSpacing: "-0.04em", lineHeight: 1 }}>
                       {lastAttempt!.total_score}
                     </span>
+                    <span style={{ fontSize: 13, color: "var(--text-4)", fontFamily: "monospace" }}>/100</span>
                     {scoreDelta !== null && (
                       <span style={{
                         fontSize: 13, fontWeight: 700,
                         color: scoreDelta > 0 ? "#1fbf9f" : scoreDelta < 0 ? "#ef4444" : "var(--text-4)",
                         fontFamily: "monospace",
                       }}>
-                        {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                        {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta} from {prevAttempt!.total_score}
                       </span>
                     )}
                   </div>
@@ -385,51 +388,7 @@ export default function DashboardClient({ profile, user, upgradeSuccess, emailCo
             </motion.div>
           )}
 
-          {/* ── 4. RECENT ACTIVITY ───────────────────────────────────────── */}
-          {n > 0 && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.35 }}
-              style={{ padding: "22px 26px", borderRadius: 16, marginBottom: 20, background: "var(--card)", border: "1px solid var(--border)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace" }}>
-                  Recent Activity
-                </div>
-                <button onClick={() => router.push("/progress")} style={{ fontSize: 12, fontWeight: 600, color: "var(--teal)", background: "none", border: "none", cursor: "pointer" }}>
-                  View all →
-                </button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {attempts.slice(0, 3).map(a => {
-                  const isIntv = a.attempt_type === "interview" || a.challenge_type === "interview";
-                  const daysAgo = Math.floor((Date.now() - new Date(a.completed_at).getTime()) / 86400000);
-                  const when = daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : `${daysAgo}d ago`;
-                  return (
-                    <div key={a.id} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "12px 14px", borderRadius: 10,
-                      background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
-                      cursor: isIntv ? "default" : "pointer",
-                    }}
-                    onClick={() => !isIntv && router.push(`/scenarios/${a.challenge_id}`)}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
-                          {a.challenge_title}
-                        </div>
-                        <div style={{ fontSize: 11, color: "var(--text-4)", fontFamily: "monospace" }}>
-                          {isIntv ? "Interview" : "Simulation"} · {when}
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: scoreColor(a.total_score), letterSpacing: "-0.02em", flexShrink: 0, marginLeft: 12 }}>
-                        {a.total_score}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* ── 5. QUICK LINKS ───────────────────────────────────────────── */}
+          {/* ── 4. QUICK LINKS ───────────────────────────────────────────── */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26, duration: 0.35 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 12 }}>
               Jump In
