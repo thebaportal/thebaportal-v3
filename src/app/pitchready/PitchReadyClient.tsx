@@ -14,6 +14,134 @@ import AppSidebar from "@/components/AppSidebar";
 type PitchView = "home" | "scenarios" | "studio" | "feedback" | "history" | "progress";
 type StudioPhase = "setup" | "ready" | "recording" | "review" | "processing";
 
+// ── Module-level constants (must be outside the component so Layout
+//    has a stable reference and never remounts on state changes) ───────────────
+const CORAL = "#e05547";
+
+const NAV_ITEMS = [
+  { view: "home" as PitchView, label: "Home", icon: Home },
+  { view: "scenarios" as PitchView, label: "Scenario Library", icon: BookOpen },
+  { view: "studio" as PitchView, label: "Practice Studio", icon: Mic },
+  { view: "history" as PitchView, label: "Session History", icon: History },
+];
+
+interface LayoutProps {
+  children: React.ReactNode;
+  view: PitchView;
+  setView: (v: PitchView) => void;
+  isRecording: boolean;
+  resetStudio: () => void;
+  showExitGuard: boolean;
+  setShowExitGuard: (v: boolean) => void;
+  stopRecording: () => void;
+  profile: { full_name: string | null; subscription_tier: string | null } | null;
+  user: { email: string };
+}
+
+function Layout({
+  children, view, setView, isRecording, resetStudio,
+  showExitGuard, setShowExitGuard, stopRecording, profile, user,
+}: LayoutProps) {
+  return (
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
+
+      {/* Exit guard modal */}
+      {showExitGuard && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--border-mid)", borderRadius: "16px", padding: "32px", maxWidth: "400px", width: "90%" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-1)", marginBottom: "10px" }}>Stop recording?</h3>
+            <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "24px" }}>
+              Your current recording will be lost. Your transcript will not be submitted for feedback.
+            </p>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={() => { setShowExitGuard(false); stopRecording(); setView("home"); resetStudio(); }}
+                style={{ flex: 1, padding: "11px", borderRadius: "8px", border: `1px solid ${CORAL}40`, background: `${CORAL}0f`, color: CORAL, fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+                Stop and leave
+              </button>
+              <button onClick={() => setShowExitGuard(false)} className="btn-teal" style={{ flex: 1, justifyContent: "center" }}>
+                Keep recording
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global sidebar */}
+      <AppSidebar activeHref="/pitchready" profile={profile} user={user} />
+
+      {/* Main content */}
+      <main style={{ flex: 1, minWidth: 0, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+
+        {/* Page header */}
+        <header style={{
+          padding: "0 32px", height: 60, flexShrink: 0,
+          display: "flex", alignItems: "center",
+          position: "sticky", top: 0, zIndex: 20,
+          background: "rgba(9,9,11,0.9)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          borderBottom: "1px solid var(--border)",
+        }}>
+          <div>
+            <h1 style={{ fontWeight: 800, fontSize: 20, color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+              PitchReady
+            </h1>
+            <p style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, fontFamily: "monospace" }}>
+              BA communication practice
+            </p>
+          </div>
+        </header>
+
+        {/* Internal tab nav */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 2,
+          padding: "0 24px", flexShrink: 0,
+          borderBottom: "1px solid var(--border)",
+          background: "var(--surface)",
+          position: "sticky", top: 60, zIndex: 19,
+          overflowX: "auto",
+        }}>
+          {NAV_ITEMS.map(({ view: v, label, icon: Icon }) => {
+            const active = view === v || (view === "feedback" && v === "studio");
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => {
+                  if (isRecording) { setShowExitGuard(true); return; }
+                  setView(v);
+                  if (v === "studio") resetStudio();
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "14px 14px 12px",
+                  background: "none", border: "none",
+                  borderBottom: active ? `2px solid ${CORAL}` : "2px solid transparent",
+                  marginBottom: -1,
+                  cursor: "pointer",
+                  color: active ? CORAL : "var(--text-3)",
+                  fontSize: 13, fontWeight: active ? 600 : 500,
+                  fontFamily: "'Inter','Open Sans',sans-serif",
+                  whiteSpace: "nowrap",
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)"; }}
+                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--text-3)"; }}
+              >
+                <Icon size={13} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* View content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
 interface Scenario {
   id: string;
   title: string;
@@ -920,120 +1048,19 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
 
   // ── Shared layout ────────────────────────────────────────────────────────────
 
-  const navItems = [
-    { view: "home" as PitchView, label: "Home", icon: Home },
-    { view: "scenarios" as PitchView, label: "Scenario Library", icon: BookOpen },
-    { view: "studio" as PitchView, label: "Practice Studio", icon: Mic },
-    { view: "history" as PitchView, label: "Session History", icon: History },
-  ];
-
-  const CORAL = "#e05547";
-
-  function Layout({ children }: { children: React.ReactNode }) {
-    return (
-      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
-
-        {/* Exit guard modal */}
-        {showExitGuard && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ background: "var(--card)", border: "1px solid var(--border-mid)", borderRadius: "16px", padding: "32px", maxWidth: "400px", width: "90%" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-1)", marginBottom: "10px" }}>Stop recording?</h3>
-              <p style={{ fontSize: "14px", color: "var(--text-2)", lineHeight: 1.75, marginBottom: "24px" }}>
-                Your current recording will be lost. Your transcript will not be submitted for feedback.
-              </p>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button onClick={() => { setShowExitGuard(false); stopRecording(); setView("home"); resetStudio(); }}
-                  style={{ flex: 1, padding: "11px", borderRadius: "8px", border: `1px solid ${CORAL}40`, background: `${CORAL}0f`, color: CORAL, fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
-                  Stop and leave
-                </button>
-                <button onClick={() => setShowExitGuard(false)} className="btn-teal" style={{ flex: 1, justifyContent: "center" }}>
-                  Keep recording
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Global sidebar */}
-        <AppSidebar activeHref="/pitchready" profile={profile} user={user} />
-
-        {/* Main content */}
-        <main style={{ flex: 1, minWidth: 0, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-
-          {/* Page header */}
-          <header style={{
-            padding: "0 32px", height: 60, flexShrink: 0,
-            display: "flex", alignItems: "center",
-            position: "sticky", top: 0, zIndex: 20,
-            background: "rgba(9,9,11,0.9)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-            borderBottom: "1px solid var(--border)",
-          }}>
-            <div>
-              <h1 style={{ fontWeight: 800, fontSize: 20, color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
-                PitchReady
-              </h1>
-              <p style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, fontFamily: "monospace" }}>
-                BA communication practice
-              </p>
-            </div>
-          </header>
-
-          {/* Internal tab nav */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 2,
-            padding: "0 24px", flexShrink: 0,
-            borderBottom: "1px solid var(--border)",
-            background: "var(--surface)",
-            position: "sticky", top: 60, zIndex: 19,
-            overflowX: "auto",
-          }}>
-            {navItems.map(({ view: v, label, icon: Icon }) => {
-              const active = view === v || (view === "feedback" && v === "studio");
-              return (
-                <button
-                  key={v}
-                  onClick={() => {
-                    if (isRecording) { setShowExitGuard(true); return; }
-                    setView(v);
-                    if (v === "studio") resetStudio();
-                  }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "14px 14px 12px",
-                    background: "none", border: "none",
-                    borderBottom: active ? `2px solid ${CORAL}` : "2px solid transparent",
-                    marginBottom: -1,
-                    cursor: "pointer",
-                    color: active ? CORAL : "var(--text-3)",
-                    fontSize: 13, fontWeight: active ? 600 : 500,
-                    fontFamily: "'Inter','Open Sans',sans-serif",
-                    whiteSpace: "nowrap",
-                    transition: "color 0.15s",
-                  }}
-                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)"; }}
-                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--text-3)"; }}
-                >
-                  <Icon size={13} />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* View content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {children}
-          </div>
-        </main>
-      </div>
-    );
-  }
+  // Layout is defined at module level — see top of file.
+  // Collect props here so each view can spread them without repetition.
+  const layoutProps: Omit<LayoutProps, "children"> = {
+    view, setView, isRecording, resetStudio,
+    showExitGuard, setShowExitGuard, stopRecording,
+    profile, user,
+  };
 
   // ════════════════════════════════════════════════════════════════════════════
   // HOME
   // ════════════════════════════════════════════════════════════════════════════
   if (view === "home") return (
-    <Layout>
+    <Layout {...layoutProps}>
       {/* Hero */}
       <div style={{
         background: `linear-gradient(135deg, #0e0a0a 0%, #0f0d0d 40%, rgba(224,85,71,0.05) 100%)`,
@@ -1203,7 +1230,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
   // SCENARIOS
   // ════════════════════════════════════════════════════════════════════════════
   if (view === "scenarios") return (
-    <Layout>
+    <Layout {...layoutProps}>
       <div style={{ padding: "40px 48px" }}>
         <div style={{ marginBottom: "28px" }}>
           <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text-1)", marginBottom: "8px" }}>What situation do you want to handle better?</h2>
@@ -1287,7 +1314,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
     const delta = lastScore - firstScore;
 
     return (
-      <Layout>
+      <Layout {...layoutProps}>
         <div style={{ padding: "40px 48px", maxWidth: "600px" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.09em", marginBottom: "24px" }}>YOUR PROGRESS SO FAR</div>
 
@@ -1364,7 +1391,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
     ];
 
     return (
-      <Layout>
+      <Layout {...layoutProps}>
         <div style={{ padding: "40px 48px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
             <h2 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-1)", margin: 0 }}>Practice Studio</h2>
@@ -1420,7 +1447,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
                       <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-4)", letterSpacing: "0.09em", marginBottom: "10px" }}>TIME LIMIT</div>
                       <div style={{ display: "flex", gap: "8px" }}>
                         {[{ v: 120, l: "2 min" }, { v: 300, l: "5 min" }, { v: 480, l: "8 min" }].map(({ v, l }) => (
-                          <button key={v} onClick={() => setStudioSetup(p => ({ ...p, timeLimit: v }))}
+                          <button type="button" key={v} onClick={() => setStudioSetup(p => ({ ...p, timeLimit: v }))}
                             style={{
                               flex: 1, padding: "9px 6px", borderRadius: "8px",
                               border: `2px solid ${studioSetup.timeLimit === v ? CORAL : "var(--border)"}`,
@@ -1729,7 +1756,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
     );
 
     return (
-      <Layout>
+      <Layout {...layoutProps}>
 
         {/* ── Main content wrapper ── */}
         <div style={{ maxWidth: "960px", margin: "0 auto", padding: "40px 40px 96px" }}>
@@ -2094,7 +2121,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
   // SESSION HISTORY
   // ════════════════════════════════════════════════════════════════════════════
   if (view === "history") return (
-    <Layout>
+    <Layout {...layoutProps}>
       <div style={{ padding: "40px 48px" }}>
         <div style={{ marginBottom: "32px" }}>
           <h2 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-1)", marginBottom: "6px" }}>Session History</h2>
@@ -2159,7 +2186,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
   // PROGRESS DASHBOARD
   // ════════════════════════════════════════════════════════════════════════════
   if (view === "progress") return (
-    <Layout>
+    <Layout {...layoutProps}>
       <div style={{ padding: "40px 48px" }}>
         <div style={{ marginBottom: "32px" }}>
           <h2 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-1)", marginBottom: "6px" }}>Progress Dashboard</h2>
@@ -2311,7 +2338,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
   );
 
   return (
-    <Layout>
+    <Layout {...layoutProps}>
       <div style={{ padding: "80px 48px", textAlign: "center" }}>
         <div style={{ fontSize: "14px", color: "var(--text-4)" }}>Select a section from the sidebar to get started.</div>
       </div>
