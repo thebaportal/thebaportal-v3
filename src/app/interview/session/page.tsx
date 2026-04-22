@@ -7,7 +7,7 @@ import SessionClient from "./SessionClient";
 export default async function SessionPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const { data: profile } = await supabase
     .from("profiles")

@@ -20,7 +20,7 @@ export default async function PortfolioPage() {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const [profileRes, attemptsRes, badgesRes, progressRes] = await Promise.all([
     supabase.from("profiles").select("subscription_tier, full_name, created_at").eq("id", user.id).single(),

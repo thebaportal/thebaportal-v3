@@ -15,7 +15,7 @@ export default async function LearningPage() {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const { data: profile } = await supabase
     .from("profiles").select("subscription_tier, full_name")

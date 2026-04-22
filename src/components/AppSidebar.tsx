@@ -79,7 +79,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
       const { createClient } = await import("@/lib/supabase/client");
       const sb = createClient();
       await sb.auth.signOut();
-      router.push("/login");
+      router.push("/auth/login");
     } catch {
       setSigningOut(false);
     }

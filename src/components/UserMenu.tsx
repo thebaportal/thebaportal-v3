@@ -33,7 +33,7 @@ export default function UserMenu({ fullName, email, isPro, initials }: UserMenuP
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/auth/login");
   }
 
   return (

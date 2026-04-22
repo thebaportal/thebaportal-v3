@@ -8,7 +8,7 @@ import SessionDetailClient from "./SessionDetailClient";
 export default async function SessionDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const admin = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

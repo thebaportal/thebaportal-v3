@@ -16,7 +16,7 @@ function admin() {
 export default async function ResumesPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const db = admin();
 

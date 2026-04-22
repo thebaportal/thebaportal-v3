@@ -10,7 +10,7 @@ export default async function ScenariosPage({ searchParams }: PageProps) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const [profileResult, countResult] = await Promise.all([
     supabase

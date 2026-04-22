@@ -195,7 +195,7 @@ const PREP_TO_TYPES: Record<string, string[]> = {
 };
 
 function getPracticeUrl(job: JobListing, isLoggedIn: boolean): string {
-  if (!isLoggedIn) return "/signup";
+  if (!isLoggedIn) return "/auth/signup";
   const types = new Set<string>();
   for (const p of (job.prep_links ?? [])) {
     (PREP_TO_TYPES[p.label] ?? []).forEach(t => types.add(t));
@@ -262,7 +262,7 @@ export default function JobDetailContent({
   }
 
   function handleInterview() {
-    if (!isLoggedIn) { onClose?.(); router.push("/signup"); return; }
+    if (!isLoggedIn) { onClose?.(); router.push("/auth/signup"); return; }
     saveJobContextForDashboard("interview");
     try {
       sessionStorage.setItem("interviewJobContext", JSON.stringify({
@@ -603,7 +603,7 @@ export default function JobDetailContent({
                         </button>
                         <button
                           onClick={() => {
-                            if (!isLoggedIn) { onClose?.(); router.push("/signup"); return; }
+                            if (!isLoggedIn) { onClose?.(); router.push("/auth/signup"); return; }
                             saveJobContextForDashboard("pitch");
                             try {
                               sessionStorage.setItem("pitchReadyJobContext", JSON.stringify({

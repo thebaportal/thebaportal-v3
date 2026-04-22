@@ -10,7 +10,7 @@ export const metadata = { title: "PitchReady — BA Communication Practice" };
 export default async function PitchReadyPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const { data: profile } = await supabase
     .from("profiles").select("subscription_tier, full_name")

@@ -540,7 +540,7 @@ function GuestCTAs() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <Link
-        href="/login"
+        href="/auth/login"
         style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
         onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
         onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
@@ -548,7 +548,7 @@ function GuestCTAs() {
         Sign in
       </Link>
       <Link
-        href="/signup"
+        href="/auth/signup"
         style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em", whiteSpace: "nowrap" }}
         onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
         onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
@@ -883,8 +883,8 @@ export default function LandingPage() {
                 </>
               ) : (
                 <>
-                  <Link href="/login" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--t1)", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", textDecoration: "none" }}>Sign in</Link>
-                  <Link href="/signup" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
+                  <Link href="/auth/login" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--t1)", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", textDecoration: "none" }}>Sign in</Link>
+                  <Link href="/auth/signup" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
                     Start Your First Simulation <ArrowRight size={14} />
                   </Link>
                 </>
@@ -920,7 +920,7 @@ export default function LandingPage() {
               </p>
 
               <div className="a4" style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 48, flexWrap: "wrap" }}>
-                <Link href={authState === "authenticated" ? "/scenarios" : "/signup"} style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "15px 30px", borderRadius: "var(--radius)", transition: "all .2s", letterSpacing: "0.01em", boxShadow: "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)", textDecoration: "none" }}
+                <Link href={authState === "authenticated" ? "/scenarios" : "/auth/signup"} style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "15px 30px", borderRadius: "var(--radius)", transition: "all .2s", letterSpacing: "0.01em", boxShadow: "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)", textDecoration: "none" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 40px rgba(31,191,159,.36)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 32px rgba(31,191,159,.24), 0 2px 12px rgba(0,0,0,.4)"; }}
                 >
@@ -1496,7 +1496,7 @@ export default function LandingPage() {
           </div>
           <div ref={pricingReveal.ref} style={{ ...pricingReveal.style, display: "flex", gap: 16, maxWidth: 820, margin: "0 auto" }}>
             <PricingCard
-              plan="Free" price="$0" period="forever" href="/signup" cta="Get Started" featured={false}
+              plan="Free" price="$0" period="forever" href="/auth/signup" cta="Get Started" featured={false}
               features={["3 BA simulations", "Normal difficulty mode", "AI stakeholder interviews", "Alex Rivera evaluation and scoring", "Progress tracking", "Career advisor starter flows"]}
             />
             <PricingCard
@@ -1518,7 +1518,7 @@ export default function LandingPage() {
             <p style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 38px", position: "relative" }}>
               Start in under 60 seconds.
             </p>
-            <Link href={authState === "authenticated" ? "/scenarios" : "/signup"} style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "17px 36px", borderRadius: 14, textDecoration: "none", transition: "all .2s", boxShadow: "0 0 52px rgba(31,191,159,.28)", position: "relative" }}
+            <Link href={authState === "authenticated" ? "/scenarios" : "/auth/signup"} style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "17px 36px", borderRadius: 14, textDecoration: "none", transition: "all .2s", boxShadow: "0 0 52px rgba(31,191,159,.28)", position: "relative" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 12px 56px rgba(31,191,159,.38)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 52px rgba(31,191,159,.28)"; }}
             >

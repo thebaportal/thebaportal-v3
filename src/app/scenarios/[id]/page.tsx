@@ -28,7 +28,7 @@ export default async function ChallengePage({
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const challenge = challenges.find(c => c.id === params.id);
   if (!challenge) redirect("/scenarios");

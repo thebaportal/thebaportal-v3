@@ -48,7 +48,7 @@ function PricingInner() {
       if (data.url) {
         window.location.href = data.url;
       } else if (data.error === "not_authenticated") {
-        router.push("/login?redirectTo=/pricing");
+        router.push("/auth/login?redirectTo=/pricing");
       } else {
         alert(`Checkout error: ${data.message || data.error || "Unknown error"}`);
       }
@@ -200,7 +200,7 @@ function PricingInner() {
             </ul>
 
             <button
-              onClick={() => router.push("/signup")}
+              onClick={() => router.push("/auth/signup")}
               style={{
                 width: "100%", height: 44,
                 border: "1px solid var(--border-mid)",

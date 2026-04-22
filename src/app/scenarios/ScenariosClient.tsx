@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { challenges } from "@/data/challenges";
-import type { Challenge } from "@/data/challenges";
+import type { Challenge, PracticeArea } from "@/data/challenges";
 import AppSidebar from "@/components/AppSidebar";
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -27,8 +27,17 @@ const difficultyConfig: Record<string, { label: string; color: string }> = {
   "advanced":     { label: "Advanced",     color: "#ef4444" },
 };
 
-const INDUSTRY_OPTIONS   = ["All", "Banking", "Healthcare", "Energy", "Technology", "Insurance", "Government", "Retail", "Logistics"];
+const INDUSTRY_OPTIONS   = ["All", "Banking", "Healthcare", "Energy", "Technology", "Insurance", "Government", "Retail", "Logistics", "Manufacturing", "Telecom", "Pharma", "Education", "Travel", "Hospitality", "Legal", "HR"];
 const DIFFICULTY_OPTIONS = ["All", "Beginner", "Intermediate", "Advanced"];
+
+const PRACTICE_AREAS: { key: PracticeArea | "All"; label: string; description: string }[] = [
+  { key: "All",                    label: "All Areas",             description: "" },
+  { key: "product-and-technical",  label: "Product & Technical",   description: "SDLC, Agile, requirements, UAT, APIs, system behaviour, product delivery" },
+  { key: "process-and-operations", label: "Process & Operations",  description: "Process improvement, bottlenecks, service delivery, efficiency, operational redesign" },
+  { key: "enterprise-and-strategy",label: "Enterprise & Strategy", description: "Business cases, trade-offs, organisational decisions, strategic analysis, cost vs value" },
+  { key: "change-and-stakeholder", label: "Change & Stakeholder",  description: "Stakeholder conflict, resistance to change, communication breakdowns, adoption challenges" },
+  { key: "enterprise-systems",     label: "Enterprise Systems",    description: "ERP, SAP, PeopleSoft, finance systems, implementation, data migration, cross-functional enterprise workflows" },
+];
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 
@@ -318,6 +327,7 @@ const RECOMMENDED_ID = "banking-discovery-001";
 
 export default function ScenariosClient({ profile, user, practiceContext: practiceContextProp, isFirstTime = false, confirmed = false }: ScenariosClientProps) {
   const router = useRouter();
+  const [activePracticeArea, setActivePracticeArea] = useState<PracticeArea | "All">("All");
   const [activeType,       setActiveType]       = useState<string>("All");
   const [activeDifficulty, setActiveDifficulty] = useState("All");
   const [activeIndustry,   setActiveIndustry]   = useState("All");
@@ -328,12 +338,14 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
   // Read initial filter state from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const t = params.get("type");
-    const d = params.get("difficulty");
-    const i = params.get("industry");
-    if (t) setActiveType(t);
-    if (d) setActiveDifficulty(d);
-    if (i) setActiveIndustry(i);
+    const pa = params.get("area");
+    const t  = params.get("type");
+    const d  = params.get("difficulty");
+    const i  = params.get("industry");
+    if (pa) setActivePracticeArea(pa as PracticeArea);
+    if (t)  setActiveType(t);
+    if (d)  setActiveDifficulty(d);
+    if (i)  setActiveIndustry(i);
   }, []);
 
   // Sync URL when filters change (skip initial mount)
@@ -344,13 +356,14 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
       return;
     }
     const params = new URLSearchParams();
-    if (activeType !== "All")       params.set("type",       activeType);
-    if (activeDifficulty !== "All") params.set("difficulty", activeDifficulty);
-    if (activeIndustry !== "All")   params.set("industry",   activeIndustry);
+    if (activePracticeArea !== "All") params.set("area",       activePracticeArea);
+    if (activeType !== "All")         params.set("type",       activeType);
+    if (activeDifficulty !== "All")   params.set("difficulty", activeDifficulty);
+    if (activeIndustry !== "All")     params.set("industry",   activeIndustry);
     const qs = params.toString();
     router.replace(`/scenarios${qs ? `?${qs}` : ""}`, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeType, activeDifficulty, activeIndustry]);
+  }, [activePracticeArea, activeType, activeDifficulty, activeIndustry]);
 
   // Pick up context from sessionStorage when redirected after sign-up
   useEffect(() => {
@@ -389,8 +402,6 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
       .sc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
       @media (max-width: 1100px) { .sc-grid { grid-template-columns: repeat(2, 1fr); } }
       @media (max-width: 660px)  { .sc-grid { grid-template-columns: 1fr; } }
-      .sc-type-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; padding-right: 40px; scrollbar-width: none; }
-      .sc-type-tabs::-webkit-scrollbar { display: none; }
     `;
     document.head.appendChild(style);
   }, []);
@@ -401,15 +412,17 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
   const availableTypeKeys = Object.keys(typeConfig).filter(t => challenges.some(c => c.type === t));
 
   const filtered = challenges.filter(c => {
+    const matchArea = activePracticeArea === "All" || c.practiceArea === activePracticeArea;
     const matchType = activeType === "All" || c.type === activeType;
     const matchDiff = activeDifficulty === "All" || c.difficulty === activeDifficulty.toLowerCase();
     const matchInd  = activeIndustry === "All" || c.industry.toLowerCase().includes(activeIndustry.toLowerCase());
-    return matchType && matchDiff && matchInd;
+    return matchArea && matchType && matchDiff && matchInd;
   });
 
-  const hasActiveFilters = activeType !== "All" || activeDifficulty !== "All" || activeIndustry !== "All";
+  const hasActiveFilters = activePracticeArea !== "All" || activeType !== "All" || activeDifficulty !== "All" || activeIndustry !== "All";
 
   function clearFilters() {
+    setActivePracticeArea("All");
     setActiveType("All");
     setActiveDifficulty("All");
     setActiveIndustry("All");
@@ -623,9 +636,49 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
           {/* 2. Filter bar */}
           <div style={{ marginBottom: 36 }}>
 
+            {/* Practice Area — primary filter */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "var(--text-3)", fontFamily: "monospace", marginBottom: 10 }}>
+                Practice Area
+              </div>
+              <div style={{ display: "block", width: "100%", overflowX: "auto", paddingBottom: 4 }}>
+                <div style={{ display: "inline-flex", gap: 8, paddingRight: 32 }}>
+                  {PRACTICE_AREAS.map(({ key, label }) => {
+                    const isActive = activePracticeArea === key;
+                    return (
+                      <button key={key} onClick={() => setActivePracticeArea(key)}
+                        style={{
+                          flexShrink: 0, whiteSpace: "nowrap",
+                          padding: "9px 18px", borderRadius: 999,
+                          fontSize: 13, fontWeight: 700, cursor: "pointer",
+                          transition: "all 0.15s",
+                          background: isActive ? "rgba(31,191,159,0.12)" : "rgba(255,255,255,0.04)",
+                          color: isActive ? "var(--teal)" : "var(--text-2)",
+                          border: isActive ? "1px solid rgba(31,191,159,0.3)" : "1px solid var(--border)",
+                          boxShadow: isActive ? "0 0 12px rgba(31,191,159,0.08)" : "none",
+                        }}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: "1px solid var(--border)", marginBottom: 16 }} />
+
             {/* Type tabs */}
-            <div style={{ position: "relative", marginBottom: 12 }}>
-              <div className="sc-type-tabs">
+            <div
+              style={{
+                display: "block",
+                width: "100%",
+                overflowX: "auto",
+                paddingBottom: 8,
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: "inline-flex", gap: 6, paddingRight: 32 }}>
                 {(["All", ...availableTypeKeys] as string[]).map(key => {
                   const isActive = activeType === key;
                   const cfg = key === "All" ? null : typeConfig[key];
@@ -633,7 +686,7 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
                   return (
                     <button key={key} onClick={() => setActiveType(key)}
                       style={{
-                        flexShrink: 0, padding: "7px 16px", borderRadius: 999,
+                        flexShrink: 0, whiteSpace: "nowrap", padding: "7px 16px", borderRadius: 999,
                         fontSize: 13, fontWeight: 600, cursor: "pointer",
                         transition: "all 0.15s",
                         background: isActive
@@ -647,8 +700,6 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
                   );
                 })}
               </div>
-              {/* Right fade */}
-              <div style={{ position: "absolute", right: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to right, transparent, var(--bg))", pointerEvents: "none" }} />
             </div>
 
             {/* Dropdowns + Clear */}

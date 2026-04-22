@@ -7,9 +7,8 @@ import {
   Play, TrendingUp, Award, AlertCircle, Layers,
 } from "lucide-react";
 import {
-  AREA_LABELS, AREA_SHORT, BABOKArea, ExamQuestion, QUESTIONS,
-  selectPracticeQuestions, selectMockQuestions,
-} from "@/data/examQuestions";
+  AREA_LABELS, AREA_SHORT, BABOKArea, ExamQuestion,
+} from "@/lib/examTypes";
 import AppSidebar from "@/components/AppSidebar";
 
 // ── CustomSelect ─────────────────────────────────────────────────────────────
@@ -189,21 +188,6 @@ function fmtTime(s: number) {
   return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function selectAllAreaQuestions(count: number, difficulty: string): ExamQuestion[] {
-  let pool = [...QUESTIONS];
-  if (difficulty !== "mixed") pool = pool.filter(q => q.difficulty === difficulty);
-  return shuffle(pool).slice(0, Math.min(count, pool.length));
-}
-
 function computeAreaBreakdown(questions: ExamQuestion[], answers: (number | null)[]) {
   const bd: Record<string, { correct: number; total: number }> = {};
   for (const area of AREAS) bd[area] = { correct: 0, total: 0 };
@@ -361,6 +345,10 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
   const [results, setResults] = useState<ResultRecord[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
 
+  // Question loading state
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [questionError, setQuestionError] = useState("");
+
   // Exit warning (back button / page unload guard)
   const [showExitWarning, setShowExitWarning] = useState(false);
 
@@ -409,15 +397,28 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
   }, [view]);
 
   // ── Actions ─────────────────────────────────────────────────────────────────
-  function startPractice() {
-    const qs = setup.area === "all"
-      ? selectAllAreaQuestions(setup.count, setup.difficulty)
-      : selectPracticeQuestions(setup.area, setup.count, setup.difficulty);
-    setPracticeQs(qs);
-    setPracticeIdx(0);
-    setPracticeAnswers(new Array(qs.length).fill(null));
-    setShowFeedback(false);
-    setView("practice-session");
+  async function startPractice() {
+    setLoadingQuestions(true);
+    setQuestionError("");
+    try {
+      const res = await fetch("/api/exam/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "practice", area: setup.area, count: setup.count, difficulty: setup.difficulty }),
+      });
+      if (!res.ok) throw new Error("Failed to load questions");
+      const qs: ExamQuestion[] = await res.json();
+      if (!qs.length) throw new Error("No questions found for this selection");
+      setPracticeQs(qs);
+      setPracticeIdx(0);
+      setPracticeAnswers(new Array(qs.length).fill(null));
+      setShowFeedback(false);
+      setView("practice-session");
+    } catch (err) {
+      setQuestionError(err instanceof Error ? err.message : "Could not load questions");
+    } finally {
+      setLoadingQuestions(false);
+    }
   }
 
   function answerPractice(i: number) {
@@ -439,15 +440,30 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
     setView("practice-results");
   }
 
-  function startMock() {
-    const qs = selectMockQuestions();
-    setMockQs(qs);
-    setMockIdx(0);
-    setMockAnswers(new Array(qs.length).fill(null));
-    setMockTimeLeft(MOCK_DURATION);
-    setMockDone(false);
-    setMockRunning(true);
-    setView("mock-session");
+  async function startMock() {
+    setLoadingQuestions(true);
+    setQuestionError("");
+    try {
+      const res = await fetch("/api/exam/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "mock" }),
+      });
+      if (!res.ok) throw new Error("Failed to load questions");
+      const qs: ExamQuestion[] = await res.json();
+      if (!qs.length) throw new Error("No questions available for mock exam");
+      setMockQs(qs);
+      setMockIdx(0);
+      setMockAnswers(new Array(qs.length).fill(null));
+      setMockTimeLeft(MOCK_DURATION);
+      setMockDone(false);
+      setMockRunning(true);
+      setView("mock-session");
+    } catch (err) {
+      setQuestionError(err instanceof Error ? err.message : "Could not load questions");
+    } finally {
+      setLoadingQuestions(false);
+    }
   }
 
   async function submitMock() {
@@ -602,9 +618,19 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
                 <option value="cbap">CBAP Level</option>
               </select>
 
-              <button style={btnPrimary} onClick={startPractice}>
-                <Play size={13} /> Start Practice
+              <button
+                style={{ ...btnPrimary, opacity: loadingQuestions ? 0.6 : 1, cursor: loadingQuestions ? "wait" : "pointer" }}
+                onClick={startPractice}
+                disabled={loadingQuestions}
+              >
+                <Play size={13} /> {loadingQuestions ? "Loading…" : "Start Practice"}
               </button>
+
+              {questionError && (
+                <div style={{ fontSize: "12px", color: "#f87171", padding: "8px 12px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: "8px" }}>
+                  {questionError}
+                </div>
+              )}
 
               <button style={btnDanger} onClick={() => setView("mock-intro")}>
                 <Zap size={13} /> Mock Exam
@@ -1059,9 +1085,18 @@ export default function ExamClient({ tier: _tier, profile, user }: ExamClientPro
               <span style={{ fontWeight: 700, color: "var(--text-1)", textAlign: "right", maxWidth: "130px" }}>{value}</span>
             </div>
           ))}
-          <button style={{ ...btnDanger, width: "100%", justifyContent: "center", marginTop: "8px" }} onClick={startMock}>
-            <Zap size={14} /> Begin Exam
+          <button
+            style={{ ...btnDanger, width: "100%", justifyContent: "center", marginTop: "8px", opacity: loadingQuestions ? 0.6 : 1, cursor: loadingQuestions ? "wait" : "pointer" }}
+            onClick={startMock}
+            disabled={loadingQuestions}
+          >
+            <Zap size={14} /> {loadingQuestions ? "Loading questions…" : "Begin Exam"}
           </button>
+          {questionError && (
+            <div style={{ fontSize: "12px", color: "#f87171", padding: "8px 12px", marginTop: "8px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: "8px" }}>
+              {questionError}
+            </div>
+          )}
         </div>
       }>
         <div style={{ maxWidth: "600px" }}>
