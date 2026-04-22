@@ -389,7 +389,7 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
       .sc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
       @media (max-width: 1100px) { .sc-grid { grid-template-columns: repeat(2, 1fr); } }
       @media (max-width: 660px)  { .sc-grid { grid-template-columns: 1fr; } }
-      .sc-type-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+      .sc-type-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; padding-right: 40px; scrollbar-width: none; }
       .sc-type-tabs::-webkit-scrollbar { display: none; }
     `;
     document.head.appendChild(style);
@@ -624,27 +624,31 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
           <div style={{ marginBottom: 36 }}>
 
             {/* Type tabs */}
-            <div className="sc-type-tabs" style={{ marginBottom: 12 }}>
-              {(["All", ...availableTypeKeys] as string[]).map(key => {
-                const isActive = activeType === key;
-                const cfg = key === "All" ? null : typeConfig[key];
-                const activeColor = cfg?.color ?? "var(--teal)";
-                return (
-                  <button key={key} onClick={() => setActiveType(key)}
-                    style={{
-                      flexShrink: 0, padding: "7px 16px", borderRadius: 999,
-                      fontSize: 13, fontWeight: 600, cursor: "pointer",
-                      transition: "all 0.15s",
-                      background: isActive
-                        ? (cfg ? `${cfg.color}18` : "rgba(31,191,159,0.1)")
-                        : "rgba(255,255,255,0.04)",
-                      color: isActive ? activeColor : "var(--text-3)",
-                      border: isActive ? `1px solid ${activeColor}30` : "1px solid var(--border)",
-                    }}>
-                    {key === "All" ? "All Types" : cfg?.label ?? key}
-                  </button>
-                );
-              })}
+            <div style={{ position: "relative", marginBottom: 12 }}>
+              <div className="sc-type-tabs">
+                {(["All", ...availableTypeKeys] as string[]).map(key => {
+                  const isActive = activeType === key;
+                  const cfg = key === "All" ? null : typeConfig[key];
+                  const activeColor = cfg?.color ?? "var(--teal)";
+                  return (
+                    <button key={key} onClick={() => setActiveType(key)}
+                      style={{
+                        flexShrink: 0, padding: "7px 16px", borderRadius: 999,
+                        fontSize: 13, fontWeight: 600, cursor: "pointer",
+                        transition: "all 0.15s",
+                        background: isActive
+                          ? (cfg ? `${cfg.color}18` : "rgba(31,191,159,0.1)")
+                          : "rgba(255,255,255,0.04)",
+                        color: isActive ? activeColor : "var(--text-3)",
+                        border: isActive ? `1px solid ${activeColor}30` : "1px solid var(--border)",
+                      }}>
+                      {key === "All" ? "All Types" : cfg?.label ?? key}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Right fade */}
+              <div style={{ position: "absolute", right: 0, top: 0, bottom: 4, width: 48, background: "linear-gradient(to right, transparent, var(--bg))", pointerEvents: "none" }} />
             </div>
 
             {/* Dropdowns + Clear */}

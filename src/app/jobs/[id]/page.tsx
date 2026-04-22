@@ -69,7 +69,7 @@ export default async function JobPage({ params, searchParams }: Params) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
+    { cookies: { get: (n: string) => cookieStore.get(n)?.value } }
   );
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -162,8 +162,8 @@ export default async function JobPage({ params, searchParams }: Params) {
               </Link>
             ) : (
               <>
-                <Link href="/login"  style={{ fontSize: 13, color: C.text3, textDecoration: "none" }}>Sign in</Link>
-                <Link href="/signup" style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
+                <Link href="/auth/login"  style={{ fontSize: 13, color: C.text3, textDecoration: "none" }}>Sign in</Link>
+                <Link href="/auth/signup" style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
               </>
             )}
           </div>

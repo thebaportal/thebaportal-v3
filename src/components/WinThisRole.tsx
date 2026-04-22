@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { JobListing, WinInsights } from "@/lib/jobInsights";
 import ResumeTransform from "@/components/ResumeTransform";
+import JobDescription from "@/components/JobDescription";
 
 function stripHtml(html: string): string {
   return html
@@ -138,15 +139,10 @@ export default function WinThisRole({ job, insights, isLoggedIn, isPro, savedTra
               </span>
             </div>
             <div className="wtr-jd-scroll" style={{ padding: "20px" }}>
-              {job.description ? (
-                <pre style={{ fontSize: 12.5, color: C.text3, lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap", fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                  {stripHtml(job.description)}
-                </pre>
-              ) : (
-                <p style={{ fontSize: 13, color: C.text4, margin: 0, fontStyle: "italic" }}>
-                  No description available for this role.
-                </p>
-              )}
+              {job.description
+                ? <JobDescription description={job.description} />
+                : <p style={{ fontSize: 13, color: C.text4, margin: 0, fontStyle: "italic" }}>No description available for this role.</p>
+              }
             </div>
           </div>
 
@@ -297,7 +293,7 @@ export default function WinThisRole({ job, insights, isLoggedIn, isPro, savedTra
                 : "Most candidates read this and do nothing. They bookmark it, mean to come back, and apply without any of it. The ones who get hired are the ones who act on it today."}
             </p>
             <Link
-              href={isLoggedIn ? "/scenarios" : "/signup"}
+              href={isLoggedIn ? "/scenarios" : "/auth/signup"}
               style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 700, color: "#000", background: C.teal, padding: "13px 28px", borderRadius: 10, textDecoration: "none" }}
             >
               Start now. Prove me wrong.

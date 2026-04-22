@@ -500,7 +500,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobI
   async function handleBookmark(jobId: string, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!isLoggedIn) { router.push("/login"); return; }
+    if (!isLoggedIn) { router.push("/auth/login"); return; }
     setSavingId(jobId);
     const isSaved = savedIds.has(jobId);
     try {
@@ -555,8 +555,8 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobI
               The<span style={{ color: C.teal }}>BA</span>Portal
             </Link>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Link href="/login"  style={{ fontSize: 13, color: C.text3, textDecoration: "none" }}>Sign in</Link>
-              <Link href="/signup" style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
+              <Link href="/auth/login"  style={{ fontSize: 13, color: C.text3, textDecoration: "none" }}>Sign in</Link>
+              <Link href="/auth/signup" style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: C.teal, padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
             </div>
           </div>
         </nav>
@@ -823,7 +823,7 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobI
               <p style={{ fontSize: 14, color: C.text3, marginBottom: 28, maxWidth: 460, lineHeight: 1.65 }}>
                 Scenarios, stakeholder simulations, and real BA deliverables — so you walk in ready.
               </p>
-              <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 12, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+              <Link href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 12, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
                 Start free — no credit card needed
               </Link>
             </div>
@@ -867,11 +867,11 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobI
               {modal.jobTitle}{modal.company ? ` · ${modal.company}` : ""}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link href="/signup"
+              <Link href="/auth/signup"
                 style={{ display: "block", textAlign: "center", padding: "13px 20px", borderRadius: 12, background: C.teal, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", letterSpacing: "-0.01em" }}>
                 Start free simulation
               </Link>
-              <Link href="/login"
+              <Link href="/auth/login"
                 style={{ display: "block", textAlign: "center", padding: "13px 20px", borderRadius: 12, background: "transparent", color: C.text2, fontSize: 14, fontWeight: 600, textDecoration: "none", border: `1px solid ${C.border}` }}>
                 Sign in
               </Link>
