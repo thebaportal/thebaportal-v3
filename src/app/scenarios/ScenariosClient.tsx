@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { challenges } from "@/data/challenges";
+import { challenges } from "@/data/allChallenges";
 import type { Challenge, PracticeArea } from "@/data/challenges";
 import AppSidebar from "@/components/AppSidebar";
 
@@ -636,74 +636,42 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
           {/* 2. Filter bar */}
           <div style={{ marginBottom: 36 }}>
 
-            {/* Practice Area — primary filter */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "var(--text-3)", fontFamily: "monospace", marginBottom: 10 }}>
-                Practice Area
-              </div>
-              <div style={{ display: "block", width: "100%", overflowX: "auto", paddingBottom: 4 }}>
-                <div style={{ display: "inline-flex", gap: 8, paddingRight: 32 }}>
-                  {PRACTICE_AREAS.map(({ key, label }) => {
-                    const isActive = activePracticeArea === key;
-                    return (
-                      <button key={key} onClick={() => setActivePracticeArea(key)}
-                        style={{
-                          flexShrink: 0, whiteSpace: "nowrap",
-                          padding: "9px 18px", borderRadius: 999,
-                          fontSize: 13, fontWeight: 700, cursor: "pointer",
-                          transition: "all 0.15s",
-                          background: isActive ? "rgba(31,191,159,0.12)" : "rgba(255,255,255,0.04)",
-                          color: isActive ? "var(--teal)" : "var(--text-2)",
-                          border: isActive ? "1px solid rgba(31,191,159,0.3)" : "1px solid var(--border)",
-                          boxShadow: isActive ? "0 0 12px rgba(31,191,159,0.08)" : "none",
-                        }}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div style={{ borderTop: "1px solid var(--border)", marginBottom: 16 }} />
-
-            {/* Type tabs */}
-            <div
-              style={{
-                display: "block",
-                width: "100%",
-                overflowX: "auto",
-                paddingBottom: 8,
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ display: "inline-flex", gap: 6, paddingRight: 32 }}>
-                {(["All", ...availableTypeKeys] as string[]).map(key => {
-                  const isActive = activeType === key;
-                  const cfg = key === "All" ? null : typeConfig[key];
-                  const activeColor = cfg?.color ?? "var(--teal)";
+            {/* Primary — Practice Area chips */}
+            <div style={{ display: "block", width: "100%", overflowX: "auto", paddingBottom: 4, marginBottom: 14 }}>
+              <div style={{ display: "inline-flex", gap: 8, paddingRight: 32 }}>
+                {PRACTICE_AREAS.map(({ key, label }) => {
+                  const isActive = activePracticeArea === key;
                   return (
-                    <button key={key} onClick={() => setActiveType(key)}
+                    <button key={key} onClick={() => setActivePracticeArea(key)}
                       style={{
-                        flexShrink: 0, whiteSpace: "nowrap", padding: "7px 16px", borderRadius: 999,
-                        fontSize: 13, fontWeight: 600, cursor: "pointer",
+                        flexShrink: 0, whiteSpace: "nowrap",
+                        padding: "9px 20px", borderRadius: 999,
+                        fontSize: 13, fontWeight: 700, cursor: "pointer",
                         transition: "all 0.15s",
-                        background: isActive
-                          ? (cfg ? `${cfg.color}18` : "rgba(31,191,159,0.1)")
-                          : "rgba(255,255,255,0.04)",
-                        color: isActive ? activeColor : "var(--text-3)",
-                        border: isActive ? `1px solid ${activeColor}30` : "1px solid var(--border)",
+                        background: isActive ? "rgba(31,191,159,0.12)" : "rgba(255,255,255,0.04)",
+                        color: isActive ? "var(--teal)" : "var(--text-2)",
+                        border: isActive ? "1px solid rgba(31,191,159,0.3)" : "1px solid var(--border)",
+                        boxShadow: isActive ? "0 0 12px rgba(31,191,159,0.08)" : "none",
                       }}>
-                      {key === "All" ? "All Types" : cfg?.label ?? key}
+                      {label}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Dropdowns + Clear */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {/* Secondary — Type, Difficulty, Industry dropdowns + Clear */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <Dropdown
+                value={activeType === "All" ? "All" : (typeConfig[activeType]?.label ?? activeType)}
+                options={["All", ...availableTypeKeys.map(k => typeConfig[k]?.label ?? k)]}
+                onChange={v => {
+                  if (v === "All") { setActiveType("All"); return; }
+                  const match = availableTypeKeys.find(k => (typeConfig[k]?.label ?? k) === v);
+                  if (match) setActiveType(match);
+                }}
+                label="Type: "
+              />
               <Dropdown
                 value={activeDifficulty}
                 options={DIFFICULTY_OPTIONS}
@@ -728,7 +696,7 @@ export default function ScenariosClient({ profile, user, practiceContext: practi
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <path d="M18 6L6 18M6 6l12 12"/>
                   </svg>
-                  Clear filters
+                  Clear
                 </button>
               )}
             </div>

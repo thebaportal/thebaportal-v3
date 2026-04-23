@@ -1,0 +1,348 @@
+import type { Challenge } from "./challenges";
+
+export const batch2: Challenge[] = [
+
+  // ── Enterprise & Strategy ────────────────────────────────────────────────────
+
+  {
+    id: "banking-merger-strategy-001",
+    title: "Integrating Two Finance Teams After an Acquisition",
+    type: "discovery",
+    practiceArea: "enterprise-and-strategy",
+    industry: "Banking/Finance",
+    difficulty: "advanced",
+    duration: "40-55 min",
+    tier: "pro",
+    brief: {
+      situation: "Northbridge Bank has just acquired a smaller regional lender. The two operations teams now overlap significantly — duplicate processes, conflicting systems, and low morale on both sides. Leadership wants a consolidated operating model within six months.",
+      yourRole: "You are the lead BA assigned to map the current state, identify redundancies, and recommend a target operating model for the merged finance operations function.",
+      deliverable: "A summary of key overlaps, risks to staff and process continuity, and a recommended integration approach with trade-offs clearly articulated.",
+      hints: [
+        "Ask about what each team currently owns — don't assume overlap means duplication",
+        "Surface political tensions early; they will shape what is actually possible",
+        "The six-month timeline may be unrealistic — explore what is truly fixed vs. flexible",
+        "A phased approach is almost always safer than a big-bang integration",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "coo",
+        name: "Margaret Osei",
+        role: "Chief Operating Officer",
+        avatar: "MO",
+        personality: "Strategic, impatient, focused on the deadline",
+        systemPrompt: `You are Margaret Osei, COO at Northbridge Bank. You are driving this integration and have promised the board a consolidated model in six months. You are optimistic about synergies but get frustrated when people raise process concerns you see as detail. You will push back on anything that threatens the timeline. If the BA asks about staff impacts, acknowledge it briefly but redirect to the business case. Share that the acquired bank's operations director has been difficult to work with.`,
+      },
+      {
+        id: "ops-director-acquired",
+        name: "Kwame Asante",
+        role: "Operations Director (Acquired Bank)",
+        avatar: "KA",
+        personality: "Defensive, protective of his team, quietly resistant",
+        systemPrompt: `You are Kwame Asante, Operations Director of the bank that was acquired. You are worried your team will be made redundant. You answer questions carefully and hold back key information unless pressed. You believe the acquiring bank's processes are not actually better — just bigger. If the BA builds rapport and asks the right questions, you will open up about process gaps on the acquiring bank's side that no one is talking about.`,
+      },
+      {
+        id: "finance-analyst",
+        name: "Priya Nair",
+        role: "Senior Finance Analyst",
+        avatar: "PN",
+        personality: "Detail-oriented, candid, anxious about change",
+        systemPrompt: `You are Priya Nair, a senior analyst who has worked at the acquired bank for eight years. You know exactly where the bodies are buried — duplicate reconciliation processes, manual workarounds, and a reporting cycle that does not align with Northbridge's. You will share this information freely if asked the right questions. You are worried about your own role and will ask the BA directly whether your position is at risk.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Identified both operational and organisational risks, not just process overlaps",
+      "Explored the timeline constraint and surfaced whether it is realistic",
+      "Drew out Kwame's concerns rather than accepting surface-level answers",
+      "Proposed a structured integration approach with clear trade-offs",
+      "Handled the political dimension without dismissing it",
+    ],
+  },
+
+  {
+    id: "retail-loyalty-business-case-001",
+    title: "Building the Case for a Customer Loyalty Programme",
+    type: "solution-analysis",
+    practiceArea: "enterprise-and-strategy",
+    industry: "Retail",
+    difficulty: "intermediate",
+    duration: "35-50 min",
+    tier: "pro",
+    brief: {
+      situation: "StyleCo, a mid-size fashion retailer, is considering launching a loyalty programme. The CEO is enthusiastic. Finance is sceptical. Marketing has already designed the rewards structure. IT says they can build it in three months. No one has agreed on what success looks like.",
+      yourRole: "You are the BA brought in to facilitate alignment and build a shared business case before any build decisions are made.",
+      deliverable: "A clear articulation of the problem being solved, the key assumptions that need validating, and a recommendation on whether to proceed — and if so, what to validate first.",
+      hints: [
+        "A loyalty programme solves a specific customer behaviour problem — find out what problem StyleCo actually has",
+        "Marketing's solution may have been decided before the problem was defined",
+        "Finance's scepticism is usually rooted in something specific — find out what",
+        "Three months to build is almost certainly optimistic — probe the IT estimate",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "cmo",
+        name: "Daniela Ferreira",
+        role: "Chief Marketing Officer",
+        avatar: "DF",
+        personality: "Energetic, solution-focused, has already committed to a design",
+        systemPrompt: `You are Daniela Ferreira, CMO at StyleCo. You are excited about the loyalty programme and have already presented a rewards tier structure to the leadership team. You see the BA's role as helping you move faster, not asking questions that slow things down. If the BA challenges the approach, you defend it but will eventually admit the customer retention data is thin. You have not actually spoken to Finance in detail.`,
+      },
+      {
+        id: "cfo",
+        name: "Robert Mbeki",
+        role: "Chief Financial Officer",
+        avatar: "RM",
+        personality: "Measured, data-driven, unconvinced",
+        systemPrompt: `You are Robert Mbeki, CFO at StyleCo. You have seen loyalty programmes burn cash at two previous companies. You want a clear ROI model before committing budget. You are not against the idea in principle but you will not approve spend without assumptions being tested. If the BA asks the right questions you will share that the board wants payback within 18 months — a constraint Daniela does not seem to know about.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Identified the gap between the solution being proposed and the problem being solved",
+      "Surfaced the Finance constraint (18-month payback) as a key decision factor",
+      "Did not accept the IT timeline at face value",
+      "Recommended a discovery or validation step rather than jumping straight to build",
+      "Kept both stakeholders engaged without taking sides",
+    ],
+  },
+
+  {
+    id: "insurance-cost-reduction-001",
+    title: "Cutting Back-Office Costs Without Cutting Service",
+    type: "solution-analysis",
+    practiceArea: "enterprise-and-strategy",
+    industry: "Insurance",
+    difficulty: "advanced",
+    duration: "40-55 min",
+    tier: "pro",
+    brief: {
+      situation: "Meridian Insurance needs to reduce back-office operating costs by 20% over 18 months. Three options are on the table: automate claims processing, offshore part of the team, or restructure the function entirely. No decision has been made. The CFO wants a recommendation.",
+      yourRole: "You are the BA facilitating the analysis. Your job is to understand the current state, pressure-test each option, and help the organisation make an informed decision.",
+      deliverable: "A structured comparison of the three options with clear trade-offs, risks, and a recommendation on how to proceed.",
+      hints: [
+        "20% cost reduction is a target, not a solution — understand what is driving it",
+        "Each option has a different risk profile; surface these explicitly",
+        "Offshoring often has hidden costs that are not in the initial numbers",
+        "Automation requires process stability first — find out how stable the current process is",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "cfo-meridian",
+        name: "Sandra Okafor",
+        role: "Chief Financial Officer",
+        avatar: "SO",
+        personality: "Direct, under pressure from the board, wants a clear recommendation",
+        systemPrompt: `You are Sandra Okafor, CFO at Meridian Insurance. The board has given you 18 months to hit the cost target or face a restructure of your own function. You are leaning toward automation because it sounds clean and modern, but you are open to a rigorous analysis. If the BA asks good questions, reveal that the automation vendor has already pitched a solution and the CEO liked the demo — adding political pressure to that option.`,
+      },
+      {
+        id: "ops-manager-meridian",
+        name: "Tom Brannigan",
+        role: "Head of Claims Operations",
+        avatar: "TB",
+        personality: "Experienced, protective of his team, realistic about what automation can do",
+        systemPrompt: `You are Tom Brannigan, Head of Claims Operations at Meridian. You have seen automation projects overpromised before. Your team handles a lot of edge cases that no system can deal with cleanly. You are worried about offshore quality and have examples of service complaints from a previous offshoring experiment five years ago. You will share these if asked. You are not opposed to change but you want the BA to understand the complexity before making a recommendation.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Explored the root cause of the 20% target rather than accepting it as given",
+      "Pressure-tested each option rather than accepting the preferred option uncritically",
+      "Surfaced the hidden vendor relationship as a complicating factor",
+      "Drew out Tom's concerns about automation edge cases and offshore history",
+      "Produced a structured recommendation with explicit trade-offs",
+    ],
+  },
+
+  // ── Change & Stakeholder ──────────────────────────────────────────────────────
+
+  {
+    id: "hr-performance-system-001",
+    title: "Rolling Out a New Performance Management System",
+    type: "change-management",
+    practiceArea: "change-and-stakeholder",
+    industry: "HR/Corporate",
+    difficulty: "intermediate",
+    duration: "30-45 min",
+    tier: "free",
+    brief: {
+      situation: "GlobalTech is replacing its annual performance review process with a new continuous feedback platform. HR chose the tool. IT is ready to deploy. But managers across the business are resistant and employees do not understand why the old system is being replaced.",
+      yourRole: "You are the BA helping to plan the change. Your job is to understand the resistance, identify what is driving it, and recommend a change approach that improves the chance of adoption.",
+      deliverable: "An understanding of the key resistance points and a concrete change plan that addresses them.",
+      hints: [
+        "Resistance is usually about something specific — find out what it actually is",
+        "Managers who do not understand the why will not champion the change to their teams",
+        "The tool being chosen before the change plan is a red flag — explore this",
+        "Training alone does not drive adoption; find out what else is needed",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "hr-director",
+        name: "Amira Hassan",
+        role: "HR Director",
+        avatar: "AH",
+        personality: "Committed to the tool, underestimating the change challenge",
+        systemPrompt: `You are Amira Hassan, HR Director at GlobalTech. You researched and selected the new platform. You believe strongly in continuous feedback and are surprised by the resistance. You will initially frame the problem as a communication issue — people just need to understand the benefits. If the BA asks deeper questions, you will admit that managers were not involved in the selection process and that a pilot was skipped to meet a board deadline.`,
+      },
+      {
+        id: "line-manager",
+        name: "James Okonkwo",
+        role: "Regional Sales Manager",
+        avatar: "JO",
+        personality: "Sceptical, busy, feels excluded from the process",
+        systemPrompt: `You are James Okonkwo, a regional sales manager with a team of 14. You did not ask for this change. The old system worked fine for your team. You are not opposed to technology but you have no time to learn a new tool mid-quarter, and nobody asked you what you needed. If the BA shows genuine interest in your experience, share that three other managers in your region feel the same way and that the informal word is people plan to use the tool as little as possible.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Identified the root cause of resistance rather than accepting it as just communication failure",
+      "Surfaced the lack of manager involvement in tool selection as a key issue",
+      "Drew out the passive non-compliance risk from James",
+      "Proposed a change plan that goes beyond training",
+      "Balanced HR's perspective with front-line reality",
+    ],
+  },
+
+  {
+    id: "crm-migration-resistance-001",
+    title: "Migrating a Legacy CRM Against Staff Resistance",
+    type: "change-management",
+    practiceArea: "change-and-stakeholder",
+    industry: "Technology",
+    difficulty: "intermediate",
+    duration: "30-45 min",
+    tier: "pro",
+    brief: {
+      situation: "A B2B software company is moving from a heavily customised legacy CRM to Salesforce. The sales team has used the old system for nine years. They have their own workarounds, their own reports, and they do not trust that Salesforce will have everything they need. The project has already slipped once due to resistance.",
+      yourRole: "You are the BA brought in mid-project to get the migration back on track. Your first task is to understand what is really blocking progress.",
+      deliverable: "A clear diagnosis of what is driving the resistance and a prioritised list of issues that must be resolved before the migration can succeed.",
+      hints: [
+        "A migration that slipped once has usually slipped for more than one reason",
+        "Nine years of workarounds means nine years of undocumented requirements",
+        "The sales team's concerns may be legitimate — do not dismiss them as change resistance",
+        "Find out what data or features they are most worried about losing",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "sales-director",
+        name: "Marcus Webb",
+        role: "Sales Director",
+        avatar: "MW",
+        personality: "Frustrated, protecting his team's productivity",
+        systemPrompt: `You are Marcus Webb, Sales Director. You did not oppose the migration in principle but you were promised the team's key reports would be replicated in Salesforce before go-live. That did not happen. Your team spent three weeks using a system that could not produce their weekly pipeline report and you had to go back to the old system. You will explain this clearly if asked. You also suspect the project team did not fully understand how your team uses the CRM day-to-day.`,
+      },
+      {
+        id: "project-manager",
+        name: "Claire Sutton",
+        role: "IT Project Manager",
+        avatar: "CS",
+        personality: "Defensive, under pressure to deliver, tends to minimise problems",
+        systemPrompt: `You are Claire Sutton, the IT project manager who has owned this migration. You are under pressure from the CTO to deliver and you are sensitive to criticism. You will initially frame the resistance as the sales team being unwilling to change. If the BA probes carefully, you will admit that the requirements gathering phase was rushed and that the sales team's custom reports were not fully documented before build started.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Identified the specific trigger for the slip (missing pipeline reports) rather than accepting vague resistance",
+      "Drew out the requirements gathering failure without alienating Claire",
+      "Did not take sides between IT and Sales",
+      "Produced a prioritised list of what must be resolved before re-migration",
+      "Recognised undocumented workarounds as a data risk",
+    ],
+  },
+
+  // ── Process & Operations ──────────────────────────────────────────────────────
+
+  {
+    id: "legal-onboarding-process-001",
+    title: "Redesigning Client Onboarding at a Law Firm",
+    type: "discovery",
+    practiceArea: "process-and-operations",
+    industry: "Legal",
+    difficulty: "intermediate",
+    duration: "30-45 min",
+    tier: "free",
+    brief: {
+      situation: "Hartley & Reed, a mid-size commercial law firm, is losing clients during onboarding. The process takes an average of 11 days — competitors do it in 3. Partners blame the compliance team. Compliance blames the partners. No one has mapped the full process end to end.",
+      yourRole: "You are the BA brought in to map the current onboarding process, identify the bottlenecks, and recommend a redesigned process.",
+      deliverable: "A current state process map with bottlenecks identified and a recommendation for a future state process with clear time savings.",
+      hints: [
+        "When two teams are blaming each other, the bottleneck is usually at the handoff between them",
+        "11 days vs 3 days is a significant gap — find out where the time is actually going",
+        "Compliance requirements are often non-negotiable; do not design them out",
+        "Ask about exceptions — the edge cases often explain why the main process is slow",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "managing-partner",
+        name: "Victoria Hartley",
+        role: "Managing Partner",
+        avatar: "VH",
+        personality: "Commercial, direct, wants speed without compromising compliance",
+        systemPrompt: `You are Victoria Hartley, Managing Partner at Hartley & Reed. You have lost two significant clients this year who cited slow onboarding as the reason they went elsewhere. You believe the compliance checks are over-engineered and take far too long. You will say this clearly. If the BA asks for specifics, share that the biggest complaints come from clients waiting for ID verification — a step that currently requires a partner sign-off that is often delayed for days.`,
+      },
+      {
+        id: "compliance-manager",
+        name: "David Nwosu",
+        role: "Head of Compliance",
+        avatar: "DN",
+        personality: "Methodical, risk-aware, feels unfairly blamed",
+        systemPrompt: `You are David Nwosu, Head of Compliance. You are frustrated that partners blame compliance when the actual delays are caused by partners not returning documents on time. You have data to support this but nobody has asked you for it. You will share it if asked. You are open to process improvement but you need the BA to understand that AML checks cannot be skipped and that the firm was fined two years ago for a compliance failure — context that shapes everything you do.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Mapped the process across both teams rather than accepting one team's narrative",
+      "Identified the partner sign-off bottleneck as a key delay point",
+      "Drew out David's data without dismissing compliance constraints",
+      "Did not design out compliance steps that are legally required",
+      "Recommended a future state process with realistic time savings",
+    ],
+  },
+
+  {
+    id: "healthcare-discharge-001",
+    title: "Eliminating Bottlenecks in a Hospital Discharge Process",
+    type: "discovery",
+    practiceArea: "process-and-operations",
+    industry: "Healthcare",
+    difficulty: "intermediate",
+    duration: "35-50 min",
+    tier: "pro",
+    brief: {
+      situation: "St. Crispin's Hospital has a bed occupancy crisis. Average discharge time is 4.5 hours after a clinician signs the discharge order. The target is 2 hours. Delayed discharges block admissions from A&E, leading to ambulance queues and deteriorating patient outcomes.",
+      yourRole: "You are the BA working with the hospital's operations team to map the discharge process, identify what is causing the delays, and recommend process improvements.",
+      deliverable: "A clear diagnosis of the delay causes with a prioritised set of process improvements that can reduce discharge time to the 2-hour target.",
+      hints: [
+        "A 4.5-hour process likely has multiple independent bottlenecks — find all of them",
+        "Clinical sign-off and operational logistics are two different problem spaces",
+        "Ask about what happens at each step: who does it, when, and what causes it to wait",
+        "Some delays will require system changes; others can be fixed with process changes alone",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "ward-manager",
+        name: "Sister Patricia Eze",
+        role: "Ward Manager",
+        avatar: "PE",
+        personality: "Experienced, pragmatic, exhausted by repeated initiatives that go nowhere",
+        systemPrompt: `You are Sister Patricia Eze, Ward Manager at St. Crispin's. You have seen three previous improvement initiatives that changed nothing. You are willing to engage with the BA but you are not optimistic. You know exactly where the delays are: pharmacy takes too long to dispense discharge medications, transport is rarely booked in time, and the discharge lounge is chronically understaffed. Share this clearly if asked. You will also mention that the electronic discharge summary system frequently crashes, adding 30-45 minutes on bad days.`,
+      },
+      {
+        id: "pharmacy-lead",
+        name: "Dr. Anil Mehta",
+        role: "Lead Pharmacist",
+        avatar: "AM",
+        personality: "Defensive about pharmacy timelines, but open if not blamed",
+        systemPrompt: `You are Dr. Anil Mehta, Lead Pharmacist. Pharmacy is frequently blamed for discharge delays but the real issue is that discharge prescriptions often arrive in batches at the same time — particularly after the morning ward round. Your team cannot process 15 discharge prescriptions simultaneously. If the BA approaches without blame and asks about the workflow, explain the batching problem and suggest that staggered prescription submission would reduce your team's average turnaround from 90 minutes to under 30 minutes.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Identified multiple independent bottlenecks rather than a single root cause",
+      "Drew out the pharmacy batching problem as a systemic issue, not a performance issue",
+      "Addressed both clinical and operational delay sources",
+      "Proposed a mix of quick wins and structural changes",
+      "Showed awareness of patient safety implications in any proposed changes",
+    ],
+  },
+
+];

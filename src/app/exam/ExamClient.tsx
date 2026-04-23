@@ -70,14 +70,14 @@ function CustomSelect({ value, onChange, options }: {
           position: "absolute",
           top: "calc(100% + 6px)",
           left: 0, right: 0,
-          background: "#18181f",
-          border: "1px solid rgba(255,255,255,0.1)",
+          background: "#0d0d12",
+          border: "1px solid rgba(255,255,255,0.12)",
           borderRadius: 10,
-          overflow: "hidden",
           overflowY: "auto",
           maxHeight: 280,
-          zIndex: 200,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
+          zIndex: 9999,
+          boxShadow: "0 16px 48px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)",
+          isolation: "isolate",
         }}>
           {options.map(opt => {
             const isSelected = opt.value === value;
@@ -96,13 +96,14 @@ function CustomSelect({ value, onChange, options }: {
                   borderLeft: isSelected ? "2px solid var(--teal)" : "2px solid transparent",
                   color: isSelected ? "var(--teal)" : "var(--text-1)",
                   fontSize: 13,
-                  fontWeight: isSelected ? 600 : 400,
+                  fontWeight: isSelected ? 600 : 500,
+                  opacity: 1,
                   cursor: "pointer",
                   fontFamily: "'Inter','Open Sans',sans-serif",
                   transition: "background 0.1s",
                 }}
                 onMouseEnter={e => {
-                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)";
+                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)";
                 }}
                 onMouseLeave={e => {
                   if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
