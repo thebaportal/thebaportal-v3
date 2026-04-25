@@ -674,9 +674,11 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   }, [fitView]);
 
   // Shared: converts API diagram JSON → React Flow nodes/edges and applies them.
-  // Handles both the direct-type schema (terminalNode, stepNode, decisionNode)
-  // and the legacy DiagramForge schema (start, end, process, decision).
+  // Handles both the DiagramForge schema (start/end/process/decision with data.label)
+  // and the legacy direct-type schema (terminalNode/stepNode with top-level label).
   const applyDiagramData = useCallback((data: Record<string, unknown>) => {
+    if (typeof data.title === "string" && data.title.trim()) setTitle(data.title.trim());
+
     const lanes: Lane[] = ((data.lanes as Lane[] | undefined) ?? []).map(l => ({
       id: l.id, label: l.label, color: l.color,
     }));
@@ -716,7 +718,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
         id:   n.id,
         type: rfTypeMap[dfType] ?? "stepNode",
         data: {
-          label:       n.label ?? n.data?.label ?? "",
+          label:       n.data?.label ?? n.label ?? "",   // new schema first, legacy fallback
           actor:       n.actor,
           description: n.description ?? n.data?.description,
           laneId:      n.laneId,
@@ -754,7 +756,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     setEdges(rawEdges);
     pushSnapshot(allNodes, rawEdges);
     fitViewDelayed();
-  }, [setNodes, setEdges, pushSnapshot, fitViewDelayed]);
+  }, [setNodes, setEdges, pushSnapshot, fitViewDelayed, setTitle]);
 
   const handleBuildFromForm = useCallback(async () => {
     setBuilding(true);

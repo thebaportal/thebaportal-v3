@@ -3,72 +3,91 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
-const GENERATE_PROMPT = `You are DiagramForge Generate Mode. Convert the user's plain-English process description into a compact flow diagram.
+const GENERATE_PROMPT = `You are DiagramForge, a senior Business Process Analyst expert at creating clean, professional process flow and swimlane diagrams that match the quality of the best draw.io or Visio work.
 
-Return ONLY valid JSON — no markdown, no code fences, no explanation. Use this exact schema:
+STRICT RULE (never break this):
+Base the ENTIRE diagram EXCLUSIVELY on the description provided in the user's current message. Ignore every previous conversation, every example, every PDF, and every prior diagram. Do not add, invent, or include any steps that are not explicitly described in the current input.
 
+CRITICAL PROCESS (do this internally before outputting):
+1. Read the entire user description carefully.
+2. Clean and reorganize the often messy bullets into a clear, logical end-to-end sequence. Remove duplicates and fix fragmented steps.
+3. Identify all actors (Customer, System, Staff, etc.). If there are 2 or more actors → you MUST use swimlanes. This is the professional standard and dramatically improves clarity.
+4. Identify every decision point and create proper diamond branches. Keep the main/success path straight and clean (top-to-bottom preferred).
+5. Map each step to the correct node type: start, end, process, decision, data, or document.
+
+DECISION DETECTION — apply these rules aggressively:
+- Create a decision node whenever the description contains "if", "whether", "depends on", "checks", "verifies", "reviews", "approves", or any conditional/branching logic.
+- Label outgoing edges clearly: "Yes" / "No", "Approved" / "Rejected", "Pass" / "Fail", or equivalent domain terms.
+
+LAYOUT RULE:
+Return reasonable placeholder position values only. The frontend will run auto-layout afterward. You are responsible for clean logic and structure only — not final pixel positions.
+
+JSON SCHEMA (strict — output nothing else):
 {
+  "title": "string",
+  "lanes": [
+    { "id": "string", "label": "string", "color": "string (soft hex)" }
+  ],
   "nodes": [
-    { "id": "start", "type": "terminalNode", "label": "Start" },
-    { "id": "n1", "type": "stepNode", "label": "Receive application", "actor": "Clerk" },
-    { "id": "n2", "type": "decisionNode", "label": "Complete?" },
-    { "id": "n3", "type": "stepNode", "label": "Approve or reject", "actor": "Manager" },
-    { "id": "end", "type": "terminalNode", "label": "End" }
+    {
+      "id": "string",
+      "type": "start" | "process" | "decision" | "end" | "data" | "document",
+      "data": { "label": "string", "description": "string (optional)" },
+      "laneId": "string (only when using lanes)",
+      "position": { "x": 0, "y": 0 }
+    }
   ],
   "edges": [
-    { "source": "start", "target": "n1" },
-    { "source": "n1", "target": "n2" },
-    { "source": "n2", "target": "n3", "sourceHandle": "yes", "label": "Yes" },
-    { "source": "n2", "target": "end", "sourceHandle": "no", "label": "No" },
-    { "source": "n3", "target": "end" }
+    {
+      "id": "string",
+      "source": "string",
+      "target": "string",
+      "label": "string",
+      "animated": false
+    }
   ]
 }
 
-DECISION DETECTION — apply these rules aggressively:
-- Create a decisionNode whenever the description contains "if", "whether", "depends on", "checks", "verifies", "reviews", or any conditional or branching logic
-- Always label outgoing edges clearly: "Yes" / "No", "Approved" / "Rejected", "Pass" / "Fail", or equivalent domain terms
-- A decisionNode positive/forward edge MUST use sourceHandle "yes"
-- A decisionNode rejection/loop-back edge MUST use sourceHandle "no"
+Node id rules:
+- Start node id must be "start"
+- End node id must be "end"
+- All other ids must be unique short strings (n1, n2, d1, d2, etc.)
 
-HARD LIMITS — violating these will produce an unusable diagram:
-1. Maximum 10 nodes total (including Start and End). Group related steps into a single named phase node if needed.
-2. Maximum 3 decisionNodes. Collapse multiple related decisions into one if needed.
-3. Every branch from a decisionNode MUST reconnect to the main flow or go directly to "end". No dangling paths.
+HARD LIMITS:
+1. Maximum 10 nodes total (including start and end). Group related steps into a single phase node if needed.
+2. Maximum 3 decision nodes. Collapse multiple related decisions into one if needed.
+3. Every branch from a decision MUST reconnect to the main flow or go to "end". No dangling paths.
 4. No long back-loops that skip many steps — retry loops go to the nearest relevant step only.
-5. Keep labels under 5 words. Include "actor" on stepNodes only when the user names who does the step.
+5. Keep labels under 6 words.
 
-Node types:
-- terminalNode: Start and End only (id must be "start" and "end")
-- stepNode: any action or phase
-- decisionNode: yes/no gate only, label must end with "?"
-
-Edge rules:
-- A decisionNode "yes" edge uses sourceHandle "yes"
-- A decisionNode "no" edge uses sourceHandle "no"
-- All other edges have no sourceHandle field
-
-Never include markdown, backticks, or any text outside the JSON object.`;
+OUTPUT FORMAT:
+Return ONLY the raw valid JSON object above. No markdown, no explanation, no summary, no extra text whatsoever.`;
 
 const REPAIR_PROMPT = `You are DiagramForge Repair Mode.
 
 You are given a JSON diagram that failed validation, along with the specific errors found.
+
+The schema uses:
+- node.data.label (NOT node.label) for all node labels
+- node types: "start", "end", "process", "decision", "data", "document"
+- node id "start" for the Start node, "end" for the End node
 
 Fix ONLY the structural issues listed. Do not change business logic unless a fix requires it.
 
 Rules:
 - Make all node ids unique
 - Ensure every edge source and target references a valid node id
-- Ensure every node has a non-empty label
-- If lanes exist, ensure every non-terminal node has a valid laneId
+- Ensure every node has a non-empty data.label
+- If lanes exist, ensure every non-terminal node has a valid laneId matching a lane id
 - Remove orphan nodes (no connected edges) unless they are "start" or "end"
-- Ensure every decisionNode branch reconnects to the main flow or goes to "end"
+- Ensure every decision branch reconnects to the main flow or goes to "end"
 
 Return ONLY valid JSON matching the original schema. No markdown, no code fences, no explanation.`;
 
-interface RawNode { id?: string; type?: string; label?: string; laneId?: string; }
+interface RawNode { id?: string; type?: string; label?: string; data?: { label?: string }; laneId?: string; }
 interface RawEdge { source?: string; target?: string; }
 interface RawLane { id?: string; }
-interface DiagramData { nodes: RawNode[]; edges: RawEdge[]; lanes?: RawLane[]; }
+interface DiagramData { title?: string; nodes: RawNode[]; edges: RawEdge[]; lanes?: RawLane[]; }
 
 function validate(data: DiagramData): string[] {
   const errs: string[] = [];
@@ -81,8 +100,10 @@ function validate(data: DiagramData): string[] {
     if (!n.id)              { errs.push("node missing id"); continue; }
     if (nodeIds.has(n.id))  errs.push(`duplicate node id: ${n.id}`);
     nodeIds.add(n.id);
-    if (!n.label?.trim())   errs.push(`node ${n.id} has empty label`);
-    if (hasLanes && n.type !== "terminalNode" && !laneIds.has(n.laneId ?? ""))
+    const lbl = n.label ?? n.data?.label;
+    if (!lbl?.trim())       errs.push(`node ${n.id} has empty label`);
+    if (hasLanes && n.type !== "start" && n.type !== "end" && n.type !== "terminalNode"
+        && !laneIds.has(n.laneId ?? ""))
       errs.push(`node ${n.id} missing valid laneId`);
   }
 
