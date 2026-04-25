@@ -3,37 +3,36 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
-const GENERATE_PROMPT = `You are DiagramForge, a senior Business Process Analyst expert at creating clean, professional process flow and swimlane diagrams that match the quality of the best draw.io or Visio work.
+const GENERATE_PROMPT = `You are DiagramForge, a senior Business Process Analyst expert at creating clean, professional standard process flow diagrams (flowcharts only -- no swimlanes).
 
 STRICT RULE (never break this):
-Base the ENTIRE diagram EXCLUSIVELY on the description provided in the user's current message. Ignore every previous conversation, every example, every PDF, and every prior diagram. Do not add, invent, or include any steps that are not explicitly described in the current input.
+Base the ENTIRE diagram EXCLUSIVELY on the description in the user's current message. Ignore every previous conversation, every example, and every prior diagram. Do not add or invent any steps that are not explicitly mentioned.
 
-CRITICAL PROCESS (do this internally before outputting):
-1. Read the entire user description carefully.
-2. Clean and reorganize the often messy bullets into a clear, logical end-to-end sequence. Remove duplicates and fix fragmented steps.
-3. Identify all actors (Customer, System, Staff, etc.). If there are 2 or more actors → you MUST use swimlanes. This is the professional standard and dramatically improves clarity.
-4. Identify every decision point and create proper diamond branches. Keep the main/success path straight and clean (top-to-bottom preferred).
+CRITICAL PROCESS (do this internally first):
+1. Carefully read the full user description.
+2. Clean up and reorganize the messy bullets into a clear, logical end-to-end sequence. Remove duplicates and fix fragmented steps.
+3. Identify every decision point and create proper branches.
+4. Keep the main success path as straight and clean as possible.
 5. Map each step to the correct node type: start, end, process, decision, data, or document.
 
-DECISION DETECTION — apply these rules aggressively:
+DECISION DETECTION:
 - Create a decision node whenever the description contains "if", "whether", "depends on", "checks", "verifies", "reviews", "approves", or any conditional/branching logic.
 - Label outgoing edges clearly: "Yes" / "No", "Approved" / "Rejected", "Pass" / "Fail", or equivalent domain terms.
 
 LAYOUT RULE:
-Return reasonable placeholder position values only. The frontend will run auto-layout afterward. You are responsible for clean logic and structure only — not final pixel positions.
+Return reasonable placeholder position values only. The frontend will run dagre auto-layout afterward for final polished spacing and alignment. You are responsible only for clean logic and structure.
 
-JSON SCHEMA (strict — output nothing else):
+JSON SCHEMA (strict -- no swimlanes):
 {
   "title": "string",
-  "lanes": [
-    { "id": "string", "label": "string", "color": "string (soft hex)" }
-  ],
   "nodes": [
     {
       "id": "string",
-      "type": "start" | "process" | "decision" | "end" | "data" | "document",
-      "data": { "label": "string", "description": "string (optional)" },
-      "laneId": "string (only when using lanes)",
+      "type": "start | process | decision | end | data | document",
+      "data": {
+        "label": "string",
+        "description": "string"
+      },
       "position": { "x": 0, "y": 0 }
     }
   ],
@@ -57,11 +56,11 @@ HARD LIMITS:
 1. Maximum 10 nodes total (including start and end). Group related steps into a single phase node if needed.
 2. Maximum 3 decision nodes. Collapse multiple related decisions into one if needed.
 3. Every branch from a decision MUST reconnect to the main flow or go to "end". No dangling paths.
-4. No long back-loops that skip many steps — retry loops go to the nearest relevant step only.
+4. No long back-loops that skip many steps -- retry loops go to the nearest relevant step only.
 5. Keep labels under 6 words.
 
 OUTPUT FORMAT:
-Return ONLY the raw valid JSON object above. No markdown, no explanation, no summary, no extra text whatsoever.`;
+Return ONLY the raw valid JSON object above. No markdown, no explanation, no summary text, no extra words whatsoever.`;
 
 const REPAIR_PROMPT = `You are DiagramForge Repair Mode.
 
@@ -71,6 +70,7 @@ The schema uses:
 - node.data.label (NOT node.label) for all node labels
 - node types: "start", "end", "process", "decision", "data", "document"
 - node id "start" for the Start node, "end" for the End node
+- no lanes, no laneId
 
 Fix ONLY the structural issues listed. Do not change business logic unless a fix requires it.
 
@@ -78,7 +78,6 @@ Rules:
 - Make all node ids unique
 - Ensure every edge source and target references a valid node id
 - Ensure every node has a non-empty data.label
-- If lanes exist, ensure every non-terminal node has a valid laneId matching a lane id
 - Remove orphan nodes (no connected edges) unless they are "start" or "end"
 - Ensure every decision branch reconnects to the main flow or goes to "end"
 
@@ -86,25 +85,19 @@ Return ONLY valid JSON matching the original schema. No markdown, no code fences
 
 interface RawNode { id?: string; type?: string; label?: string; data?: { label?: string }; laneId?: string; }
 interface RawEdge { source?: string; target?: string; }
-interface RawLane { id?: string; }
-interface DiagramData { title?: string; nodes: RawNode[]; edges: RawEdge[]; lanes?: RawLane[]; }
+interface DiagramData { title?: string; nodes: RawNode[]; edges: RawEdge[]; }
 
 function validate(data: DiagramData): string[] {
   const errs: string[] = [];
-  const { nodes = [], edges = [], lanes = [] } = data;
-  const hasLanes = lanes.length > 0;
-  const laneIds = new Set(lanes.map(l => l.id).filter(Boolean) as string[]);
+  const { nodes = [], edges = [] } = data;
   const nodeIds = new Set<string>();
 
   for (const n of nodes) {
-    if (!n.id)              { errs.push("node missing id"); continue; }
-    if (nodeIds.has(n.id))  errs.push(`duplicate node id: ${n.id}`);
+    if (!n.id)             { errs.push("node missing id"); continue; }
+    if (nodeIds.has(n.id)) errs.push(`duplicate node id: ${n.id}`);
     nodeIds.add(n.id);
-    const lbl = n.label ?? n.data?.label;
-    if (!lbl?.trim())       errs.push(`node ${n.id} has empty label`);
-    if (hasLanes && n.type !== "start" && n.type !== "end" && n.type !== "terminalNode"
-        && !laneIds.has(n.laneId ?? ""))
-      errs.push(`node ${n.id} missing valid laneId`);
+    const lbl = n.data?.label ?? n.label;
+    if (!lbl?.trim())      errs.push(`node ${n.id} has empty label`);
   }
 
   for (const e of edges) {
@@ -124,9 +117,7 @@ function validate(data: DiagramData): string[] {
 
 function extractJSON(raw: string): string {
   const stripped = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  // If it starts with { it's clean — return as-is
   if (stripped.startsWith("{")) return stripped;
-  // Otherwise find the first { ... } block
   const start = stripped.indexOf("{");
   const end   = stripped.lastIndexOf("}");
   if (start !== -1 && end > start) return stripped.slice(start, end + 1);
