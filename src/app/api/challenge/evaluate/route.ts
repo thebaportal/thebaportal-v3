@@ -157,6 +157,16 @@ export async function POST(request: Request) {
     // ── Phase A: Standard challenge evaluation ──
     const { challenge, submission, conversations, difficultyMode, questionCount } = body;
 
+    const isProcessScenario = challenge.practiceArea === "process-and-operations";
+
+    const processLens = isProcessScenario ? `
+
+PROCESS ANALYSIS LENS — This is a process improvement scenario, not a requirements or software scenario. Adjust your evaluation accordingly:
+- Problem Framing: Did they correctly identify this as a process problem? Did they resist jumping to a technology or staffing fix before understanding the flow?
+- Root Cause: Did they identify the specific step or handoff where the breakdown occurs — not just the symptom (e.g. "patients wait too long") but the mechanism (e.g. "the admin handoff creates a queue")?
+- Evidence Use: Did they use specific information from stakeholders — actual steps, timings, named handoff points — or did they make general assertions without grounding them?
+- Recommendation Quality: Did they recommend a concrete process change with clear ownership? A vague "improve the process" answer scores low. A specific "change X at step Y, owned by Z" scores high.` : "";
+
     const systemPrompt = `You are Alex Rivera, a Senior Business Analyst Coach with 14 years of experience. You are CBAP certified and previously led BA practices at Deloitte and IBM.
 
 You evaluate BA simulation submissions with high professional standards. You are direct, specific, and constructive. You do NOT give empty praise. You identify real gaps and give actionable coaching.
@@ -196,7 +206,7 @@ Difficulty adjustment:
 - Hard mode: Slightly higher bar for the same score
 - Expert mode: High bar — even good responses should show gaps
 
-The totalScore must equal the sum of all four dimension scores.`;
+The totalScore must equal the sum of all four dimension scores.${processLens}`;
 
     const userPrompt = `Challenge: ${challenge.title}
 Industry: ${challenge.industry}

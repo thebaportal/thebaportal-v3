@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, LayoutDashboard, GraduationCap,
   Target, BriefcaseBusiness, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare,
+  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork,
 } from "lucide-react";
 
 const GET_HIRED_ITEMS = [
@@ -20,6 +20,10 @@ const GROWTH_ITEMS = [
   { icon: GraduationCap,   label: "Learning",      href: "/learning" },
   { icon: Target,          label: "Exam Prep",     href: "/exam" },
   { icon: BriefcaseBusiness, label: "Career Suite", href: "/career" },
+];
+
+const TOOLS_ITEMS = [
+  { icon: GitFork, label: "Process Flow", href: "/tools/process-flow" },
 ];
 
 interface AppSidebarProps {
@@ -227,6 +231,15 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
         {/* Section 2: Growth */}
         <SectionLabel label="Growth" isCollapsed={isCollapsed} />
         {GROWTH_ITEMS.map(item => (
+          <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
+        ))}
+
+        {/* Section divider */}
+        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "24px 4px 20px" }} />
+
+        {/* Section 3: Tools */}
+        <SectionLabel label="Tools" isCollapsed={isCollapsed} />
+        {TOOLS_ITEMS.map(item => (
           <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
         ))}
 

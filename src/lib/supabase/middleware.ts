@@ -37,17 +37,19 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route)
   );
 
-  if (!user && isProtectedRoute) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/auth/login";
-    redirectUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
+  if (process.env.NODE_ENV !== "development") {
+    if (!user && isProtectedRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/auth/login";
+      redirectUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
 
-  if (user && isAuthRoute) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
-    return NextResponse.redirect(redirectUrl);
+    if (user && isAuthRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/dashboard";
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   return supabaseResponse;

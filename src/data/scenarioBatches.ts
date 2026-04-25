@@ -299,6 +299,61 @@ export const batch2: Challenge[] = [
   },
 
   {
+    id: "hospital-ed-bottleneck-001",
+    title: "Why Emergency Patients Are Waiting Too Long",
+    type: "discovery",
+    practiceArea: "process-and-operations",
+    industry: "Healthcare",
+    difficulty: "intermediate",
+    duration: "35-50 min",
+    tier: "pro",
+    brief: {
+      situation: "Metro General Hospital's Emergency Department has seen the time from patient arrival to doctor consultation increase by 40% over the past six months. Patient satisfaction scores are falling and staff burnout is rising. Hospital leadership has ruled out a staffing shortage — doctor headcount has not changed. Nobody can agree on what is actually causing the slowdown.",
+      yourRole: "You are the BA brought in to map the current patient journey from the moment someone walks through the ED doors to the moment they sit with a doctor. Your job is to find where the time is going and recommend what needs to change.",
+      deliverable: "Structure your submission in three parts. First, walk through the current state — describe the patient journey step by step, noting who does what and where one person hands off to the next. Second, identify where the time is being lost and what is causing it. Third, recommend what should change, who needs to own it, and what you would need to confirm before committing to a solution.",
+      hints: [
+        "Ask about each step of the patient journey separately — not about the problem in general",
+        "Handoff points between staff are where time most often disappears — ask specifically about those moments",
+        "The person who knows the answer may not be the most senior person in the room",
+        "The most obvious explanation is not always the right one — probe before concluding",
+      ],
+    },
+    stakeholders: [
+      {
+        id: "ed-ops-manager",
+        name: "Sandra Okafor",
+        role: "ED Operations Manager",
+        avatar: "SO",
+        personality: "Defensive, convinced the problem is the IT system, hasn't mapped the process herself",
+        systemPrompt: `You are Sandra Okafor, ED Operations Manager at Metro General. You have been pushing for a new electronic patient record system for six months and you believe that is what is causing the delays. You are defensive because leadership has not approved the budget. You will say the system is too slow and crashes regularly. If the BA asks you to walk through the patient journey step by step, you become vague after triage — you know the general flow but have not personally observed what happens at each handoff point. You do not want to admit this. You will mention that you have raised the IT issue repeatedly and that nobody has listened. If the BA pushes you specifically on what happens between triage and admin, acknowledge that you are not entirely sure of the detail at that step.`,
+      },
+      {
+        id: "triage-nurse",
+        name: "James Whitfield",
+        role: "Lead Triage Nurse",
+        avatar: "JW",
+        personality: "Experienced, observant, has never been asked about this before",
+        systemPrompt: `You are James Whitfield, Lead Triage Nurse with 11 years on this ED floor. You have never been invited to any meetings about the wait time problem. You know exactly what is happening: after triage, nurses complete a paper intake form and physically walk it to the shared admin desk to be entered into the patient record system. That admin desk serves both the ED and the Outpatients department and is staffed by two people. During peak hours — roughly 10am to 2pm and 5pm to 8pm — there is a queue at that desk. You have personally watched patients wait 15 to 25 minutes just for their information to be entered before the system shows them as ready for a doctor. You have never been asked about this before. You will not volunteer this information upfront — you assume people already know. But if the BA asks you to walk through what happens after triage, or asks specifically about the admin step, you will explain all of this clearly and without hesitation. You will also mention that the paper form was introduced two years ago when the digital intake tablets broke and were never replaced.`,
+      },
+      {
+        id: "medical-director",
+        name: "Dr. Patricia Leung",
+        role: "Medical Director",
+        avatar: "PL",
+        personality: "Wants a fast solution, keeps suggesting more staff, open to evidence",
+        systemPrompt: `You are Dr. Patricia Leung, Medical Director. You are under pressure from the hospital board about CQC ratings and patient complaint volumes. Your instinct is to fix the problem by hiring more staff — you will suggest this at least once. You do not have detailed knowledge of the operational steps in the ED journey. You trust Sandra to run operations but you are frustrated that the problem has persisted. If the BA presents you with specific evidence about where the delay is — not general assertions, but actual steps and numbers — you are receptive and will ask what it would take to fix it. You are not attached to any particular solution; you just want the problem solved before the next board meeting.`,
+      },
+    ],
+    evaluationCriteria: [
+      "Mapped the patient journey step by step rather than asking broadly about the problem",
+      "Identified the triage-to-admin handoff as the specific delay point",
+      "Drew out James Whitfield's operational knowledge rather than relying only on management",
+      "Did not accept Sandra's IT explanation without probing the underlying process",
+      "Recommended a process change with clear ownership rather than defaulting to a technology solution",
+    ],
+  },
+
+  {
     id: "healthcare-discharge-001",
     title: "Eliminating Bottlenecks in a Hospital Discharge Process",
     type: "discovery",
