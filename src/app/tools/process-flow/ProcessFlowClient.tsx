@@ -441,10 +441,10 @@ function Palette() {
 
 // ── Structured panel ──────────────────────────────────────────────────────────
 
-function StructuredPanel({ title, setTitle, steps, setSteps, onBuild }: {
+function StructuredPanel({ title, setTitle, steps, setSteps, onBuild, building }: {
   title: string; setTitle: (t: string) => void;
   steps: Step[]; setSteps: React.Dispatch<React.SetStateAction<Step[]>>;
-  onBuild: () => void;
+  onBuild: () => void; building: boolean;
 }) {
   const addStep    = () => setSteps(s => [...s, { id: uid(), action: "", actor: "", isDecision: false, yesBranch: "", yesLabel: "", noBranch: "", noLabel: "" }]);
   const removeStep = (id: string) => setSteps(s => s.filter(x => x.id !== id).map(x => ({ ...x, yesBranch: x.yesBranch === id ? "" : x.yesBranch, noBranch: x.noBranch === id ? "" : x.noBranch })));
@@ -509,8 +509,11 @@ function StructuredPanel({ title, setTitle, steps, setSteps, onBuild }: {
         <p style={{ fontSize: 10, color: "#334155", lineHeight: 1.6, margin: "4px 0 0" }}>Branch targets create loops and merges.</p>
       </div>
       <div style={{ padding: "10px 12px", flexShrink: 0, borderTop: "1px solid #1e1e2e" }}>
-        <button onClick={onBuild} style={{ width: "100%", padding: "9px", borderRadius: 8, background: "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.3)", color: "#1fbf9f", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-          Build diagram from form
+        <button onClick={onBuild} disabled={building}
+          style={{ width: "100%", padding: "9px", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: building ? "rgba(31,191,159,0.06)" : "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.3)", color: building ? "#475569" : "#1fbf9f", fontSize: 12, fontWeight: 700, cursor: building ? "not-allowed" : "pointer" }}>
+          {building
+            ? <><Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Building…</>
+            : "Build diagram from form"}
         </button>
       </div>
     </div>
@@ -579,6 +582,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   const [title, setTitle] = useState("New Process");
   const [steps, setSteps] = useState<Step[]>([{ id: uid(), action: "", actor: "", isDecision: false, yesBranch: "", yesLabel: "", noBranch: "", noLabel: "" }]);
   const [generating, setGenerating] = useState(false);
+  const [building,   setBuilding]   = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -669,11 +673,106 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     setTimeout(() => fitView({ padding: 0.18, duration: 400 }), 80);
   }, [fitView]);
 
-  const handleBuildFromForm = useCallback(() => {
-    const { nodes: n, edges: e } = stepsToGraph(title, steps);
-    const laid = simpleLayout(n, e);
-    setNodes(laid); setEdges(e); pushSnapshot(laid, e); fitViewDelayed();
-  }, [title, steps, setNodes, setEdges, pushSnapshot, fitViewDelayed]);
+  // Shared: converts API diagram JSON → React Flow nodes/edges and applies them.
+  // Handles both the direct-type schema (terminalNode, stepNode, decisionNode)
+  // and the legacy DiagramForge schema (start, end, process, decision).
+  const applyDiagramData = useCallback((data: Record<string, unknown>) => {
+    const lanes: Lane[] = ((data.lanes as Lane[] | undefined) ?? []).map(l => ({
+      id: l.id, label: l.label, color: l.color,
+    }));
+
+    const rfTypeMap: Record<string, string> = {
+      start: "terminalNode",  end: "terminalNode",
+      process: "processNode", decision: "decisionNode",
+      data: "dataNode",       document: "documentNode",
+      terminalNode: "terminalNode", stepNode: "stepNode",
+      processNode: "processNode",  decisionNode: "decisionNode",
+      dataNode: "dataNode",        documentNode: "documentNode",
+    };
+    const rfSzMap: Record<string, { w: number; h: number }> = {
+      start: SZ.terminal,   end: SZ.terminal,
+      process: SZ.process,  decision: SZ.decision,
+      data: SZ.data,        document: SZ.document,
+      terminalNode: SZ.terminal,  stepNode: SZ.step,
+      processNode: SZ.process,   decisionNode: SZ.decision,
+      dataNode: SZ.data,         documentNode: SZ.document,
+    };
+
+    type ApiNode = {
+      id: string; type?: string;
+      label?: string; actor?: string; description?: string;
+      data?: { label?: string; description?: string };
+      laneId?: string; position?: { x: number; y: number };
+    };
+    type ApiEdge = {
+      id?: string; source: string; target: string;
+      label?: string; sourceHandle?: string; animated?: boolean;
+    };
+
+    const rawNodes: Node[] = ((data.nodes as ApiNode[]) ?? []).map(n => {
+      const dfType = n.type ?? "process";
+      const sz     = rfSzMap[dfType] ?? SZ.process;
+      return {
+        id:   n.id,
+        type: rfTypeMap[dfType] ?? "stepNode",
+        data: {
+          label:       n.label ?? n.data?.label ?? "",
+          actor:       n.actor,
+          description: n.description ?? n.data?.description,
+          laneId:      n.laneId,
+          isEnd:       n.id === "end" || dfType === "end",
+        },
+        position: n.position ?? { x: 0, y: 0 },
+        width: sz.w, height: sz.h,
+      };
+    });
+
+    const decisionIds = new Set(rawNodes.filter(n => n.type === "decisionNode").map(n => n.id));
+    const edgeCountFromDecision: Record<string, number> = {};
+
+    const rawEdges: Edge[] = ((data.edges as ApiEdge[]) ?? []).map(e => {
+      const isFromDecision = decisionIds.has(e.source);
+      const idx = edgeCountFromDecision[e.source] ?? 0;
+      edgeCountFromDecision[e.source] = idx + 1;
+      const color  = edgeColor(e.label, isFromDecision, idx);
+      const handle = e.sourceHandle ?? edgeSourceHandle(e.label, isFromDecision, idx);
+      return mkEdge(e.source, e.target, e.label, color, handle, e.animated);
+    });
+
+    let finalNodes: Node[];
+    let laneNodes: Node[] = [];
+    if (lanes.length > 0) {
+      const result = swimlaneLayout(rawNodes, rawEdges, lanes);
+      finalNodes = result.nodes;
+      laneNodes  = result.laneNodes;
+    } else {
+      finalNodes = simpleLayout(rawNodes, rawEdges);
+    }
+
+    const allNodes = [...laneNodes, ...finalNodes];
+    setNodes(allNodes);
+    setEdges(rawEdges);
+    pushSnapshot(allNodes, rawEdges);
+    fitViewDelayed();
+  }, [setNodes, setEdges, pushSnapshot, fitViewDelayed]);
+
+  const handleBuildFromForm = useCallback(async () => {
+    setBuilding(true);
+    try {
+      const res = await fetch("/api/tools/process-flow/structured", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, steps }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      applyDiagramData(await res.json());
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Build failed: ${msg}`);
+    } finally {
+      setBuilding(false);
+    }
+  }, [title, steps, applyDiagramData]);
 
   const handleClear = useCallback(() => {
     setNodes([]); setEdges([]); pushSnapshot([], []);
@@ -689,77 +788,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
         body: JSON.stringify({ description }),
       });
       if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-
-      // Parse lanes
-      const lanes: Lane[] = (data.lanes ?? []).map((l: { id: string; label: string; color?: string }) => ({
-        id: l.id, label: l.label, color: l.color,
-      }));
-
-      // Map DiagramForge types → React Flow node types
-      const rfTypeMap: Record<string, string> = {
-        start: "terminalNode", end: "terminalNode",
-        process: "processNode", decision: "decisionNode",
-        data: "dataNode", document: "documentNode",
-      };
-      const rfSzMap: Record<string, { w: number; h: number }> = {
-        start: SZ.terminal, end: SZ.terminal,
-        process: SZ.process, decision: SZ.decision,
-        data: SZ.data, document: SZ.document,
-      };
-
-      const rawNodes: Node[] = (data.nodes ?? []).map((n: {
-        id: string; type: string;
-        data?: { label?: string; description?: string };
-        laneId?: string; position?: { x: number; y: number };
-      }) => {
-        const dfType = n.type ?? "process";
-        const sz = rfSzMap[dfType] ?? SZ.process;
-        return {
-          id: n.id,
-          type: rfTypeMap[dfType] ?? "processNode",
-          data: {
-            label:       n.data?.label ?? "",
-            description: n.data?.description,
-            laneId:      n.laneId,
-            isEnd:       dfType === "end",
-          },
-          position: n.position ?? { x: 0, y: 0 },
-          width: sz.w, height: sz.h,
-        };
-      });
-
-      // Build edge index for decision nodes — determines yes/no handle assignment
-      const decisionIds = new Set(rawNodes.filter(n => n.type === "decisionNode").map(n => n.id));
-      const edgeCountFromDecision: Record<string, number> = {};
-
-      const rawEdges: Edge[] = (data.edges ?? []).map((e: {
-        id?: string; source: string; target: string; label?: string; animated?: boolean;
-      }) => {
-        const isFromDecision = decisionIds.has(e.source);
-        const idx = edgeCountFromDecision[e.source] ?? 0;
-        edgeCountFromDecision[e.source] = idx + 1;
-        const color  = edgeColor(e.label, isFromDecision, idx);
-        const handle = edgeSourceHandle(e.label, isFromDecision, idx);
-        return mkEdge(e.source, e.target, e.label, color, handle, e.animated);
-      });
-
-      // Layout
-      let finalNodes: Node[];
-      let laneNodes: Node[] = [];
-      if (lanes.length > 0) {
-        const result = swimlaneLayout(rawNodes, rawEdges, lanes);
-        finalNodes = result.nodes;
-        laneNodes  = result.laneNodes;
-      } else {
-        finalNodes = simpleLayout(rawNodes, rawEdges);
-      }
-
-      const allNodes = [...laneNodes, ...finalNodes];
-      setNodes(allNodes);
-      setEdges(rawEdges);
-      pushSnapshot(allNodes, rawEdges);
-      fitViewDelayed();
+      applyDiagramData(await res.json());
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[generate]", msg);
@@ -767,7 +796,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     } finally {
       setGenerating(false);
     }
-  }, [setNodes, setEdges, pushSnapshot, fitViewDelayed]);
+  }, [applyDiagramData]);
 
   const isDraw = mode === "draw";
   const hasContent = nodes.filter(n => !n.id.startsWith("__lane_")).length > 0;
@@ -823,7 +852,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
           <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #1e1e2e", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {mode === "draw"       && <Palette />}
             {mode === "generate"   && <GeneratePanel onGenerate={handleGenerate} onClear={handleClear} generating={generating} hasContent={hasContent} />}
-            {mode === "structured" && <StructuredPanel title={title} setTitle={setTitle} steps={steps} setSteps={setSteps} onBuild={handleBuildFromForm} />}
+            {mode === "structured" && <StructuredPanel title={title} setTitle={setTitle} steps={steps} setSteps={setSteps} onBuild={handleBuildFromForm} building={building} />}
           </div>
 
           {/* Canvas — always mounted */}
