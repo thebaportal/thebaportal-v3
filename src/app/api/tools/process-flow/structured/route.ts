@@ -49,14 +49,17 @@ export async function POST(request: NextRequest) {
 
     const msg = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
+      max_tokens: 4096,
       system: STRUCTURED_PROMPT,
       messages: [{ role: "user", content: JSON.stringify(body) }],
     });
 
-    const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
-    const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const parsed = JSON.parse(clean);
+    const raw     = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+    const stripped = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const start   = stripped.indexOf("{");
+    const end     = stripped.lastIndexOf("}");
+    const clean   = start !== -1 && end > start ? stripped.slice(start, end + 1) : stripped;
+    const parsed  = JSON.parse(clean);
     return NextResponse.json(parsed);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

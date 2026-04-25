@@ -122,15 +122,26 @@ function validate(data: DiagramData): string[] {
   return errs;
 }
 
+function extractJSON(raw: string): string {
+  const stripped = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  // If it starts with { it's clean — return as-is
+  if (stripped.startsWith("{")) return stripped;
+  // Otherwise find the first { ... } block
+  const start = stripped.indexOf("{");
+  const end   = stripped.lastIndexOf("}");
+  if (start !== -1 && end > start) return stripped.slice(start, end + 1);
+  return stripped;
+}
+
 async function callAI(system: string, userContent: string): Promise<string> {
   const msg = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: 4096,
     system,
     messages: [{ role: "user", content: userContent }],
   });
   const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
-  return raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  return extractJSON(raw);
 }
 
 export async function POST(request: NextRequest) {
