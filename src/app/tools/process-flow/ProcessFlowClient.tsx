@@ -1,5 +1,6 @@
 "use client";
 
+import dagre from "dagre";
 import { useState, useCallback, useRef, useEffect } from "react";
 import ReactFlow, {
   ReactFlowProvider,
@@ -130,6 +131,22 @@ function simpleLayout(rawNodes: Node[], edges: Edge[]): Node[] {
     let y = bandStartY[getBand(c)] ?? START_Y;
     for (let r = 0; r < row; r++) y += (cell[r].height ?? SZ.step.h) + Y_GAP;
     return { ...n, position: { x: relColX[getRelCol(c)] ?? START_X, y } };
+  });
+}
+
+// Dagre auto-layout — clean ranked layout for AI-generated diagrams
+function dagreLayout(nodes: Node[], edges: Edge[], direction: "TB" | "LR" = "TB"): Node[] {
+  if (nodes.length === 0) return nodes;
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({ rankdir: direction, nodesep: 60, ranksep: 80, marginx: 40, marginy: 40 });
+  nodes.forEach(n => g.setNode(n.id, { width: n.width ?? SZ.step.w, height: n.height ?? SZ.step.h }));
+  edges.forEach(e => g.setEdge(e.source, e.target));
+  dagre.layout(g);
+  return nodes.map(n => {
+    const pos = g.node(n.id);
+    if (!pos) return n;
+    return { ...n, position: { x: pos.x - (n.width ?? SZ.step.w) / 2, y: pos.y - (n.height ?? SZ.step.h) / 2 } };
   });
 }
 
@@ -748,7 +765,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       finalNodes = result.nodes;
       laneNodes  = result.laneNodes;
     } else {
-      finalNodes = simpleLayout(rawNodes, rawEdges);
+      finalNodes = dagreLayout(rawNodes, rawEdges);
     }
 
     const allNodes = [...laneNodes, ...finalNodes];
