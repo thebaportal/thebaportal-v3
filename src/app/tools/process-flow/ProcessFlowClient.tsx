@@ -458,10 +458,10 @@ function Palette() {
 
 // ── Structured panel ──────────────────────────────────────────────────────────
 
-function StructuredPanel({ title, setTitle, steps, setSteps, onBuild, building }: {
+function StructuredPanel({ title, setTitle, steps, setSteps, onBuild }: {
   title: string; setTitle: (t: string) => void;
   steps: Step[]; setSteps: React.Dispatch<React.SetStateAction<Step[]>>;
-  onBuild: () => void; building: boolean;
+  onBuild: () => void;
 }) {
   const addStep    = () => setSteps(s => [...s, { id: uid(), action: "", actor: "", isDecision: false, yesBranch: "", yesLabel: "", noBranch: "", noLabel: "" }]);
   const removeStep = (id: string) => setSteps(s => s.filter(x => x.id !== id).map(x => ({ ...x, yesBranch: x.yesBranch === id ? "" : x.yesBranch, noBranch: x.noBranch === id ? "" : x.noBranch })));
@@ -526,11 +526,9 @@ function StructuredPanel({ title, setTitle, steps, setSteps, onBuild, building }
         <p style={{ fontSize: 10, color: "#334155", lineHeight: 1.6, margin: "4px 0 0" }}>Branch targets create loops and merges.</p>
       </div>
       <div style={{ padding: "10px 12px", flexShrink: 0, borderTop: "1px solid #1e1e2e" }}>
-        <button onClick={onBuild} disabled={building}
-          style={{ width: "100%", padding: "9px", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: building ? "rgba(31,191,159,0.06)" : "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.3)", color: building ? "#475569" : "#1fbf9f", fontSize: 12, fontWeight: 700, cursor: building ? "not-allowed" : "pointer" }}>
-          {building
-            ? <><Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Building…</>
-            : "Build diagram from form"}
+        <button onClick={onBuild}
+          style={{ width: "100%", padding: "9px", borderRadius: 8, background: "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.3)", color: "#1fbf9f", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          Build diagram from form
         </button>
       </div>
     </div>
@@ -599,7 +597,6 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   const [title, setTitle] = useState("New Process");
   const [steps, setSteps] = useState<Step[]>([{ id: uid(), action: "", actor: "", isDecision: false, yesBranch: "", yesLabel: "", noBranch: "", noLabel: "" }]);
   const [generating, setGenerating] = useState(false);
-  const [building,   setBuilding]   = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -775,23 +772,11 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     fitViewDelayed();
   }, [setNodes, setEdges, pushSnapshot, fitViewDelayed, setTitle]);
 
-  const handleBuildFromForm = useCallback(async () => {
-    setBuilding(true);
-    try {
-      const res = await fetch("/api/tools/process-flow/structured", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, steps }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      applyDiagramData(await res.json());
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      alert(`Build failed: ${msg}`);
-    } finally {
-      setBuilding(false);
-    }
-  }, [title, steps, applyDiagramData]);
+  const handleBuildFromForm = useCallback(() => {
+    const { nodes: n, edges: e } = stepsToGraph(title, steps);
+    const laid = dagreLayout(n, e);
+    setNodes(laid); setEdges(e); pushSnapshot(laid, e); fitViewDelayed();
+  }, [title, steps, setNodes, setEdges, pushSnapshot, fitViewDelayed]);
 
   const handleClear = useCallback(() => {
     setNodes([]); setEdges([]); pushSnapshot([], []);
@@ -871,7 +856,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
           <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #1e1e2e", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {mode === "draw"       && <Palette />}
             {mode === "generate"   && <GeneratePanel onGenerate={handleGenerate} onClear={handleClear} generating={generating} hasContent={hasContent} />}
-            {mode === "structured" && <StructuredPanel title={title} setTitle={setTitle} steps={steps} setSteps={setSteps} onBuild={handleBuildFromForm} building={building} />}
+            {mode === "structured" && <StructuredPanel title={title} setTitle={setTitle} steps={steps} setSteps={setSteps} onBuild={handleBuildFromForm} />}
           </div>
 
           {/* Canvas — always mounted */}

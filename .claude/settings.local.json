@@ -60,7 +60,22 @@
       "WebFetch(domain:fantastic.jobs)",
       "Bash(to Pro\" button. Hover lifts card with top accent line in type color.:*)",
       "Bash(find C:UsersAdministratorDesktopthebaportal-v3/src -type f -name *avorites* -o -name *aved*)",
-      "Bash(vercel --version)"
+      "Bash(vercel --version)",
+      "Bash(cmd:*)",
+      "Bash(npx lighthouse *)",
+      "Bash(k6 version *)",
+      "Bash(curl -s -m 5 http://localhost:3000)",
+      "Bash(tee /tmp/build_output.log)",
+      "Bash(awk '-F ' '{for\\(i=NF;i>=1;i--\\) if\\($i ~ /kB|MB/\\) {split\\($i, a, /[kB|MB]/\\); if\\(a[1]+0 > 200\\) print $0}}')",
+      "Bash(awk '{ *)",
+      "Bash(curl -s http://localhost:3000/opportunities)",
+      "Bash(curl *)",
+      "Bash(python *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000 \")",
+      "Bash(findstr LISTENING)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(git diff *)"
     ]
   }
 }
