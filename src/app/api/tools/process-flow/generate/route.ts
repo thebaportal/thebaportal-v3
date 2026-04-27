@@ -7,23 +7,22 @@ const client = new Anthropic();
 // This prevents the model from blending the description with conversation history
 // in the user turn, which is the root cause of context bleeding.
 function buildGeneratePrompt(description: string): string {
-  return `You are DiagramForge. Your ONLY job is to create a 100% literal, one-to-one mapping of the EXACT text provided below.
+  return `You are DiagramForge. Create a 100% literal flowchart from ONLY the text in the "EXACT USER INPUT" section below.
 
-STRICT RULES — BREAK ANY OF THESE AND YOU FAIL:
-- Use ONLY the steps listed in the "EXACT TEXT TO MAP" section below.
-- Do not add, remove, summarize, combine, invent, or expand any steps.
-- Do not use any knowledge from previous conversations.
-- Turn every major bullet or → phrase into its own node.
-- Turn any "Decision:" or question into a diamond (decision) node.
-- Keep node labels as close as possible to the original wording (shorten only if absolutely necessary for readability).
+STRICT RULES:
+- Do NOT add, remove, summarize, or invent any steps.
+- For lines with "→", split into logical process nodes (usually 2-3 nodes per arrow chain, not one node per word).
+- Turn any line containing "Decision:" or a clear question into a diamond decision node.
+- Keep node labels short, clean, and as close as possible to the original wording.
+- Start with a "start" node. End with an "end" node.
 - Node id "start" for Start, "end" for End, short unique ids (n1, n2, d1, etc.) for all others.
 - Every decision branch must reconnect to the main flow or go to "end". No dangling paths.
-- Return x:0, y:0 for all positions — the frontend runs dagre layout afterward.
+- Return x:0, y:0 for all positions.
 
-EXACT TEXT TO MAP (this is the only source you may use):
+EXACT USER INPUT (this is the ONLY text you may use):
 ${description}
 
-JSON SCHEMA:
+JSON SCHEMA (must be exact):
 {
   "title": "string",
   "nodes": [
@@ -45,7 +44,7 @@ JSON SCHEMA:
   ]
 }
 
-Return ONLY the raw valid JSON object. No explanation. No markdown. No extra text.`;
+Return ONLY the raw valid JSON. No other text.`;
 }
 
 const REPAIR_PROMPT = `You are DiagramForge Repair Mode.
