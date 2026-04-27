@@ -156,6 +156,85 @@ function dagreLayout(nodes: Node[], edges: Edge[], direction: "TB" | "LR" = "TB"
   });
 }
 
+// Snake layout — alternates L→R / R→L per row, max 7 nodes wide.
+// This matches the professional draw.io / Visio BA flowchart convention.
+const SNAKE_COLS   = 7;
+const SNAKE_X_STEP = 230;
+const SNAKE_Y_STEP = 185;
+
+function snakeLayout(rawNodes: Node[], edges: Edge[]): Node[] {
+  if (rawNodes.length === 0) return rawNodes;
+  const col = bfsColumns(rawNodes, edges);
+
+  const byCol: Record<number, string[]> = {};
+  rawNodes.forEach(n => { const c = col[n.id] ?? 0; (byCol[c] ??= []).push(n.id); });
+
+  return rawNodes.map(n => {
+    const c        = col[n.id] ?? 0;
+    const band     = Math.floor(c / SNAKE_COLS);
+    const pos      = c % SNAKE_COLS;
+    const isEven   = band % 2 === 0;
+    const stackIdx = (byCol[c] ?? []).indexOf(n.id);
+    const x = START_X + (isEven ? pos : SNAKE_COLS - 1 - pos) * SNAKE_X_STEP;
+    const y = START_Y + band * SNAKE_Y_STEP + stackIdx * ((n.height ?? SZ.step.h) + 20);
+    return { ...n, position: { x, y } };
+  });
+}
+
+// Auto-insert reference node pairs for edges that would draw long or backward lines.
+// Replaces each such edge with: source → Ref(n) exit  +  Ref(n) entry → target
+// The two circles share the same number label — visually implied connection, no drawn line.
+function insertRefs(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+  const posMap = new Map(nodes.map(n => [n.id, n]));
+  const finalNodes = [...nodes];
+  const finalEdges: Edge[] = [];
+  let refNum = 1;
+
+  for (const e of edges) {
+    const src = posMap.get(e.source);
+    const tgt = posMap.get(e.target);
+    if (!src || !tgt) { finalEdges.push(e); continue; }
+
+    const dy   = tgt.position.y - src.position.y;
+    const dx   = Math.abs(tgt.position.x - src.position.x);
+    const dist = Math.abs(dy) + dx;
+    // Trigger ref when going backward (upward) or spanning > ~60% of a full row width
+    const needsRef = dy < -(SNAKE_Y_STEP * 0.4) || dist > SNAKE_X_STEP * SNAKE_COLS * 0.6;
+
+    if (needsRef) {
+      const n   = refNum++;
+      const sz  = 34;
+      const exitId = `__rx${n}`;
+      const entId  = `__rn${n}`;
+      const srcW = src.width  ?? SZ.step.w;
+      const srcH = src.height ?? SZ.step.h;
+      const tgtH = tgt.height ?? SZ.step.h;
+
+      finalNodes.push({
+        id: exitId, type: "refNode", selectable: false, draggable: false,
+        data: { label: String(n) },
+        position: { x: src.position.x + srcW / 2 + 6, y: src.position.y + srcH / 2 - sz / 2 },
+        width: sz, height: sz,
+      });
+      finalNodes.push({
+        id: entId, type: "refNode", selectable: false, draggable: false,
+        data: { label: String(n) },
+        position: { x: tgt.position.x - sz - 6, y: tgt.position.y + tgtH / 2 - sz / 2 },
+        width: sz, height: sz,
+      });
+
+      // Short edge from source → exit ref (keeps label + styling of original)
+      finalEdges.push({ ...e, id: e.id + "_x", target: exitId });
+      // Short edge from entry ref → target (no label needed)
+      finalEdges.push(mkEdge(entId, e.target));
+    } else {
+      finalEdges.push(e);
+    }
+  }
+
+  return { nodes: finalNodes, edges: finalEdges };
+}
+
 // Swimlane layout — horizontal lanes stacked vertically
 function swimlaneLayout(
   rawNodes: Node[], edges: Edge[], lanes: Lane[]
@@ -404,6 +483,25 @@ function LaneNode({ data }: NodeProps) {
   );
 }
 
+// Reference node — small circle matching the PDF "Ref 1 / Ref 2" convention
+function RefNode({ data }: NodeProps) {
+  return (
+    <div style={{
+      width: "100%", height: "100%", borderRadius: "50%",
+      background: "#bfdbfe", border: `2px solid ${NODE_BORDER}`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 10, fontWeight: 800, color: NODE_TEXT,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.12)", userSelect: "none", cursor: "default",
+    }}>
+      <Handle type="target" position={Position.Left}   style={{ ...HS, opacity: 0.5 }} />
+      <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.3 }} />
+      {String(data.label ?? "")}
+      <Handle type="source" position={Position.Right}  style={HS} />
+      <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.3 }} />
+    </div>
+  );
+}
+
 const nodeTypes = {
   terminalNode: TerminalNode,
   stepNode:     StepNode,
@@ -412,6 +510,7 @@ const nodeTypes = {
   dataNode:     DataNode,
   documentNode: DocumentNode,
   laneNode:     LaneNode,
+  refNode:      RefNode,
 };
 
 // ── Palette (Draw mode) ───────────────────────────────────────────────────────
@@ -761,26 +860,32 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     });
 
     let finalNodes: Node[];
+    let finalEdges: Edge[] = rawEdges;
     let laneNodes: Node[] = [];
+
     if (lanes.length > 0) {
       const result = swimlaneLayout(rawNodes, rawEdges, lanes);
       finalNodes = result.nodes;
       laneNodes  = result.laneNodes;
     } else {
-      finalNodes = simpleLayout(rawNodes, rawEdges);
+      const snaked = snakeLayout(rawNodes, rawEdges);
+      const withRefs = insertRefs(snaked, rawEdges);
+      finalNodes = withRefs.nodes;
+      finalEdges = withRefs.edges;
     }
 
     const allNodes = [...laneNodes, ...finalNodes];
     setNodes(allNodes);
-    setEdges(rawEdges);
-    pushSnapshot(allNodes, rawEdges);
+    setEdges(finalEdges);
+    pushSnapshot(allNodes, finalEdges);
     fitViewDelayed();
   }, [setNodes, setEdges, pushSnapshot, fitViewDelayed, setTitle]);
 
   const handleBuildFromForm = useCallback(() => {
     const { nodes: n, edges: e } = stepsToGraph(title, steps);
-    const laid = dagreLayout(n, e);
-    setNodes(laid); setEdges(e); pushSnapshot(laid, e); fitViewDelayed();
+    const snaked = snakeLayout(n, e);
+    const { nodes: finalN, edges: finalE } = insertRefs(snaked, e);
+    setNodes(finalN); setEdges(finalE); pushSnapshot(finalN, finalE); fitViewDelayed();
   }, [title, steps, setNodes, setEdges, pushSnapshot, fitViewDelayed]);
 
   const handleClear = useCallback(() => {
