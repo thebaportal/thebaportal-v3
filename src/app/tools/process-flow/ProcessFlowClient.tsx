@@ -53,7 +53,13 @@ const SZ = {
   step:     { w: 190, h: 72 },  // draw-mode alias for process
 };
 
-const HS: React.CSSProperties = { width: 9, height: 9, background: "#334155", border: "1.5px solid #475569" };
+// Professional light-blue palette (matches draw.io / Visio standard)
+const NODE_FILL   = "#d6eaf8";
+const NODE_BORDER = "#5b9bd5";
+const NODE_TEXT   = "#1e293b";
+const NODE_SEL    = "#1a6eb5";
+
+const HS: React.CSSProperties = { width: 8, height: 8, background: "#5b9bd5", border: "2px solid #fff", borderRadius: "50%" };
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 
@@ -211,11 +217,11 @@ const YES_LABELS = new Set(["yes", "approved", "approve", "success", "true", "co
 const NO_LABELS  = new Set(["no", "rejected", "reject", "failed", "fail", "false", "incomplete", "decline", "declined", "error"]);
 
 function edgeColor(label: string | undefined, isFromDecision: boolean, edgeIndexFromDecision: number): string {
-  if (!isFromDecision) return "#334155";
+  if (!isFromDecision) return NODE_BORDER;
   const low = (label ?? "").toLowerCase();
-  if (YES_LABELS.has(low)) return "#1fbf9f";
-  if (NO_LABELS.has(low))  return "#f87171";
-  return edgeIndexFromDecision === 0 ? "#1fbf9f" : "#f87171";
+  if (YES_LABELS.has(low)) return "#2e7d32";
+  if (NO_LABELS.has(low))  return "#c62828";
+  return edgeIndexFromDecision === 0 ? "#2e7d32" : "#c62828";
 }
 
 function edgeSourceHandle(label: string | undefined, isFromDecision: boolean, edgeIndexFromDecision: number): string | undefined {
@@ -226,7 +232,7 @@ function edgeSourceHandle(label: string | undefined, isFromDecision: boolean, ed
   return edgeIndexFromDecision === 0 ? "yes" : "no";
 }
 
-function mkEdge(source: string, target: string, label?: string, color = "#334155", sourceHandle?: string, animated?: boolean): Edge {
+function mkEdge(source: string, target: string, label?: string, color = NODE_BORDER, sourceHandle?: string, animated?: boolean): Edge {
   return {
     id: `${source}-${sourceHandle ?? ""}-${target}-${uid()}`,
     source, target,
@@ -234,12 +240,12 @@ function mkEdge(source: string, target: string, label?: string, color = "#334155
     animated: animated ?? false,
     label: label || undefined,
     type: "smoothstep",
-    markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
+    markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
     style: { stroke: color, strokeWidth: 1.5 },
     labelStyle: { fontSize: 10, fontWeight: 700, fill: color },
-    labelBgStyle: { fill: "#0d0d12", fillOpacity: 0.95 },
-    labelBgPadding: [4, 6] as [number, number],
-    labelBgBorderRadius: 4,
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.95 },
+    labelBgPadding: [3, 6] as [number, number],
+    labelBgBorderRadius: 3,
   };
 }
 
@@ -288,72 +294,70 @@ function useInlineEdit(id: string, label: string) {
 
 function TerminalNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Start"));
-  const isEnd   = !!data.isEnd;
-  const accent  = isEnd ? "#f87171" : "#1fbf9f";
-  const bg      = isEnd ? "#2d0a0a" : "#0d2e24";
+  const border = selected ? NODE_SEL : NODE_BORDER;
   return (
     <div onDoubleClick={startEdit}
-      style={{ width: "100%", height: "100%", minWidth: SZ.terminal.w, minHeight: SZ.terminal.h, borderRadius: 999, background: bg, border: `2px solid ${selected ? "#fff" : accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default" }}>
-      <NodeResizer isVisible={selected} minWidth={100} minHeight={36} color={accent} />
+      style={{ width: "100%", height: "100%", minWidth: SZ.terminal.w, minHeight: SZ.terminal.h, borderRadius: 999, background: NODE_FILL, border: `2px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.12)" }}>
+      <NodeResizer isVisible={selected} minWidth={100} minHeight={36} color={NODE_SEL} />
       <Handle type="target" position={Position.Left}  style={HS} />
-      <Handle type="target" position={Position.Top}   style={{ ...HS, opacity: 0.4 }} />
+      <Handle type="target" position={Position.Top}   style={{ ...HS, opacity: 0.5 }} />
       {editing
-        ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "75%", background: "transparent", border: "none", outline: "none", color: accent, fontWeight: 700, fontSize: 12, textAlign: "center" }} />
-        : <span style={{ fontSize: 12, fontWeight: 700, color: accent, userSelect: "none", padding: "0 12px", textAlign: "center" }}>{String(data.label)}</span>
+        ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "75%", background: "transparent", border: "none", outline: "none", color: NODE_TEXT, fontWeight: 700, fontSize: 12, textAlign: "center" }} />
+        : <span style={{ fontSize: 12, fontWeight: 700, color: NODE_TEXT, userSelect: "none", padding: "0 12px", textAlign: "center" }}>{String(data.label)}</span>
       }
       <Handle type="source" position={Position.Right}  style={HS} />
-      <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.4 }} />
+      <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
     </div>
   );
 }
 
-// Generic rectangle node factory
-function makeRectNode(accent: string, bg: string, defaultLabel: string, minW: number, minH: number) {
+// Generic rectangle node — professional light-blue style
+function makeRectNode(defaultLabel: string, minW: number, minH: number) {
   return function RectNode({ id, data, selected }: NodeProps) {
     const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? defaultLabel));
+    const border = selected ? NODE_SEL : NODE_BORDER;
     return (
       <div onDoubleClick={startEdit}
-        style={{ width: "100%", height: "100%", minWidth: minW, minHeight: minH, borderRadius: 8, background: bg, border: `1.5px solid ${selected ? accent : accent + "60"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 14px", cursor: "default", boxSizing: "border-box" }}>
-        <NodeResizer isVisible={selected} minWidth={120} minHeight={40} color={accent} />
+        style={{ width: "100%", height: "100%", minWidth: minW, minHeight: minH, borderRadius: 6, background: NODE_FILL, border: `1.5px solid ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.10)" }}>
+        <NodeResizer isVisible={selected} minWidth={120} minHeight={40} color={NODE_SEL} />
         <Handle type="target" position={Position.Left}   style={HS} />
-        <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.4 }} />
+        <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
         {editing
-          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${accent}`, outline: "none", color: "#e2e8f0", fontWeight: 600, fontSize: 12, textAlign: "center" }} />
-          : <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0", textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</div>
+          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: 12, textAlign: "center" }} />
+          : <div style={{ fontSize: 12, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</div>
         }
-        {data.actor && !editing && <div style={{ fontSize: 10, color: accent, marginTop: 4, fontFamily: "monospace" }}>{String(data.actor)}</div>}
-        {data.description && !editing && <div style={{ fontSize: 10, color: "#475569", marginTop: 3, textAlign: "center", lineHeight: 1.4 }}>{String(data.description)}</div>}
+        {data.actor && !editing && <div style={{ fontSize: 10, color: NODE_BORDER, marginTop: 4, fontFamily: "monospace" }}>{String(data.actor)}</div>}
+        {data.description && !editing && <div style={{ fontSize: 10, color: "#64748b", marginTop: 3, textAlign: "center", lineHeight: 1.4 }}>{String(data.description)}</div>}
         <Handle type="source" position={Position.Right}  style={HS} />
-        <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.4 }} />
+        <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
       </div>
     );
   };
 }
 
-const StepNode     = makeRectNode("#475569", "#12121e",  "Step",            SZ.step.w,    SZ.step.h);
-const ProcessNode  = makeRectNode("#3b82f6", "#0f1f3d",  "Process step",    SZ.process.w, SZ.process.h);
-const DocumentNode = makeRectNode("#f59e0b", "#1c1404",  "Document",        SZ.document.w, SZ.document.h);
+const StepNode     = makeRectNode("Step",         SZ.step.w,     SZ.step.h);
+const ProcessNode  = makeRectNode("Process step", SZ.process.w,  SZ.process.h);
+const DocumentNode = makeRectNode("Document",     SZ.document.w, SZ.document.h);
 
 // Data node — parallelogram
 function DataNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Data"));
-  const accent = "#06b6d4";
+  const border = selected ? NODE_SEL : NODE_BORDER;
   return (
     <div onDoubleClick={startEdit}
       style={{ width: "100%", height: "100%", minWidth: SZ.data.w, minHeight: SZ.data.h, position: "relative", cursor: "default" }}>
-      <NodeResizer isVisible={selected} minWidth={120} minHeight={44} color={accent} />
-      {/* Parallelogram background */}
-      <div style={{ position: "absolute", inset: 0, background: "#031821", border: `1.5px solid ${selected ? accent : accent + "60"}`, transform: "skewX(-12deg)", borderRadius: 4 }} />
+      <NodeResizer isVisible={selected} minWidth={120} minHeight={44} color={NODE_SEL} />
+      <div style={{ position: "absolute", inset: 0, background: NODE_FILL, border: `1.5px solid ${border}`, transform: "skewX(-12deg)", borderRadius: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.10)" }} />
       <Handle type="target" position={Position.Left}   style={HS} />
-      <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.4 }} />
+      <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px", zIndex: 1 }}>
         {editing
-          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${accent}`, outline: "none", color: "#e2e8f0", fontWeight: 600, fontSize: 12, textAlign: "center" }} />
-          : <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0", textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</span>
+          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: 12, textAlign: "center" }} />
+          : <span style={{ fontSize: 12, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</span>
         }
       </div>
       <Handle type="source" position={Position.Right}  style={HS} />
-      <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.4 }} />
+      <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
     </div>
   );
 }
@@ -361,21 +365,22 @@ function DataNode({ id, data, selected }: NodeProps) {
 // Decision diamond
 function DecisionNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Decision?"));
+  const stroke = selected ? NODE_SEL : NODE_BORDER;
   return (
     <div onDoubleClick={startEdit}
       style={{ width: "100%", height: "100%", minWidth: SZ.decision.w, minHeight: SZ.decision.h, position: "relative", cursor: "default" }}>
-      <NodeResizer isVisible={selected} minWidth={100} minHeight={60} color="#a78bfa" />
+      <NodeResizer isVisible={selected} minWidth={100} minHeight={60} color={NODE_SEL} />
       <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }} preserveAspectRatio="none" viewBox="0 0 100 100">
-        <polygon points="50,2 98,50 50,98 2,50" fill="#160d28" stroke={selected ? "#c4b5fd" : "#a78bfa"} strokeWidth={selected ? 4 : 2.5} vectorEffect="non-scaling-stroke" />
+        <polygon points="50,2 98,50 50,98 2,50" fill={NODE_FILL} stroke={stroke} strokeWidth={selected ? 3 : 2} vectorEffect="non-scaling-stroke" />
       </svg>
       <Handle type="target" position={Position.Left}   style={{ ...HS, top: "50%" }} />
-      <Handle type="target" position={Position.Top}    style={{ ...HS, left: "50%", opacity: 0.4 }} />
+      <Handle type="target" position={Position.Top}    style={{ ...HS, left: "50%", opacity: 0.5 }} />
       <Handle type="source" id="yes" position={Position.Right}  style={{ ...HS, top: "50%" }} />
       <Handle type="source" id="no"  position={Position.Bottom} style={{ ...HS, left: "50%" }} />
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 30px", zIndex: 1 }}>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 28px", zIndex: 1 }}>
         {editing
-          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #7c3aed", outline: "none", color: "#ddd6fe", fontWeight: 600, fontSize: 11, textAlign: "center" }} />
-          : <span style={{ fontSize: 11, fontWeight: 600, color: "#ddd6fe", textAlign: "center", lineHeight: 1.3, userSelect: "none" }}>{String(data.label)}</span>
+          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: 11, textAlign: "center" }} />
+          : <span style={{ fontSize: 11, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.3, userSelect: "none" }}>{String(data.label)}</span>
         }
       </div>
     </div>
@@ -430,18 +435,18 @@ function Palette() {
       <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "monospace" }}>Drag to canvas</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <PaletteItem shape="terminal" label="Start / End">
-          <div style={{ width: 68, height: 26, borderRadius: 13, background: "#0d2e24", border: "2px solid #1fbf9f" }} />
+          <div style={{ width: 68, height: 26, borderRadius: 13, background: NODE_FILL, border: `2px solid ${NODE_BORDER}` }} />
         </PaletteItem>
         <PaletteItem shape="step" label="Process">
-          <div style={{ width: 68, height: 34, borderRadius: 6, background: "#12121e", border: "1.5px solid #2d3748" }} />
+          <div style={{ width: 68, height: 34, borderRadius: 6, background: NODE_FILL, border: `1.5px solid ${NODE_BORDER}` }} />
         </PaletteItem>
         <PaletteItem shape="decision" label="Decision">
           <svg width={64} height={40} viewBox="0 0 64 40">
-            <polygon points="32,2 62,20 32,38 2,20" fill="#160d28" stroke="#a78bfa" strokeWidth={1.5} />
+            <polygon points="32,2 62,20 32,38 2,20" fill={NODE_FILL} stroke={NODE_BORDER} strokeWidth={1.5} />
           </svg>
         </PaletteItem>
         <PaletteItem shape="data" label="Data / I/O">
-          <div style={{ width: 68, height: 34, background: "#031821", border: "1.5px solid #06b6d4", transform: "skewX(-12deg)", borderRadius: 3 }} />
+          <div style={{ width: 68, height: 34, background: NODE_FILL, border: `1.5px solid ${NODE_BORDER}`, transform: "skewX(-12deg)", borderRadius: 3 }} />
         </PaletteItem>
       </div>
       <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(51,65,85,0.12)", border: "1px solid #1e293b" }}>
@@ -762,7 +767,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       finalNodes = result.nodes;
       laneNodes  = result.laneNodes;
     } else {
-      finalNodes = dagreLayout(rawNodes, rawEdges);
+      finalNodes = simpleLayout(rawNodes, rawEdges);
     }
 
     const allNodes = [...laneNodes, ...finalNodes];
@@ -876,10 +881,10 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
               fitView fitViewOptions={{ padding: 0.18 }}
               minZoom={0.05} maxZoom={3}
               proOptions={{ hideAttribution: true }}
-              style={{ background: "#08080f" }}
+              style={{ background: "#f8fafc" }}
             >
-              <Background variant={BackgroundVariant.Dots} color="#1a1a2e" gap={20} size={1.5} />
-              <Controls showInteractive={false} style={{ background: "#12121e", border: "1px solid #2d3748", borderRadius: 8 }} />
+              <Background variant={BackgroundVariant.Dots} color="#cbd5e1" gap={20} size={1} />
+              <Controls showInteractive={false} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }} />
             </ReactFlow>
           </div>
         </div>
