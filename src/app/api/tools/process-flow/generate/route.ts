@@ -3,16 +3,25 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
-const GENERATE_PROMPT = `You are DiagramForge. Convert the user's exact description into a clean flowchart.
+// Description is injected into the system prompt — not passed as a user message.
+// This prevents the model from blending the description with conversation history
+// in the user turn, which is the root cause of context bleeding.
+function buildGeneratePrompt(description: string): string {
+  return `You are DiagramForge. Your ONLY job is to create a 100% literal, one-to-one mapping of the EXACT text provided below.
 
-STRICT RULES:
-- Use only steps explicitly in the current user message.
-- Do not add, summarize, combine, or invent any steps.
-- Turn decision lines into diamond nodes.
-- Keep node labels short and close to the user's wording.
+STRICT RULES — BREAK ANY OF THESE AND YOU FAIL:
+- Use ONLY the steps listed in the "EXACT TEXT TO MAP" section below.
+- Do not add, remove, summarize, combine, invent, or expand any steps.
+- Do not use any knowledge from previous conversations.
+- Turn every major bullet or → phrase into its own node.
+- Turn any "Decision:" or question into a diamond (decision) node.
+- Keep node labels as close as possible to the original wording (shorten only if absolutely necessary for readability).
 - Node id "start" for Start, "end" for End, short unique ids (n1, n2, d1, etc.) for all others.
 - Every decision branch must reconnect to the main flow or go to "end". No dangling paths.
 - Return x:0, y:0 for all positions — the frontend runs dagre layout afterward.
+
+EXACT TEXT TO MAP (this is the only source you may use):
+${description}
 
 JSON SCHEMA:
 {
@@ -36,14 +45,15 @@ JSON SCHEMA:
   ]
 }
 
-Return ONLY valid JSON. No other text.`;
+Return ONLY the raw valid JSON object. No explanation. No markdown. No extra text.`;
+}
 
 const REPAIR_PROMPT = `You are DiagramForge Repair Mode.
 
 You are given a JSON diagram that failed validation, along with the specific errors found.
 
 The schema uses:
-- node.data.label (NOT node.label) for all node labels
+- node.data.label for all node labels
 - node types: "start", "end", "process", "decision", "data", "document"
 - node id "start" for the Start node, "end" for the End node
 - no lanes, no laneId
@@ -116,7 +126,8 @@ export async function POST(request: NextRequest) {
     const { description } = await request.json();
     if (!description?.trim()) return new NextResponse("description required", { status: 400 });
 
-    let clean = await callAI(GENERATE_PROMPT, description.trim());
+    // Description goes in the system prompt — not the user message
+    let clean = await callAI(buildGeneratePrompt(description.trim()), "Generate the diagram.");
     let parsed: DiagramData = JSON.parse(clean);
 
     const errs = validate(parsed);
