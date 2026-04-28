@@ -14,19 +14,23 @@ import ReactFlow, {
   Handle,
   Position,
   MarkerType,
+  getNodesBounds,
+  getTransformForBounds,
   type Node,
   type Edge,
   type NodeProps,
   type Connection,
 } from "reactflow";
+import { toPng } from "html-to-image";
 import "reactflow/dist/style.css";
 import { NodeResizer } from "@reactflow/node-resizer";
 import "@reactflow/node-resizer/dist/style.css";
 import {
   Plus, Trash2, ChevronUp, ChevronDown,
   Grid3X3, Undo2, Redo2, Wand2, LayoutList,
-  MousePointer2, Loader2,
+  MousePointer2, Loader2, Download, Copy,
 } from "lucide-react";
+import jsPDF from "jspdf";
 import AppSidebar from "@/components/AppSidebar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -60,6 +64,17 @@ const NODE_TEXT   = "#1e293b";
 const NODE_SEL    = "#1a6eb5";
 
 const HS: React.CSSProperties = { width: 8, height: 8, background: "#5b9bd5", border: "2px solid #fff", borderRadius: "50%" };
+
+const NODE_COLORS = ["#d6eaf8","#d5f5e3","#fef9c3","#fde8e8","#ede9fe","#f1f5f9","#fff3e0","#e0f7fa"];
+
+const NODE_TYPE_OPTIONS = [
+  { value: "terminalNode", label: "Start / End" },
+  { value: "processNode",  label: "Process" },
+  { value: "stepNode",     label: "Step" },
+  { value: "decisionNode", label: "Decision" },
+  { value: "dataNode",     label: "Data / I-O" },
+  { value: "documentNode", label: "Document" },
+];
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 
@@ -156,15 +171,30 @@ function dagreLayout(nodes: Node[], edges: Edge[], direction: "TB" | "LR" = "TB"
   });
 }
 
-// Snake layout — alternates L→R / R→L per row, max 7 nodes wide.
-// This matches the professional draw.io / Visio BA flowchart convention.
+// Snake layout — uses dagre LR for column assignment (handles cycles; BFS cannot),
+// then maps columns into alternating L→R / R→L rows of SNAKE_COLS.
 const SNAKE_COLS   = 7;
 const SNAKE_X_STEP = 230;
 const SNAKE_Y_STEP = 185;
 
 function snakeLayout(rawNodes: Node[], edges: Edge[]): Node[] {
   if (rawNodes.length === 0) return rawNodes;
-  const col = bfsColumns(rawNodes, edges);
+
+  // Dagre LR gives correct rank/column numbers even when the graph has cycles
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 60 });
+  rawNodes.forEach(n => g.setNode(n.id, { width: n.width ?? SZ.step.w, height: n.height ?? SZ.step.h }));
+  edges.forEach(e => { try { g.setEdge(e.source, e.target); } catch { /* skip */ } });
+  dagre.layout(g);
+
+  // Map continuous dagre x-positions → 0-based integer column indices
+  const uniqueXs = [...new Set(rawNodes.map(n => { const p = g.node(n.id); return p ? Math.round(p.x) : 0; }))].sort((a, b) => a - b);
+  const xToCol: Record<number, number> = {};
+  uniqueXs.forEach((x, i) => { xToCol[x] = i; });
+
+  const col: Record<string, number> = {};
+  rawNodes.forEach(n => { const p = g.node(n.id); col[n.id] = xToCol[p ? Math.round(p.x) : 0] ?? 0; });
 
   const byCol: Record<number, string[]> = {};
   rawNodes.forEach(n => { const c = col[n.id] ?? 0; (byCol[c] ??= []).push(n.id); });
@@ -373,16 +403,18 @@ function useInlineEdit(id: string, label: string) {
 
 function TerminalNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Start"));
+  const fill = (data.color as string | undefined) ?? NODE_FILL;
+  const fs   = (data.fontSize as number | undefined) ?? 12;
   const border = selected ? NODE_SEL : NODE_BORDER;
   return (
     <div onDoubleClick={startEdit}
-      style={{ width: "100%", height: "100%", minWidth: SZ.terminal.w, minHeight: SZ.terminal.h, borderRadius: 999, background: NODE_FILL, border: `2px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.12)" }}>
+      style={{ width: "100%", height: "100%", minWidth: SZ.terminal.w, minHeight: SZ.terminal.h, borderRadius: 999, background: fill, border: `2px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.12)" }}>
       <NodeResizer isVisible={selected} minWidth={100} minHeight={36} color={NODE_SEL} />
       <Handle type="target" position={Position.Left}  style={HS} />
       <Handle type="target" position={Position.Top}   style={{ ...HS, opacity: 0.5 }} />
       {editing
-        ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "75%", background: "transparent", border: "none", outline: "none", color: NODE_TEXT, fontWeight: 700, fontSize: 12, textAlign: "center" }} />
-        : <span style={{ fontSize: 12, fontWeight: 700, color: NODE_TEXT, userSelect: "none", padding: "0 12px", textAlign: "center" }}>{String(data.label)}</span>
+        ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "75%", background: "transparent", border: "none", outline: "none", color: NODE_TEXT, fontWeight: 700, fontSize: fs, textAlign: "center" }} />
+        : <span style={{ fontSize: fs, fontWeight: 700, color: NODE_TEXT, userSelect: "none", padding: "0 12px", textAlign: "center" }}>{String(data.label)}</span>
       }
       <Handle type="source" position={Position.Right}  style={HS} />
       <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
@@ -394,16 +426,18 @@ function TerminalNode({ id, data, selected }: NodeProps) {
 function makeRectNode(defaultLabel: string, minW: number, minH: number) {
   return function RectNode({ id, data, selected }: NodeProps) {
     const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? defaultLabel));
+    const fill = (data.color as string | undefined) ?? NODE_FILL;
+    const fs   = (data.fontSize as number | undefined) ?? 12;
     const border = selected ? NODE_SEL : NODE_BORDER;
     return (
       <div onDoubleClick={startEdit}
-        style={{ width: "100%", height: "100%", minWidth: minW, minHeight: minH, borderRadius: 6, background: NODE_FILL, border: `1.5px solid ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.10)" }}>
+        style={{ width: "100%", height: "100%", minWidth: minW, minHeight: minH, borderRadius: 6, background: fill, border: `1.5px solid ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.10)" }}>
         <NodeResizer isVisible={selected} minWidth={120} minHeight={40} color={NODE_SEL} />
         <Handle type="target" position={Position.Left}   style={HS} />
         <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
         {editing
-          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: 12, textAlign: "center" }} />
-          : <div style={{ fontSize: 12, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</div>
+          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
+          : <div style={{ fontSize: fs, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</div>
         }
         {data.actor && !editing && <div style={{ fontSize: 10, color: NODE_BORDER, marginTop: 4, fontFamily: "monospace" }}>{String(data.actor)}</div>}
         {data.description && !editing && <div style={{ fontSize: 10, color: "#64748b", marginTop: 3, textAlign: "center", lineHeight: 1.4 }}>{String(data.description)}</div>}
@@ -421,18 +455,20 @@ const DocumentNode = makeRectNode("Document",     SZ.document.w, SZ.document.h);
 // Data node — parallelogram
 function DataNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Data"));
+  const fill = (data.color as string | undefined) ?? NODE_FILL;
+  const fs   = (data.fontSize as number | undefined) ?? 12;
   const border = selected ? NODE_SEL : NODE_BORDER;
   return (
     <div onDoubleClick={startEdit}
       style={{ width: "100%", height: "100%", minWidth: SZ.data.w, minHeight: SZ.data.h, position: "relative", cursor: "default" }}>
       <NodeResizer isVisible={selected} minWidth={120} minHeight={44} color={NODE_SEL} />
-      <div style={{ position: "absolute", inset: 0, background: NODE_FILL, border: `1.5px solid ${border}`, transform: "skewX(-12deg)", borderRadius: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.10)" }} />
+      <div style={{ position: "absolute", inset: 0, background: fill, border: `1.5px solid ${border}`, transform: "skewX(-12deg)", borderRadius: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.10)" }} />
       <Handle type="target" position={Position.Left}   style={HS} />
       <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px", zIndex: 1 }}>
         {editing
-          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: 12, textAlign: "center" }} />
-          : <span style={{ fontSize: 12, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</span>
+          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
+          : <span style={{ fontSize: fs, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</span>
         }
       </div>
       <Handle type="source" position={Position.Right}  style={HS} />
@@ -444,13 +480,15 @@ function DataNode({ id, data, selected }: NodeProps) {
 // Decision diamond
 function DecisionNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Decision?"));
+  const fill = (data.color as string | undefined) ?? NODE_FILL;
+  const fs   = (data.fontSize as number | undefined) ?? 11;
   const stroke = selected ? NODE_SEL : NODE_BORDER;
   return (
     <div onDoubleClick={startEdit}
       style={{ width: "100%", height: "100%", minWidth: SZ.decision.w, minHeight: SZ.decision.h, position: "relative", cursor: "default" }}>
       <NodeResizer isVisible={selected} minWidth={100} minHeight={60} color={NODE_SEL} />
       <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }} preserveAspectRatio="none" viewBox="0 0 100 100">
-        <polygon points="50,2 98,50 50,98 2,50" fill={NODE_FILL} stroke={stroke} strokeWidth={selected ? 3 : 2} vectorEffect="non-scaling-stroke" />
+        <polygon points="50,2 98,50 50,98 2,50" fill={fill} stroke={stroke} strokeWidth={selected ? 3 : 2} vectorEffect="non-scaling-stroke" />
       </svg>
       <Handle type="target" position={Position.Left}   style={{ ...HS, top: "50%" }} />
       <Handle type="target" position={Position.Top}    style={{ ...HS, left: "50%", opacity: 0.5 }} />
@@ -458,8 +496,8 @@ function DecisionNode({ id, data, selected }: NodeProps) {
       <Handle type="source" id="no"  position={Position.Bottom} style={{ ...HS, left: "50%" }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 28px", zIndex: 1 }}>
         {editing
-          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: 11, textAlign: "center" }} />
-          : <span style={{ fontSize: 11, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.3, userSelect: "none" }}>{String(data.label)}</span>
+          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
+          : <span style={{ fontSize: fs, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.3, userSelect: "none" }}>{String(data.label)}</span>
         }
       </div>
     </div>
@@ -498,6 +536,58 @@ function RefNode({ data }: NodeProps) {
       {String(data.label ?? "")}
       <Handle type="source" position={Position.Right}  style={HS} />
       <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.3 }} />
+    </div>
+  );
+}
+
+// ── Node properties panel ─────────────────────────────────────────────────────
+
+function NodePropertiesPanel({ node, onTypeChange, onColorChange, onFontSizeChange, onDelete }: {
+  node: Node;
+  onTypeChange: (t: string) => void;
+  onColorChange: (c: string) => void;
+  onFontSizeChange: (s: number) => void;
+  onDelete: () => void;
+}) {
+  const currentColor = (node.data?.color as string | undefined) ?? NODE_FILL;
+  const currentFs    = (node.data?.fontSize as number | undefined) ?? 12;
+  const s: React.CSSProperties = { width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #e2e8f0", fontSize: 12, color: "#1e293b", background: "#f8fafc", cursor: "pointer", outline: "none" };
+  return (
+    <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 14px", width: 204, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Node</div>
+
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 5 }}>Shape</div>
+        <select value={node.type ?? "processNode"} onChange={e => onTypeChange(e.target.value)} style={s}>
+          {NODE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Color</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {NODE_COLORS.map(c => (
+            <div key={c} onClick={() => onColorChange(c)}
+              style={{ width: 22, height: 22, borderRadius: 5, background: c, border: `2px solid ${currentColor === c ? NODE_SEL : "#cbd5e1"}`, cursor: "pointer" }} />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Font size</div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {([10, 12, 14, 16] as const).map(fs => (
+            <button key={fs} onClick={() => onFontSizeChange(fs)}
+              style={{ flex: 1, padding: "4px 0", borderRadius: 5, background: currentFs === fs ? NODE_FILL : "transparent", border: `1px solid ${currentFs === fs ? NODE_BORDER : "#e2e8f0"}`, fontSize: 11, color: "#1e293b", cursor: "pointer" }}>
+              {fs}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={onDelete} style={{ width: "100%", padding: "7px 0", borderRadius: 6, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)", color: "#ef4444", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+        Delete node
+      </button>
     </div>
   );
 }
@@ -703,10 +793,12 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   const [generating, setGenerating] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([{ nodes: [], edges: [] }]);
   const histIdxRef = useRef(0);
+  const clipboardRef = useRef<{ nodes: Node[]; edges: Edge[] } | null>(null);
   const { project, fitView, setViewport } = useReactFlow();
 
   const updateUndoRedo = useCallback(() => {
@@ -745,16 +837,51 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes.length, edges.length]);
 
-  // Keyboard undo/redo
+  // Keyboard undo/redo + copy/paste
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
       if (ctrl && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+
+      if (ctrl && e.key === "c") {
+        const selectedNodes = nodes.filter(n => n.selected && !n.id.startsWith("__"));
+        if (selectedNodes.length === 0) return;
+        const selectedIds = new Set(selectedNodes.map(n => n.id));
+        const selectedEdges = edges.filter(e2 => selectedIds.has(e2.source) && selectedIds.has(e2.target));
+        clipboardRef.current = {
+          nodes: JSON.parse(JSON.stringify(selectedNodes)),
+          edges: JSON.parse(JSON.stringify(selectedEdges)),
+        };
+      }
+
+      if (ctrl && e.key === "v") {
+        const cb = clipboardRef.current;
+        if (!cb || cb.nodes.length === 0) return;
+        const idMap: Record<string, string> = {};
+        cb.nodes.forEach(n => { idMap[n.id] = uid(); });
+        const newNodes: Node[] = cb.nodes.map(n => ({
+          ...n, id: idMap[n.id],
+          position: { x: n.position.x + 50, y: n.position.y + 30 },
+          selected: true,
+        }));
+        const newEdges: Edge[] = cb.edges.map(e2 =>
+          mkEdge(idMap[e2.source], idMap[e2.target], e2.label as string | undefined,
+            (e2.style as { stroke?: string } | undefined)?.stroke ?? NODE_BORDER,
+            e2.sourceHandle ?? undefined)
+        );
+        setNodes(ns => {
+          const deselected = ns.map(n => ({ ...n, selected: false }));
+          const next = [...deselected, ...newNodes];
+          pushSnapshot(next, [...edges, ...newEdges]);
+          return next;
+        });
+        setEdges(es => [...es, ...newEdges]);
+      }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [undo, redo]);
+  }, [undo, redo, nodes, edges, pushSnapshot, setNodes, setEdges]);
 
   const onNodeDragStop = useCallback(() => { pushSnapshot(nodes, edges); }, [nodes, edges, pushSnapshot]);
 
@@ -893,6 +1020,48 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     setTimeout(() => setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 300 }), 50);
   }, [setNodes, setEdges, pushSnapshot, setViewport]);
 
+  const exportToPng = useCallback(async (): Promise<string | null> => {
+    const viewport = wrapperRef.current?.querySelector(".react-flow__viewport") as HTMLElement | null;
+    if (!viewport) return null;
+    const realNodes = nodes.filter(n => !n.id.startsWith("__lane_") && !n.id.startsWith("__rx") && !n.id.startsWith("__rn"));
+    if (realNodes.length === 0) return null;
+    const bounds = getNodesBounds(realNodes);
+    const pad = 60;
+    const imgW = Math.max(bounds.width  + pad * 2, 400);
+    const imgH = Math.max(bounds.height + pad * 2, 300);
+    const [tx, ty, scale] = getTransformForBounds(bounds, imgW, imgH, 0.5, 2, pad / Math.max(imgW, imgH));
+    return toPng(viewport, {
+      backgroundColor: "#f8fafc",
+      width: imgW,
+      height: imgH,
+      style: { transform: `translate(${tx}px, ${ty}px) scale(${scale})`, transformOrigin: "top left", width: `${imgW}px`, height: `${imgH}px` },
+    });
+  }, [nodes]);
+
+  const handleExportPng = useCallback(async () => {
+    const dataUrl = await exportToPng();
+    if (!dataUrl) return;
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${title || "diagram"}.png`;
+    a.click();
+  }, [exportToPng, title]);
+
+  const handleExportPdf = useCallback(async () => {
+    const dataUrl = await exportToPng();
+    if (!dataUrl) return;
+    const img = new Image();
+    img.src = dataUrl;
+    await new Promise(res => { img.onload = res; });
+    const pxW = img.naturalWidth;
+    const pxH = img.naturalHeight;
+    const ptW = pxW * 0.75;
+    const ptH = pxH * 0.75;
+    const pdf = new jsPDF({ orientation: ptW > ptH ? "landscape" : "portrait", unit: "pt", format: [ptW, ptH] });
+    pdf.addImage(dataUrl, "PNG", 0, 0, ptW, ptH);
+    pdf.save(`${title || "diagram"}.pdf`);
+  }, [exportToPng, title]);
+
   const handleGenerate = useCallback(async (description: string) => {
     setGenerating(true);
     try {
@@ -957,6 +1126,30 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
             <button onClick={() => setSnapToGrid(v => !v)}
               style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, background: snapToGrid ? "rgba(31,191,159,0.1)" : "transparent", border: `1px solid ${snapToGrid ? "rgba(31,191,159,0.3)" : "#1e293b"}`, color: snapToGrid ? "#1fbf9f" : "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
               <Grid3X3 size={12} /> {snapToGrid ? "Grid on" : "Grid off"}
+            </button>
+          )}
+
+          <div style={{ width: 1, height: 20, background: "#1e293b" }} />
+
+          <button onClick={handleExportPng} title="Export PNG" disabled={!hasContent}
+            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, background: "transparent", border: "1px solid #1e293b", color: hasContent ? "#94a3b8" : "#2d3748", fontSize: 11, fontWeight: 500, cursor: hasContent ? "pointer" : "not-allowed" }}
+            onMouseEnter={e => { if (hasContent) { e.currentTarget.style.borderColor = "#5b9bd5"; e.currentTarget.style.color = "#5b9bd5"; }}}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = hasContent ? "#94a3b8" : "#2d3748"; }}>
+            <Download size={12} /> PNG
+          </button>
+
+          <button onClick={handleExportPdf} title="Export PDF" disabled={!hasContent}
+            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, background: "transparent", border: "1px solid #1e293b", color: hasContent ? "#94a3b8" : "#2d3748", fontSize: 11, fontWeight: 500, cursor: hasContent ? "pointer" : "not-allowed" }}
+            onMouseEnter={e => { if (hasContent) { e.currentTarget.style.borderColor = "#ef4444"; e.currentTarget.style.color = "#ef4444"; }}}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = hasContent ? "#94a3b8" : "#2d3748"; }}>
+            <Download size={12} /> PDF
+          </button>
+
+          {isDraw && (
+            <button
+              title="Copy selected (Ctrl+C) / Paste (Ctrl+V)"
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, background: "transparent", border: "1px solid #1e293b", color: "#475569", fontSize: 11, fontWeight: 500, cursor: "default" }}>
+              <Copy size={12} /> Copy / Paste
             </button>
           )}
         </header>
