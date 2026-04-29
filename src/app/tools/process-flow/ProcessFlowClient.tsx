@@ -240,7 +240,7 @@ function insertRefs(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[
       && dy > SNAKE_Y_STEP * 0.5 && dy < SNAKE_Y_STEP * 2;
 
     if (isRowTransition) {
-      finalEdges.push({ ...e, sourceHandle: "sb", targetHandle: "tt" });
+      finalEdges.push({ ...e, sourceHandle: "b", targetHandle: "t" });
       continue;
     }
 
@@ -415,8 +415,6 @@ function useInlineEdit(id: string, label: string) {
 
 // ── Node components ───────────────────────────────────────────────────────────
 
-const H0: React.CSSProperties = { ...HS, opacity: 0, pointerEvents: "all" };
-
 function TerminalNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Start"));
   const fill = (data.color as string | undefined) ?? NODE_FILL;
@@ -427,18 +425,14 @@ function TerminalNode({ id, data, selected }: NodeProps) {
     <div onDoubleClick={startEdit}
       style={{ width: "100%", height: "100%", minWidth: SZ.terminal.w, minHeight: SZ.terminal.h, borderRadius: 999, background: fill, border: `2px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.12)" }}>
       <NodeResizer isVisible={selected} minWidth={100} minHeight={36} color={NODE_SEL} />
-      <Handle id="tl" type="target" position={Position.Left}   style={HS} />
-      <Handle id="sl" type="source" position={Position.Left}   style={H0} />
-      <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
-      <Handle id="st" type="source" position={Position.Top}    style={H0} />
+      <Handle id="l" type="source" position={Position.Left}   style={HS} />
+      <Handle id="t" type="source" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
       {editing
         ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "75%", background: "transparent", border: "none", outline: "none", color: tc, fontWeight: 700, fontSize: fs, textAlign: "center" }} />
         : <span style={{ fontSize: fs, fontWeight: 700, color: tc, userSelect: "none", padding: "0 12px", textAlign: "center" }}>{String(data.label)}</span>
       }
-      <Handle id="sr" type="source" position={Position.Right}  style={HS} />
-      <Handle id="tr" type="target" position={Position.Right}  style={H0} />
-      <Handle id="sb" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
-      <Handle id="tb" type="target" position={Position.Bottom} style={H0} />
+      <Handle id="r" type="source" position={Position.Right}  style={HS} />
+      <Handle id="b" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
     </div>
   );
 }
@@ -455,20 +449,16 @@ function makeRectNode(defaultLabel: string, minW: number, minH: number) {
       <div onDoubleClick={startEdit}
         style={{ width: "100%", height: "100%", minWidth: minW, minHeight: minH, borderRadius: 6, background: fill, border: `1.5px solid ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.10)" }}>
         <NodeResizer isVisible={selected} minWidth={120} minHeight={40} color={NODE_SEL} />
-        <Handle id="tl" type="target" position={Position.Left}   style={HS} />
-        <Handle id="sl" type="source" position={Position.Left}   style={H0} />
-        <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
-        <Handle id="st" type="source" position={Position.Top}    style={H0} />
+        <Handle id="l" type="source" position={Position.Left}   style={HS} />
+        <Handle id="t" type="source" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
         {editing
           ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: tc, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
           : <div style={{ fontSize: fs, fontWeight: 600, color: tc, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</div>
         }
         {data.actor && !editing && <div style={{ fontSize: 10, color: NODE_BORDER, marginTop: 4, fontFamily: "monospace" }}>{String(data.actor)}</div>}
         {data.description && !editing && <div style={{ fontSize: 10, color: "#64748b", marginTop: 3, textAlign: "center", lineHeight: 1.4 }}>{String(data.description)}</div>}
-        <Handle id="sr" type="source" position={Position.Right}  style={HS} />
-        <Handle id="tr" type="target" position={Position.Right}  style={H0} />
-        <Handle id="sb" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
-        <Handle id="tb" type="target" position={Position.Bottom} style={H0} />
+        <Handle id="r" type="source" position={Position.Right}  style={HS} />
+        <Handle id="b" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
       </div>
     );
   };
@@ -485,23 +475,18 @@ function NoteNode({ id, data, selected }: NodeProps) {
   const tc = (data.textColor as string | undefined) ?? "#78350f";
   const border = selected ? "#b45309" : "#d97706";
   const NH: React.CSSProperties = { ...HS, background: "#d97706" };
-  const NH0: React.CSSProperties = { ...H0, background: "#d97706" };
   return (
     <div onDoubleClick={startEdit}
       style={{ width: "100%", height: "100%", minWidth: SZ.note.w, minHeight: SZ.note.h, borderRadius: 6, background: "#fef9c3", border: `1.5px dashed ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px #d9770640` : "0 2px 6px rgba(0,0,0,0.08)" }}>
       <NodeResizer isVisible={selected} minWidth={140} minHeight={60} color="#d97706" />
-      <Handle id="tl" type="target" position={Position.Left}   style={NH} />
-      <Handle id="sl" type="source" position={Position.Left}   style={NH0} />
-      <Handle id="tt" type="target" position={Position.Top}    style={{ ...NH, opacity: 0.5 }} />
-      <Handle id="st" type="source" position={Position.Top}    style={NH0} />
+      <Handle id="l" type="source" position={Position.Left}   style={NH} />
+      <Handle id="t" type="source" position={Position.Top}    style={{ ...NH, opacity: 0.5 }} />
       {editing
         ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #d97706", outline: "none", color: tc, fontWeight: 500, fontSize: fs, textAlign: "center", fontFamily: "inherit" }} />
         : <div style={{ fontSize: fs, fontWeight: 500, color: tc, textAlign: "center", lineHeight: 1.5, userSelect: "none", fontStyle: "italic" }}>{String(data.label)}</div>
       }
-      <Handle id="sr" type="source" position={Position.Right}  style={NH} />
-      <Handle id="tr" type="target" position={Position.Right}  style={NH0} />
-      <Handle id="sb" type="source" position={Position.Bottom} style={{ ...NH, opacity: 0.5 }} />
-      <Handle id="tb" type="target" position={Position.Bottom} style={NH0} />
+      <Handle id="r" type="source" position={Position.Right}  style={NH} />
+      <Handle id="b" type="source" position={Position.Bottom} style={{ ...NH, opacity: 0.5 }} />
     </div>
   );
 }
@@ -518,20 +503,16 @@ function DataNode({ id, data, selected }: NodeProps) {
       style={{ width: "100%", height: "100%", minWidth: SZ.data.w, minHeight: SZ.data.h, position: "relative", cursor: "default" }}>
       <NodeResizer isVisible={selected} minWidth={120} minHeight={44} color={NODE_SEL} />
       <div style={{ position: "absolute", inset: 0, background: fill, border: `1.5px solid ${border}`, transform: "skewX(-12deg)", borderRadius: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.10)" }} />
-      <Handle id="tl" type="target" position={Position.Left}   style={HS} />
-      <Handle id="sl" type="source" position={Position.Left}   style={H0} />
-      <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
-      <Handle id="st" type="source" position={Position.Top}    style={H0} />
+      <Handle id="l" type="source" position={Position.Left}   style={HS} />
+      <Handle id="t" type="source" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px", zIndex: 1 }}>
         {editing
           ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: tc, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
           : <span style={{ fontSize: fs, fontWeight: 600, color: tc, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</span>
         }
       </div>
-      <Handle id="sr" type="source" position={Position.Right}  style={HS} />
-      <Handle id="tr" type="target" position={Position.Right}  style={H0} />
-      <Handle id="sb" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
-      <Handle id="tb" type="target" position={Position.Bottom} style={H0} />
+      <Handle id="r" type="source" position={Position.Right}  style={HS} />
+      <Handle id="b" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
     </div>
   );
 }
@@ -550,12 +531,10 @@ function DecisionNode({ id, data, selected }: NodeProps) {
       <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }} preserveAspectRatio="none" viewBox="0 0 100 100">
         <polygon points="50,2 98,50 50,98 2,50" fill={fill} stroke={stroke} strokeWidth={selected ? 3 : 2} vectorEffect="non-scaling-stroke" />
       </svg>
-      <Handle id="tl" type="target" position={Position.Left}   style={{ ...HS, top: "50%" }} />
-      <Handle id="sl" type="source" position={Position.Left}   style={{ ...H0, top: "50%" }} />
-      <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, left: "50%", opacity: 0.5 }} />
-      <Handle id="st" type="source" position={Position.Top}    style={{ ...H0, left: "50%" }} />
-      <Handle type="source" id="yes" position={Position.Right}  style={{ ...HS, top: "50%" }} />
-      <Handle type="source" id="no"  position={Position.Bottom} style={{ ...HS, left: "50%" }} />
+      <Handle id="l"   type="source" position={Position.Left}   style={{ ...HS, top: "50%" }} />
+      <Handle id="t"   type="source" position={Position.Top}    style={{ ...HS, left: "50%", opacity: 0.5 }} />
+      <Handle id="yes" type="source" position={Position.Right}  style={{ ...HS, top: "50%" }} />
+      <Handle id="no"  type="source" position={Position.Bottom} style={{ ...HS, left: "50%" }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 28px", zIndex: 1 }}>
         {editing
           ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: tc, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
@@ -606,8 +585,9 @@ const TEXT_COLORS = ["#1e293b","#1e40af","#166534","#9a3412","#6b21a8","#374151"
 
 // ── Node properties panel ─────────────────────────────────────────────────────
 
-function NodePropertiesPanel({ node, onClose, onTypeChange, onColorChange, onFontSizeChange, onTextColorChange, onDelete }: {
+function NodePropertiesPanel({ node, multiCount, onClose, onTypeChange, onColorChange, onFontSizeChange, onTextColorChange, onDelete }: {
   node: Node;
+  multiCount?: number;
   onClose: () => void;
   onTypeChange: (t: string) => void;
   onColorChange: (c: string) => void;
@@ -615,59 +595,66 @@ function NodePropertiesPanel({ node, onClose, onTypeChange, onColorChange, onFon
   onTextColorChange: (c: string) => void;
   onDelete: () => void;
 }) {
-  const currentColor   = (node.data?.color     as string | undefined) ?? NODE_FILL;
-  const currentFs      = (node.data?.fontSize   as number | undefined) ?? 12;
-  const currentTc      = (node.data?.textColor  as string | undefined) ?? "#1e293b";
-  const s: React.CSSProperties = { width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #e2e8f0", fontSize: 12, color: "#1e293b", background: "#f8fafc", cursor: "pointer", outline: "none" };
+  const isSingle    = !multiCount;
+  const currentColor = (node.data?.color     as string | undefined) ?? NODE_FILL;
+  const currentFs    = (node.data?.fontSize   as number | undefined) ?? 12;
+  const currentTc    = (node.data?.textColor  as string | undefined) ?? "#1e293b";
+  const s: React.CSSProperties = { width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #1e293b", fontSize: 11, color: "#e2e8f0", background: "#0c0c16", cursor: "pointer", outline: "none" };
   return (
-    <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 14px", width: 210, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase" }}>Node</div>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 14, lineHeight: 1, padding: 2 }}>✕</button>
+    <div style={{ padding: "14px 12px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          {multiCount ? `${multiCount} nodes` : "Node"}
+        </div>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#334155", fontSize: 13, lineHeight: 1, padding: 2 }}>✕</button>
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 5 }}>Shape</div>
-        <select value={node.type ?? "processNode"} onChange={e => onTypeChange(e.target.value)} style={s}>
-          {NODE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
+      {isSingle && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>Shape</div>
+          <select value={node.type ?? "processNode"} onChange={e => onTypeChange(e.target.value)} style={s}>
+            {NODE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value} style={{ background: "#0d0d12" }}>{o.label}</option>)}
+          </select>
+        </div>
+      )}
 
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Fill colour</div>
+        <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}>Fill colour</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
           {NODE_COLORS.map(c => (
             <div key={c} onClick={() => onColorChange(c)}
-              style={{ width: 22, height: 22, borderRadius: 5, background: c, border: `2px solid ${currentColor === c ? NODE_SEL : "#cbd5e1"}`, cursor: "pointer" }} />
+              style={{ width: 20, height: 20, borderRadius: 4, background: c, border: `2px solid ${currentColor === c ? NODE_SEL : "#1e293b"}`, cursor: "pointer" }} />
           ))}
         </div>
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Text colour</div>
+        <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}>Text colour</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
           {TEXT_COLORS.map(c => (
             <div key={c} onClick={() => onTextColorChange(c)}
-              style={{ width: 22, height: 22, borderRadius: 5, background: c, border: `2px solid ${currentTc === c ? NODE_SEL : "#cbd5e1"}`, cursor: "pointer" }} />
+              style={{ width: 20, height: 20, borderRadius: 4, background: c, border: `2px solid ${currentTc === c ? NODE_SEL : "#1e293b"}`, cursor: "pointer" }} />
           ))}
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Font size</div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}>Font size</div>
         <div style={{ display: "flex", gap: 4 }}>
           {([10, 11, 12, 14, 16] as const).map(fs => (
             <button key={fs} onClick={() => onFontSizeChange(fs)}
-              style={{ flex: 1, padding: "4px 0", borderRadius: 5, background: currentFs === fs ? NODE_FILL : "transparent", border: `1px solid ${currentFs === fs ? NODE_BORDER : "#e2e8f0"}`, fontSize: 10, color: "#1e293b", cursor: "pointer" }}>
+              style={{ flex: 1, padding: "4px 0", borderRadius: 5, background: currentFs === fs ? "#1e3a5f" : "transparent", border: `1px solid ${currentFs === fs ? NODE_BORDER : "#1e293b"}`, fontSize: 10, color: currentFs === fs ? "#93c5fd" : "#475569", cursor: "pointer" }}>
               {fs}
             </button>
           ))}
         </div>
       </div>
 
-      <button onClick={onDelete} style={{ width: "100%", padding: "7px 0", borderRadius: 6, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)", color: "#ef4444", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
-        Delete node
-      </button>
+      {isSingle && (
+        <button onClick={onDelete} style={{ width: "100%", padding: "7px 0", borderRadius: 6, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", color: "#f87171", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+          Delete node
+        </button>
+      )}
     </div>
   );
 }
@@ -890,7 +877,6 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   const [generating, setGenerating] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([{ nodes: [], edges: [] }]);
@@ -924,22 +910,26 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     setNodes(snap.nodes); setEdges(snap.edges); updateUndoRedo();
   }, [setNodes, setEdges, updateUndoRedo]);
 
-  // Detect deletions for undo snapshot
-  const prevCountRef = useRef({ n: 0, e: 0 });
-  useEffect(() => {
-    const prev = prevCountRef.current;
-    const realN = nodes.filter(n => !n.id.startsWith("__lane_")).length;
-    if ((realN < prev.n || edges.length < prev.e) && (realN > 0 || prev.n > 0)) pushSnapshot(nodes, edges);
-    prevCountRef.current = { n: realN, e: edges.length };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.length, edges.length]);
-
-  // Keyboard undo/redo + copy/paste
+  // Keyboard: undo/redo, copy/paste, delete (custom handler keeps pre-deletion snapshot for undo)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
       if (ctrl && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+
+      // Custom delete — snapshot BEFORE removal so undo can restore
+      if ((e.key === "Delete" || e.key === "Backspace") && !ctrl) {
+        const active = document.activeElement;
+        if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
+        const selNodes = nodes.filter(n => n.selected && !n.id.startsWith("__"));
+        const selEdges = edges.filter(e2 => e2.selected);
+        if (selNodes.length === 0 && selEdges.length === 0) return;
+        e.preventDefault();
+        pushSnapshot(nodes, edges); // pre-deletion snapshot for undo
+        const selIds = new Set(selNodes.map(n => n.id));
+        setNodes(ns => ns.filter(n => !n.selected || n.id.startsWith("__")));
+        setEdges(es => es.filter(e2 => !e2.selected && !selIds.has(e2.source) && !selIds.has(e2.target)));
+      }
 
       if (ctrl && e.key === "c") {
         const selectedNodes = nodes.filter(n => n.selected && !n.id.startsWith("__"));
@@ -1053,20 +1043,45 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       label?: string; sourceHandle?: string; animated?: boolean;
     };
 
+    const calloutNodes: Node[]   = [];
+    const calloutEdges: Edge[]   = [];
+
     const rawNodes: Node[] = ((data.nodes as ApiNode[]) ?? []).map(n => {
       const dfType = n.type ?? "process";
-      const label  = n.data?.label ?? n.label ?? "";
-      // Auto-promote to noteNode if label is predominantly bracketed/parenthetical content
-      const isAnnotation = /^\s*[\[\(]/.test(label) || (label.match(/[\[\(][^\]\)]{5,}[\]\)]/g) ?? []).join("").length > label.length * 0.4;
-      const isTerminal   = ["start", "end", "terminalNode"].includes(dfType);
-      const isDecision   = ["decision", "decisionNode"].includes(dfType);
-      const rfType = (isAnnotation && !isTerminal && !isDecision) ? "noteNode" : (rfTypeMap[dfType] ?? "stepNode");
-      const sz     = rfType === "noteNode" ? SZ.note : (rfSzMap[dfType] ?? SZ.process);
+      const fullLabel = n.data?.label ?? n.label ?? "";
+      const isTerminal = ["start", "end", "terminalNode"].includes(dfType);
+      const isDecision = ["decision", "decisionNode"].includes(dfType);
+
+      // Extract trailing bracket/paren annotation → create a separate noteNode below
+      const bracketMatch = !isTerminal && !isDecision
+        ? fullLabel.match(/^(.*?)\s*[\[\(]([^\[\]\(\)]{4,})[\]\)]\s*$/)
+        : null;
+      const cleanLabel   = bracketMatch ? (bracketMatch[1].trim() || fullLabel) : fullLabel;
+      const calloutText  = bracketMatch ? bracketMatch[2].trim() : null;
+
+      const sz = rfSzMap[dfType] ?? SZ.process;
+
+      if (calloutText) {
+        const cid = `__co_${n.id}`;
+        calloutNodes.push({
+          id: cid, type: "noteNode", selectable: true, draggable: true,
+          data: { label: calloutText, parentId: n.id },
+          position: { x: 0, y: 0 },
+          width: SZ.note.w, height: SZ.note.h,
+        });
+        calloutEdges.push({
+          id: `${n.id}-co-${cid}`, source: n.id, target: cid,
+          type: "smoothstep", sourceHandle: "b", targetHandle: "t",
+          style: { stroke: "#d97706", strokeWidth: 1.5, strokeDasharray: "4 3" },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#d97706", width: 8, height: 8 },
+        });
+      }
+
       return {
         id:   n.id,
-        type: rfType,
+        type: rfTypeMap[dfType] ?? "stepNode",
         data: {
-          label,
+          label: cleanLabel,
           actor:       n.actor,
           description: n.description ?? n.data?.description,
           laneId:      n.laneId,
@@ -1104,9 +1119,26 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       finalEdges = withRefs.edges;
     }
 
-    const allNodes = [...laneNodes, ...finalNodes];
+    // Position callout nodes directly below their parent after layout
+    const posMap = new Map(finalNodes.map(n => [n.id, n]));
+    const positionedCallouts = calloutNodes.map(co => {
+      const parent = posMap.get(co.data.parentId as string);
+      if (!parent) return co;
+      const pw = parent.width  ?? SZ.process.w;
+      const ph = parent.height ?? SZ.process.h;
+      const cw = co.width      ?? SZ.note.w;
+      return {
+        ...co,
+        position: {
+          x: parent.position.x + (pw - cw) / 2,
+          y: parent.position.y + ph + 18,
+        },
+      };
+    });
+
+    const allNodes = [...laneNodes, ...finalNodes, ...positionedCallouts];
     setNodes(allNodes);
-    setEdges(finalEdges);
+    setEdges([...finalEdges, ...calloutEdges]);
     pushSnapshot(allNodes, finalEdges);
     fitViewDelayed();
   }, [setNodes, setEdges, pushSnapshot, fitViewDelayed, setTitle]);
@@ -1186,35 +1218,33 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   }, [applyDiagramData]);
 
   // ── Node properties panel handlers ──────────────────────────────────────────
-  const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) ?? null : null;
+  const selectedNodes = nodes.filter(n => n.selected && !n.id.startsWith("__"));
+  const singleNode    = selectedNodes.length === 1 ? selectedNodes[0] : null;
 
-  const patchNode = useCallback((id: string, patch: Record<string, unknown>) => {
-    setNodes(ns => ns.map(n => n.id === id ? { ...n, ...patch } : n));
-  }, [setNodes]);
-
-  const patchNodeData = useCallback((id: string, dataPatch: Record<string, unknown>) => {
-    setNodes(ns => ns.map(n => n.id === id ? { ...n, data: { ...n.data, ...dataPatch } } : n));
+  const patchAllSelected = useCallback((dataPatch: Record<string, unknown>) => {
+    setNodes(ns => ns.map(n => (n.selected && !n.id.startsWith("__")) ? { ...n, data: { ...n.data, ...dataPatch } } : n));
   }, [setNodes]);
 
   const handlePanelTypeChange = useCallback((t: string) => {
-    if (!selectedNodeId) return;
+    if (!singleNode) return;
     const szMap: Record<string, { w: number; h: number }> = {
       terminalNode: SZ.terminal, stepNode: SZ.step, processNode: SZ.process,
       decisionNode: SZ.decision, dataNode: SZ.data, documentNode: SZ.document, noteNode: SZ.note,
     };
     const sz = szMap[t] ?? SZ.process;
-    patchNode(selectedNodeId, { type: t, width: sz.w, height: sz.h });
-  }, [selectedNodeId, patchNode]);
+    setNodes(ns => ns.map(n => n.id === singleNode.id ? { ...n, type: t, width: sz.w, height: sz.h } : n));
+  }, [singleNode, setNodes]);
 
-  const handlePanelColorChange   = useCallback((c: string) => { if (selectedNodeId) patchNodeData(selectedNodeId, { color: c }); }, [selectedNodeId, patchNodeData]);
-  const handlePanelFsChange      = useCallback((fs: number) => { if (selectedNodeId) patchNodeData(selectedNodeId, { fontSize: fs }); }, [selectedNodeId, patchNodeData]);
-  const handlePanelTcChange      = useCallback((tc: string) => { if (selectedNodeId) patchNodeData(selectedNodeId, { textColor: tc }); }, [selectedNodeId, patchNodeData]);
-  const handlePanelDelete        = useCallback(() => {
-    if (!selectedNodeId) return;
-    setNodes(ns => { const next = ns.filter(n => n.id !== selectedNodeId); pushSnapshot(next, edges); return next; });
-    setEdges(es => es.filter(e => e.source !== selectedNodeId && e.target !== selectedNodeId));
-    setSelectedNodeId(null);
-  }, [selectedNodeId, setNodes, setEdges, pushSnapshot, edges]);
+  const handlePanelColorChange = useCallback((c: string) => patchAllSelected({ color: c }),     [patchAllSelected]);
+  const handlePanelFsChange    = useCallback((fs: number) => patchAllSelected({ fontSize: fs }), [patchAllSelected]);
+  const handlePanelTcChange    = useCallback((tc: string) => patchAllSelected({ textColor: tc }), [patchAllSelected]);
+  const handlePanelDelete      = useCallback(() => {
+    if (!singleNode) return;
+    const id = singleNode.id;
+    pushSnapshot(nodes, edges);
+    setNodes(ns => ns.filter(n => n.id !== id));
+    setEdges(es => es.filter(e => e.source !== id && e.target !== id));
+  }, [singleNode, nodes, edges, pushSnapshot, setNodes, setEdges]);
 
   const isDraw = mode === "draw";
   const hasContent = nodes.filter(n => !n.id.startsWith("__lane_")).length > 0;
@@ -1304,11 +1334,9 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
               onDrop={isDraw ? onDrop : undefined}
               onDragOver={isDraw ? onDragOver : undefined}
               onNodeDragStop={onNodeDragStop}
-              onNodeClick={(_, n) => { if (!n.id.startsWith("__")) setSelectedNodeId(n.id); }}
-              onPaneClick={() => setSelectedNodeId(null)}
               nodeTypes={nodeTypes}
               snapToGrid={snapToGrid && isDraw} snapGrid={[16, 16]}
-              deleteKeyCode="Delete"
+              deleteKeyCode={null}
               nodesDraggable nodesConnectable edgesUpdatable
               connectionMode={"loose" as never}
               elementsSelectable
@@ -1320,18 +1348,27 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
               <Background variant={BackgroundVariant.Dots} color="#cbd5e1" gap={20} size={1} />
               <Controls showInteractive={false} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }} />
             </ReactFlow>
+          </div>
 
-            {selectedNode && !selectedNode.id.startsWith("__") && (
-              <NodePropertiesPanel
-                node={selectedNode}
-                onClose={() => setSelectedNodeId(null)}
-                onTypeChange={handlePanelTypeChange}
-                onColorChange={handlePanelColorChange}
-                onFontSizeChange={handlePanelFsChange}
-                onTextColorChange={handlePanelTcChange}
-                onDelete={handlePanelDelete}
-              />
-            )}
+          {/* Right properties panel — always visible */}
+          <div style={{ width: 200, flexShrink: 0, borderLeft: "1px solid #1e1e2e", background: "#09090b", overflowY: "auto" }}>
+            {selectedNodes.length === 0
+              ? <div style={{ padding: "20px 14px", color: "#334155", fontSize: 11, lineHeight: 1.7 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e293b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Properties</div>
+                  Click a node to edit it.<br />
+                  Hold Shift to select multiple nodes and change their colour or font size all at once.
+                </div>
+              : <NodePropertiesPanel
+                  node={singleNode ?? selectedNodes[0]}
+                  multiCount={selectedNodes.length > 1 ? selectedNodes.length : undefined}
+                  onClose={() => setNodes(ns => ns.map(n => ({ ...n, selected: false })))}
+                  onTypeChange={handlePanelTypeChange}
+                  onColorChange={handlePanelColorChange}
+                  onFontSizeChange={handlePanelFsChange}
+                  onTextColorChange={handlePanelTcChange}
+                  onDelete={handlePanelDelete}
+                />
+            }
           </div>
         </div>
       </main>
