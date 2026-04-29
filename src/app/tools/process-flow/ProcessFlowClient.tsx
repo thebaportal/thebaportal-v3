@@ -54,7 +54,8 @@ const SZ = {
   decision: { w: 150, h: 90 },
   data:     { w: 180, h: 60 },
   document: { w: 180, h: 70 },
-  step:     { w: 190, h: 72 },  // draw-mode alias for process
+  step:     { w: 190, h: 72 },
+  note:     { w: 220, h: 90 },
 };
 
 // Professional light-blue palette (matches draw.io / Visio standard)
@@ -74,6 +75,7 @@ const NODE_TYPE_OPTIONS = [
   { value: "decisionNode", label: "Decision" },
   { value: "dataNode",     label: "Data / I-O" },
   { value: "documentNode", label: "Document" },
+  { value: "noteNode",     label: "Note / Callout" },
 ];
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -231,6 +233,17 @@ function insertRefs(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[
     // Trigger ref when going backward (upward) or spanning > ~60% of a full row width
     const needsRef = dy < -(SNAKE_Y_STEP * 0.4) || dist > SNAKE_X_STEP * SNAKE_COLS * 0.6;
 
+    // Row-transition: same X position, short downward drop — route via bottom→top handles
+    // to avoid the U-curve that smoothstep creates when source and target share an X
+    const isRowTransition = !needsRef
+      && dx < SNAKE_X_STEP * 0.25
+      && dy > SNAKE_Y_STEP * 0.5 && dy < SNAKE_Y_STEP * 2;
+
+    if (isRowTransition) {
+      finalEdges.push({ ...e, sourceHandle: "sb", targetHandle: "tt" });
+      continue;
+    }
+
     if (needsRef) {
       const n   = refNum++;
       const sz  = 34;
@@ -341,11 +354,12 @@ function edgeSourceHandle(label: string | undefined, isFromDecision: boolean, ed
   return edgeIndexFromDecision === 0 ? "yes" : "no";
 }
 
-function mkEdge(source: string, target: string, label?: string, color = NODE_BORDER, sourceHandle?: string, animated?: boolean): Edge {
+function mkEdge(source: string, target: string, label?: string, color = NODE_BORDER, sourceHandle?: string, animated?: boolean, targetHandle?: string): Edge {
   return {
     id: `${source}-${sourceHandle ?? ""}-${target}-${uid()}`,
     source, target,
     sourceHandle: sourceHandle ?? null,
+    targetHandle: targetHandle ?? null,
     animated: animated ?? false,
     label: label || undefined,
     type: "smoothstep",
@@ -410,14 +424,14 @@ function TerminalNode({ id, data, selected }: NodeProps) {
     <div onDoubleClick={startEdit}
       style={{ width: "100%", height: "100%", minWidth: SZ.terminal.w, minHeight: SZ.terminal.h, borderRadius: 999, background: fill, border: `2px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.12)" }}>
       <NodeResizer isVisible={selected} minWidth={100} minHeight={36} color={NODE_SEL} />
-      <Handle type="target" position={Position.Left}  style={HS} />
-      <Handle type="target" position={Position.Top}   style={{ ...HS, opacity: 0.5 }} />
+      <Handle id="tl" type="target" position={Position.Left}  style={HS} />
+      <Handle id="tt" type="target" position={Position.Top}   style={{ ...HS, opacity: 0.5 }} />
       {editing
         ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "75%", background: "transparent", border: "none", outline: "none", color: NODE_TEXT, fontWeight: 700, fontSize: fs, textAlign: "center" }} />
         : <span style={{ fontSize: fs, fontWeight: 700, color: NODE_TEXT, userSelect: "none", padding: "0 12px", textAlign: "center" }}>{String(data.label)}</span>
       }
-      <Handle type="source" position={Position.Right}  style={HS} />
-      <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
+      <Handle id="sr" type="source" position={Position.Right}  style={HS} />
+      <Handle id="sb" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
     </div>
   );
 }
@@ -433,16 +447,16 @@ function makeRectNode(defaultLabel: string, minW: number, minH: number) {
       <div onDoubleClick={startEdit}
         style={{ width: "100%", height: "100%", minWidth: minW, minHeight: minH, borderRadius: 6, background: fill, border: `1.5px solid ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px ${NODE_SEL}40` : "0 1px 3px rgba(0,0,0,0.10)" }}>
         <NodeResizer isVisible={selected} minWidth={120} minHeight={40} color={NODE_SEL} />
-        <Handle type="target" position={Position.Left}   style={HS} />
-        <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
+        <Handle id="tl" type="target" position={Position.Left}   style={HS} />
+        <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
         {editing
           ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
           : <div style={{ fontSize: fs, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</div>
         }
         {data.actor && !editing && <div style={{ fontSize: 10, color: NODE_BORDER, marginTop: 4, fontFamily: "monospace" }}>{String(data.actor)}</div>}
         {data.description && !editing && <div style={{ fontSize: 10, color: "#64748b", marginTop: 3, textAlign: "center", lineHeight: 1.4 }}>{String(data.description)}</div>}
-        <Handle type="source" position={Position.Right}  style={HS} />
-        <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
+        <Handle id="sr" type="source" position={Position.Right}  style={HS} />
+        <Handle id="sb" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
       </div>
     );
   };
@@ -451,6 +465,27 @@ function makeRectNode(defaultLabel: string, minW: number, minH: number) {
 const StepNode     = makeRectNode("Step",         SZ.step.w,     SZ.step.h);
 const ProcessNode  = makeRectNode("Process step", SZ.process.w,  SZ.process.h);
 const DocumentNode = makeRectNode("Document",     SZ.document.w, SZ.document.h);
+
+// Note / callout node — sticky note style for bracketed annotations
+function NoteNode({ id, data, selected }: NodeProps) {
+  const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Note"));
+  const fs = (data.fontSize as number | undefined) ?? 11;
+  const border = selected ? "#b45309" : "#d97706";
+  return (
+    <div onDoubleClick={startEdit}
+      style={{ width: "100%", height: "100%", minWidth: SZ.note.w, minHeight: SZ.note.h, borderRadius: 6, background: "#fef9c3", border: `1.5px dashed ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px #d9770640` : "0 2px 6px rgba(0,0,0,0.08)" }}>
+      <NodeResizer isVisible={selected} minWidth={140} minHeight={60} color="#d97706" />
+      <Handle id="tl" type="target" position={Position.Left}   style={{ ...HS, background: "#d97706" }} />
+      <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, background: "#d97706", opacity: 0.5 }} />
+      {editing
+        ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #d97706", outline: "none", color: "#78350f", fontWeight: 500, fontSize: fs, textAlign: "center", fontFamily: "inherit" }} />
+        : <div style={{ fontSize: fs, fontWeight: 500, color: "#78350f", textAlign: "center", lineHeight: 1.5, userSelect: "none", fontStyle: "italic" }}>{String(data.label)}</div>
+      }
+      <Handle id="sr" type="source" position={Position.Right}  style={{ ...HS, background: "#d97706" }} />
+      <Handle id="sb" type="source" position={Position.Bottom} style={{ ...HS, background: "#d97706", opacity: 0.5 }} />
+    </div>
+  );
+}
 
 // Data node — parallelogram
 function DataNode({ id, data, selected }: NodeProps) {
@@ -463,16 +498,16 @@ function DataNode({ id, data, selected }: NodeProps) {
       style={{ width: "100%", height: "100%", minWidth: SZ.data.w, minHeight: SZ.data.h, position: "relative", cursor: "default" }}>
       <NodeResizer isVisible={selected} minWidth={120} minHeight={44} color={NODE_SEL} />
       <div style={{ position: "absolute", inset: 0, background: fill, border: `1.5px solid ${border}`, transform: "skewX(-12deg)", borderRadius: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.10)" }} />
-      <Handle type="target" position={Position.Left}   style={HS} />
-      <Handle type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
+      <Handle id="tl" type="target" position={Position.Left}   style={HS} />
+      <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, opacity: 0.5 }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px", zIndex: 1 }}>
         {editing
           ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${NODE_BORDER}`, outline: "none", color: NODE_TEXT, fontWeight: 600, fontSize: fs, textAlign: "center" }} />
           : <span style={{ fontSize: fs, fontWeight: 600, color: NODE_TEXT, textAlign: "center", lineHeight: 1.4, userSelect: "none" }}>{String(data.label)}</span>
         }
       </div>
-      <Handle type="source" position={Position.Right}  style={HS} />
-      <Handle type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
+      <Handle id="sr" type="source" position={Position.Right}  style={HS} />
+      <Handle id="sb" type="source" position={Position.Bottom} style={{ ...HS, opacity: 0.5 }} />
     </div>
   );
 }
@@ -490,8 +525,8 @@ function DecisionNode({ id, data, selected }: NodeProps) {
       <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }} preserveAspectRatio="none" viewBox="0 0 100 100">
         <polygon points="50,2 98,50 50,98 2,50" fill={fill} stroke={stroke} strokeWidth={selected ? 3 : 2} vectorEffect="non-scaling-stroke" />
       </svg>
-      <Handle type="target" position={Position.Left}   style={{ ...HS, top: "50%" }} />
-      <Handle type="target" position={Position.Top}    style={{ ...HS, left: "50%", opacity: 0.5 }} />
+      <Handle id="tl" type="target" position={Position.Left}   style={{ ...HS, top: "50%" }} />
+      <Handle id="tt" type="target" position={Position.Top}    style={{ ...HS, left: "50%", opacity: 0.5 }} />
       <Handle type="source" id="yes" position={Position.Right}  style={{ ...HS, top: "50%" }} />
       <Handle type="source" id="no"  position={Position.Bottom} style={{ ...HS, left: "50%" }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 28px", zIndex: 1 }}>
@@ -599,6 +634,7 @@ const nodeTypes = {
   decisionNode: DecisionNode,
   dataNode:     DataNode,
   documentNode: DocumentNode,
+  noteNode:     NoteNode,
   laneNode:     LaneNode,
   refNode:      RefNode,
 };
@@ -783,7 +819,7 @@ function GeneratePanel({ onGenerate, onClear, generating, hasContent }: {
 
 // ── Inner flow ────────────────────────────────────────────────────────────────
 
-function FlowInner({ profile, user }: { profile: Profile | null; user: { email: string } }) {
+function FlowInner({ profile, user }: { profile: Profile | null; user: { email: string } | null }) {
   const [mode, setMode] = useState<Mode>("draw");
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -958,12 +994,18 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
 
     const rawNodes: Node[] = ((data.nodes as ApiNode[]) ?? []).map(n => {
       const dfType = n.type ?? "process";
-      const sz     = rfSzMap[dfType] ?? SZ.process;
+      const label  = n.data?.label ?? n.label ?? "";
+      // Auto-promote to noteNode if label is predominantly bracketed/parenthetical content
+      const isAnnotation = /^\s*[\[\(]/.test(label) || (label.match(/[\[\(][^\]\)]{5,}[\]\)]/g) ?? []).join("").length > label.length * 0.4;
+      const isTerminal   = ["start", "end", "terminalNode"].includes(dfType);
+      const isDecision   = ["decision", "decisionNode"].includes(dfType);
+      const rfType = (isAnnotation && !isTerminal && !isDecision) ? "noteNode" : (rfTypeMap[dfType] ?? "stepNode");
+      const sz     = rfType === "noteNode" ? SZ.note : (rfSzMap[dfType] ?? SZ.process);
       return {
         id:   n.id,
-        type: rfTypeMap[dfType] ?? "stepNode",
+        type: rfType,
         data: {
-          label:       n.data?.label ?? n.label ?? "",   // new schema first, legacy fallback
+          label,
           actor:       n.actor,
           description: n.description ?? n.data?.description,
           laneId:      n.laneId,
@@ -1086,7 +1128,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#0d0d12" }}>
-      <AppSidebar activeHref="/tools/process-flow" profile={profile} user={user} />
+      <AppSidebar activeHref="/tools/process-flow" profile={profile} user={user ?? { email: "" }} />
       <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
@@ -1193,7 +1235,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
-export default function ProcessFlowClient({ profile, user }: { profile: Profile | null; user: { email: string } }) {
+export default function ProcessFlowClient({ profile, user }: { profile: Profile | null; user: { email: string } | null }) {
   return (
     <ReactFlowProvider>
       <FlowInner profile={profile} user={user} />
