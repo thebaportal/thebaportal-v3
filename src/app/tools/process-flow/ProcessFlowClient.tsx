@@ -22,6 +22,7 @@ import ReactFlow, {
   type Connection,
 } from "reactflow";
 import { toPng } from "html-to-image";
+import { strToU8, zipSync } from "fflate";
 import "reactflow/dist/style.css";
 import { NodeResizer } from "@reactflow/node-resizer";
 import "@reactflow/node-resizer/dist/style.css";
@@ -407,21 +408,73 @@ function parseBullets(text: string): string[] {
   return parts.length > 1 ? parts : [text];
 }
 
-// For the snake layout: edges that cross row boundaries share the same X position,
-// causing smoothstep to draw a U-curve. Route them via the right handle on both ends
-// so they sweep cleanly around the right-side turn.
-function fixSnakeRowTransitions(nodes: Node[], edges: Edge[]): Edge[] {
-  const posMap = new Map(nodes.map(n => [n.id, n]));
+// Full snake edge router: sets sourceHandle + targetHandle for every edge so that
+// (a) L→R rows exit right / enter left,  (b) R→L rows exit left / enter right,
+// (c) row-turn edges use right→right,    (d) decisions use yes/no correctly per band.
+// Decision diamond handles: l=left, t=top, yes=right, no=bottom.
+function routeSnakeEdges(nodes: Node[], edges: Edge[]): Edge[] {
+  const posMap  = new Map(nodes.map(n => [n.id, n]));
+  const typeMap = new Map(nodes.map(n => [n.id, n.type ?? ""]));
+
+  const tgtHandle = (dx: number, dy: number, absX: number, absY: number, isDec: boolean): string => {
+    if (absX >= absY) {
+      if (isDec) return dx >= 0 ? "l" : "yes";   // arrive at diamond left or right
+      return dx >= 0 ? "l" : "r";
+    } else {
+      if (isDec) return dy >= 0 ? "t" : "no";    // arrive at diamond top or bottom
+      return dy >= 0 ? "t" : "b";
+    }
+  };
+
   return edges.map(e => {
     const src = posMap.get(e.source);
     const tgt = posMap.get(e.target);
     if (!src || !tgt) return e;
-    const dx = Math.abs(tgt.position.x - src.position.x);
-    const dy = tgt.position.y - src.position.y;
-    if (dx < SNAKE_X_STEP * 0.25 && dy > SNAKE_Y_STEP * 0.5 && dy < SNAKE_Y_STEP * 2) {
+
+    const sw = src.width  ?? SZ.step.w;  const sh2 = src.height ?? SZ.step.h;
+    const tw = tgt.width  ?? SZ.step.w;  const th2 = tgt.height ?? SZ.step.h;
+    const dx   = (tgt.position.x + tw / 2) - (src.position.x + sw / 2);
+    const dy   = (tgt.position.y + th2 / 2) - (src.position.y + sh2 / 2);
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    const srcIsDec = typeMap.get(e.source) === "decisionNode";
+    const tgtIsDec = typeMap.get(e.target) === "decisionNode";
+
+    // Row turn: same-x-column, moving to the next snake row (right sweep)
+    if (absX < SNAKE_X_STEP * 0.5 && dy > SNAKE_Y_STEP * 0.4 && dy < SNAKE_Y_STEP * 2.5) {
       return { ...e, sourceHandle: "r", targetHandle: "r" };
     }
-    return e;
+
+    // Band of source: even = L→R, odd = R→L
+    const band   = Math.max(0, Math.floor((src.position.y - START_Y + 10) / SNAKE_Y_STEP));
+    const isEven = band % 2 === 0;
+
+    let sh: string;
+    let th: string;
+
+    if (srcIsDec) {
+      const sem = e.sourceHandle ?? "";      // "yes" or "no"
+      if (sem === "yes") {
+        sh = isEven ? "yes" : "l";           // L→R → exit right; R→L → exit left
+        th = tgtHandle(isEven ? 1 : -1, dy, 1, absY, tgtIsDec);
+      } else if (sem === "no") {
+        if (absY >= absX * 0.5) {
+          sh = "no"; th = tgtIsDec ? "t" : "t";  // mainly vertical → exit bottom, enter top
+        } else {
+          sh = isEven ? "l" : "yes";              // horizontal backward branch
+          th = tgtHandle(isEven ? -1 : 1, dy, 1, absY, tgtIsDec);
+        }
+      } else {
+        sh = absX >= absY ? (dx >= 0 ? "yes" : "l") : (dy >= 0 ? "no" : "t");
+        th = tgtHandle(dx, dy, absX, absY, tgtIsDec);
+      }
+    } else {
+      sh = absX >= absY ? (dx >= 0 ? "r" : "l") : (dy >= 0 ? "b" : "t");
+      th = tgtHandle(dx, dy, absX, absY, tgtIsDec);
+    }
+
+    return { ...e, sourceHandle: sh, targetHandle: th };
   });
 }
 
@@ -612,29 +665,26 @@ function RefNode({ data }: NodeProps) {
   );
 }
 
-// AI-generated callout — inverted T: triangle pointer + stem + crossbar + bullet list, no box
+// AI-generated callout — ┴ shape: horizontal crossbar at top + numbered list.
+// A straight amber edge from parent supplies the vertical stem of the ┴.
 function CalloutNode({ data }: NodeProps) {
-  const tc = (data.textColor as string | undefined) ?? "#92400e";
-  const fs = (data.fontSize  as number | undefined) ?? 11;
-  const bullets: string[] = Array.isArray(data.bullets)
+  const tc    = (data.textColor as string | undefined) ?? "#78350f";
+  const fs    = (data.fontSize  as number | undefined) ?? 11;
+  const items: string[] = Array.isArray(data.bullets)
     ? (data.bullets as string[])
     : [String(data.label ?? "")];
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "visible" }}>
-      <Handle id="t" type="source" position={Position.Top}    style={{ opacity: 0, pointerEvents: "none" }} />
-      <Handle id="b" type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: "none" }} />
-      {/* Triangle tip pointing up toward parent */}
-      <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderBottom: "13px solid #d97706", pointerEvents: "none" }} />
-      {/* Vertical stem */}
-      <div style={{ position: "absolute", top: 13, left: "50%", transform: "translateX(-50%)", width: 2, height: 11, background: "#d97706", pointerEvents: "none" }} />
-      {/* Horizontal crossbar */}
-      <div style={{ position: "absolute", top: 23, left: "15%", right: "15%", height: 2, background: "#d97706", pointerEvents: "none" }} />
-      {/* Bullet list */}
-      <div style={{ position: "absolute", top: 30, left: 4, right: 4 }}>
-        {bullets.map((b, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 4, marginBottom: 2 }}>
-            <span style={{ color: "#d97706", fontWeight: 900, flexShrink: 0, fontSize: fs, lineHeight: 1.5 }}>•</span>
-            <span style={{ fontSize: fs, color: tc, lineHeight: 1.5, wordBreak: "break-word" as const }}>{b}</span>
+    <div style={{ width: "100%", height: "100%", position: "relative", background: "transparent" }}>
+      <Handle id="t" type="source" position={Position.Top}    style={{ opacity: 0, width: 1, height: 1 }} />
+      <Handle id="b" type="source" position={Position.Bottom} style={{ opacity: 0, width: 1, height: 1 }} />
+      {/* Horizontal crossbar — bottom of the ┴ stem */}
+      <div style={{ position: "absolute", top: 6, left: "8%", right: "8%", height: 2, background: "#d97706", pointerEvents: "none" }} />
+      {/* Numbered list */}
+      <div style={{ position: "absolute", top: 14, left: 8, right: 8 }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 4, marginBottom: 3 }}>
+            <span style={{ fontSize: fs, fontWeight: 700, color: "#d97706", flexShrink: 0, lineHeight: 1.5 }}>{i + 1}.</span>
+            <span style={{ fontSize: fs, color: tc, lineHeight: 1.5, wordBreak: "break-word" as const }}>{item}</span>
           </div>
         ))}
       </div>
@@ -954,6 +1004,148 @@ function GeneratePanel({ desc, setDesc, onGenerate, onClear, generating, simplif
   );
 }
 
+// ── Visio (.vsdx) export ──────────────────────────────────────────────────────
+// Generates a minimal but valid .vsdx ZIP (Visio 2013+).
+// Coordinate scale: 1px → 0.01 inches. Y-axis inverted (Visio: 0 at bottom).
+
+const VSDX_SCALE = 0.01;
+
+function px(n: number) { return (n * VSDX_SCALE).toFixed(4); }
+
+function vsdxNodeGeom(type: string | undefined): string {
+  switch (type) {
+    case "terminalNode":
+      return `<Geom IX="0"><Ellipse X="Width*0.5" Y="Height*0.5" A="Width" B="Height*0.5" C="Width*0.5" D="0"/></Geom>`;
+    case "decisionNode":
+      return `<Geom IX="0"><MoveTo><X>Width*0.5</X><Y>0</Y></MoveTo><LineTo><X>Width</X><Y>Height*0.5</Y></LineTo><LineTo><X>Width*0.5</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>Height*0.5</Y></LineTo><LineTo><X>Width*0.5</X><Y>0</Y></LineTo></Geom>`;
+    case "dataNode":
+      return `<Geom IX="0"><MoveTo><X>Width*0.15</X><Y>0</Y></MoveTo><LineTo><X>Width</X><Y>0</Y></LineTo><LineTo><X>Width*0.85</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>Height</Y></LineTo><LineTo><X>Width*0.15</X><Y>0</Y></LineTo></Geom>`;
+    default:
+      return `<Geom IX="0"><MoveTo><X>0</X><Y>0</Y></MoveTo><LineTo><X>Width</X><Y>0</Y></LineTo><LineTo><X>Width</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>0</Y></LineTo></Geom>`;
+  }
+}
+
+function handleOffset(node: Node, handle: string | null): { x: number; y: number } {
+  const w = node.width  ?? SZ.step.w;
+  const h = node.height ?? SZ.step.h;
+  switch (handle) {
+    case "l":   return { x: node.position.x,         y: node.position.y + h / 2 };
+    case "r":   return { x: node.position.x + w,     y: node.position.y + h / 2 };
+    case "t":   return { x: node.position.x + w / 2, y: node.position.y };
+    case "b":   return { x: node.position.x + w / 2, y: node.position.y + h };
+    case "yes": return { x: node.position.x + w,     y: node.position.y + h / 2 };
+    case "no":  return { x: node.position.x + w / 2, y: node.position.y + h };
+    default:    return { x: node.position.x + w / 2, y: node.position.y + h / 2 };
+  }
+}
+
+function generateVsdx(nodes: Node[], edges: Edge[], title: string): Uint8Array {
+  const real = nodes.filter(n =>
+    !n.id.startsWith("__lane_") && !n.id.startsWith("__rx") && !n.id.startsWith("__rn") && n.type !== "calloutNode"
+  );
+  if (real.length === 0) return new Uint8Array();
+
+  const maxX = Math.max(...real.map(n => n.position.x + (n.width  ?? SZ.step.w))) + 80;
+  const maxY = Math.max(...real.map(n => n.position.y + (n.height ?? SZ.step.h))) + 80;
+  const pageW = parseFloat(px(maxX));
+  const pageH = parseFloat(px(maxY));
+
+  const posMap = new Map(real.map(n => [n.id, n]));
+  let shapeId = 1;
+  const nodeIdMap = new Map<string, number>();
+  real.forEach(n => { nodeIdMap.set(n.id, shapeId++); });
+
+  const shapeXml = real.map(n => {
+    const id   = nodeIdMap.get(n.id)!;
+    const w    = n.width  ?? SZ.step.w;
+    const h    = n.height ?? SZ.step.h;
+    const pinX = parseFloat(px(n.position.x + w / 2));
+    const pinY = parseFloat((pageH - parseFloat(px(n.position.y + h / 2))).toFixed(4));
+    const fill = (n.data?.color as string | undefined) ?? NODE_FILL;
+    const label = String(n.data?.label ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return `<Shape ID="${id}" Type="Shape">
+  <XForm><PinX>${pinX}</PinX><PinY>${pinY}</PinY><Width>${px(w)}</Width><Height>${px(h)}</Height><Angle>0</Angle><FlipX>0</FlipX><FlipY>0</FlipY></XForm>
+  <Fill><FillForegnd>${fill}</FillForegnd><FillBkgnd>${fill}</FillBkgnd></Fill>
+  <Line><LineColor>${NODE_BORDER}</LineColor><LineWeight>0.02</LineWeight><Rounding>${n.type === "terminalNode" ? "0.2" : "0"}</Rounding></Line>
+  <Char><Color>${NODE_TEXT}</Color><Size>10pt</Size></Char>
+  ${vsdxNodeGeom(n.type)}
+  <Text>${label}</Text>
+</Shape>`;
+  }).join("\n");
+
+  const connXml = edges.filter(e => posMap.has(e.source) && posMap.has(e.target)).map(e => {
+    const src = posMap.get(e.source)!;
+    const tgt = posMap.get(e.target)!;
+    const s   = handleOffset(src, e.sourceHandle ?? null);
+    const t   = handleOffset(tgt, e.targetHandle ?? null);
+    const id  = shapeId++;
+    const bx  = parseFloat(px(s.x));
+    const by  = parseFloat((pageH - parseFloat(px(s.y))).toFixed(4));
+    const ex  = parseFloat(px(t.x));
+    const ey  = parseFloat((pageH - parseFloat(px(t.y))).toFixed(4));
+    const lbl = e.label ? `<Text>${String(e.label).replace(/&/g,"&amp;").replace(/</g,"&lt;")}</Text>` : "";
+    const clr = (e.style as { stroke?: string } | undefined)?.stroke ?? NODE_BORDER;
+    return `<Shape ID="${id}" Type="Edge">
+  <XForm1D><BeginX>${bx}</BeginX><BeginY>${by}</BeginY><EndX>${ex}</EndX><EndY>${ey}</EndY></XForm1D>
+  <Line><LineColor>${clr}</LineColor><EndArrow>4</EndArrow><EndArrowSize>2</EndArrowSize></Line>
+  ${lbl}
+</Shape>`;
+  }).join("\n");
+
+  const page1 = `<?xml version="1.0" encoding="utf-8"?>
+<PageContents xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xml:space="preserve">
+  <Shapes>
+${shapeXml}
+${connXml}
+  </Shapes>
+</PageContents>`;
+
+  const doc = `<?xml version="1.0" encoding="utf-8"?>
+<VisioDocument xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <DocumentSheet UniqueID="{BA-PORTAL}"><PageProps><PageWidth>${pageW}</PageWidth><PageHeight>${pageH}</PageHeight></PageProps></DocumentSheet>
+  <Pages><Rel r:id="rId1"/></Pages>
+</VisioDocument>`;
+
+  const pages = `<?xml version="1.0" encoding="utf-8"?>
+<Pages xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <Page ID="1" NameU="${title.replace(/"/g,"")}" Name="${title.replace(/"/g,"")}"><Rel r:id="rId1"/></Page>
+</Pages>`;
+
+  const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/visio/document.xml" ContentType="application/vnd.ms-visio.drawing.main+xml"/>
+  <Override PartName="/visio/pages/pages.xml" ContentType="application/vnd.ms-visio.pages+xml"/>
+  <Override PartName="/visio/pages/page1.xml" ContentType="application/vnd.ms-visio.page+xml"/>
+</Types>`;
+
+  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/document" Target="visio/document.xml"/>
+</Relationships>`;
+
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/pages" Target="pages/pages.xml"/>
+</Relationships>`;
+
+  const pagesRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/page" Target="page1.xml"/>
+</Relationships>`;
+
+  return zipSync({
+    "[Content_Types].xml":              strToU8(ct),
+    "_rels/.rels":                      strToU8(rootRels),
+    "visio/document.xml":              strToU8(doc),
+    "visio/_rels/document.xml.rels":   strToU8(docRels),
+    "visio/pages/pages.xml":           strToU8(pages),
+    "visio/pages/_rels/pages.xml.rels": strToU8(pagesRels),
+    "visio/pages/page1.xml":           strToU8(page1),
+  });
+}
+
 // ── Inner flow ────────────────────────────────────────────────────────────────
 
 function FlowInner({ profile, user }: { profile: Profile | null; user: { email: string } | null }) {
@@ -1154,16 +1346,23 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       const sz = rfSzMap[dfType] ?? SZ.process;
 
       if (calloutText) {
-        const cid = `__co_${n.id}`;
+        const cid     = `__co_${n.id}`;
         const bullets = parseBullets(calloutText);
-        const calloutH = 32 + bullets.length * 20;
+        const calloutH = 16 + bullets.length * 22;
         calloutNodes.push({
           id: cid, type: "calloutNode", selectable: true, draggable: true,
           data: { label: calloutText, bullets, parentId: n.id },
           position: { x: 0, y: 0 },
           width: SZ.note.w, height: calloutH,
         });
-        // No edge needed — the triangle pointer conveys the connection visually
+        // Straight amber line = the vertical stem of the ┴ (crossbar is inside callout node)
+        calloutEdges.push({
+          id: `${n.id}-co-${cid}`, source: n.id, target: cid,
+          type: "straight", sourceHandle: "b", targetHandle: "t",
+          style: { stroke: "#d97706", strokeWidth: 2 },
+          animated: false,
+          label: undefined,
+        } as Edge);
       }
 
       return {
@@ -1204,7 +1403,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     } else {
       const snaked = snakeLayout(rawNodes, rawEdges);
       finalNodes = snaked;
-      finalEdges = fixSnakeRowTransitions(snaked, rawEdges);
+      finalEdges = routeSnakeEdges(snaked, rawEdges);
     }
 
     // Position callout nodes directly below their parent after layout
@@ -1219,14 +1418,14 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
         ...co,
         position: {
           x: parent.position.x + (pw - cw) / 2,
-          y: parent.position.y + ph + 18,
+          y: parent.position.y + ph + 10,
         },
       };
     });
 
     const allNodes = [...laneNodes, ...finalNodes, ...positionedCallouts];
     setNodes(allNodes);
-    setEdges(finalEdges);
+    setEdges([...finalEdges, ...calloutEdges]);
     pushSnapshot(allNodes, finalEdges);
     fitViewDelayed();
   }, [setNodes, setEdges, pushSnapshot, fitViewDelayed, setTitle]);
@@ -1234,7 +1433,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   const handleBuildFromForm = useCallback(() => {
     const { nodes: n, edges: e } = stepsToGraph(title, steps);
     const snaked = snakeLayout(n, e);
-    const finalE = fixSnakeRowTransitions(snaked, e);
+    const finalE = routeSnakeEdges(snaked, e);
     setNodes(snaked); setEdges(finalE); pushSnapshot(snaked, finalE); fitViewDelayed();
   }, [title, steps, setNodes, setEdges, pushSnapshot, fitViewDelayed]);
 
@@ -1285,6 +1484,20 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     pdf.addImage(dataUrl, "PNG", 0, 0, ptW, ptH);
     pdf.save(`${title || "diagram"}.pdf`);
   }, [nodes, exportToPng, title]);
+
+  const handleExportVsdx = useCallback(() => {
+    const realNodes = nodes.filter(n => !n.id.startsWith("__lane_") && !n.id.startsWith("__rx") && !n.id.startsWith("__rn"));
+    if (realNodes.length === 0) return;
+    try {
+      const data = generateVsdx(realNodes, edges, title || "diagram");
+      const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/vnd.ms-visio.drawing" });
+      const a    = document.createElement("a");
+      a.href     = URL.createObjectURL(blob);
+      a.download = `${title || "diagram"}.vsdx`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (err) { console.error("VSDX export:", err); }
+  }, [nodes, edges, title]);
 
   const handleGenerate = useCallback(async (description: string) => {
     setGenerating(true);
@@ -1415,6 +1628,13 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
             onMouseEnter={e => { if (hasContent) { e.currentTarget.style.borderColor = "#ef4444"; e.currentTarget.style.color = "#ef4444"; }}}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = hasContent ? "#94a3b8" : "#2d3748"; }}>
             <Download size={12} /> PDF
+          </button>
+
+          <button onClick={handleExportVsdx} title="Export Visio (.vsdx)" disabled={!hasContent}
+            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, background: "transparent", border: "1px solid #1e293b", color: hasContent ? "#94a3b8" : "#2d3748", fontSize: 11, fontWeight: 500, cursor: hasContent ? "pointer" : "not-allowed" }}
+            onMouseEnter={e => { if (hasContent) { e.currentTarget.style.borderColor = "#a78bfa"; e.currentTarget.style.color = "#a78bfa"; }}}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = hasContent ? "#94a3b8" : "#2d3748"; }}>
+            <Download size={12} /> Visio
           </button>
 
           <button
