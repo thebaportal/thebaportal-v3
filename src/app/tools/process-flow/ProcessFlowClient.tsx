@@ -26,9 +26,9 @@ import "reactflow/dist/style.css";
 import { NodeResizer } from "@reactflow/node-resizer";
 import "@reactflow/node-resizer/dist/style.css";
 import {
-  Plus, Trash2, ChevronUp, ChevronDown,
+  Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
   Grid3X3, Undo2, Redo2, Wand2, LayoutList,
-  MousePointer2, Loader2, Download, Copy,
+  MousePointer2, Loader2, Download, Copy, Sparkles,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import AppSidebar from "@/components/AppSidebar";
@@ -56,6 +56,7 @@ const SZ = {
   document: { w: 180, h: 70 },
   step:     { w: 190, h: 72 },
   note:     { w: 220, h: 90 },
+  label:    { w: 180, h: 36 },
 };
 
 // Professional light-blue palette (matches draw.io / Visio standard)
@@ -76,6 +77,7 @@ const NODE_TYPE_OPTIONS = [
   { value: "dataNode",     label: "Data / I-O" },
   { value: "documentNode", label: "Document" },
   { value: "noteNode",     label: "Note / Callout" },
+  { value: "labelNode",    label: "Text / Label" },
 ];
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -399,6 +401,30 @@ function stepsToGraph(title: string, steps: Step[]): { nodes: Node[]; edges: Edg
   return { nodes, edges };
 }
 
+// Split callout text on commas or "or" → bullet list
+function parseBullets(text: string): string[] {
+  const parts = text.split(/,\s*|\s+or\s+/i).map(s => s.trim()).filter(Boolean);
+  return parts.length > 1 ? parts : [text];
+}
+
+// For the snake layout: edges that cross row boundaries share the same X position,
+// causing smoothstep to draw a U-curve. Route them via the right handle on both ends
+// so they sweep cleanly around the right-side turn.
+function fixSnakeRowTransitions(nodes: Node[], edges: Edge[]): Edge[] {
+  const posMap = new Map(nodes.map(n => [n.id, n]));
+  return edges.map(e => {
+    const src = posMap.get(e.source);
+    const tgt = posMap.get(e.target);
+    if (!src || !tgt) return e;
+    const dx = Math.abs(tgt.position.x - src.position.x);
+    const dy = tgt.position.y - src.position.y;
+    if (dx < SNAKE_X_STEP * 0.25 && dy > SNAKE_Y_STEP * 0.5 && dy < SNAKE_Y_STEP * 2) {
+      return { ...e, sourceHandle: "r", targetHandle: "r" };
+    }
+    return e;
+  });
+}
+
 // ── Inline edit ───────────────────────────────────────────────────────────────
 
 function useInlineEdit(id: string, label: string) {
@@ -468,7 +494,7 @@ const StepNode     = makeRectNode("Step",         SZ.step.w,     SZ.step.h);
 const ProcessNode  = makeRectNode("Process step", SZ.process.w,  SZ.process.h);
 const DocumentNode = makeRectNode("Document",     SZ.document.w, SZ.document.h);
 
-// Note / callout node — sticky note style for bracketed annotations
+// Note / callout node — speech-bubble style for bracketed annotations
 function NoteNode({ id, data, selected }: NodeProps) {
   const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Note"));
   const fs = (data.fontSize  as number | undefined) ?? 11;
@@ -476,17 +502,22 @@ function NoteNode({ id, data, selected }: NodeProps) {
   const border = selected ? "#b45309" : "#d97706";
   const NH: React.CSSProperties = { ...HS, background: "#d97706" };
   return (
-    <div onDoubleClick={startEdit}
-      style={{ width: "100%", height: "100%", minWidth: SZ.note.w, minHeight: SZ.note.h, borderRadius: 6, background: "#fef9c3", border: `1.5px dashed ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px #d9770640` : "0 2px 6px rgba(0,0,0,0.08)" }}>
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
       <NodeResizer isVisible={selected} minWidth={140} minHeight={60} color="#d97706" />
       <Handle id="l" type="source" position={Position.Left}   style={NH} />
-      <Handle id="t" type="source" position={Position.Top}    style={{ ...NH, opacity: 0.5 }} />
-      {editing
-        ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #d97706", outline: "none", color: tc, fontWeight: 500, fontSize: fs, textAlign: "center", fontFamily: "inherit" }} />
-        : <div style={{ fontSize: fs, fontWeight: 500, color: tc, textAlign: "center", lineHeight: 1.5, userSelect: "none", fontStyle: "italic" }}>{String(data.label)}</div>
-      }
+      <Handle id="t" type="source" position={Position.Top}    style={{ ...NH, opacity: 0.0 }} />
       <Handle id="r" type="source" position={Position.Right}  style={NH} />
       <Handle id="b" type="source" position={Position.Bottom} style={{ ...NH, opacity: 0.5 }} />
+      {/* Speech-bubble triangle pointer pointing upward toward parent */}
+      <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderBottom: `11px solid ${border}`, pointerEvents: "none", zIndex: 1 }} />
+      <div style={{ position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "7px solid transparent", borderRight: "7px solid transparent", borderBottom: "9px solid #fef9c3", pointerEvents: "none", zIndex: 2 }} />
+      <div onDoubleClick={startEdit}
+        style={{ width: "100%", height: "100%", minWidth: SZ.note.w, minHeight: SZ.note.h, borderRadius: 6, background: "#fef9c3", border: `1.5px dashed ${border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 14px", cursor: "default", boxSizing: "border-box", boxShadow: selected ? `0 0 0 2px #d9770640` : "0 2px 6px rgba(0,0,0,0.08)" }}>
+        {editing
+          ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()} style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #d97706", outline: "none", color: tc, fontWeight: 500, fontSize: fs, textAlign: "center", fontFamily: "inherit" }} />
+          : <div style={{ fontSize: fs, fontWeight: 500, color: tc, textAlign: "center", lineHeight: 1.5, userSelect: "none", fontStyle: "italic" }}>{String(data.label)}</div>
+        }
+      </div>
     </div>
   );
 }
@@ -581,6 +612,54 @@ function RefNode({ data }: NodeProps) {
   );
 }
 
+// AI-generated callout — inverted T: triangle pointer + stem + crossbar + bullet list, no box
+function CalloutNode({ data }: NodeProps) {
+  const tc = (data.textColor as string | undefined) ?? "#92400e";
+  const fs = (data.fontSize  as number | undefined) ?? 11;
+  const bullets: string[] = Array.isArray(data.bullets)
+    ? (data.bullets as string[])
+    : [String(data.label ?? "")];
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "visible" }}>
+      <Handle id="t" type="source" position={Position.Top}    style={{ opacity: 0, pointerEvents: "none" }} />
+      <Handle id="b" type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: "none" }} />
+      {/* Triangle tip pointing up toward parent */}
+      <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderBottom: "13px solid #d97706", pointerEvents: "none" }} />
+      {/* Vertical stem */}
+      <div style={{ position: "absolute", top: 13, left: "50%", transform: "translateX(-50%)", width: 2, height: 11, background: "#d97706", pointerEvents: "none" }} />
+      {/* Horizontal crossbar */}
+      <div style={{ position: "absolute", top: 23, left: "15%", right: "15%", height: 2, background: "#d97706", pointerEvents: "none" }} />
+      {/* Bullet list */}
+      <div style={{ position: "absolute", top: 30, left: 4, right: 4 }}>
+        {bullets.map((b, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 4, marginBottom: 2 }}>
+            <span style={{ color: "#d97706", fontWeight: 900, flexShrink: 0, fontSize: fs, lineHeight: 1.5 }}>•</span>
+            <span style={{ fontSize: fs, color: tc, lineHeight: 1.5, wordBreak: "break-word" as const }}>{b}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Free-floating text / title — transparent background, no border
+function LabelNode({ id, data, selected }: NodeProps) {
+  const { editing, draft, setDraft, startEdit, commit } = useInlineEdit(id, String(data.label ?? "Title"));
+  const fs = (data.fontSize  as number | undefined) ?? 16;
+  const tc = (data.textColor as string | undefined) ?? "#1e293b";
+  return (
+    <div onDoubleClick={startEdit}
+      style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "default" }}>
+      <NodeResizer isVisible={selected} minWidth={60} minHeight={20} color={NODE_SEL} />
+      {editing
+        ? <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Enter" && commit()}
+            style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px dashed #94a3b8", outline: "none", color: tc, fontWeight: 700, fontSize: fs, textAlign: "center" }} />
+        : <span style={{ fontSize: fs, fontWeight: 700, color: tc, userSelect: "none", textAlign: "center" }}>{String(data.label)}</span>
+      }
+    </div>
+  );
+}
+
 const TEXT_COLORS = ["#1e293b","#1e40af","#166534","#9a3412","#6b21a8","#374151","#1d4ed8","#dc2626"];
 
 // ── Node properties panel ─────────────────────────────────────────────────────
@@ -667,6 +746,8 @@ const nodeTypes = {
   dataNode:     DataNode,
   documentNode: DocumentNode,
   noteNode:     NoteNode,
+  calloutNode:  CalloutNode,
+  labelNode:    LabelNode,
   laneNode:     LaneNode,
   refNode:      RefNode,
 };
@@ -704,6 +785,9 @@ function Palette() {
         </PaletteItem>
         <PaletteItem shape="data" label="Data / I/O">
           <div style={{ width: 68, height: 34, background: NODE_FILL, border: `1.5px solid ${NODE_BORDER}`, transform: "skewX(-12deg)", borderRadius: 3 }} />
+        </PaletteItem>
+        <PaletteItem shape="label" label="Text / Label">
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Title</span>
         </PaletteItem>
       </div>
       <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(51,65,85,0.12)", border: "1px solid #1e293b" }}>
@@ -799,11 +883,12 @@ function StructuredPanel({ title, setTitle, steps, setSteps, onBuild }: {
 
 // ── Generate panel ────────────────────────────────────────────────────────────
 
-function GeneratePanel({ onGenerate, onClear, generating, hasContent }: {
+function GeneratePanel({ desc, setDesc, onGenerate, onClear, generating, simplifying, onSimplify, hasContent }: {
+  desc: string; setDesc: (d: string) => void;
   onGenerate: (desc: string) => void; onClear: () => void;
-  generating: boolean; hasContent: boolean;
+  generating: boolean; simplifying: boolean; onSimplify: () => void;
+  hasContent: boolean;
 }) {
-  const [desc, setDesc] = useState("");
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -834,8 +919,12 @@ function GeneratePanel({ onGenerate, onClear, generating, hasContent }: {
       <textarea
         value={desc} onChange={e => setDesc(e.target.value)}
         placeholder="e.g. A customer submits a loan application. The underwriter reviews it and decides if it's complete. If complete, the manager approves or rejects. If rejected, the customer is notified. If approved, funds are disbursed."
-        style={{ flex: 1, minHeight: 180, padding: "10px 12px", borderRadius: 8, border: "1px solid #1e293b", background: "rgba(255,255,255,0.03)", color: "#e2e8f0", fontSize: 12, lineHeight: 1.6, resize: "none", outline: "none", fontFamily: "inherit" }}
+        style={{ flex: 1, minHeight: 160, padding: "10px 12px", borderRadius: 8, border: "1px solid #1e293b", background: "rgba(255,255,255,0.03)", color: "#e2e8f0", fontSize: 12, lineHeight: 1.6, resize: "none", outline: "none", fontFamily: "inherit" }}
       />
+      <button onClick={onSimplify} disabled={simplifying || !desc.trim() || generating}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", borderRadius: 7, background: simplifying ? "rgba(167,139,250,0.06)" : "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.25)", color: simplifying ? "#475569" : "#a78bfa", fontSize: 11, fontWeight: 600, cursor: simplifying || !desc.trim() ? "not-allowed" : "pointer" }}>
+        {simplifying ? <><Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Simplifying…</> : <><Sparkles size={12} /> Simplify this description</>}
+      </button>
       {confirmingClear && (
         <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.25)" }}>
           <p style={{ margin: "0 0 10px", fontSize: 12, color: "#fca5a5", fontWeight: 600 }}>Clear this diagram?</p>
@@ -875,6 +964,9 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   const [title, setTitle] = useState("New Process");
   const [steps, setSteps] = useState<Step[]>([{ id: uid(), action: "", actor: "", isDecision: false, yesBranch: "", yesLabel: "", noBranch: "", noLabel: "" }]);
   const [generating, setGenerating] = useState(false);
+  const [simplifying, setSimplifying] = useState(false);
+  const [generateDesc, setGenerateDesc] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -991,9 +1083,9 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     if (!shape) return;
     const bounds = wrapperRef.current.getBoundingClientRect();
     const position = project({ x: e.clientX - bounds.left, y: e.clientY - bounds.top });
-    const typeMap: Record<string, string> = { terminal: "terminalNode", step: "stepNode", decision: "decisionNode", data: "dataNode" };
-    const szMap:   Record<string, { w: number; h: number }> = { terminal: SZ.terminal, step: SZ.step, decision: SZ.decision, data: SZ.data };
-    const lblMap:  Record<string, string> = { terminal: "Start / End", step: "Process step", decision: "Decision?", data: "Data" };
+    const typeMap: Record<string, string> = { terminal: "terminalNode", step: "stepNode", decision: "decisionNode", data: "dataNode", label: "labelNode" };
+    const szMap:   Record<string, { w: number; h: number }> = { terminal: SZ.terminal, step: SZ.step, decision: SZ.decision, data: SZ.data, label: SZ.label };
+    const lblMap:  Record<string, string> = { terminal: "Start / End", step: "Process step", decision: "Decision?", data: "Data", label: "Title" };
     const sz = szMap[shape] ?? SZ.step;
     const newNode: Node = { id: uid(), type: typeMap[shape] ?? "stepNode", position, data: { label: lblMap[shape] ?? "Step" }, width: sz.w, height: sz.h };
     setNodes(ns => { const next = [...ns, newNode]; pushSnapshot(next, edges); return next; });
@@ -1063,18 +1155,15 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
 
       if (calloutText) {
         const cid = `__co_${n.id}`;
+        const bullets = parseBullets(calloutText);
+        const calloutH = 32 + bullets.length * 20;
         calloutNodes.push({
-          id: cid, type: "noteNode", selectable: true, draggable: true,
-          data: { label: calloutText, parentId: n.id },
+          id: cid, type: "calloutNode", selectable: true, draggable: true,
+          data: { label: calloutText, bullets, parentId: n.id },
           position: { x: 0, y: 0 },
-          width: SZ.note.w, height: SZ.note.h,
+          width: SZ.note.w, height: calloutH,
         });
-        calloutEdges.push({
-          id: `${n.id}-co-${cid}`, source: n.id, target: cid,
-          type: "smoothstep", sourceHandle: "b", targetHandle: "t",
-          style: { stroke: "#d97706", strokeWidth: 1.5, strokeDasharray: "4 3" },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#d97706", width: 8, height: 8 },
-        });
+        // No edge needed — the triangle pointer conveys the connection visually
       }
 
       return {
@@ -1114,9 +1203,8 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       laneNodes  = result.laneNodes;
     } else {
       const snaked = snakeLayout(rawNodes, rawEdges);
-      const withRefs = insertRefs(snaked, rawEdges);
-      finalNodes = withRefs.nodes;
-      finalEdges = withRefs.edges;
+      finalNodes = snaked;
+      finalEdges = fixSnakeRowTransitions(snaked, rawEdges);
     }
 
     // Position callout nodes directly below their parent after layout
@@ -1138,7 +1226,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
 
     const allNodes = [...laneNodes, ...finalNodes, ...positionedCallouts];
     setNodes(allNodes);
-    setEdges([...finalEdges, ...calloutEdges]);
+    setEdges(finalEdges);
     pushSnapshot(allNodes, finalEdges);
     fitViewDelayed();
   }, [setNodes, setEdges, pushSnapshot, fitViewDelayed, setTitle]);
@@ -1146,8 +1234,8 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
   const handleBuildFromForm = useCallback(() => {
     const { nodes: n, edges: e } = stepsToGraph(title, steps);
     const snaked = snakeLayout(n, e);
-    const { nodes: finalN, edges: finalE } = insertRefs(snaked, e);
-    setNodes(finalN); setEdges(finalE); pushSnapshot(finalN, finalE); fitViewDelayed();
+    const finalE = fixSnakeRowTransitions(snaked, e);
+    setNodes(snaked); setEdges(finalE); pushSnapshot(snaked, finalE); fitViewDelayed();
   }, [title, steps, setNodes, setEdges, pushSnapshot, fitViewDelayed]);
 
   const handleClear = useCallback(() => {
@@ -1217,6 +1305,25 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     }
   }, [applyDiagramData]);
 
+  const handleSimplify = useCallback(async () => {
+    if (!generateDesc.trim()) return;
+    setSimplifying(true);
+    try {
+      const res = await fetch("/api/tools/process-flow/simplify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: generateDesc }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const { simplified } = await res.json();
+      if (simplified) setGenerateDesc(simplified);
+    } catch (err) {
+      console.error("[simplify]", err);
+    } finally {
+      setSimplifying(false);
+    }
+  }, [generateDesc]);
+
   // ── Node properties panel handlers ──────────────────────────────────────────
   const selectedNodes = nodes.filter(n => n.selected && !n.id.startsWith("__"));
   const singleNode    = selectedNodes.length === 1 ? selectedNodes[0] : null;
@@ -1229,7 +1336,7 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
     if (!singleNode) return;
     const szMap: Record<string, { w: number; h: number }> = {
       terminalNode: SZ.terminal, stepNode: SZ.step, processNode: SZ.process,
-      decisionNode: SZ.decision, dataNode: SZ.data, documentNode: SZ.document, noteNode: SZ.note,
+      decisionNode: SZ.decision, dataNode: SZ.data, documentNode: SZ.document, noteNode: SZ.note, labelNode: SZ.label,
     };
     const sz = szMap[t] ?? SZ.process;
     setNodes(ns => ns.map(n => n.id === singleNode.id ? { ...n, type: t, width: sz.w, height: sz.h } : n));
@@ -1318,11 +1425,26 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
         </header>
 
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-          {/* Left panel */}
-          <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #1e1e2e", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            {mode === "draw"       && <Palette />}
-            {mode === "generate"   && <GeneratePanel onGenerate={handleGenerate} onClear={handleClear} generating={generating} hasContent={hasContent} />}
-            {mode === "structured" && <StructuredPanel title={title} setTitle={setTitle} steps={steps} setSteps={setSteps} onBuild={handleBuildFromForm} />}
+          {/* Left panel — collapsible */}
+          <div style={{ width: sidebarCollapsed ? 32 : 280, flexShrink: 0, borderRight: "1px solid #1e1e2e", display: "flex", flexDirection: "column", overflow: "hidden", transition: "width 0.18s ease" }}>
+            {sidebarCollapsed ? (
+              <button onClick={() => setSidebarCollapsed(false)} title="Expand panel"
+                style={{ flex: 1, background: "none", border: "none", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ChevronRight size={14} />
+              </button>
+            ) : (
+              <>
+                <div style={{ display: "flex", justifyContent: "flex-end", padding: "6px 8px 0", flexShrink: 0 }}>
+                  <button onClick={() => setSidebarCollapsed(true)} title="Collapse panel"
+                    style={{ display: "flex", alignItems: "center", gap: 3, background: "none", border: "1px solid #1e293b", borderRadius: 5, color: "#334155", cursor: "pointer", fontSize: 10, padding: "2px 7px" }}>
+                    <ChevronLeft size={11} /> Hide
+                  </button>
+                </div>
+                {mode === "draw"       && <Palette />}
+                {mode === "generate"   && <GeneratePanel desc={generateDesc} setDesc={setGenerateDesc} onGenerate={handleGenerate} onClear={handleClear} generating={generating} simplifying={simplifying} onSimplify={handleSimplify} hasContent={hasContent} />}
+                {mode === "structured" && <StructuredPanel title={title} setTitle={setTitle} steps={steps} setSteps={setSteps} onBuild={handleBuildFromForm} />}
+              </>
+            )}
           </div>
 
           {/* Canvas — always mounted */}
@@ -1348,17 +1470,11 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
               <Background variant={BackgroundVariant.Dots} color="#cbd5e1" gap={20} size={1} />
               <Controls showInteractive={false} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }} />
             </ReactFlow>
-          </div>
 
-          {/* Right properties panel — always visible */}
-          <div style={{ width: 200, flexShrink: 0, borderLeft: "1px solid #1e1e2e", background: "#09090b", overflowY: "auto" }}>
-            {selectedNodes.length === 0
-              ? <div style={{ padding: "20px 14px", color: "#334155", fontSize: 11, lineHeight: 1.7 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e293b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Properties</div>
-                  Click a node to edit it.<br />
-                  Hold Shift to select multiple nodes and change their colour or font size all at once.
-                </div>
-              : <NodePropertiesPanel
+            {/* Floating properties panel — appears only when a node is selected */}
+            {selectedNodes.length > 0 && (
+              <div style={{ position: "absolute", top: 12, right: 12, width: 210, background: "#09090b", border: "1px solid #1e293b", borderRadius: 10, boxShadow: "0 4px 24px rgba(0,0,0,0.5)", zIndex: 10, overflowY: "auto", maxHeight: "calc(100% - 24px)" }}>
+                <NodePropertiesPanel
                   node={singleNode ?? selectedNodes[0]}
                   multiCount={selectedNodes.length > 1 ? selectedNodes.length : undefined}
                   onClose={() => setNodes(ns => ns.map(n => ({ ...n, selected: false })))}
@@ -1368,7 +1484,8 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
                   onTextColorChange={handlePanelTcChange}
                   onDelete={handlePanelDelete}
                 />
-            }
+              </div>
+            )}
           </div>
         </div>
       </main>
