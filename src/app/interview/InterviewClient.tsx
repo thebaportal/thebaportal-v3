@@ -58,7 +58,7 @@ export default function InterviewClient({ profile, user }: Props) {
             fontSize: 17, color: "var(--text-2)", lineHeight: 1.65,
             maxWidth: 560, margin: "0 0 48px",
           }}>
-            Simulation Lab helps you do the work. Interview Lab helps you talk about it. Six adaptive questions from Alex Rivera, with real feedback on how you performed.
+            The BA Workspace helps you do the work. Interview Lab helps you talk about it. Six adaptive questions from Alex Rivera, with real feedback on how you performed.
           </p>
 
           {/* Feature grid */}

@@ -22,7 +22,6 @@ import ReactFlow, {
   type Connection,
 } from "reactflow";
 import { toPng } from "html-to-image";
-import { strToU8, zipSync } from "fflate";
 import "reactflow/dist/style.css";
 import { NodeResizer } from "@reactflow/node-resizer";
 import "@reactflow/node-resizer/dist/style.css";
@@ -32,6 +31,7 @@ import {
   MousePointer2, Loader2, Download, Copy, Sparkles,
 } from "lucide-react";
 import jsPDF from "jspdf";
+import { zipSync, strToU8 } from "fflate";
 import AppSidebar from "@/components/AppSidebar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -176,8 +176,11 @@ function dagreLayout(nodes: Node[], edges: Edge[], direction: "TB" | "LR" = "TB"
   });
 }
 
-// Snake layout — uses dagre LR for column assignment (handles cycles; BFS cannot),
-// then maps columns into alternating L→R / R→L rows of SNAKE_COLS.
+// Snake layout — alternating L→R / R→L rows of SNAKE_COLS nodes each.
+// Every node lands on the exact grid: x = START_X + col*SNAKE_X_STEP,
+//                                     y = START_Y + band*SNAKE_Y_STEP.
+// No stacking — each node gets a unique column so the router never
+// mis-detects a band from an off-grid Y position.
 const SNAKE_COLS   = 7;
 const SNAKE_X_STEP = 230;
 const SNAKE_Y_STEP = 185;
@@ -185,34 +188,46 @@ const SNAKE_Y_STEP = 185;
 function snakeLayout(rawNodes: Node[], edges: Edge[]): Node[] {
   if (rawNodes.length === 0) return rawNodes;
 
-  // Dagre LR gives correct rank/column numbers even when the graph has cycles
+  // Use dagre in LR mode purely to rank nodes (handles cycles; BFS cannot).
+  // We normalise all widths to 1 so dagre gives equal-width rank slots.
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 60 });
-  rawNodes.forEach(n => g.setNode(n.id, { width: n.width ?? SZ.step.w, height: n.height ?? SZ.step.h }));
+  g.setGraph({ rankdir: "LR", nodesep: 10, ranksep: 60 });
+  rawNodes.forEach(n => g.setNode(n.id, { width: 1, height: 1 }));
   edges.forEach(e => { try { g.setEdge(e.source, e.target); } catch { /* skip */ } });
   dagre.layout(g);
 
-  // Map continuous dagre x-positions → 0-based integer column indices
-  const uniqueXs = [...new Set(rawNodes.map(n => { const p = g.node(n.id); return p ? Math.round(p.x) : 0; }))].sort((a, b) => a - b);
-  const xToCol: Record<number, number> = {};
-  uniqueXs.forEach((x, i) => { xToCol[x] = i; });
+  // Group nodes by their dagre rank (rounded x), sort within each rank by dagre y.
+  const byRank = new Map<number, { id: string; dy: number }[]>();
+  rawNodes.forEach(n => {
+    const p    = g.node(n.id) ?? { x: 0, y: 0 };
+    const rank = Math.round(p.x);
+    if (!byRank.has(rank)) byRank.set(rank, []);
+    byRank.get(rank)!.push({ id: n.id, dy: p.y });
+  });
 
-  const col: Record<string, number> = {};
-  rawNodes.forEach(n => { const p = g.node(n.id); col[n.id] = xToCol[p ? Math.round(p.x) : 0] ?? 0; });
+  // Assign each node a globally unique, sequential column index.
+  // Parallel-branch nodes (same rank) get consecutive columns, ordered by dagre y.
+  const colOf = new Map<string, number>();
+  [...byRank.keys()].sort((a, b) => a - b).forEach(rank => {
+    byRank.get(rank)!
+      .sort((a, b) => a.dy - b.dy)
+      .forEach(({ id }) => colOf.set(id, colOf.size));
+  });
 
-  const byCol: Record<number, string[]> = {};
-  rawNodes.forEach(n => { const c = col[n.id] ?? 0; (byCol[c] ??= []).push(n.id); });
-
+  // Place every node on the exact grid cell — no fractional offsets.
   return rawNodes.map(n => {
-    const c        = col[n.id] ?? 0;
-    const band     = Math.floor(c / SNAKE_COLS);
-    const pos      = c % SNAKE_COLS;
-    const isEven   = band % 2 === 0;
-    const stackIdx = (byCol[c] ?? []).indexOf(n.id);
-    const x = START_X + (isEven ? pos : SNAKE_COLS - 1 - pos) * SNAKE_X_STEP;
-    const y = START_Y + band * SNAKE_Y_STEP + stackIdx * ((n.height ?? SZ.step.h) + 20);
-    return { ...n, position: { x, y } };
+    const c      = colOf.get(n.id) ?? 0;
+    const band   = Math.floor(c / SNAKE_COLS);
+    const pos    = c % SNAKE_COLS;
+    const isEven = band % 2 === 0;
+    return {
+      ...n,
+      position: {
+        x: START_X + (isEven ? pos : SNAKE_COLS - 1 - pos) * SNAKE_X_STEP,
+        y: START_Y + band * SNAKE_Y_STEP,   // exact — never drifts
+      },
+    };
   });
 }
 
@@ -416,14 +431,12 @@ function routeSnakeEdges(nodes: Node[], edges: Edge[]): Edge[] {
   const posMap  = new Map(nodes.map(n => [n.id, n]));
   const typeMap = new Map(nodes.map(n => [n.id, n.type ?? ""]));
 
-  const tgtHandle = (dx: number, dy: number, absX: number, absY: number, isDec: boolean): string => {
-    if (absX >= absY) {
-      if (isDec) return dx >= 0 ? "l" : "yes";   // arrive at diamond left or right
-      return dx >= 0 ? "l" : "r";
-    } else {
-      if (isDec) return dy >= 0 ? "t" : "no";    // arrive at diamond top or bottom
-      return dy >= 0 ? "t" : "b";
-    }
+  // Which handle to use when entering a node from a given flow band
+  // Even band flows L→R  → enter from left
+  // Odd  band flows R→L  → enter from right (decisions: "yes" handle = right side)
+  const incomingHandle = (isDec: boolean, inEvenBand: boolean): string => {
+    if (inEvenBand) return "l";
+    return isDec ? "yes" : "r";
   };
 
   return edges.map(e => {
@@ -431,50 +444,69 @@ function routeSnakeEdges(nodes: Node[], edges: Edge[]): Edge[] {
     const tgt = posMap.get(e.target);
     if (!src || !tgt) return e;
 
-    const sw = src.width  ?? SZ.step.w;  const sh2 = src.height ?? SZ.step.h;
-    const tw = tgt.width  ?? SZ.step.w;  const th2 = tgt.height ?? SZ.step.h;
-    const dx   = (tgt.position.x + tw / 2) - (src.position.x + sw / 2);
-    const dy   = (tgt.position.y + th2 / 2) - (src.position.y + sh2 / 2);
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
-
     const srcIsDec = typeMap.get(e.source) === "decisionNode";
     const tgtIsDec = typeMap.get(e.target) === "decisionNode";
 
-    // Row turn: same-x-column, moving to the next snake row (right sweep)
-    if (absX < SNAKE_X_STEP * 0.5 && dy > SNAKE_Y_STEP * 0.4 && dy < SNAKE_Y_STEP * 2.5) {
-      return { ...e, sourceHandle: "r", targetHandle: "r" };
+    const sw = src.width  ?? SZ.step.w;
+    const sh = src.height ?? SZ.step.h;
+    const tw = tgt.width  ?? SZ.step.w;
+    const th = tgt.height ?? SZ.step.h;
+    const dx   = (tgt.position.x + tw / 2) - (src.position.x + sw / 2);
+    const dy   = (tgt.position.y + th  / 2) - (src.position.y + sh  / 2);
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    const srcBand = Math.max(0, Math.floor((src.position.y - START_Y + 10) / SNAKE_Y_STEP));
+    const srcEven = srcBand % 2 === 0;
+    const tgtBand = Math.max(0, Math.floor((tgt.position.y - START_Y + 10) / SNAKE_Y_STEP));
+    const tgtEven = tgtBand % 2 === 0;
+
+    // ── Row-turn: band-end wraps to next-band start (small dx, ~1-row drop) ───
+    // Only for non-decision sources — decision exits are handled below.
+    if (!srcIsDec && absX < SNAKE_X_STEP * 0.5 && dy > SNAKE_Y_STEP * 0.4 && dy < SNAKE_Y_STEP * 2.5) {
+      return { ...e, sourceHandle: "r", targetHandle: tgtIsDec ? "yes" : "r" };
     }
 
-    // Band of source: even = L→R, odd = R→L
-    const band   = Math.max(0, Math.floor((src.position.y - START_Y + 10) / SNAKE_Y_STEP));
-    const isEven = band % 2 === 0;
-
-    let sh: string;
-    let th: string;
-
+    // ── Decision source — strict handle dedication prevents ALL crisscrossing ──
+    // Handles on a diamond:  l=left  t=top  yes=right  no=bottom
+    // Contract:
+    //   incoming → l (even band) or yes (odd band)
+    //   Yes out  → yes (even)    or l   (odd)          ← flow direction
+    //   No  out  → no (bottom)   ALWAYS                ← never shares with above two
     if (srcIsDec) {
-      const sem = e.sourceHandle ?? "";      // "yes" or "no"
-      if (sem === "yes") {
-        sh = isEven ? "yes" : "l";           // L→R → exit right; R→L → exit left
-        th = tgtHandle(isEven ? 1 : -1, dy, 1, absY, tgtIsDec);
-      } else if (sem === "no") {
-        if (absY >= absX * 0.5) {
-          sh = "no"; th = tgtIsDec ? "t" : "t";  // mainly vertical → exit bottom, enter top
+      const sem  = e.sourceHandle ?? "";
+      const isNo = sem === "no";
+
+      if (isNo) {
+        // No exits bottom unconditionally — this is what prevents crisscrossing.
+        let thTgt: string;
+        if (dy > SNAKE_Y_STEP * 0.3) {
+          // Predominantly downward: enter target from top
+          thTgt = tgtIsDec ? incomingHandle(true, tgtEven) : "t";
+        } else if (dy < -SNAKE_Y_STEP * 0.3) {
+          // Upward (loop-back): enter target from bottom
+          thTgt = tgtIsDec ? "no" : "b";
         } else {
-          sh = isEven ? "l" : "yes";              // horizontal backward branch
-          th = tgtHandle(isEven ? -1 : 1, dy, 1, absY, tgtIsDec);
+          // Sideways: enter from the approaching side
+          thTgt = dx >= 0 ? incomingHandle(tgtIsDec, true) : incomingHandle(tgtIsDec, false);
         }
-      } else {
-        sh = absX >= absY ? (dx >= 0 ? "yes" : "l") : (dy >= 0 ? "no" : "t");
-        th = tgtHandle(dx, dy, absX, absY, tgtIsDec);
+        return { ...e, sourceHandle: "no", targetHandle: thTgt };
       }
-    } else {
-      sh = absX >= absY ? (dx >= 0 ? "r" : "l") : (dy >= 0 ? "b" : "t");
-      th = tgtHandle(dx, dy, absX, absY, tgtIsDec);
+
+      // Yes (and any other label): exit in the band's flow direction
+      return {
+        ...e,
+        sourceHandle: srcEven ? "yes" : "l",
+        targetHandle: incomingHandle(tgtIsDec, tgtEven),
+      };
     }
 
-    return { ...e, sourceHandle: sh, targetHandle: th };
+    // ── Non-decision source — exit in the band's flow direction ───────────────
+    return {
+      ...e,
+      sourceHandle: srcEven ? "r" : "l",
+      targetHandle: incomingHandle(tgtIsDec, tgtEven),
+    };
   });
 }
 
@@ -665,26 +697,44 @@ function RefNode({ data }: NodeProps) {
   );
 }
 
-// AI-generated callout — ┴ shape: horizontal crossbar at top + numbered list.
-// A straight amber edge from parent supplies the vertical stem of the ┴.
+// Callout — ┴ shape:
+//   stem  = straight amber edge from parent node (30px gap)
+//   bar   = 3px amber div at the very top of this node (aligns with edge endpoint)
+//   list  = numbered items in a flex-column below the bar
+// Uses flex layout (no absolute children) + explicit minWidth so it never collapses.
 function CalloutNode({ data }: NodeProps) {
-  const tc    = (data.textColor as string | undefined) ?? "#78350f";
+  const tc    = (data.textColor as string | undefined) ?? "#92400e";
   const fs    = (data.fontSize  as number | undefined) ?? 11;
   const items: string[] = Array.isArray(data.bullets)
     ? (data.bullets as string[])
     : [String(data.label ?? "")];
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", background: "transparent" }}>
+    <div style={{
+      width: "100%", height: "100%",
+      minWidth: 200,                         // prevents collapse before RF applies width
+      display: "flex", flexDirection: "column",
+      background: "transparent",
+      overflow: "visible",
+    }}>
       <Handle id="t" type="source" position={Position.Top}    style={{ opacity: 0, width: 1, height: 1 }} />
       <Handle id="b" type="source" position={Position.Bottom} style={{ opacity: 0, width: 1, height: 1 }} />
-      {/* Horizontal crossbar — bottom of the ┴ stem */}
-      <div style={{ position: "absolute", top: 6, left: "8%", right: "8%", height: 2, background: "#d97706", pointerEvents: "none" }} />
+
+      {/* Horizontal T-bar — flush with node top = edge endpoint */}
+      <div style={{ width: "100%", height: 3, background: "#d97706", flexShrink: 0 }} />
+
       {/* Numbered list */}
-      <div style={{ position: "absolute", top: 14, left: 8, right: 8 }}>
+      <div style={{ padding: "6px 8px 4px", display: "flex", flexDirection: "column", gap: 3 }}>
         {items.map((item, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 4, marginBottom: 3 }}>
-            <span style={{ fontSize: fs, fontWeight: 700, color: "#d97706", flexShrink: 0, lineHeight: 1.5 }}>{i + 1}.</span>
-            <span style={{ fontSize: fs, color: tc, lineHeight: 1.5, wordBreak: "break-word" as const }}>{item}</span>
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
+            <span style={{
+              fontSize: fs, fontWeight: 700, color: "#d97706",
+              flexShrink: 0, lineHeight: 1.4, minWidth: 16,
+            }}>{i + 1}.</span>
+            <span style={{
+              fontSize: fs, color: tc, lineHeight: 1.4,
+              flex: 1, minWidth: 0,
+              whiteSpace: "normal", wordBreak: "break-word" as const,
+            }}>{item}</span>
           </div>
         ))}
       </div>
@@ -1008,20 +1058,19 @@ function GeneratePanel({ desc, setDesc, onGenerate, onClear, generating, simplif
 // Generates a minimal but valid .vsdx ZIP (Visio 2013+).
 // Coordinate scale: 1px → 0.01 inches. Y-axis inverted (Visio: 0 at bottom).
 
-const VSDX_SCALE = 0.01;
-
-function px(n: number) { return (n * VSDX_SCALE).toFixed(4); }
 
 function vsdxNodeGeom(type: string | undefined): string {
+  // Formula cells use F="formula" attribute; text content is the cached numeric value.
+  // Ellipse uses child elements (X,Y,A,B,C,D), NOT attributes.
   switch (type) {
     case "terminalNode":
-      return `<Geom IX="0"><Ellipse X="Width*0.5" Y="Height*0.5" A="Width" B="Height*0.5" C="Width*0.5" D="0"/></Geom>`;
+      return `<Geom IX="0"><Ellipse IX="1"><X F="Width*0.5"/><Y F="Height*0.5"/><A F="Width"/><B F="Height*0.5"/><C F="Width*0.5"/><D>0</D></Ellipse></Geom>`;
     case "decisionNode":
-      return `<Geom IX="0"><MoveTo><X>Width*0.5</X><Y>0</Y></MoveTo><LineTo><X>Width</X><Y>Height*0.5</Y></LineTo><LineTo><X>Width*0.5</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>Height*0.5</Y></LineTo><LineTo><X>Width*0.5</X><Y>0</Y></LineTo></Geom>`;
+      return `<Geom IX="0"><MoveTo IX="1"><X F="Width*0.5"/><Y>0</Y></MoveTo><LineTo IX="2"><X F="Width"/><Y F="Height*0.5"/></LineTo><LineTo IX="3"><X F="Width*0.5"/><Y F="Height"/></LineTo><LineTo IX="4"><X>0</X><Y F="Height*0.5"/></LineTo><LineTo IX="5"><X F="Width*0.5"/><Y>0</Y></LineTo></Geom>`;
     case "dataNode":
-      return `<Geom IX="0"><MoveTo><X>Width*0.15</X><Y>0</Y></MoveTo><LineTo><X>Width</X><Y>0</Y></LineTo><LineTo><X>Width*0.85</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>Height</Y></LineTo><LineTo><X>Width*0.15</X><Y>0</Y></LineTo></Geom>`;
+      return `<Geom IX="0"><MoveTo IX="1"><X F="Width*0.15"/><Y>0</Y></MoveTo><LineTo IX="2"><X F="Width"/><Y>0</Y></LineTo><LineTo IX="3"><X F="Width*0.85"/><Y F="Height"/></LineTo><LineTo IX="4"><X>0</X><Y F="Height"/></LineTo><LineTo IX="5"><X F="Width*0.15"/><Y>0</Y></LineTo></Geom>`;
     default:
-      return `<Geom IX="0"><MoveTo><X>0</X><Y>0</Y></MoveTo><LineTo><X>Width</X><Y>0</Y></LineTo><LineTo><X>Width</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>Height</Y></LineTo><LineTo><X>0</X><Y>0</Y></LineTo></Geom>`;
+      return `<Geom IX="0"><MoveTo IX="1"><X>0</X><Y>0</Y></MoveTo><LineTo IX="2"><X F="Width"/><Y>0</Y></LineTo><LineTo IX="3"><X F="Width"/><Y F="Height"/></LineTo><LineTo IX="4"><X>0</X><Y F="Height"/></LineTo><LineTo IX="5"><X>0</X><Y>0</Y></LineTo></Geom>`;
   }
 }
 
@@ -1041,58 +1090,71 @@ function handleOffset(node: Node, handle: string | null): { x: number; y: number
 
 function generateVsdx(nodes: Node[], edges: Edge[], title: string): Uint8Array {
   const real = nodes.filter(n =>
-    !n.id.startsWith("__lane_") && !n.id.startsWith("__rx") && !n.id.startsWith("__rn") && n.type !== "calloutNode"
+    !n.id.startsWith("__lane_") && !n.id.startsWith("__rx") &&
+    !n.id.startsWith("__rn")   && n.type !== "calloutNode"
   );
   if (real.length === 0) return new Uint8Array();
 
+  const S  = 0.01;
+  const fi = (v: number) => (v * S).toFixed(4);
   const maxX = Math.max(...real.map(n => n.position.x + (n.width  ?? SZ.step.w))) + 80;
   const maxY = Math.max(...real.map(n => n.position.y + (n.height ?? SZ.step.h))) + 80;
-  const pageW = parseFloat(px(maxX));
-  const pageH = parseFloat(px(maxY));
+  const PW   = (maxX * S).toFixed(4);
+  const PH   = (maxY * S).toFixed(4);
+  const PHn  = parseFloat(PH);
+  // Visio Y origin is at the BOTTOM of the page
+  const vy   = (pixY: number) => (PHn - pixY * S).toFixed(4);
 
   const posMap = new Map(real.map(n => [n.id, n]));
-  let shapeId = 1;
+  let sid = 1;
   const nodeIdMap = new Map<string, number>();
-  real.forEach(n => { nodeIdMap.set(n.id, shapeId++); });
+  real.forEach(n => nodeIdMap.set(n.id, sid++));
 
+  // ── Shapes ────────────────────────────────────────────────────────────────
   const shapeXml = real.map(n => {
-    const id   = nodeIdMap.get(n.id)!;
-    const w    = n.width  ?? SZ.step.w;
-    const h    = n.height ?? SZ.step.h;
-    const pinX = parseFloat(px(n.position.x + w / 2));
-    const pinY = parseFloat((pageH - parseFloat(px(n.position.y + h / 2))).toFixed(4));
-    const fill = (n.data?.color as string | undefined) ?? NODE_FILL;
-    const label = String(n.data?.label ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    return `<Shape ID="${id}" Type="Shape">
-  <XForm><PinX>${pinX}</PinX><PinY>${pinY}</PinY><Width>${px(w)}</Width><Height>${px(h)}</Height><Angle>0</Angle><FlipX>0</FlipX><FlipY>0</FlipY></XForm>
-  <Fill><FillForegnd>${fill}</FillForegnd><FillBkgnd>${fill}</FillBkgnd></Fill>
-  <Line><LineColor>${NODE_BORDER}</LineColor><LineWeight>0.02</LineWeight><Rounding>${n.type === "terminalNode" ? "0.2" : "0"}</Rounding></Line>
-  <Char><Color>${NODE_TEXT}</Color><Size>10pt</Size></Char>
+    const id  = nodeIdMap.get(n.id)!;
+    const w   = n.width  ?? SZ.step.w;
+    const h   = n.height ?? SZ.step.h;
+    const lbl = String(n.data?.label ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return `<Shape ID="${id}" Type="Shape" LineStyle="0" FillStyle="0" TextStyle="0">
+  <XForm>
+    <PinX>${fi(n.position.x + w/2)}</PinX><PinY>${vy(n.position.y + h/2)}</PinY>
+    <Width>${fi(w)}</Width><Height>${fi(h)}</Height>
+    <LocPinX F="Width*0.5"/><LocPinY F="Height*0.5"/>
+    <Angle>0</Angle><FlipX>0</FlipX><FlipY>0</FlipY><ResizeMode>0</ResizeMode>
+  </XForm>
   ${vsdxNodeGeom(n.type)}
-  <Text>${label}</Text>
+  <Text>${lbl}</Text>
 </Shape>`;
   }).join("\n");
 
-  const connXml = edges.filter(e => posMap.has(e.source) && posMap.has(e.target)).map(e => {
-    const src = posMap.get(e.source)!;
-    const tgt = posMap.get(e.target)!;
-    const s   = handleOffset(src, e.sourceHandle ?? null);
-    const t   = handleOffset(tgt, e.targetHandle ?? null);
-    const id  = shapeId++;
-    const bx  = parseFloat(px(s.x));
-    const by  = parseFloat((pageH - parseFloat(px(s.y))).toFixed(4));
-    const ex  = parseFloat(px(t.x));
-    const ey  = parseFloat((pageH - parseFloat(px(t.y))).toFixed(4));
-    const lbl = e.label ? `<Text>${String(e.label).replace(/&/g,"&amp;").replace(/</g,"&lt;")}</Text>` : "";
-    const clr = (e.style as { stroke?: string } | undefined)?.stroke ?? NODE_BORDER;
-    return `<Shape ID="${id}" Type="Edge">
-  <XForm1D><BeginX>${bx}</BeginX><BeginY>${by}</BeginY><EndX>${ex}</EndX><EndY>${ey}</EndY></XForm1D>
-  <Line><LineColor>${clr}</LineColor><EndArrow>4</EndArrow><EndArrowSize>2</EndArrowSize></Line>
+  // ── Connectors (1D shapes) ─────────────────────────────────────────────────
+  const connXml = edges
+    .filter(e => posMap.has(e.source) && posMap.has(e.target))
+    .map(e => {
+      const src = posMap.get(e.source)!;
+      const tgt = posMap.get(e.target)!;
+      const s   = handleOffset(src, e.sourceHandle ?? null);
+      const t   = handleOffset(tgt, e.targetHandle ?? null);
+      const id  = sid++;
+      const lbl = e.label
+        ? `<Text>${String(e.label).replace(/&/g,"&amp;").replace(/</g,"&lt;")}</Text>`
+        : "";
+      return `<Shape ID="${id}" Type="Shape" LineStyle="0" FillStyle="0" TextStyle="0">
+  <XForm1D>
+    <BeginX>${fi(s.x)}</BeginX><BeginY>${vy(s.y)}</BeginY>
+    <EndX>${fi(t.x)}</EndX><EndY>${vy(t.y)}</EndY>
+  </XForm1D>
+  <Line><EndArrow>4</EndArrow></Line>
   ${lbl}
 </Shape>`;
-  }).join("\n");
+    }).join("\n");
 
-  const page1 = `<?xml version="1.0" encoding="utf-8"?>
+  const safeTitle = title.replace(/[&"<>']/g, "").trim().slice(0, 31) || "Process";
+
+  // ── page1.xml ─────────────────────────────────────────────────────────────
+  const page1 = `<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <PageContents xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xml:space="preserve">
   <Shapes>
 ${shapeXml}
@@ -1100,17 +1162,105 @@ ${connXml}
   </Shapes>
 </PageContents>`;
 
-  const doc = `<?xml version="1.0" encoding="utf-8"?>
+  // ── document.xml — must include StyleSheets, DocumentSheet, Masters ────────
+  const doc = `<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <VisioDocument xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <DocumentSheet UniqueID="{BA-PORTAL}"><PageProps><PageWidth>${pageW}</PageWidth><PageHeight>${pageH}</PageHeight></PageProps></DocumentSheet>
+  <DocumentProperties>
+    <Creator>TheBAPortal</Creator>
+    <Title>${safeTitle}</Title>
+  </DocumentProperties>
+  <DocumentSettings>
+    <DefaultTextStyle>0</DefaultTextStyle>
+    <DefaultLineStyle>0</DefaultLineStyle>
+    <DefaultFillStyle>0</DefaultFillStyle>
+    <DefaultGuideStyle>0</DefaultGuideStyle>
+  </DocumentSettings>
+  <Colors>
+    <ColorEntry RGB="#000000"/>
+    <ColorEntry RGB="#FFFFFF"/>
+    <ColorEntry RGB="#FF0000"/>
+    <ColorEntry RGB="#00FF00"/>
+    <ColorEntry RGB="#0000FF"/>
+    <ColorEntry RGB="#FFFF00"/>
+    <ColorEntry RGB="#FF00FF"/>
+    <ColorEntry RGB="#00FFFF"/>
+    <ColorEntry RGB="#808080"/>
+    <ColorEntry RGB="#C0C0C0"/>
+    <ColorEntry RGB="#804000"/>
+    <ColorEntry RGB="#008000"/>
+    <ColorEntry RGB="#000080"/>
+    <ColorEntry RGB="#808000"/>
+    <ColorEntry RGB="#800080"/>
+    <ColorEntry RGB="#008080"/>
+  </Colors>
+  <FaceNames>
+    <FaceName NameU="Arial" UnicodeRanges="0000-00FF" CharSets="0" Flags="0"/>
+  </FaceNames>
+  <StyleSheets>
+    <StyleSheet ID="0" NameU="Normal" IsCustomName="0" IsCustomNameU="0">
+      <Line>
+        <LineWeight>0.01</LineWeight>
+        <LineColor>0</LineColor>
+        <LinePattern>1</LinePattern>
+        <LineColorTrans>0</LineColorTrans>
+      </Line>
+      <Fill>
+        <FillForegnd>1</FillForegnd>
+        <FillBkgnd>1</FillBkgnd>
+        <FillPattern>1</FillPattern>
+        <FillForegndTrans>0</FillForegndTrans>
+        <FillBkgndTrans>0</FillBkgndTrans>
+        <ShdwPattern>0</ShdwPattern>
+      </Fill>
+      <Para IX="0">
+        <HorzAlign>1</HorzAlign>
+        <SpLine>-1.2</SpLine>
+        <SpBefore>0</SpBefore>
+        <SpAfter>0</SpAfter>
+      </Para>
+      <Char IX="0">
+        <Font>0</Font>
+        <Color>0</Color>
+        <Style>0</Style>
+        <Size>0.1667</Size>
+        <DblUnderline>0</DblUnderline>
+        <Overline>0</Overline>
+        <Strikethru>0</Strikethru>
+        <UseVertical>0</UseVertical>
+      </Char>
+    </StyleSheet>
+  </StyleSheets>
+  <DocumentSheet UniqueID="{00000000-0000-0000-0000-000000000000}" LineStyle="0" FillStyle="0" TextStyle="0">
+    <PageProps/>
+    <DocProps>
+      <OutputFormat>0</OutputFormat>
+      <LockPreview>0</LockPreview>
+    </DocProps>
+  </DocumentSheet>
+  <Masters/>
   <Pages><Rel r:id="rId1"/></Pages>
 </VisioDocument>`;
 
-  const pages = `<?xml version="1.0" encoding="utf-8"?>
+  // ── pages.xml ─────────────────────────────────────────────────────────────
+  const pages = `<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <Pages xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <Page ID="1" NameU="${title.replace(/"/g,"")}" Name="${title.replace(/"/g,"")}"><Rel r:id="rId1"/></Page>
+  <Page ID="0" NameU="${safeTitle}" IsCustomName="0" IsCustomNameU="0">
+    <PageSheet UniqueID="{00000000-0000-0000-0000-000000000001}" LineStyle="0" FillStyle="0" TextStyle="0">
+      <PageProps>
+        <PageWidth>${PW}</PageWidth>
+        <PageHeight>${PH}</PageHeight>
+        <PageScale>1</PageScale>
+        <DrawingScale>1</DrawingScale>
+        <DrawingSizeType>0</DrawingSizeType>
+        <DrawingScaleType>0</DrawingScaleType>
+        <InhibitSnap>0</InhibitSnap>
+      </PageProps>
+    </PageSheet>
+    <Rel r:id="rId1"/>
+  </Page>
 </Pages>`;
 
+  // ── relationships & content types ──────────────────────────────────────────
   const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -1136,15 +1286,16 @@ ${connXml}
 </Relationships>`;
 
   return zipSync({
-    "[Content_Types].xml":              strToU8(ct),
-    "_rels/.rels":                      strToU8(rootRels),
-    "visio/document.xml":              strToU8(doc),
-    "visio/_rels/document.xml.rels":   strToU8(docRels),
-    "visio/pages/pages.xml":           strToU8(pages),
-    "visio/pages/_rels/pages.xml.rels": strToU8(pagesRels),
-    "visio/pages/page1.xml":           strToU8(page1),
+    "[Content_Types].xml":               [strToU8(ct),       { level: 0 }],
+    "_rels/.rels":                       [strToU8(rootRels), { level: 0 }],
+    "visio/document.xml":               [strToU8(doc),      { level: 0 }],
+    "visio/_rels/document.xml.rels":    [strToU8(docRels),  { level: 0 }],
+    "visio/pages/pages.xml":            [strToU8(pages),    { level: 0 }],
+    "visio/pages/_rels/pages.xml.rels": [strToU8(pagesRels),{ level: 0 }],
+    "visio/pages/page1.xml":            [strToU8(page1),    { level: 0 }],
   });
 }
+
 
 // ── Inner flow ────────────────────────────────────────────────────────────────
 
@@ -1346,16 +1497,20 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       const sz = rfSzMap[dfType] ?? SZ.process;
 
       if (calloutText) {
-        const cid     = `__co_${n.id}`;
-        const bullets = parseBullets(calloutText);
-        const calloutH = 16 + bullets.length * 22;
+        const cid      = `__co_${n.id}`;
+        const bullets  = parseBullets(calloutText);
+        // Height: 3px crossbar + 7px gap + items (each ~20px) + 6px bottom padding
+        const calloutH = 10 + bullets.length * 20 + 6;
+        // Width: match parent so the crossbar spans the same footprint
+        const calloutW = Math.max(sz.w, 200);
         calloutNodes.push({
           id: cid, type: "calloutNode", selectable: true, draggable: true,
           data: { label: calloutText, bullets, parentId: n.id },
           position: { x: 0, y: 0 },
-          width: SZ.note.w, height: calloutH,
+          width: calloutW, height: calloutH,
+          style: { width: calloutW, height: calloutH },
         });
-        // Straight amber line = the vertical stem of the ┴ (crossbar is inside callout node)
+        // Straight amber line = the vertical stem of the ┴ (30px so stem is clearly visible)
         calloutEdges.push({
           id: `${n.id}-co-${cid}`, source: n.id, target: cid,
           type: "straight", sourceHandle: "b", targetHandle: "t",
@@ -1406,19 +1561,19 @@ function FlowInner({ profile, user }: { profile: Profile | null; user: { email: 
       finalEdges = routeSnakeEdges(snaked, rawEdges);
     }
 
-    // Position callout nodes directly below their parent after layout
+    // Position callout nodes below their parent — 30px gap creates visible stem
     const posMap = new Map(finalNodes.map(n => [n.id, n]));
     const positionedCallouts = calloutNodes.map(co => {
       const parent = posMap.get(co.data.parentId as string);
       if (!parent) return co;
       const pw = parent.width  ?? SZ.process.w;
       const ph = parent.height ?? SZ.process.h;
-      const cw = co.width      ?? SZ.note.w;
+      const cw = co.width      ?? 200;
       return {
         ...co,
         position: {
-          x: parent.position.x + (pw - cw) / 2,
-          y: parent.position.y + ph + 10,
+          x: parent.position.x + (pw - cw) / 2,  // centered under parent
+          y: parent.position.y + ph + 30,          // 30px stem
         },
       };
     });

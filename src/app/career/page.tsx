@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import CareerClient from "./CareerClient";
 
-export const metadata = { title: "Career Suite" };
+export const metadata = { title: "Career Hub" };
 
 export default async function CareerPage() {
   const cookieStore = cookies();

@@ -5,25 +5,28 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, LayoutDashboard, GraduationCap,
   Target, BriefcaseBusiness, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork,
+  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork, Zap, FileText, Brain,
 } from "lucide-react";
 
-const GET_HIRED_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard",      href: "/dashboard" },
-  { icon: BookOpen,        label: "Simulation Lab", href: "/scenarios" },
-  { icon: MessageSquare,   label: "Interview Lab",  href: "/interview" },
-  { icon: Globe2,          label: "Jobs",           href: "/opportunities" },
+const WORK_ITEMS = [
+  { icon: Zap,      label: "Workspace",              href: "/workspace" },
+  { icon: Brain,    label: "Decision Intelligence",   href: "/decision-intelligence" },
+  { icon: FileText, label: "Template Studio",         href: "/templates" },
+  { icon: GitFork,  label: "Process Flow",            href: "/tools/process-flow" },
 ];
 
-const GROWTH_ITEMS = [
-  { icon: Mic,              label: "PitchReady",   href: "/pitchready" },
-  { icon: GraduationCap,   label: "Learning",      href: "/learning" },
-  { icon: Target,          label: "Exam Prep",     href: "/exam" },
+const CAREER_ITEMS = [
+  { icon: LayoutDashboard,   label: "Dashboard",    href: "/dashboard" },
   { icon: BriefcaseBusiness, label: "Career Suite", href: "/career" },
+  { icon: Globe2,            label: "Jobs",         href: "/opportunities" },
+  { icon: MessageSquare,     label: "Interview Lab",href: "/interview" },
 ];
 
-const TOOLS_ITEMS = [
-  { icon: GitFork, label: "Process Flow", href: "/tools/process-flow" },
+const LEARN_ITEMS = [
+  { icon: GraduationCap, label: "Learning",      href: "/learning" },
+  { icon: Target,        label: "Practice Lab",  href: "/scenarios" },
+  { icon: Mic,           label: "PitchReady",    href: "/pitchready" },
+  { icon: BookOpen,      label: "Exam Prep",     href: "/exam" },
 ];
 
 interface AppSidebarProps {
@@ -219,27 +222,25 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
       {/* Nav */}
       <nav style={{ flex: 1, padding: "16px 8px 8px", overflowY: "auto", overflowX: "hidden" }}>
 
-        {/* Section 1: Get Hired */}
-        <SectionLabel label="Get Hired" isCollapsed={isCollapsed} />
-        {GET_HIRED_ITEMS.map(item => (
+        {/* Section 1: Work */}
+        <SectionLabel label="Work" isCollapsed={isCollapsed} />
+        {WORK_ITEMS.map(item => (
           <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
         ))}
 
-        {/* Section divider */}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "24px 4px 20px" }} />
+        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "20px 4px 16px" }} />
 
-        {/* Section 2: Growth */}
-        <SectionLabel label="Growth" isCollapsed={isCollapsed} />
-        {GROWTH_ITEMS.map(item => (
+        {/* Section 2: Career */}
+        <SectionLabel label="Career" isCollapsed={isCollapsed} />
+        {CAREER_ITEMS.map(item => (
           <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
         ))}
 
-        {/* Section divider */}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "24px 4px 20px" }} />
+        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "20px 4px 16px" }} />
 
-        {/* Section 3: Tools */}
-        <SectionLabel label="Tools" isCollapsed={isCollapsed} />
-        {TOOLS_ITEMS.map(item => (
+        {/* Section 3: Learn */}
+        <SectionLabel label="Learn & Practice" isCollapsed={isCollapsed} />
+        {LEARN_ITEMS.map(item => (
           <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
         ))}
 

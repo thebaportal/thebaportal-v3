@@ -24,10 +24,10 @@ function BAPortalLogo({ size = 32 }: { size?: number }) {
 }
 
 const PERKS = [
-  { icon: "⚡", text: "First challenge free — no card needed" },
-  { icon: "🤖", text: "AI stakeholders that push back like real ones" },
-  { icon: "📊", text: "4-dimension scoring that names your actual gaps" },
-  { icon: "🏅", text: "Progress tracking across difficulty levels" },
+  { icon: "⚡", text: "BA Workspace — 5 AI tools, free to start" },
+  { icon: "🧠", text: "Decision Intelligence — solve real problems, not exercises" },
+  { icon: "💼", text: "Career Hub — resume, interview prep, job matching" },
+  { icon: "📚", text: "Learning Hub — structured paths from beginner to advanced" },
 ];
 
 function SignupForm() {

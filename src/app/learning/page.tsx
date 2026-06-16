@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import LearningClient from "./LearningClient";
 
-export const metadata = { title: "Learning Academy — TheBAPortal" };
+export const metadata = { title: "Learning Hub — TheBAPortal" };
 
 export default async function LearningPage() {
   const cookieStore = cookies();

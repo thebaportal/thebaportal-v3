@@ -9,45 +9,49 @@ const FAQ_GROUPS = [
     group: "Getting Started",
     items: [
       {
-        q: "What exactly is TheBAPortal?",
-        a: "TheBAPortal is a practice platform for Business Analysts. You simulate real BA scenarios — interviewing AI stakeholders, writing deliverables like requirements documents and problem statements, then getting scored by Alex Rivera, a Senior BA Coach. It is not a course. It is a practice environment.",
+        q: "What exactly is The BA Portal?",
+        a: "The BA Portal is an AI-powered operating system for business analysts. You bring your real work — a business problem, a set of messy meeting notes, a job description you want to prepare for — and the platform helps you think it through, produce professional deliverables, and grow your career. It serves aspiring BAs, practising BAs, and senior analysts or consultants.",
       },
       {
         q: "Who is this for?",
-        a: "Anyone working toward a BA career or trying to get sharper in an existing one. That includes people new to BA, professionals transitioning from adjacent roles (project management, product, operations), and practising BAs preparing for interviews, certifications, or a step up to senior.",
+        a: "Three types of people. Aspiring BAs who are trying to break into the field and need structured learning, practice, and career tools. Practising BAs who need to produce deliverables faster and make better decisions at work. Senior BAs and consultants who want decision intelligence tools and a way to articulate their value.",
       },
       {
         q: "Do I need BA experience to start?",
-        a: "No. The platform has a Beginner difficulty tier and a Learning Academy that starts from foundations. You can go from zero background to producing real BA deliverables. That said, the platform rewards effort — if you show up and take the feedback seriously, you will improve quickly.",
+        a: "No. The Learning Hub starts from foundations and follows a structured path from beginner to advanced. The BA Workspace tools are designed to work with whatever input you have — even rough notes or a plain-language description of a problem. The more context you give, the better the output.",
       },
       {
-        q: "How is this different from a BA course?",
-        a: "Courses teach you theory. TheBAPortal makes you practice under realistic conditions. You cannot pass a challenge by reading slides — you have to actually interview stakeholders, uncover information, and produce a written deliverable that holds up under scrutiny. The scoring reflects that.",
+        q: "How is this different from ChatGPT or other AI tools?",
+        a: "Generic AI tools produce generic output. The BA Portal is trained in BABOK knowledge areas, understands how BA work is structured, asks the questions a senior BA would ask before generating anything, and produces output that a real BA — or a hiring manager — would recognise as legitimate. It also maintains context across a session and links deliverables together.",
       },
     ],
   },
   {
-    group: "Challenges & Features",
+    group: "The Tools",
     items: [
       {
-        q: "What happens in a BA challenge?",
-        a: "You are dropped into a real business scenario — a rising churn problem at a bank, a patient referral system overhaul, a production incident at an insurer. You interview AI stakeholders (2–4 per scenario), gather evidence, then write the required deliverable. Alex Rivera evaluates your submission across four dimensions and gives you detailed, specific feedback.",
+        q: "What is the BA Workspace?",
+        a: "The Workspace is where you do your real BA work. It has five AI tools: Problem Analyzer (business problem to full analysis package), Requirements Analyzer (messy notes to structured FR, NFR, assumptions, risks), User Story Generator (requirements to INVEST-format stories with acceptance criteria), Document Generator (BRD, FRD, or Use Cases), and Process Analyzer (current state, bottlenecks, future state). You can also attach PDF or Word documents to any tool.",
       },
       {
-        q: "What is Alex Rivera?",
-        a: "Alex Rivera is TheBAPortal's Senior BA Coach — an AI evaluator trained to assess BA work the way a senior practitioner would. Alex does not hand out gold stars for effort. The feedback is specific, sometimes blunt, and designed to tell you exactly what to improve.",
+        q: "What is Decision Intelligence?",
+        a: "Decision Intelligence is a separate module with four tools that go beyond document generation into judgment and reasoning. Solution Evaluator compares 2–3 options and recommends one with reasoning. Risk Radar produces a full risk register with the risks your team is probably not talking about. Assumptions Challenger finds every assumption — stated and hidden — in any document you paste. Stakeholder Intelligence maps influence, predicts objections, and generates an alignment strategy.",
       },
       {
-        q: "What is the Career Suite?",
-        a: "The Career Suite is a set of tools built around job searching and positioning: a personalised career advisor that gives you a roadmap based on your situation, a resume bullet generator, an interview answer generator, a cover letter tool, a LinkedIn optimiser, and a salary benchmarking guide.",
+        q: "What is the Career Hub?",
+        a: "The Career Hub covers everything around getting hired and growing your BA career: a personalised career advisor, resume analyser, job description analyser, interview copilot (JD → full prep pack with 15 questions and STAR templates), cover letter generator, LinkedIn optimiser, and salary benchmarking. The Interview Copilot in the Workspace is a faster version for when you just need a prep pack quickly.",
+      },
+      {
+        q: "What is the Template Studio?",
+        a: "A library of eight BABOK-aligned templates — BRD, FRD, Use Cases, Stakeholder Register / RACI, Business Case, Process Analysis, RTM, and User Story Backlog. All are downloadable and Word-compatible. Pro members (coming soon) will be able to customise templates to their organisation's format and save them for reuse.",
+      },
+      {
+        q: "What is the Portfolio Builder?",
+        a: "A workspace tool that turns your real project experience into a professional BA case study. You describe the project, the engine asks two clarifying questions about outcome and the hardest challenge, then produces a structured write-up with BABOK techniques table, metrics, and three ready-to-use interview talking points drawn from your project.",
       },
       {
         q: "What is PitchReady?",
-        a: "PitchReady is an interview practice tool. You record yourself answering BA interview questions, and the platform analyses your response for clarity, structure, confidence, filler words, pacing, and executive presence. You get a detailed report with specific rewrites for your opening, closing, and key lines.",
-      },
-      {
-        q: "What certifications does Exam Prep cover?",
-        a: "CBAP (Certified Business Analysis Professional), CCBA (Certification of Capability in Business Analysis), and PMI-PBA (PMI Professional in Business Analysis). Questions are BABOK-aligned and organised by knowledge area. There is a practice mode and a timed mock exam.",
+        a: "PitchReady is an interview communication practice tool. You record yourself answering BA interview questions and get feedback on clarity, structure, pacing, and executive presence. It sits in the Practice section alongside the Simulation Lab and is best used after you have used the Interview Copilot to prepare your content.",
       },
     ],
   },
@@ -55,20 +59,20 @@ const FAQ_GROUPS = [
     group: "Pricing & Account",
     items: [
       {
-        q: "What is included in the free tier?",
-        a: "Three BA challenge simulations on Normal difficulty, basic progress tracking, and the starter flows in the Career Advisor. No credit card required to sign up.",
+        q: "What is free?",
+        a: "The free tier includes five BA Workspace analyses per month, the User Story Generator, Requirements Analyzer, three Practice Lab simulations, Career Advisor starter flows, resume history, eight downloadable templates, and the Beginner Learning Path. No credit card required.",
       },
       {
         q: "What does Pro unlock?",
-        a: "All challenge simulations across all industries and difficulty modes (Normal, Hard, Expert), the full Career Suite, PitchReady, the Portfolio Case Study Builder, Exam Prep, and advanced analytics. Pro is $29/month or $19/month billed annually.",
+        a: "Unlimited BA Workspace analyses across all five tools, the full Decision Intelligence suite, Document Generator (BRD, FRD, Use Cases), Process Analyzer, Interview Copilot, Portfolio Builder, full Career Hub with all advisor flows, unlimited Practice Lab, all Learning Paths, Exam Prep, and Template Studio org customisation. Pro is $29/month or $19/month billed annually.",
       },
       {
         q: "Can I cancel at any time?",
-        a: "Yes. Cancel from Settings at any time. You keep access until the end of your current billing period. No cancellation fees.",
+        a: "Yes. Cancel from Settings at any time. You keep full access until the end of your billing period. No cancellation fees or complicated steps.",
       },
       {
         q: "Is there a student or nonprofit discount?",
-        a: "Not currently listed on the pricing page, but reach out via email and we will see what we can do.",
+        a: "Not listed on the pricing page currently, but reach out directly and we will see what we can do.",
       },
     ],
   },
@@ -76,16 +80,20 @@ const FAQ_GROUPS = [
     group: "Technical",
     items: [
       {
+        q: "What file types can I attach to the workspace tools?",
+        a: "PDF, Word (.docx, .doc), and plain text (.txt). The document is parsed server-side and the text is inserted into the input field so you can review it before sending. Maximum file size is 10 MB.",
+      },
+      {
         q: "What browser do I need?",
-        a: "Any modern browser — Chrome, Firefox, Safari, or Edge. PitchReady requires microphone access, which all modern browsers support with permission.",
+        a: "Any modern browser — Chrome, Firefox, Safari, or Edge. PitchReady requires microphone access for recording, which all modern browsers support with a one-time permission prompt.",
       },
       {
         q: "Is my data private?",
-        a: "Yes. Your submissions, scores, and career data are private to your account. We do not sell or share personal data. See our Privacy Policy for the full details.",
+        a: "Yes. Your workspace sessions, career data, and project information are private to your account. We do not sell or share personal data. See our Privacy Policy for full details.",
       },
       {
-        q: "I found a bug or something is not working. What do I do?",
-        a: "Email us directly. We are a small team and we read every message. Response time is typically within one business day for Pro members.",
+        q: "Something is not working. What do I do?",
+        a: "Email us directly. We are a small team and we read every message. Pro members typically get a response within one business day.",
       },
     ],
   },

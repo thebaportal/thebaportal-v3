@@ -257,7 +257,7 @@ export default function LoginPage() {
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ fontSize: "36px", color: "#1fbf9f", lineHeight: 1, marginBottom: "16px", opacity: 0.5, fontFamily: "'Inter', sans-serif" }}>&ldquo;</div>
           <blockquote style={{ fontSize: "19px", fontWeight: 700, color: "#f0f0f4", lineHeight: 1.45, margin: "0 0 18px", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-            The gap between a good BA<br />and a great one is practice<br />under real pressure.
+            The work never gets easier.<br />The tools should.
           </blockquote>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "rgba(167,139,250,0.15)", border: "1px solid rgba(167,139,250,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700, color: "#a78bfa", fontFamily: "'Inter', sans-serif" }}>AR</div>
@@ -269,7 +269,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ display: "flex", gap: "28px", position: "relative", zIndex: 1 }}>
-          {[{ val: "7", label: "Challenges" }, { val: "3", label: "Difficulty modes" }, { val: "4", label: "Eval dimensions" }].map(s => (
+          {[{ val: "10+", label: "AI tools" }, { val: "BABOK", label: "Aligned output" }, { val: "3", label: "Personas served" }].map(s => (
             <div key={s.label}>
               <div style={{ fontSize: "20px", fontWeight: 800, color: "#1fbf9f", letterSpacing: "-0.03em", fontFamily: "'Inter', sans-serif" }}>{s.val}</div>
               <div style={{ fontSize: "11px", color: "#505060", marginTop: "2px" }}>{s.label}</div>

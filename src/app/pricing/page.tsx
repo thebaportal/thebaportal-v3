@@ -6,23 +6,29 @@ import { motion } from "framer-motion";
 import { BookOpen, Check, Crown, Zap, ArrowLeft, Loader2 } from "lucide-react";
 
 const freeFeatures = [
-  "3 BA challenge simulations",
-  "Basic progress tracking",
-  "Career advisor (starter flows)",
-  "Email support",
+  "BA Workspace — 5 analyses per month",
+  "User Story Generator",
+  "Requirements Analyzer",
+  "3 Practice Lab simulations",
+  "Career advisor starter flows",
+  "Resume history",
+  "8 downloadable BABOK templates",
+  "Beginner Learning Path",
 ];
 
 const proFeatures = [
-  "All BA challenge simulations",
-  "AI-powered submission feedback",
-  "Full career advisor suite",
-  "Portfolio case study builder",
-  "Interview answer generator",
-  "Resume bullet generator",
-  "Exam prep module",
-  "Advanced progress analytics",
-  "Priority email support",
-  "New content added monthly",
+  "Unlimited BA Workspace — all 5 tools",
+  "Full Decision Intelligence suite (4 tools)",
+  "Document Generator — BRD, FRD, Use Cases",
+  "Process Analyzer",
+  "Interview Copilot — JD-tailored prep pack",
+  "Portfolio Builder — professional case studies",
+  "Full Career Hub — all advisor flows",
+  "All Practice Lab simulations (unlimited)",
+  "All Learning Paths — beginner to advanced",
+  "Exam Prep — CBAP, CCBA, PMI-PBA",
+  "Template Studio org customisation",
+  "Priority support",
 ];
 
 function PricingInner() {
@@ -116,10 +122,10 @@ function PricingInner() {
             Simple, transparent pricing
           </div>
           <h1 style={{ fontSize: 36, fontWeight: 800, color: "var(--text-1)", marginBottom: 12 }}>
-            Invest in your BA career
+            Unlock the full Intelligence Engine
           </h1>
           <p style={{ fontSize: 16, color: "var(--text-2)", maxWidth: 480, margin: "0 auto" }}>
-            Real simulations. AI coaching. Career tools. Everything you need to grow as a Business Analyst.
+            The complete BA operating system. Do your work, make better decisions, land your next role — all in one place.
           </p>
 
           {/* Billing toggle */}

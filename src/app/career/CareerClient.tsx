@@ -2479,12 +2479,12 @@ export default function CareerClient({ fullName, profile, user }: Props) {
           <div>
             {(activeTool || cat) && (
               <h1 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800, fontSize: "22px", color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>
-                {currentToolInfo?.label ?? activeCat?.title ?? "Career Suite"}
+                {currentToolInfo?.label ?? activeCat?.title ?? "Career Hub"}
               </h1>
             )}
           </div>
           {(activeTool || cat) && (
-            <button className="btn-ghost" onClick={goHome}>Back to Career Suite</button>
+            <button className="btn-ghost" onClick={goHome}>Back to Career Hub</button>
           )}
         </header>
 
@@ -2496,10 +2496,10 @@ export default function CareerClient({ fullName, profile, user }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: "28px", maxWidth: "560px" }}>
               <div>
                 <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-1)", margin: 0, lineHeight: 1.2, fontFamily: "'Inter','Open Sans',sans-serif", letterSpacing: "-0.03em" }}>
-                  What do you need help with right now?
+                  Career Hub
                 </h1>
                 <p style={{ marginTop: "10px", fontSize: "15px", color: "var(--text-3)", margin: "10px 0 0", lineHeight: 1.5 }}>
-                  Pick one and I will guide you step by step.
+                  What are you working on right now? Pick one and I will guide you through it.
                 </p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

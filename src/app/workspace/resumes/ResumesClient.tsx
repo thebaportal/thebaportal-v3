@@ -118,9 +118,9 @@ export default function ResumesClient({ user, profile, resumes }: Props) {
           {resumes.length === 0 ? (
             <div style={{ padding: "48px 24px", background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", textAlign: "center" }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", marginBottom: 6 }}>No resume transformations yet.</div>
-              <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 16 }}>Transform your first resume from a job to get started.</div>
-              <Link href="/opportunities" style={{ display: "inline-block", padding: "9px 20px", borderRadius: "var(--radius-sm)", background: "var(--teal)", color: "#041a13", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                Browse jobs
+              <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 16 }}>Go to the Career Hub to analyse your resume and tailor it to a role.</div>
+              <Link href="/career" style={{ display: "inline-block", padding: "9px 20px", borderRadius: "var(--radius-sm)", background: "var(--teal)", color: "#041a13", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                Open Career Hub
               </Link>
             </div>
           ) : (
