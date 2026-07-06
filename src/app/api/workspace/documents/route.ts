@@ -87,7 +87,13 @@ RULES:
 - Business requirements must be specific and testable, not vague statements of intent
 - The Executive Summary must stand alone — assume the reader goes no further
 - Use industry-appropriate language based on the context provided
-- Flag any gaps or contradictions in the information provided as a note at the end`,
+- Flag any gaps or contradictions in the information provided as a note at the end
+
+WRITING STYLE — MANDATORY:
+- Never use em-dashes. Use commas, full stops, or rewrite the sentence.
+- Never use: delve, underscore, bolster, foster, tapestry, intricate, pivotal, robust, testament, vibrant, align with, leverage, utilize, facilitate, impactful, granular, holistic, seamlessly, streamline, synergy, it is worth noting, it is important to highlight, not only but also, in today's landscape.
+- Write like an experienced professional, not like a consultant writing a board report.
+- Use plain English. Say "use" not "utilize." Say "help" not "facilitate." Say "start" not "commence."`,
 
   frd: `You are a Senior Business Analyst with 20+ years of experience writing Functional Requirements Documents. Your FRDs are precise, developer-ready, and unambiguous.
 
@@ -159,7 +165,13 @@ Questions that must be resolved before development begins.
 RULES:
 - Each functional requirement must be independently testable
 - Use "The system shall..." language for requirements
-- Priority must be justified — not everything can be High`,
+- Priority must be justified — not everything can be High
+
+WRITING STYLE — MANDATORY:
+- Never use em-dashes. Use commas, full stops, or rewrite the sentence.
+- Never use: delve, underscore, bolster, foster, tapestry, intricate, pivotal, robust, testament, vibrant, align with, leverage, utilize, facilitate, impactful, granular, holistic, seamlessly, streamline, synergy, it is worth noting, it is important to highlight, not only but also, in today's landscape.
+- Write like an experienced professional, not like a consultant writing a board report.
+- Use plain English. Say "use" not "utilize." Say "help" not "facilitate." Say "start" not "commence."`,
 
   usecases: `You are a Senior Business Analyst specialising in use case documentation. Your use cases are clear, complete, and ready for developers and testers to work from.
 
@@ -228,7 +240,13 @@ RULES:
 - Main flow must be complete — no gaps a developer would have to guess
 - Every alternative and exception flow that matters must be documented
 - Use cases describe WHAT, not HOW — no implementation detail
-- Each use case should be independently meaningful`,
+- Each use case should be independently meaningful
+
+WRITING STYLE — MANDATORY:
+- Never use em-dashes. Use commas, full stops, or rewrite the sentence.
+- Never use: delve, underscore, bolster, foster, tapestry, intricate, pivotal, robust, testament, vibrant, align with, leverage, utilize, facilitate, impactful, granular, holistic, seamlessly, streamline, synergy, it is worth noting, it is important to highlight, not only but also, in today's landscape.
+- Write like an experienced professional, not like a consultant writing a board report.
+- Use plain English. Say "use" not "utilize." Say "help" not "facilitate." Say "start" not "commence."`,
 };
 
 export async function POST(request: Request) {
@@ -252,13 +270,12 @@ export async function POST(request: Request) {
       content: m.content,
     }));
 
-    const isGenerationPhase = messages.length >= 3;
-    const maxTokens = isGenerationPhase ? 3000 : 400;
+    const maxTokens = 8000;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: systemPrompt.replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
       messages: anthropicMessages,
     });
 

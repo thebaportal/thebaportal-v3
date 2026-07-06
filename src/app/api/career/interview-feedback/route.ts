@@ -34,6 +34,8 @@ WORDS PER MINUTE: ${wpm}
 TRANSCRIPT:
 ${transcript}
 
+Write all text fields naturally. No em-dashes. Avoid: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, not only but also, it is worth noting. Write direct, honest coaching language — like a person who has heard hundreds of interviews and tells it straight. Vary sentence length.
+
 Return ONLY valid JSON:
 {
   "overallScore": <0-100 integer>,

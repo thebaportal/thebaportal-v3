@@ -47,11 +47,20 @@ function LoginForm() {
     try {
       const supabase = createClient();
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) { setError(authError.message); return; }
-      router.push(redirectTo || (await getPostAuthRedirect()));
+      if (authError) {
+        const msg = authError.message;
+        setError(
+          msg === "Invalid login credentials" ? "Wrong email or password." :
+          msg === "Email not confirmed" ? "Email not confirmed — check your inbox for the confirmation link." :
+          msg || "Sign in failed. Please try again."
+        );
+        return;
+      }
       router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
+      router.push(redirectTo || "/workspace");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Sign in error: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -121,7 +130,7 @@ function LoginForm() {
       </div>
 
       {!magicMode ? (
-        <form id="login-form" onSubmit={handleLogin} style={{ display: "contents" }}>
+        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* Email */}
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label style={{ fontSize: "11px", fontWeight: 700, color: "#6a6a7a", textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "'Inter', sans-serif" }}>
@@ -151,20 +160,20 @@ function LoginForm() {
                 placeholder="••••••••" required
                 style={{ ...inp(pf), paddingRight: "46px" }} />
               <button type="button" onClick={() => setShowPassword(s => !s)} tabIndex={-1}
-                style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: showPassword ? "#1fbf9f" : "#505060", fontSize: "12px", lineHeight: 1 }}>
+                style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: showPassword ? "#1fbf9f" : "#6a6a7a", fontSize: "12px", fontWeight: 600, lineHeight: 1, fontFamily: "'Inter', sans-serif" }}>
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
           </div>
 
           {error && (
-            <div style={{ padding: "10px 13px", borderRadius: "9px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", fontSize: "13px", color: "#f87171" }}>
+            <div style={{ padding: "12px 14px", borderRadius: "9px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)", fontSize: "13px", color: "#fca5a5", fontWeight: 600 }}>
               {error}
             </div>
           )}
 
           {/* Sign in */}
-          <button type="submit" form="login-form" disabled={loading}
+          <button type="submit" disabled={loading}
             style={{ width: "100%", padding: "13px", borderRadius: "10px", border: "none", background: loading ? "rgba(31,191,159,0.5)" : "#1fbf9f", color: "#05120f", fontSize: "14px", fontWeight: 700, fontFamily: "'Inter', sans-serif", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: loading ? "none" : "0 0 20px rgba(31,191,159,0.18)", transition: "all 0.18s ease" }}
             onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "#25d4b0"; }}
             onMouseLeave={e => { if (!loading) e.currentTarget.style.background = "#1fbf9f"; }}>
@@ -189,7 +198,7 @@ function LoginForm() {
               <rect x="2" y="4" width="20" height="16" rx="2" />
               <path d="m2 7 10 7 10-7" />
             </svg>
-            Send me a magic link
+            Send me a magic link instead
           </button>
 
           {/* Create account */}
@@ -214,7 +223,7 @@ function LoginForm() {
               autoFocus placeholder="you@company.com" style={inp(ef)} />
           </div>
           {error && (
-            <div style={{ padding: "10px 13px", borderRadius: "9px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", fontSize: "13px", color: "#f87171" }}>
+            <div style={{ padding: "11px 14px", borderRadius: "9px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.35)", fontSize: "13px", color: "#fca5a5", fontWeight: 500 }}>
               {error}
             </div>
           )}

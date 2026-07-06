@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "fresh": "rd /s /q .next 2>nul & npm run build && npm start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -44,7 +45,8 @@
     "reactflow": "^11.11.4",
     "stripe": "^20.4.0",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "word-extractor": "^1.0.4"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -32,8 +32,8 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
     let text = "";
 
-    if (name.endsWith(".docx") || name.endsWith(".doc")) {
-      console.log("[parse-resume] parsing as Word document");
+    if (name.endsWith(".docx")) {
+      console.log("[parse-resume] parsing .docx with mammoth");
       try {
         const mammoth = await import("mammoth");
         const result = await mammoth.extractRawText({ buffer });
@@ -42,14 +42,27 @@ export async function POST(req: Request) {
       } catch (mammothErr) {
         console.error("[parse-resume] mammoth error:", mammothErr);
         return Response.json({
-          error: "We could not read that Word document. Please make sure it is a valid .docx file and try again.",
+          error: "We could not read that Word file. Please make sure it is a valid .docx file and try again.",
+        }, { status: 422 });
+      }
+    } else if (name.endsWith(".doc")) {
+      console.log("[parse-resume] parsing .doc with word-extractor");
+      try {
+        const WordExtractor = (await import("word-extractor")).default;
+        const extractor = new WordExtractor();
+        const extracted = await extractor.extract(buffer);
+        text = extracted.getBody();
+        console.log(`[parse-resume] word-extractor extracted ${text.length} chars`);
+      } catch (docErr) {
+        console.error("[parse-resume] word-extractor error:", docErr);
+        return Response.json({
+          error: "We could not read that .doc file. Try opening it in Word, saving as .docx, and uploading again.",
         }, { status: 422 });
       }
     } else if (name.endsWith(".pdf")) {
       console.log("[parse-resume] parsing as PDF");
       try {
         const { PDFParse } = await import("pdf-parse");
-        // Explicitly pass Uint8Array — pdfjs-dist expects TypedArray, not Buffer
         const parser = new PDFParse({ data: new Uint8Array(buffer) });
         const result = await parser.getText();
         text = result.text;
@@ -60,10 +73,20 @@ export async function POST(req: Request) {
           error: "We could not read that PDF. If it is a scanned document or image-only PDF, it will not contain readable text. Please try a Word document instead.",
         }, { status: 422 });
       }
+    } else if (name.endsWith(".txt") || name.endsWith(".rtf")) {
+      console.log("[parse-resume] parsing as plain text");
+      text = await file.text();
+      console.log(`[parse-resume] text file read: ${text.length} chars`);
     } else {
-      return Response.json({
-        error: "That file type is not supported. Please upload your resume as a Word document (.docx) or PDF.",
-      }, { status: 400 });
+      // Try reading as text — if it has content, use it
+      try {
+        text = await file.text();
+        console.log(`[parse-resume] fallback text read: ${text.length} chars`);
+      } catch {
+        return Response.json({
+          error: "We could not read that file. Please upload your resume as a Word document (.docx), PDF, or plain text file.",
+        }, { status: 400 });
+      }
     }
 
     const cleaned = text.replace(/\s{3,}/g, "\n\n").trim();
@@ -71,7 +94,7 @@ export async function POST(req: Request) {
 
     if (cleaned.length < 100) {
       return Response.json({
-        error: "We could not extract enough readable text from that file. It may be image-based or protected. Please try exporting your resume as a standard Word document.",
+        error: "We could not extract enough readable text from that file. It may be image-based or protected. Try copying your resume text and pasting it instead.",
       }, { status: 422 });
     }
 
@@ -80,7 +103,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error(`[parse-resume] unexpected error for file="${fileName}" size=${fileSize}:`, err);
     return Response.json({
-      error: "We could not open that file. Please upload your resume as a Word document (.docx) or PDF and try again.",
+      error: "We could not open that file. Please try a different format or paste your resume text directly.",
     }, { status: 500 });
   }
 }

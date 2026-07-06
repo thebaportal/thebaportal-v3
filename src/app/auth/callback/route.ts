@@ -10,18 +10,7 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && user) {
-      // If an explicit next param was provided (e.g. from a magic link), honour it
-      if (next && next !== "/dashboard") {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-      // Otherwise route based on simulation history
-      const { count } = await supabase
-        .from("challenge_attempts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "completed");
-
-      const dest = (count ?? 0) > 0 ? "/dashboard?confirmed=true" : "/scenarios";
+      const dest = (next && next !== "/dashboard" && next !== "/scenarios") ? next : "/workspace";
       return NextResponse.redirect(`${origin}${dest}`);
     }
   }

@@ -679,6 +679,8 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
   const [attachJobOpen, setAttachJobOpen] = useState(false);
   const [careerToolsOpen, setCareerToolsOpen] = useState(false);
   const [jobUrl, setJobUrl] = useState("");
+  const [fetchingJob, setFetchingJob] = useState(false);
+  const [fetchJobError, setFetchJobError] = useState("");
   const [savedJobs, setSavedJobs] = useState<Array<{id: string; title: string; company: string; savedDays: string}>>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
 
@@ -2050,11 +2052,27 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
               <div style={{ marginBottom: "24px" }}>
                 <div style={{ fontSize: "10px", fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: "8px" }}>PASTE A JOB LINK</div>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <input type="url" placeholder="https://..." value={jobUrl} onChange={e => setJobUrl(e.target.value)}
+                  <input type="url" placeholder="https://..." value={jobUrl} onChange={e => { setJobUrl(e.target.value); setFetchJobError(""); }}
                     style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "#0B0F14", color: "#FFFFFF", fontSize: "13px", outline: "none" }} />
-                  <button style={{ padding: "10px 18px", borderRadius: "8px", background: "#10B981", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Fetch</button>
+                  <button
+                    disabled={fetchingJob || !jobUrl.trim()}
+                    onClick={async () => {
+                      setFetchingJob(true); setFetchJobError("");
+                      try {
+                        const r = await fetch("/api/jobs/fetch-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: jobUrl }) });
+                        const d = await r.json();
+                        if (d.error) { setFetchJobError(d.error); return; }
+                        setJobTitle(d.title ?? ""); setJobCompany(d.company ?? "");
+                        setAttachJobOpen(false);
+                      } catch { setFetchJobError("Could not fetch that URL"); }
+                      finally { setFetchingJob(false); }
+                    }}
+                    style={{ padding: "10px 18px", borderRadius: "8px", background: fetchingJob ? "#374151" : "#10B981", border: "none", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: fetchingJob ? "default" : "pointer", whiteSpace: "nowrap" }}>
+                    {fetchingJob ? "Fetching…" : "Fetch"}
+                  </button>
                 </div>
               </div>
+              {fetchJobError && <div style={{ fontSize: "12px", color: "#F87171", marginTop: "-12px", marginBottom: "12px" }}>{fetchJobError}</div>}
               {jobsLoading && <div style={{ fontSize: "13px", color: "#6B7280", padding: "12px 0" }}>Loading saved jobs...</div>}
               {!jobsLoading && savedJobs.length > 0 && (
                 <div>
@@ -2066,7 +2084,7 @@ export default function PitchReadyClient({ tier, userName, initialSessions = [],
                           <div style={{ fontSize: "14px", fontWeight: 600, color: "#E5E7EB" }}>{job.title}</div>
                           <div style={{ fontSize: "11px", color: "#9CA3AF" }}>{job.company} &middot; Saved {job.savedDays} ago</div>
                         </div>
-                        <button style={{ padding: "7px 14px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>Select</button>
+                        <button onClick={() => { setJobTitle(job.title); setJobCompany(job.company); setAttachJobOpen(false); }} style={{ padding: "7px 14px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "#9CA3AF", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>Select</button>
                       </div>
                     ))}
                   </div>

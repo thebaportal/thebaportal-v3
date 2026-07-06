@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, LayoutDashboard, GraduationCap,
   Target, BriefcaseBusiness, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork, Zap, FileText, Brain,
+  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork, Zap, FileText, Brain, Folders,
 } from "lucide-react";
 
 const WORK_ITEMS = [
+  { icon: Folders,  label: "Projects",                href: "/projects" },
   { icon: Zap,      label: "Workspace",              href: "/workspace" },
   { icon: Brain,    label: "Decision Intelligence",   href: "/decision-intelligence" },
   { icon: FileText, label: "Template Studio",         href: "/templates" },

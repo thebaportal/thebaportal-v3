@@ -27,7 +27,7 @@ OFFER DETAILS:
 - Location/market: ${location || "Not specified"}
 - Additional context: ${notes || "None"}${offerLetterSection}
 
-Analyse this offer and give concrete negotiation strategies. Be honest if the offer is strong or if they have limited leverage. Don't use filler language.
+Analyse this offer and give concrete negotiation strategies. Be honest if the offer is strong or if they have limited leverage. Don't use filler language. No em-dashes. Avoid: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, not only but also. Write like a person talking directly to someone, not a consultant writing a report. Vary sentence length.
 
 Return ONLY valid JSON — no text outside it:
 {

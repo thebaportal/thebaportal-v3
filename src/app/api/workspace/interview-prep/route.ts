@@ -117,7 +117,15 @@ RULES:
 - STAR templates must have specific prompts, not just the STAR acronym
 - Red flags must be specific to this role and level, not generic
 - The "question that will make or break" section must take a position — pick one and justify it
-- Industry and domain context from the JD must shape every question`;
+- Industry and domain context from the JD must shape every question
+
+WRITING STYLE — MANDATORY:
+- Never use em-dashes. Use commas, full stops, or rewrite the sentence.
+- Never use: delve, underscore, bolster, foster, tapestry, intricate, pivotal, robust, testament, vibrant, align with, leverage, utilize, facilitate, impactful, granular, holistic, seamlessly, streamline, synergy, it is worth noting, it is important to highlight, not only but also, in today's landscape.
+- Write like an experienced analyst talking directly to the person, not like a consultant writing a board report.
+- Vary sentence length. Short sentences hit harder than long ones.
+- Use plain English. Say "use" not "utilize." Say "help" not "facilitate." Say "start" not "commence."
+- Contractions are fine where they sound natural.`;
 
 export async function POST(request: Request) {
   try {
@@ -135,8 +143,7 @@ export async function POST(request: Request) {
       content: m.content,
     }));
 
-    const isGenerationPhase = messages.length >= 3;
-    const maxTokens = isGenerationPhase ? 3000 : 300;
+    const maxTokens = 8000;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",

@@ -50,6 +50,8 @@ Analyse all 4 answers together. Pick the track that best matches how they think 
 
 ${noQNumbers}
 
+Write all text fields naturally. No em-dashes. No buzzwords: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, foster, not only but also, it is worth noting. Write direct, warm, honest advice — like a real career coach talking to someone, not a consultant writing a report. Vary sentence length.
+
 Return ONLY valid JSON — no text outside it:
 {
   "flowId": "new_to_ba",
@@ -79,6 +81,8 @@ The three BA role types:
 Analyse all 4 answers. Be specific about what they already bring. Make them feel closer to BA than they think — if the evidence supports it.
 
 ${noQNumbers}
+
+Write all text fields naturally. No em-dashes. No buzzwords: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, foster, not only but also, it is worth noting. Write direct, warm, honest advice — like a real career coach talking to someone, not a consultant writing a report. Vary sentence length.
 
 Return ONLY valid JSON — no text outside it:
 {
@@ -120,6 +124,8 @@ Confidence level logic:
 
 ${noQNumbers}
 
+Write all text fields naturally. No em-dashes. No buzzwords: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, foster, not only but also, it is worth noting. Write direct, warm, honest advice — like a real career coach talking to someone, not a consultant writing a report. Vary sentence length.
+
 Return ONLY valid JSON — no text outside it:
 {
   "flowId": "feeling_stuck",
@@ -152,6 +158,8 @@ Context for interpreting their second answer: ${branch.branchGuidance}
 Reason over all 4 answers together. Be direct. If they are closer to their goal than they think, say so. If there is a real gap, name it.
 
 ${noQNumbers}
+
+Write all text fields naturally. No em-dashes. No buzzwords: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, foster, not only but also, it is worth noting. Write direct, warm, honest advice — like a real career coach talking to someone, not a consultant writing a report. Vary sentence length.
 
 Return ONLY valid JSON — no text outside it:
 {
@@ -198,6 +206,8 @@ Focus on behaviour change.
 
 ${noQNumbers}
 
+Write all text fields naturally. No em-dashes. No buzzwords: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, foster, not only but also, it is worth noting. Write direct, warm, honest advice — like a real career coach talking to someone, not a consultant writing a report. Vary sentence length.
+
 Return ONLY valid JSON — no text outside it:
 {
   "flowId": "lead_ba_transition",
@@ -243,6 +253,8 @@ Do not give theory.
 Focus on positioning and action.
 
 ${noQNumbers}
+
+Write all text fields naturally. No em-dashes. No buzzwords: delve, bolster, leverage, utilize, seamlessly, robust, impactful, synergy, holistic, foster, not only but also, it is worth noting. Write direct, warm, honest advice — like a real career coach talking to someone, not a consultant writing a report. Vary sentence length.
 
 Return ONLY valid JSON — no text outside it:
 {

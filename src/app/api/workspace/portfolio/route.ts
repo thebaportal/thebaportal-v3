@@ -85,7 +85,15 @@ RULES:
 - The "Hardest Part" must sound human and real, not sanitised
 - Interview talking points must be ready to say aloud — natural language, not corporate speak
 - If the user has not mentioned metrics, ask them to estimate — "we reduced it by roughly half" is better than nothing
-- The project title must make the BA's contribution clear, not just the technology involved`;
+- The project title must make the BA's contribution clear, not just the technology involved
+
+WRITING STYLE — MANDATORY:
+- Never use em-dashes. Use commas, full stops, or rewrite the sentence.
+- Never use: delve, underscore, bolster, foster, tapestry, intricate, pivotal, robust, testament, vibrant, align with, leverage, utilize, facilitate, impactful, granular, holistic, seamlessly, streamline, synergy, it is worth noting, it is important to highlight, not only but also, in today's landscape.
+- Write like an experienced analyst talking directly to the person, not like a consultant writing a board report.
+- Vary sentence length. Short sentences hit harder than long ones.
+- Use plain English. Say "use" not "utilize." Say "help" not "facilitate." Say "start" not "commence."
+- Contractions are fine where they sound natural.`;
 
 export async function POST(request: Request) {
   try {
@@ -103,8 +111,7 @@ export async function POST(request: Request) {
       content: m.content,
     }));
 
-    const isGenerationPhase = messages.length >= 3;
-    const maxTokens = isGenerationPhase ? 2500 : 400;
+    const maxTokens = 8000;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",

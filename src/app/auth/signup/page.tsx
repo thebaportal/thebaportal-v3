@@ -4,8 +4,6 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { siteUrl } from "@/lib/siteUrl";
-import { getPostAuthRedirect } from "@/lib/postAuthRedirect";
 
 function BAPortalLogo({ size = 32 }: { size?: number }) {
   return (
@@ -57,10 +55,11 @@ function SignupForm() {
 
   function validateName(val: string): string {
     const trimmed = val.trim();
-    if (trimmed.length < 3) return "Please enter your full name (first and last name)";
-    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Please enter your full name (first and last name)";
+    if (!trimmed) return "Please enter your full name";
+    if (/[^a-zA-Z\s]/.test(trimmed)) return "Name must contain letters and spaces only — no numbers or special characters";
     const words = trimmed.split(/\s+/).filter(w => w.length > 0);
-    if (words.length < 2) return "Please enter your full name (first and last name)";
+    if (words.length < 2) return "Please enter both your first and last name";
+    if (words.some(w => w.length < 2)) return "Each name must be at least 2 letters";
     return "";
   }
 
@@ -70,6 +69,7 @@ function SignupForm() {
   }
 
   function handleNameBlur() {
+    if (!fullName.trim()) return;
     const cased = toTitleCase(fullName);
     setFullName(cased);
     setNameTouched(true);
@@ -90,7 +90,6 @@ function SignupForm() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    // Run all validations before touching the network
     const nameErr = validateName(fullName);
     if (nameErr) { setNameError(nameErr); setNameTouched(true); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
@@ -98,38 +97,30 @@ function SignupForm() {
     setLoading(true);
     setError("");
     try {
-      // Server-side name validation before Supabase call
-      const check = await fetch("/api/auth/validate-signup", {
+      // Create confirmed account server-side — no email confirmation required
+      const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: fullName.trim() }),
+        body: JSON.stringify({ email: email.trim(), password, fullName: fullName.trim() }),
       });
-      if (!check.ok) {
-        const { error: checkErr } = await check.json();
-        setNameError(checkErr || "Please enter your full name (first and last name)");
-        setNameTouched(true);
+      const json = await res.json();
+
+      if (!res.ok) {
+        if (json.field === "name") { setNameError(json.error); setNameTouched(true); }
+        else if (json.field === "email") { setError(json.error); }
+        else setError(json.error || "Something went wrong. Please try again.");
         return;
       }
 
+      // Account created — sign in immediately
       const supabase = createClient();
-      const { data, error: authError } = await supabase.auth.signUp({
-        email, password,
-        options: {
-          data: { full_name: toTitleCase(fullName) },
-          emailRedirectTo: `${siteUrl()}/auth/callback${redirectTo ? `?next=${encodeURIComponent(redirectTo)}` : ""}`,
-        },
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(), password,
       });
-      if (authError) { setError(authError.message); return; }
-      // Supabase returns an empty identities array when the email already exists
-      if (data.user && data.user.identities?.length === 0) {
-        router.push(loginHref + (loginHref.includes("?") ? "&" : "?") + "hint=existing");
-        return;
-      }
-      if (data.session) {
-        router.push(redirectTo || (await getPostAuthRedirect()));
-        return;
-      }
-      setDone(true);
+      if (signInError) { setError(signInError.message); return; }
+
+      router.refresh();
+      router.push(redirectTo || "/workspace");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -185,7 +176,7 @@ function SignupForm() {
         <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: "36px", fontWeight: 800, letterSpacing: "-0.04em", color: "#f0f0f4", margin: "0 0 6px" }}>
           Start for free.
         </h1>
-        <p style={{ fontSize: "13px", color: "#a1a1aa", margin: 0 }}>No credit card. Your first challenge is on us.</p>
+        <p style={{ fontSize: "13px", color: "#a1a1aa", margin: 0 }}>No credit card. Free to start.</p>
       </div>
 
       <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -220,8 +211,9 @@ function SignupForm() {
               onFocus={() => setPf(true)} onBlur={() => setPf(false)}
               placeholder="Min. 8 characters" required
               style={{ ...inp(pf), padding: "0 46px 0 14px" }} />
-            <button type="button" onClick={() => setShowPass(s => !s)} tabIndex={-1}
-              style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: showPass ? "#1fbf9f" : "#505060", fontSize: "12px", lineHeight: 1 }}>
+            <button type="button"
+              onMouseDown={e => { e.preventDefault(); setShowPass(s => !s); }}
+              style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#1fbf9f", fontSize: "12px", fontWeight: 600, lineHeight: 1, fontFamily: "'Inter', sans-serif", padding: "4px 6px" }}>
               {showPass ? "Hide" : "Show"}
             </button>
           </div>
@@ -236,7 +228,7 @@ function SignupForm() {
         </div>
 
         {error && (
-          <div style={{ padding: "9px 13px", borderRadius: "9px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", fontSize: "13px", color: "#f87171" }}>
+          <div style={{ padding: "11px 14px", borderRadius: "9px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.35)", fontSize: "13px", color: "#fca5a5", fontWeight: 500 }}>
             {error}
           </div>
         )}
@@ -248,7 +240,7 @@ function SignupForm() {
           onMouseLeave={e => { if (!loading) e.currentTarget.style.filter = "brightness(1)"; }}>
           {loading
             ? <><span style={{ width: "14px", height: "14px", borderRadius: "50%", border: "2px solid #05120f", borderTopColor: "transparent", animation: "spin 0.8s linear infinite", display: "inline-block" }} />Creating account...</>
-            : "Start my first simulation"}
+            : "Create my account"}
         </button>
 
         {/* Terms */}
@@ -307,7 +299,7 @@ export default function SignupPage() {
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#1fbf9f", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Inter', sans-serif", marginBottom: "12px" }}>What you get</div>
 
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "20px", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.25, color: "#d4d4d8", margin: "0 0 20px" }}>
-            Stop studying BA work.<br />Start doing it.
+            Describe your problem.<br />Walk away with your deliverables.
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
@@ -323,10 +315,10 @@ export default function SignupPage() {
 
           <div style={{ padding: "14px 16px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
             <p style={{ fontSize: "12px", color: "#a1a1aa", lineHeight: 1.6, margin: "0 0 10px", fontStyle: "italic" }}>
-              &ldquo;The Expert difficulty mode is genuinely hard. I failed my first two attempts. That&apos;s exactly why I kept coming back.&rdquo;
+              &ldquo;I pasted my meeting notes and had a full BRD, stakeholder map, and requirements matrix in under ten minutes. Nothing else comes close.&rdquo;
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", fontWeight: 700, color: "#f59e0b", fontFamily: "'Inter', sans-serif" }}>JO</div>
+              <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(31,191,159,0.15)", border: "1px solid rgba(31,191,159,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", fontWeight: 700, color: "#1fbf9f", fontFamily: "'Inter', sans-serif" }}>JO</div>
               <div>
                 <div style={{ fontSize: "12px", fontWeight: 600, color: "#f0f0f4", fontFamily: "'Inter', sans-serif" }}>James O.</div>
                 <div style={{ fontSize: "11px", color: "#505060" }}>Lead BA · RBC</div>

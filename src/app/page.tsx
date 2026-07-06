@@ -4,28 +4,24 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface DemoMessage {
-  role: "user" | "ai";
-  text: string;
-}
-
 // ── Data ──────────────────────────────────────────────────────────────────────
-const DEMO_MESSAGES: DemoMessage[] = [
-  { role: "user", text: "Our customer onboarding takes 15 days and we're getting complaints." },
-  { role: "ai",  text: "Who owns the onboarding process — one team or shared across departments?" },
-  { role: "user", text: "Operations and IT share it. No clear handoff documented." },
-  { role: "ai",  text: "What changed in the last 90 days — new system, process change, or volume spike?" },
-  { role: "user", text: "We migrated to a new CRM in Q1. Complaints started shortly after." },
-  { role: "ai",  text: "Got it. Building your analysis package now." },
+const DEMO_INPUT = "Customer onboarding takes 17 days and complaints are rising.";
+
+const REASONING_STEPS = [
+  "Mapped 8 stakeholders across Operations and IT",
+  "Identified current-state process — 14 handoff points",
+  "Found 12 bottlenecks introduced by CRM migration",
+  "Surfaced 23 functional requirements",
+  "Built full traceability graph",
 ];
 
-const DEMO_ARTIFACTS = [
-  { label: "Problem Statement", color: "#1fbf9f" },
-  { label: "Stakeholder Map",   color: "#38bdf8" },
-  { label: "Root Cause Analysis", color: "#a78bfa" },
-  { label: "Requirements",      color: "#fb923c" },
-  { label: "Business Case",     color: "#facc15" },
+const DELIVERABLE_ARTIFACTS = [
+  { label: "Problem Statement",   color: "#1fbf9f", detail: null },
+  { label: "Stakeholder Map",     color: "#38bdf8", detail: "8 stakeholders" },
+  { label: "Root Cause Analysis", color: "#a78bfa", detail: "12 bottlenecks" },
+  { label: "Requirements Matrix", color: "#fb923c", detail: "23 requirements" },
+  { label: "User Stories",        color: "#facc15", detail: "14 stories" },
+  { label: "UAT Package",         color: "#f87171", detail: null },
 ];
 
 const TICKER_ITEMS = [
@@ -110,66 +106,55 @@ function LogoMark({ size = 28 }: { size?: number }) {
 }
 
 // ── Intelligence Demo ──────────────────────────────────────────────────────────
+type DemoPhase = "idle" | "input" | "reasoning" | "deliverables";
+
 function IntelligenceDemo() {
-  const [visibleMessages, setVisibleMessages] = useState<DemoMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [artifactsVisible, setArtifactsVisible] = useState<number>(0);
-  const [building, setBuilding] = useState(false);
-  const msgIndexRef = useRef(0);
-  const endRef = useRef<HTMLDivElement>(null);
+  const [phase, setPhase] = useState<DemoPhase>("idle");
+  const [reasoningDone, setReasoningDone] = useState(0);
+  const [deliverablesVisible, setDeliverablesVisible] = useState(0);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [visibleMessages, isTyping, artifactsVisible]);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const add = (fn: () => void, ms: number) => { timers.push(setTimeout(fn, ms)); };
 
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
+    function runLoop() {
+      setPhase("idle");
+      setReasoningDone(0);
+      setDeliverablesVisible(0);
 
-    function runDemo() {
-      const idx = msgIndexRef.current;
-      if (idx >= DEMO_MESSAGES.length) {
-        // Build artifacts one by one
-        setBuilding(true);
-        let count = 0;
-        function nextArtifact() {
-          if (count < DEMO_ARTIFACTS.length) {
-            count++;
-            setArtifactsVisible(count);
-            timeout = setTimeout(nextArtifact, 420);
-          } else {
-            // Reset after pause
-            timeout = setTimeout(() => {
-              setVisibleMessages([]);
-              setArtifactsVisible(0);
-              setBuilding(false);
-              msgIndexRef.current = 0;
-              timeout = setTimeout(runDemo, 800);
-            }, 3800);
-          }
-        }
-        timeout = setTimeout(nextArtifact, 500);
-        return;
+      let t = 700;
+      add(() => setPhase("input"), t);
+
+      t += 1800;
+      add(() => setPhase("reasoning"), t);
+
+      for (let i = 0; i < REASONING_STEPS.length; i++) {
+        t += 660;
+        const step = i + 1;
+        add(() => setReasoningDone(step), t);
       }
 
-      const msg = DEMO_MESSAGES[idx];
-      if (msg.role === "user") {
-        setVisibleMessages(prev => [...prev, msg]);
-        msgIndexRef.current++;
-        timeout = setTimeout(runDemo, 1300);
-      } else {
-        setIsTyping(true);
-        timeout = setTimeout(() => {
-          setIsTyping(false);
-          setVisibleMessages(prev => [...prev, msg]);
-          msgIndexRef.current++;
-          timeout = setTimeout(runDemo, msg.text.includes("Building") ? 600 : 1500);
-        }, 900);
+      t += 560;
+      add(() => setPhase("deliverables"), t);
+
+      for (let i = 0; i < DELIVERABLE_ARTIFACTS.length; i++) {
+        t += 380;
+        const step = i + 1;
+        add(() => setDeliverablesVisible(step), t);
       }
+
+      t += 4200;
+      add(runLoop, t);
     }
 
-    timeout = setTimeout(runDemo, 1000);
-    return () => clearTimeout(timeout);
+    runLoop();
+    return () => timers.forEach(clearTimeout);
   }, []);
+
+  const isActive = phase !== "idle";
+  const isComplete = phase === "deliverables" && deliverablesVisible === DELIVERABLE_ARTIFACTS.length;
+  const statusLabel = isComplete ? "Complete" : phase === "reasoning" ? "Analyzing" : phase === "input" ? "Reading" : "Ready";
+  const statusColor = isComplete ? "#1fbf9f" : phase === "reasoning" ? "var(--teal)" : phase === "input" ? "#38bdf8" : "var(--t4)";
 
   return (
     <div style={{
@@ -189,70 +174,64 @@ function IntelligenceDemo() {
         <div style={{ flex: 1, textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500, color: "var(--t3)", letterSpacing: "0.04em" }}>
           Intelligence Engine · BA Workspace
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--teal)" }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--teal)", animation: "pulse-dot 1.8s ease-in-out infinite" }} />
-          Thinking
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10, color: statusColor, transition: "color .4s" }}>
+          <div style={{ width: 5, height: 5, borderRadius: "50%", background: statusColor, transition: "background .4s", animation: isActive && !isComplete ? "pulse-dot 1.8s ease-in-out infinite" : "none" }} />
+          {statusLabel}
         </div>
       </div>
 
-      {/* Messages */}
-      <div style={{ padding: 18, minHeight: 260, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", maxHeight: 290 }}>
-        {visibleMessages.map((msg, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-start", gap: 7, animation: "slide-msg .25s ease both" }}>
-            {msg.role === "ai" && (
-              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 700, color: "var(--teal)", flexShrink: 0, marginTop: 2 }}>
-                BA
-              </div>
-            )}
-            <div style={{
-              maxWidth: "78%", padding: "9px 13px", fontSize: 12.5, lineHeight: 1.56, color: "var(--t1)",
-              background: msg.role === "user" ? "rgba(31,191,159,.1)" : "var(--bg-3)",
-              border: msg.role === "user" ? "1px solid rgba(31,191,159,.18)" : "1px solid var(--border)",
-              borderRadius: msg.role === "user" ? "12px 12px 3px 12px" : "3px 12px 12px 12px",
-            }}>
-              {msg.text}
-            </div>
+      {/* Input */}
+      <div style={{ padding: "13px 18px", borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: "var(--t4)", letterSpacing: "0.14em", textTransform: "uppercase" as const, marginBottom: 8 }}>Input</div>
+        {isActive ? (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--t1)", lineHeight: 1.55, padding: "9px 12px", background: "rgba(31,191,159,.06)", border: "1px solid rgba(31,191,159,.14)", borderRadius: 7, animation: "slide-msg .3s ease both" }}>
+            &ldquo;{DEMO_INPUT}&rdquo;
           </div>
-        ))}
-
-        {isTyping && (
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 700, color: "var(--teal)", flexShrink: 0 }}>BA</div>
-            <div style={{ padding: "9px 14px", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: "3px 12px 12px 12px", display: "flex", gap: 4 }}>
-              {[0,1,2].map(j => (
-                <div key={j} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--t3)", animation: `typing-dot 1.2s ${j * 0.2}s infinite ease-in-out` }} />
-              ))}
-            </div>
+        ) : (
+          <div style={{ height: 34, borderRadius: 7, background: "var(--bg-3)", border: "1px solid var(--border)", display: "flex", alignItems: "center", padding: "0 12px", gap: 8 }}>
+            <div style={{ width: 110, height: 7, background: "var(--bg-2)", borderRadius: 4 }} />
+            <div style={{ width: 5, height: 13, background: "rgba(31,191,159,.3)", borderRadius: 1, animation: "pulse-dot 1s ease-in-out infinite" }} />
           </div>
         )}
-        <div ref={endRef} />
       </div>
 
-      {/* Artifacts panel */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,.05)", background: "var(--bg)", padding: "14px 18px" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
-          {building ? "Building deliverables" : "Deliverables"}
+      {/* Reasoning */}
+      <div style={{ padding: "13px 18px", borderBottom: "1px solid rgba(255,255,255,.04)", minHeight: 132 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: "var(--t4)", letterSpacing: "0.14em", textTransform: "uppercase" as const, marginBottom: 10 }}>Reasoning</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+          {REASONING_STEPS.map((step, i) => {
+            const done = i < reasoningDone;
+            const show = (phase === "reasoning" || phase === "deliverables") && done;
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, opacity: show ? 1 : 0, transform: show ? "translateY(0)" : "translateY(4px)", transition: "opacity .32s, transform .32s" }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t2)" }}>{step}</span>
+              </div>
+            );
+          })}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-          {DEMO_ARTIFACTS.map((a, i) => (
-            <div key={a.label} style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "5px 11px", borderRadius: 8,
-              background: i < artifactsVisible ? `${a.color}10` : "var(--bg-2)",
-              border: i < artifactsVisible ? `1px solid ${a.color}28` : "1px solid var(--border)",
-              fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600,
-              color: i < artifactsVisible ? a.color : "var(--t4)",
-              transition: "all .3s ease",
-              animation: i < artifactsVisible ? "slide-msg .25s ease both" : "none",
-            }}>
-              {i < artifactsVisible && (
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
-              {a.label}
-            </div>
-          ))}
+      </div>
+
+      {/* Deliverables */}
+      <div style={{ padding: "13px 18px", background: "var(--bg)" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" as const, marginBottom: 10, color: isComplete ? "var(--teal)" : "var(--t4)", transition: "color .5s" }}>
+          {isComplete ? "Deliverables Ready" : "Deliverables"}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {DELIVERABLE_ARTIFACTS.map((a, i) => {
+            const vis = i < deliverablesVisible;
+            return (
+              <div key={a.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 7, background: vis ? `${a.color}09` : "var(--bg-2)", border: vis ? `1px solid ${a.color}22` : "1px solid var(--border)", opacity: vis ? 1 : 0.35, transition: "all .38s ease" }}>
+                {vis ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={a.color} strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
+                ) : (
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--t4)", flexShrink: 0 }} />
+                )}
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, color: vis ? a.color : "var(--t4)", flex: 1, transition: "color .38s" }}>{a.label}</span>
+                {vis && a.detail && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--t3)" }}>{a.detail}</span>}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -280,15 +259,7 @@ function Ticker() {
 // ── useReveal ──────────────────────────────────────────────────────────────────
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) setVisible(true); }, { threshold: 0.08 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return { ref, style: { opacity: visible ? 1 : 0, transition: "opacity .7s ease" } };
+  return { ref, style: {} };
 }
 
 // ── Eyebrow ────────────────────────────────────────────────────────────────────
@@ -533,7 +504,7 @@ export default function LandingPage() {
   const [scrolled, setScrolled]         = useState(false);
   const [billingAnnual, setBillingAnnual] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [authState, setAuthState]       = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+  const [authState, setAuthState]       = useState<"loading" | "authenticated" | "unauthenticated">("unauthenticated");
   const [navUserName, setNavUserName]   = useState("");
 
   const modulesReveal   = useReveal();
@@ -569,75 +540,11 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  useEffect(() => {
-    const id = "baportal-globals";
-    if (document.getElementById(id)) return;
-    const style = document.createElement("style");
-    style.id = id;
-    style.textContent = `
-      :root {
-        --bg: #07070a; --bg-1: #0d0d12; --bg-2: #111117; --bg-3: #16161e;
-        --teal: #1fbf9f; --teal-hi: #2ddbb8;
-        --teal-dim: rgba(31,191,159,0.12); --teal-glow: rgba(31,191,159,0.22);
-        --violet: #7c6ef5;
-        --t1: #f2f2f8; --t2: #9090a8; --t3: #505068; --t4: #2a2a38;
-        --border: rgba(255,255,255,0.07); --border-hi: rgba(31,191,159,0.3);
-        --font-display: 'Inter', sans-serif;
-        --font-body: 'Open Sans', sans-serif;
-        --font-mono: 'JetBrains Mono', monospace;
-        --radius-sm: 10px; --radius: 16px; --radius-lg: 24px; --radius-xl: 32px;
-      }
-      @keyframes pulse-dot {
-        0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(31,191,159,.22);}
-        50%{opacity:.7;box-shadow:0 0 0 6px transparent;}
-      }
-      @keyframes ticker {
-        0%{transform:translateX(0);}
-        100%{transform:translateX(-50%);}
-      }
-      @keyframes typing-dot {
-        0%,80%,100%{transform:scale(.6);opacity:.3;}
-        40%{transform:scale(1);opacity:1;}
-      }
-      @keyframes slide-msg {
-        from{opacity:0;transform:translateY(8px);}
-        to{opacity:1;transform:translateY(0);}
-      }
-      @keyframes fade-up {
-        from{opacity:0;transform:translateY(28px);}
-        to{opacity:1;transform:translateY(0);}
-      }
-      .a1{animation:fade-up .7s ease forwards;}
-      .a2{animation:fade-up .7s .12s ease both;}
-      .a3{animation:fade-up .7s .24s ease both;}
-      .a4{animation:fade-up .7s .36s ease both;}
-      .a5{animation:fade-up .7s .50s ease both;}
-      @keyframes slide-down-fade{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
-      @keyframes fade-in-avatar{from{opacity:0;}to{opacity:1;}}
-      @keyframes slide-in-left{from{transform:translateX(-100%);}to{transform:translateX(0);}}
-      .mob-only{display:none !important;}
-      @media(max-width:768px){
-        .mob-only{display:flex !important;}
-        .dsk-nav{display:none !important;}
-        .hero-grid{grid-template-columns:1fr !important; gap:40px !important;}
-        .hero-grid > *:last-child{display:none !important;}
-        .fast-lanes{grid-template-columns:1fr 1fr !important;}
-        .module-grid{grid-template-columns:1fr 1fr !important;}
-        .stats-grid{grid-template-columns:1fr 1fr !important;}
-        .hiw-grid{grid-template-columns:1fr 1fr !important;}
-        .industry-grid{grid-template-columns:repeat(2,1fr) !important;}
-        .feature-grid{grid-template-columns:1fr !important;}
-        .footer-inner{flex-direction:column !important; gap:16px !important; text-align:center !important;}
-        .footer-links{gap:12px !important; justify-content:center !important;}
-      }
-    `;
-    document.head.appendChild(style);
-  }, []);
 
   const workspaceHref = authState === "authenticated" ? "/workspace" : "/auth/signup";
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--t1)", fontFamily: "var(--font-body)", overflowX: "hidden", minHeight: "100vh", WebkitFontSmoothing: "antialiased" }}>
+    <div style={{ background: "var(--bg)", color: "var(--t1)", fontFamily: "var(--font-body)", minHeight: "100vh", WebkitFontSmoothing: "antialiased" }}>
 
       {/* ── NAV ──────────────────────────────────────────────────────────── */}
       <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 200, height: 62, display: "flex", alignItems: "center", padding: "0 28px", background: scrolled ? "rgba(7,7,10,0.95)" : "rgba(7,7,10,0.75)", backdropFilter: "blur(24px) saturate(1.5)", WebkitBackdropFilter: "blur(24px) saturate(1.5)", borderBottom: "1px solid var(--border)", transition: "background .3s" }}>
@@ -658,9 +565,7 @@ export default function LandingPage() {
           </div>
 
           <div className="dsk-nav" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", minWidth: 260 }}>
-            {authState === "loading"         ? <div style={{ width: 260, height: 34 }} /> : null}
-            {authState === "authenticated"   ? <UserMenu name={navUserName} /> : null}
-            {authState === "unauthenticated" ? <GuestCTAs /> : null}
+            {authState === "authenticated" ? <UserMenu name={navUserName} /> : <GuestCTAs />}
           </div>
 
           <button className="mob-only" onClick={() => setMobileNavOpen(true)}
@@ -766,9 +671,9 @@ export default function LandingPage() {
               </h1>
 
               <p className="a3" style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.72, maxWidth: 440, marginBottom: 38 }}>
-                Paste your notes. Enter your problem. Describe your situation.{" "}
+                Describe your business problem in plain language.{" "}
                 <strong style={{ color: "var(--t1)", fontWeight: 600 }}>
-                  The Intelligence Engine asks what a senior BA would ask — then builds a complete, connected package of deliverables.
+                  The Intelligence Engine maps stakeholders, traces root causes, surfaces requirements, and generates your complete deliverable package — BABOK-aligned, connected, and fully traceable.
                 </strong>
               </p>
 
@@ -813,6 +718,50 @@ export default function LandingPage() {
 
       {/* ── TICKER ───────────────────────────────────────────────────────── */}
       <Ticker />
+
+      {/* ── MOAT STRIP ───────────────────────────────────────────────────── */}
+      <section style={{ padding: "56px 0", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 40 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--t3)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
+              Why this is not ChatGPT with a BA hat on
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, background: "var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+            {[
+              {
+                color: "#1fbf9f",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round" width="20" height="20"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>,
+                title: "Structured BA reasoning",
+                desc: "Not a general AI prompted to act like a BA. A system built on how senior BAs actually elicit, analyse, and deliver — from first question to signed-off requirement.",
+              },
+              {
+                color: "#a78bfa",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3M5.64 5.64l2.12 2.12M16.24 16.24l2.12 2.12M5.64 18.36l2.12-2.12M16.24 7.76l2.12-2.12"/></svg>,
+                title: "Full traceability built in",
+                desc: "Every user story links to a requirement. Every requirement links to a business problem. Every output connects to the one above it. Nothing exists in isolation.",
+              },
+              {
+                color: "#38bdf8",
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+                title: "Gets smarter with every project",
+                desc: "Your saved templates, project history, and BA patterns accumulate over time. The more you use it, the harder it is to replace — for you or your organisation.",
+              },
+            ].map((item, i) => (
+              <div key={i} style={{ background: "var(--bg-1)", padding: "36px 32px", transition: "background .2s" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-2)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-1)")}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: `${item.color}10`, border: `1px solid ${item.color}20`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+                  {item.icon}
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>{item.title}</div>
+                <p style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.68, margin: 0 }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── THE FOUR MODULES ─────────────────────────────────────────────── */}
       <section id="modules" style={{ padding: "90px 0 70px" }}>
@@ -942,10 +891,10 @@ export default function LandingPage() {
           <div ref={hiwReveal.ref} style={{ ...hiwReveal.style, textAlign: "center", marginBottom: 64 }}>
             <Eyebrow>The Intelligence Engine</Eyebrow>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>
-              It does not generate. It thinks first.
+              It does not generate. It reasons.
             </h2>
             <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 520, margin: "0 auto", lineHeight: 1.68 }}>
-              Most AI tools produce output the moment you hit enter. This one behaves like a senior BA — it interrogates before it builds, so what it builds is actually right.
+              Most AI tools produce output the moment you press enter. The Intelligence Engine does not — because a senior BA does not either. It asks the right questions, understands dependencies, and builds everything connected. That structure is the thing that cannot be replicated in six months.
             </p>
           </div>
 

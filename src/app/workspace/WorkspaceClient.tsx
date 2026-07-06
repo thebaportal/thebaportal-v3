@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import DocumentViewer from "@/components/DocumentViewer";
 import AppSidebar from "@/components/AppSidebar";
 
 interface Message {
@@ -17,51 +19,55 @@ interface Props {
 }
 
 // ── Markdown renderer (simple) ─────────────────────────────────────────────────
-function renderMarkdown(text: string): React.ReactNode[] {
+function parseMdTableWs(lines: string[]): { headers: string[]; rows: string[][] } | null {
+  const dataLines = lines.filter(l => !l.includes("---"));
+  if (dataLines.length < 2) return null;
+  const parse = (l: string) => l.split("|").map(c => c.trim().replace(/\*\*/g, "")).filter((_,ix,a) => ix > 0 && ix < a.length - 1);
+  return { headers: parse(dataLines[0]), rows: dataLines.slice(1).map(parse) };
+}
+function WsBold({ t, color = "#1fbf9f" }: { t: string; color?: string }) {
+  const parts = t.split(/\*\*([^*]+)\*\*/);
+  return <>{parts.map((p,i) => i%2===1 ? <strong key={i} style={{fontWeight:700,color:"var(--t1)"}}>{p}</strong> : <span key={i}>{p}</span>)}</>;
+}
+function renderMarkdown(text: string, accent = "#1fbf9f"): React.ReactNode[] {
   const lines = text.split("\n");
   const nodes: React.ReactNode[] = [];
   let i = 0;
-
   while (i < lines.length) {
-    const line = lines[i];
-
-    if (line.startsWith("## ")) {
-      nodes.push(
-        <h3 key={i} style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "var(--teal)", letterSpacing: "-0.01em", margin: "22px 0 8px", paddingBottom: 6, borderBottom: "1px solid rgba(31,191,159,.12)" }}>
-          {line.slice(3)}
-        </h3>
-      );
-    } else if (line.startsWith("# ")) {
-      nodes.push(
-        <h2 key={i} style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.02em", margin: "0 0 12px" }}>
-          {line.slice(2)}
-        </h2>
-      );
-    } else if (line.startsWith("- ") || line.startsWith("* ")) {
-      nodes.push(
-        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 5 }}>
-          <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--teal)", flexShrink: 0, marginTop: 8 }} />
-          <span style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65 }}>{line.slice(2)}</span>
+    const t = lines[i].trim();
+    if (!t) { nodes.push(<div key={`s${i}`} style={{ height: 6 }} />); i++; continue; }
+    if (t.startsWith("# "))   { nodes.push(<h2 key={i} style={{ fontFamily: "var(--font-display)", fontSize: 19, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.02em", margin: "4px 0 12px" }}>{t.slice(2).replace(/\*\*/g,"")}</h2>); i++; continue; }
+    if (t.startsWith("## "))  { nodes.push(<h3 key={i} style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: accent, letterSpacing: "-0.01em", margin: "22px 0 8px", paddingBottom: 6, borderBottom: `1px solid ${accent}20` }}>{t.slice(3).replace(/\*\*/g,"")}</h3>); i++; continue; }
+    if (t.startsWith("### ")) { nodes.push(<h4 key={i} style={{ fontFamily: "var(--font-display)", fontSize: 13.5, fontWeight: 700, color: "var(--t1)", margin: "14px 0 5px" }}>{t.slice(4).replace(/\*\*/g,"")}</h4>); i++; continue; }
+    if (t === "---") { nodes.push(<div key={i} style={{ height: 1, background: "var(--border)", margin: "14px 0" }} />); i++; continue; }
+    if (t.startsWith("|") && lines[i+1]?.includes("---")) {
+      const tLines: string[] = [];
+      while (i < lines.length && lines[i]?.trim().startsWith("|")) { tLines.push(lines[i].trim()); i++; }
+      const tbl = parseMdTableWs(tLines);
+      if (tbl) nodes.push(
+        <div key={`tbl${i}`} style={{ borderRadius: 8, border: `1px solid ${accent}18`, overflow: "hidden", margin: "12px 0 20px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead><tr>{tbl.headers.map((h,hi) => <th key={hi} style={{ textAlign: "left", padding: "10px 14px", background: `${accent}10`, borderBottom: `2px solid ${accent}28`, fontWeight: 700, color: "var(--t1)", fontSize: 12, fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+            <tbody>{tbl.rows.map((row,ri) => <tr key={ri} style={{ background: ri%2===0 ? "rgba(255,255,255,.02)" : "transparent" }}>{tbl.headers.map((_,ci) => <td key={ci} style={{ padding: "9px 14px", borderBottom: "1px solid rgba(255,255,255,.04)", color: "var(--t2)", lineHeight: 1.6, verticalAlign: "top" }}><WsBold t={row[ci]??""} color={accent}/></td>)}</tr>)}</tbody>
+          </table>
         </div>
       );
-    } else if (/^\d+\.\s/.test(line)) {
-      const num = line.match(/^(\d+)\.\s/)?.[1];
-      const content = line.replace(/^\d+\.\s/, "");
-      nodes.push(
-        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 7 }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(31,191,159,.1)", border: "1px solid rgba(31,191,159,.2)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: "var(--teal)", flexShrink: 0, marginTop: 2 }}>{num}</div>
-          <span style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65 }}>{content}</span>
-        </div>
-      );
-    } else if (line.trim() === "") {
-      nodes.push(<div key={i} style={{ height: 6 }} />);
-    } else {
-      nodes.push(
-        <p key={i} style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.72, margin: "0 0 8px" }}>
-          {line}
-        </p>
-      );
+      continue;
     }
+    if (t.startsWith("- ") || t.startsWith("* ")) {
+      const items: string[] = [];
+      while (i < lines.length && (lines[i]?.trim().startsWith("- ") || lines[i]?.trim().startsWith("* "))) { items.push(lines[i].trim().slice(2)); i++; }
+      nodes.push(<ul key={`ul${i}`} style={{ margin: "6px 0 14px", paddingLeft: 0, listStyle: "none" }}>{items.map((item,ii) => <li key={ii} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 6 }}><div style={{ width: 4, height: 4, borderRadius: "50%", background: accent, flexShrink: 0, marginTop: 9 }}/><span style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65 }}><WsBold t={item} color={accent}/></span></li>)}</ul>);
+      continue;
+    }
+    if (/^\d+\.\s/.test(t)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i]?.trim() ?? "")) { items.push(lines[i].trim().replace(/^\d+\.\s/, "")); i++; }
+      nodes.push(<ol key={`ol${i}`} style={{ margin: "6px 0 14px", paddingLeft: 0, listStyle: "none" }}>{items.map((item,ii) => <li key={ii} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 7 }}><div style={{ width: 20, height: 20, borderRadius: "50%", background: `${accent}10`, border: `1px solid ${accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: accent, flexShrink: 0, marginTop: 2 }}>{ii+1}</div><span style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65 }}><WsBold t={item} color={accent}/></span></li>)}</ol>);
+      continue;
+    }
+    if (t.startsWith("**") && t.endsWith("**") && !t.slice(2,-2).includes("**")) { nodes.push(<p key={i} style={{ fontSize: 13.5, fontWeight: 700, color: "var(--t1)", margin: "10px 0 4px", fontFamily: "var(--font-display)" }}>{t.slice(2,-2)}</p>); i++; continue; }
+    nodes.push(<p key={i} style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.72, margin: "0 0 8px" }}><WsBold t={t} color={accent}/></p>);
     i++;
   }
   return nodes;
@@ -386,6 +392,23 @@ const SESSION_CONFIGS: Record<string, SessionConfig> = {
     inputPlaceholderFollowup: "Answer the questions above so the FRD covers the right scope and integrations.",
     isAnalysis: (text) => text.includes("# Functional Requirements Document") || text.includes("## 4. Functional Requirements"),
   },
+  "stakeholder-analyzer": {
+    id: "stakeholder-analyzer",
+    label: "Stakeholder Analysis",
+    color: "#facc15",
+    apiEndpoint: "/api/workspace/stakeholders",
+    welcomeTitle: "Who influences the success of this project?",
+    welcomeSubtitle: "Describe your project and the change being proposed. I'll ask two questions, then map your stakeholders, predict objections, and design an engagement strategy.",
+    examples: [
+      "Digital transformation programme — 3 departments, leadership resistant",
+      "New ERP implementation — operations team worried about job changes",
+      "Customer data platform rollout — legal, IT and marketing all have concerns",
+      "Process automation project — manual workers fear being replaced",
+    ],
+    inputPlaceholderInitial: "Describe the project and the change being proposed. Who do you already know is involved or concerned?",
+    inputPlaceholderFollowup: "Answer the questions above so I can map your stakeholders accurately.",
+    isAnalysis: (text: string) => text.includes("## Stakeholder Register") || text.includes("Stakeholder analysis complete"),
+  },
   "document-generator-usecases": {
     id: "document-generator-usecases",
     label: "Use Case Generator",
@@ -448,6 +471,189 @@ function DocTypePicker({ onSelect, onBack }: { onSelect: (id: string) => void; o
             ))}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Extract project name from analysis content ────────────────────────────────
+function suggestProjectName(content: string): string {
+  // Try "## Problem Statement" section first
+  const psMatch = content.match(/## Problem Statement\n+([^\n]+)/);
+  if (psMatch) {
+    const ps = psMatch[1].replace(/\*\*/g, "").trim();
+    return ps.length > 60 ? ps.slice(0, 60).replace(/\s\S*$/, "") : ps;
+  }
+  // Try "**Project:**" pattern from requirements
+  const projMatch = content.match(/\*\*Project:\*\*\s*([^\n]+)/);
+  if (projMatch) return projMatch[1].trim().slice(0, 60);
+  // Fall back to first meaningful non-header line
+  const firstLine = content.split("\n").find(l => l.trim() && !l.startsWith("#") && !l.startsWith("|") && l.trim().length > 10);
+  if (firstLine) {
+    const clean = firstLine.replace(/\*\*/g, "").trim();
+    return clean.length > 60 ? clean.slice(0, 60).replace(/\s\S*$/, "") : clean;
+  }
+  return "";
+}
+
+// ── Tool → artifact type map ──────────────────────────────────────────────────
+const TOOL_ARTIFACT_TYPE: Record<string, string | null> = {
+  "problem-analyzer":          "problem_analysis",
+  "requirements-analyzer":     "requirements",
+  "user-story-generator":      "user_stories",
+  "process-analyzer":          "process_map",
+  "document-generator-brd":    "brd",
+  "document-generator-frd":    "frd",
+  "document-generator-usecases":"use_cases",
+  "interview-copilot":         null,
+  "portfolio-builder":         null,
+};
+
+// ── Save to project modal ─────────────────────────────────────────────────────
+interface ProjectItem { id: string; name: string; organizations?: { name: string }; }
+
+function SaveToProjectModal({ content, toolId, onClose }: { content: string; toolId: string; onClose: () => void }) {
+  const router = useRouter();
+  const [projects, setProjects]     = useState<ProjectItem[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [saving, setSaving]         = useState(false);
+  const [savedProjectId, setSavedProjectId] = useState<string | null>(null);
+  const [mode, setMode]             = useState<"list" | "new">("list");
+  const [projectName, setProjectName] = useState(() => suggestProjectName(content));
+  const [orgName, setOrgName]       = useState("");
+
+  useEffect(() => {
+    fetch("/api/projects")
+      .then(r => r.json())
+      .then(d => { setProjects(d.projects ?? []); setMode(d.projects?.length ? "list" : "new"); })
+      .catch(() => setMode("new"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const artifactType = TOOL_ARTIFACT_TYPE[toolId] ?? "problem_analysis";
+  const artifactTitle = SESSION_CONFIGS[toolId]?.label ?? toolId;
+
+  async function saveToExisting(projectId: string) {
+    setSaving(true);
+    const res = await fetch(`/api/projects/${projectId}/artifacts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: artifactType, title: artifactTitle, content, status: "draft", reasoning_context: { source: "workspace", tool: toolId } }),
+    });
+    if (res.ok) setSavedProjectId(projectId);
+    setSaving(false);
+  }
+
+  async function saveToNew() {
+    if (!projectName.trim()) return;
+    setSaving(true);
+    const projRes = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: projectName.trim(), org_name: orgName.trim() || projectName.trim() }),
+    });
+    const projData = await projRes.json();
+    if (!projRes.ok) { setSaving(false); return; }
+    const artifactRes = await fetch(`/api/projects/${projData.project.id}/artifacts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: artifactType, title: artifactTitle, content, status: "draft", reasoning_context: { source: "workspace", tool: toolId } }),
+    });
+    if (artifactRes.ok) setSavedProjectId(projData.project.id);
+    setSaving(false);
+  }
+
+  const inp = { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 9, padding: "9px 12px", fontSize: 13, color: "var(--t1)", outline: "none", width: "100%", fontFamily: "var(--font-body)" };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.72)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 }}>
+      <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "28px", width: "100%", maxWidth: 460, boxShadow: "0 24px 64px rgba(0,0,0,.6)" }}>
+
+        {savedProjectId ? (
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(31,191,159,.12)", border: "1px solid rgba(31,191,159,.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3 style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--t1)", marginBottom: 8 }}>Saved to project</h3>
+            <p style={{ fontSize: 13.5, color: "var(--t3)", marginBottom: 22, lineHeight: 1.6 }}>Your analysis is saved as a draft artifact. Open the project to continue working on it.</p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button onClick={() => router.push(`/projects/${savedProjectId}`)} style={{ padding: "9px 20px", background: "var(--teal)", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 700, color: "#041a13", cursor: "pointer" }}>
+                Open project
+              </button>
+              <button onClick={onClose} style={{ padding: "9px 16px", background: "none", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13, color: "var(--t3)", cursor: "pointer" }}>
+                Stay here
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--t1)", margin: 0 }}>Save to project</h3>
+              <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", padding: 4 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: "var(--t4)", fontSize: 13 }}>Loading your projects...</div>
+            ) : mode === "list" ? (
+              <>
+                <p style={{ fontSize: 13, color: "var(--t3)", marginBottom: 14, lineHeight: 1.55 }}>
+                  Choose a project to save this {artifactTitle} to, or create a new one.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 240, overflowY: "auto", marginBottom: 14 }}>
+                  {projects.map(p => (
+                    <button key={p.id} onClick={() => saveToExisting(p.id)} disabled={saving}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10, cursor: saving ? "wait" : "pointer", textAlign: "left", transition: "border-color .15s" }}
+                      onMouseEnter={e => !saving && (e.currentTarget.style.borderColor = "rgba(31,191,159,.3)")}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--t1)", marginBottom: 2 }}>{p.name}</div>
+                        {p.organizations?.name && <div style={{ fontSize: 11.5, color: "var(--t4)" }}>{p.organizations.name}</div>}
+                      </div>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t4)" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setMode("new")} style={{ width: "100%", padding: "11px", background: "none", border: "1px dashed rgba(255,255,255,.1)", borderRadius: 10, fontSize: 13, fontWeight: 600, color: "var(--t3)", cursor: "pointer", transition: "border-color .15s, color .15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(31,191,159,.3)"; e.currentTarget.style.color = "var(--teal)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,.1)"; e.currentTarget.style.color = "var(--t3)"; }}>
+                  + Create new project
+                </button>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: "var(--t3)", marginBottom: 16, lineHeight: 1.55 }}>
+                  Give this project a name and we will save your analysis to it automatically.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t3)", marginBottom: 5 }}>Project name *</div>
+                    <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="e.g. Customer Onboarding Transformation" style={inp}
+                      onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"} onBlur={e => e.target.style.borderColor = "var(--border)"}
+                      onKeyDown={e => { if (e.key === "Enter" && projectName.trim()) saveToNew(); }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t3)", marginBottom: 5 }}>Organisation / Client <span style={{ fontWeight: 400, color: "var(--t4)" }}>(optional)</span></div>
+                    <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="e.g. First Bank Nigeria, Suncor Energy" style={inp}
+                      onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"} onBlur={e => e.target.style.borderColor = "var(--border)"}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
+                    <button onClick={saveToNew} disabled={!projectName.trim() || saving} style={{ flex: 1, padding: "10px", background: projectName.trim() ? "var(--teal)" : "rgba(31,191,159,.25)", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 700, color: "#041a13", cursor: projectName.trim() ? "pointer" : "not-allowed" }}>
+                      {saving ? "Saving..." : "Save and create project"}
+                    </button>
+                    {projects.length > 0 && (
+                      <button onClick={() => setMode("list")} style={{ padding: "10px 14px", background: "none", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13, color: "var(--t3)", cursor: "pointer" }}>Back</button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -527,17 +733,61 @@ function FileUploadButton({ onParsed, color }: { onParsed: (text: string, name: 
 }
 
 // ── Workspace session (shared engine) ─────────────────────────────────────────
-function WorkspaceSession({ toolId, onBack }: { toolId: string; onBack: () => void }) {
+function WorkspaceSession({ toolId, onBack, onSaveToProject, initialInput, projectName }: { toolId: string; onBack: () => void; onSaveToProject: (content: string, toolId: string) => void; initialInput?: string; projectName?: string | null }) {
+  const router = useRouter();
   const config = SESSION_CONFIGS[toolId];
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput]       = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [phase, setPhase]       = useState<"initial" | "followup" | "done">("initial");
+  const [messages, setMessages]       = useState<Message[]>([]);
+  const [input, setInput]             = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [phase, setPhase]             = useState<"initial" | "followup" | "done">("initial");
+  const [viewMode, setViewMode]       = useState<"chat" | "document">("chat");
+  const [autoProject, setAutoProject] = useState<{ id: string; name: string } | null>(null);
+  const [saveStatus, setSaveStatus]   = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [editingIdx, setEditingIdx]   = useState<number | null>(null);
+  const [editText, setEditText]       = useState("");
   const endRef      = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
   useEffect(() => { textareaRef.current?.focus(); }, [phase]);
+
+  async function autoSave(content: string) {
+    if (saveStatus === "saving" || saveStatus === "saved") return;
+    const artifactType = TOOL_ARTIFACT_TYPE[toolId];
+    if (!artifactType) return;
+    setSaveStatus("saving");
+    try {
+      const name = projectName || suggestProjectName(content) || `Analysis ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+      const projRes = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, org_name: name }),
+      });
+      const projData = await projRes.json();
+      if (!projRes.ok) {
+        console.error("[autoSave] project create failed:", projRes.status, projData);
+        setSaveStatus("error");
+        return;
+      }
+      const project = projData.project;
+      const artRes = await fetch(`/api/projects/${project.id}/artifacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: artifactType, title: config.label, content, status: "draft", reasoning_context: { source: "workspace", tool: toolId } }),
+      });
+      if (artRes.ok) {
+        setAutoProject({ id: project.id, name: project.name });
+        setSaveStatus("saved");
+      } else {
+        const artData = await artRes.json().catch(() => ({}));
+        console.error("[autoSave] artifact save failed:", artRes.status, artData);
+        setSaveStatus("error");
+      }
+    } catch (err) {
+      console.error("[autoSave] network error:", err);
+      setSaveStatus("error");
+    }
+  }
 
   if (!config) return null;
 
@@ -556,7 +806,7 @@ function WorkspaceSession({ toolId, onBack }: { toolId: string; onBack: () => vo
       const reply = data.response ?? "Something went wrong. Please try again.";
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
       if (phase === "initial") setPhase("followup");
-      else if (config.isAnalysis(reply)) setPhase("done");
+      else if (config.isAnalysis(reply)) { setPhase("done"); autoSave(reply); }
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
     } finally {
@@ -568,7 +818,107 @@ function WorkspaceSession({ toolId, onBack }: { toolId: string; onBack: () => vo
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   }
 
-  function reset() { setMessages([]); setPhase("initial"); setInput(""); }
+  function reset() { setMessages([]); setPhase("initial"); setInput(""); setViewMode("chat"); setEditingIdx(null); setSaveStatus("idle"); setAutoProject(null); }
+
+  async function submitEdit() {
+    if (editingIdx === null || !editText.trim() || loading) return;
+    const truncated = messages.slice(0, editingIdx);
+    const newMsg: Message = { role: "user", content: editText.trim() };
+    const newMessages = [...truncated, newMsg];
+    setMessages(newMessages);
+    setEditingIdx(null);
+    setInput("");
+    setLoading(true);
+    setPhase("followup");
+    setSaveStatus("idle");
+    setAutoProject(null);
+    try {
+      const docType = toolId.startsWith("document-generator-") ? toolId.replace("document-generator-", "") : undefined;
+      const res = await fetch(config.apiEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: newMessages, ...(docType && { docType }) }) });
+      const data = await res.json();
+      const reply = data.response ?? "Something went wrong.";
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      if (config.isAnalysis(reply)) { setPhase("done"); autoSave(reply); }
+      else setPhase("followup");
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function printDocument(content: string, title: string) {
+    const escHtml = (s: string) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const mdToHtml = (md: string) => md.split("\n").map(line => {
+      if (line.startsWith("### ")) return `<h3>${escHtml(line.slice(4))}</h3>`;
+      if (line.startsWith("## "))  return `<h2>${escHtml(line.slice(3))}</h2>`;
+      if (line.startsWith("# "))   return `<h1>${escHtml(line.slice(2))}</h1>`;
+      if (line.startsWith("| ") && !line.includes("---")) return `<tr>${line.split("|").filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${escHtml(c.trim())}</td>`).join("")}</tr>`;
+      if (line.includes("---") && line.includes("|")) return "";
+      if (line.startsWith("- ") || line.startsWith("* ")) return `<li>${escHtml(line.slice(2))}</li>`;
+      if (line.trim() === "---") return "<hr/>";
+      if (!line.trim()) return "<br/>";
+      return `<p>${escHtml(line).replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")}</p>`;
+    }).join("\n");
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>${escHtml(title)}</title><style>
+      body{font-family:Georgia,serif;max-width:820px;margin:40px auto;color:#1a1a2e;line-height:1.7;font-size:14px}
+      h1{font-size:22px;border-bottom:2px solid #1fbf9f;padding-bottom:10px;margin-bottom:24px}
+      h2{font-size:17px;margin-top:28px;margin-bottom:8px;color:#0d0d1a}
+      h3{font-size:14px;font-weight:700;margin-top:18px;margin-bottom:6px}
+      table{width:100%;border-collapse:collapse;margin:14px 0}
+      tr:first-child td{background:#f0faf8;font-weight:700;border-bottom:2px solid #1fbf9f}
+      td{padding:8px 12px;border-bottom:1px solid #dde}
+      li{margin-bottom:4px}ul{padding-left:20px}
+      hr{border:none;border-top:1px solid #dde;margin:20px 0}
+      @media print{@page{margin:2cm}body{margin:0}}
+    </style></head><body>
+      <h1>${escHtml(title)}</h1>
+      ${mdToHtml(content)}
+    </body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
+  }
+
+  // Auto-send pre-loaded input from ConversationHub
+  useEffect(() => {
+    if (!initialInput) return;
+    const trimmed = initialInput.trim();
+    if (!trimmed) return;
+    const newMessages: Message[] = [{ role: "user", content: trimmed }];
+    setMessages(newMessages);
+    setPhase("followup");
+    (async () => {
+      try {
+        const docType = toolId.startsWith("document-generator-") ? toolId.replace("document-generator-", "") : undefined;
+        const res  = await fetch(config.apiEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: newMessages, ...(docType && { docType }) }) });
+        const data = await res.json();
+        const reply = data.response ?? "Something went wrong. Please try again.";
+        setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+        if (config.isAnalysis(reply)) { setPhase("done"); autoSave(reply); }
+      } catch {
+        setMessages(prev => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const analysisContent = messages.filter(m => m.role === "assistant" && config.isAnalysis(m.content)).map(m => m.content).join("\n\n---\n\n");
+
+  if (viewMode === "document" && analysisContent) {
+    return (
+      <DocumentViewer
+        content={analysisContent}
+        title={config.label}
+        accentColor={config.color}
+        onBack={() => setViewMode("chat")}
+        onCopy={() => navigator.clipboard?.writeText(analysisContent)}
+        onDownload={(fmt) => downloadOutput(analysisContent, config.label, fmt)}
+      />
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -602,7 +952,7 @@ function WorkspaceSession({ toolId, onBack }: { toolId: string; onBack: () => vo
       <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px" }}>
 
         {messages.length === 0 && (
-          <div style={{ maxWidth: 620, margin: "0 auto", textAlign: "center", paddingTop: 40 }}>
+          <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center", paddingTop: 40 }}>
             <div style={{ width: 56, height: 56, borderRadius: "50%", background: `${config.color}14`, border: `1px solid ${config.color}28`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 800, color: config.color }}>BA</div>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.02em", marginBottom: 10 }}>
               {config.welcomeTitle}
@@ -628,26 +978,58 @@ function WorkspaceSession({ toolId, onBack }: { toolId: string; onBack: () => vo
           const isLast = i === messages.length - 1;
           const isStructured = !isUser && config.isAnalysis(msg.content);
 
-          if (isUser) return (
-            <div key={i} style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-              <div style={{ maxWidth: "72%", padding: "12px 16px", background: `${config.color}14`, border: `1px solid ${config.color}28`, borderRadius: "14px 14px 3px 14px", fontSize: 14, color: "var(--t1)", lineHeight: 1.6 }}>
-                {msg.content}
+          if (isUser) {
+            if (editingIdx === i) return (
+              <div key={i} style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+                <div style={{ width: "72%", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <textarea value={editText} onChange={e => setEditText(e.target.value)} autoFocus rows={4}
+                    style={{ width: "100%", background: `${config.color}0a`, border: `1px solid ${config.color}50`, borderRadius: "12px 12px 3px 12px", padding: "12px 16px", fontSize: 14, color: "var(--t1)", lineHeight: 1.6, resize: "none", outline: "none", fontFamily: "var(--font-body)" }}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEdit(); } if (e.key === "Escape") setEditingIdx(null); }}
+                  />
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button onClick={submitEdit} disabled={!editText.trim() || loading}
+                      style={{ padding: "6px 16px", borderRadius: 8, background: editText.trim() ? config.color : `${config.color}30`, border: "none", cursor: editText.trim() ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 700, color: "#041a13" }}>
+                      Resubmit
+                    </button>
+                    <button onClick={() => setEditingIdx(null)} style={{ padding: "6px 12px", borderRadius: 8, background: "none", border: "1px solid var(--border)", cursor: "pointer", fontSize: 13, color: "var(--t3)" }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          );
+            );
+            return (
+              <div key={i} className="msg-group" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, position: "relative" }}>
+                <div style={{ position: "relative" }}>
+                  <div className="msg-actions" style={{ position: "absolute", top: -30, right: 0, display: "none", alignItems: "center", gap: 3, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 7, padding: "3px 6px", zIndex: 10 }}>
+                    <button onClick={() => navigator.clipboard?.writeText(msg.content)} title="Copy" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", padding: "2px 5px", borderRadius: 4, fontSize: 11 }}
+                      onMouseEnter={e => e.currentTarget.style.color = "var(--t1)"} onMouseLeave={e => e.currentTarget.style.color = "var(--t3)"}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    </button>
+                    <button onClick={() => { setEditingIdx(i); setEditText(msg.content); }} title="Edit and resubmit" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", padding: "2px 5px", borderRadius: 4, fontSize: 11 }}
+                      onMouseEnter={e => e.currentTarget.style.color = "var(--t1)"} onMouseLeave={e => e.currentTarget.style.color = "var(--t3)"}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                  </div>
+                  <div style={{ maxWidth: "72%", padding: "12px 16px", background: `${config.color}14`, border: `1px solid ${config.color}28`, borderRadius: "14px 14px 3px 14px", fontSize: 14, color: "var(--t1)", lineHeight: 1.6 }}>
+                    {msg.content}
+                  </div>
+                </div>
+              </div>
+            );
+          }
 
           if (isStructured) return (
-            <div key={i} style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${config.color}14`, border: `1px solid ${config.color}28`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: config.color, flexShrink: 0 }}>BA</div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>
-                  {toolId === "user-story-generator" ? "Stories ready" : "Analysis complete"}
+            <div key={i} style={{ marginBottom: 36, paddingBottom: 28, borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+                <div style={{ width: 3, height: 18, background: config.color, borderRadius: 2, flexShrink: 0 }} />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: config.color, letterSpacing: ".1em", textTransform: "uppercase" as const }}>
+                  {toolId === "user-story-generator" ? "Stories" : config.label}
                 </span>
-                {isLast && <div style={{ width: 6, height: 6, borderRadius: "50%", background: config.color }} />}
+                {isLast && <div style={{ width: 5, height: 5, borderRadius: "50%", background: config.color, animation: "pulse-dot 1.8s ease-in-out infinite" }} />}
               </div>
-              <div style={{ background: "var(--bg-1)", border: `1px solid ${config.color}18`, borderRadius: "var(--radius-lg)", padding: "24px 28px", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${config.color}, transparent)` }} />
-                {config.renderOutput ? config.renderOutput(msg.content) : renderMarkdown(msg.content)}
+              <div>
+                {config.renderOutput ? config.renderOutput(msg.content) : renderMarkdown(msg.content, config.color)}
               </div>
             </div>
           );
@@ -674,164 +1056,317 @@ function WorkspaceSession({ toolId, onBack }: { toolId: string; onBack: () => vo
       </div>
 
       {/* Input */}
-      {phase !== "done" && (
-        <div style={{ padding: "16px 32px 24px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
-          <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", transition: "border-color .2s" }}
-            onFocusCapture={e => (e.currentTarget.style.borderColor = `${config.color}45`)}
-            onBlurCapture={e => (e.currentTarget.style.borderColor = "var(--border)")}
-          >
-            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
-              placeholder={phase === "initial" ? config.inputPlaceholderInitial : config.inputPlaceholderFollowup}
-              rows={3}
-              style={{ width: "100%", background: "none", border: "none", outline: "none", padding: "16px 18px", fontSize: 14, color: "var(--t1)", lineHeight: 1.65, resize: "none", fontFamily: "var(--font-body)" }}
-            />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,.04)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <FileUploadButton color={config.color} onParsed={(text, name) => setInput(prev => prev ? `${prev}\n\n[From: ${name}]\n${text}` : `[From: ${name}]\n${text}`)} />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t4)" }}>Attach doc or Enter to send</span>
-              </div>
-              <button onClick={send} disabled={!input.trim() || loading}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 8, background: input.trim() && !loading ? config.color : `${config.color}20`, border: "none", cursor: input.trim() && !loading ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 700, color: input.trim() && !loading ? "#041a13" : "var(--t4)", transition: "all .2s" }}>
-                {loading ? "Thinking..." : "Send"}
-                {!loading && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>}
-              </button>
+      {/* Clear end state — two explicit choices, no auto-switch */}
+      {phase === "done" && (
+        <div style={{ padding: "14px 32px", borderTop: "1px solid rgba(255,255,255,.06)", background: "rgba(31,191,159,.03)", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 13.5, fontWeight: 700, color: "var(--t1)" }}>Analysis complete</span>
             </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button onClick={() => setViewMode("document")}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: config.color, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#041a13" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              View as document
+            </button>
+
+            {/* Auto-save status — quiet, not a button */}
+            {saveStatus === "saving" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--t4)" }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg>
+                Saving...
+              </div>
+            )}
+            {saveStatus === "saved" && autoProject && (
+              <button onClick={() => router.push(`/projects/${autoProject.id}`)}
+                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--teal)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Saved to {autoProject.name}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            )}
+            {saveStatus === "error" && (
+              <button onClick={() => { setSaveStatus("idle"); autoSave(analysisContent); }}
+                style={{ fontSize: 12, color: "#f87171", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                Save failed — retry
+              </button>
+            )}
+
+            {(["docx","txt"] as const).map(fmt => (
+              <button key={fmt} onClick={() => downloadOutput(analysisContent, config.label, fmt)}
+                style={{ padding: "8px 12px", borderRadius: 8, background: "none", border: "1px solid var(--border)", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--t3)" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--t2)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.14)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "var(--t3)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
+                .{fmt}
+              </button>
+            ))}
+            <button onClick={() => printDocument(analysisContent, config.label)}
+              style={{ padding: "8px 12px", borderRadius: 8, background: "none", border: "1px solid var(--border)", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--t3)" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "var(--t2)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.14)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--t3)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
+              PDF
+            </button>
+            {toolId === "process-analyzer" && (
+              <button onClick={() => router.push("/tools/process-flow")}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, background: "none", border: "1px solid rgba(56,189,248,.3)", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "#38bdf8" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(56,189,248,.06)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "none"; }}>
+                Visualize
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            )}
+            <button onClick={reset} style={{ marginLeft: "auto", padding: "8px 12px", borderRadius: 8, background: "none", border: "1px solid var(--border)", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--t3)" }}>
+              Start over
+            </button>
           </div>
         </div>
       )}
 
-      {phase === "done" && (
-        <div style={{ padding: "16px 32px 24px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <button onClick={reset} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, background: config.color, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#041a13" }}>
-              Start over
-            </button>
-            {(["docx", "txt"] as const).map(fmt => (
-              <button key={fmt} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 8, background: "var(--bg-2)", border: "1px solid var(--border)", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--t2)", transition: "color .15s, border-color .15s" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "var(--t1)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.14)"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = "var(--t2)"; e.currentTarget.style.borderColor = "var(--border)"; }}
-                onClick={() => { const t = messages.filter(m => m.role === "assistant").map(m => m.content).join("\n\n---\n\n"); downloadOutput(t, config.label, fmt); }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                .{fmt}
-              </button>
-            ))}
-            <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "9px 14px", borderRadius: 8, background: "none", border: "1px solid var(--border)", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--t3)" }}
-              onClick={() => { const t = messages.filter(m => m.role === "assistant").map(m => m.content).join("\n\n---\n\n"); navigator.clipboard?.writeText(t); }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-              Copy
+      {/* Input — always open */}
+      <div style={{ padding: "14px 32px 22px", borderTop: phase === "done" ? "none" : "1px solid var(--border)", flexShrink: 0 }}>
+        <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", transition: "border-color .2s" }}
+          onFocusCapture={e => (e.currentTarget.style.borderColor = `${config.color}45`)}
+          onBlurCapture={e => (e.currentTarget.style.borderColor = "var(--border)")}
+        >
+          <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
+            placeholder={
+              phase === "done"
+                ? "Continue the analysis — add new context, a stakeholder update, a risk, or any follow-up question..."
+                : phase === "initial" ? config.inputPlaceholderInitial : config.inputPlaceholderFollowup
+            }
+            rows={3}
+            style={{ width: "100%", background: "none", border: "none", outline: "none", padding: "14px 18px", fontSize: 14, color: "var(--t1)", lineHeight: 1.65, resize: "none", fontFamily: "var(--font-body)" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderTop: "1px solid rgba(255,255,255,.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <FileUploadButton color={config.color} onParsed={(text, name) => setInput(prev => prev ? `${prev}\n\n[From: ${name}]\n${text}` : `[From: ${name}]\n${text}`)} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t4)" }}>
+                {phase === "done" ? "Conversation stays open — keep adding context" : "Attach doc or Enter to send"}
+              </span>
+            </div>
+            <button onClick={send} disabled={!input.trim() || loading}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 8, background: input.trim() && !loading ? config.color : `${config.color}20`, border: "none", cursor: input.trim() && !loading ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 700, color: input.trim() && !loading ? "#041a13" : "var(--t4)", transition: "all .2s" }}>
+              {loading ? "Thinking..." : "Send"}
+              {!loading && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>}
             </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// ── Workspace Hub ──────────────────────────────────────────────────────────────
-function WorkspaceHub({ onSelectTool }: { onSelectTool: (id: string) => void }) {
-  return (
-    <div style={{ padding: "32px 36px" }}>
-      <header style={{ marginBottom: 36 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.02em", marginBottom: 6 }}>
-          What are you working on today?
-        </h1>
-        <p style={{ fontSize: 14, color: "var(--t3)", lineHeight: 1.6 }}>
-          Choose a tool to get started. The Intelligence Engine does the heavy lifting.
-        </p>
-      </header>
+// ── Routing heuristics ─────────────────────────────────────────────────────────
+interface Suggestion { id: string; label: string; desc: string; color: string; primary?: boolean; href?: string; }
 
-      <div className="ws-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-        {TOOLS.map(tool => (
-          <div key={tool.id}
-            onClick={() => {
-              if (!tool.live) return;
-              if (tool.href) { window.location.href = tool.href; return; }
-              onSelectTool(tool.id);
-            }}
-            style={{
-              background: "var(--bg-1)",
-              border: `1px solid ${tool.live ? "var(--border)" : "rgba(255,255,255,.04)"}`,
-              borderRadius: "var(--radius-lg)",
-              padding: "28px 24px",
-              cursor: tool.live ? "pointer" : "not-allowed",
-              opacity: tool.live ? 1 : 0.5,
-              transition: "border-color .2s, background .2s, transform .2s",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative",
-              overflow: "hidden",
-            }}
-            onMouseEnter={e => {
-              if (!tool.live) return;
-              (e.currentTarget as HTMLDivElement).style.borderColor = `${tool.color}35`;
-              (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)";
-              (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = tool.live ? "var(--border)" : "rgba(255,255,255,.04)";
-              (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)";
-              (e.currentTarget as HTMLDivElement).style.transform = "none";
-            }}
-          >
-            <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(ellipse, ${tool.color}07 0%, transparent 65%)`, pointerEvents: "none" }} />
+function getSuggestions(text: string): Suggestion[] {
+  const t = text.toLowerCase();
+  const results: Suggestion[] = [];
 
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: `${tool.color}12`, border: `1px solid ${tool.color}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {tool.icon}
-              </div>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, padding: "3px 8px", borderRadius: 5, textTransform: "uppercase" as const, letterSpacing: ".06em", background: `${tool.tagColor}15`, color: tool.tagColor, border: `1px solid ${tool.tagColor}25` }}>
-                {tool.tag}
-              </span>
-            </div>
+  const is = (...words: string[]) => words.some(w => t.includes(w));
 
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 15.5, fontWeight: 700, color: "var(--t1)", marginBottom: 8, letterSpacing: "-0.01em" }}>
-              {tool.label}
-            </div>
-            <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.65, flex: 1, marginBottom: 16 }}>
-              {tool.desc}
-            </p>
+  if (is("meeting notes","transcript","workshop","interview","email thread","conversation","they said","stakeholder said"))
+    results.push({ id: "requirements-analyzer", label: "Extract requirements", desc: "Structure requirements from your notes", color: "#34d399", primary: true });
 
-            {tool.live && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: tool.color }}>
-                {tool.href ? "Open" : "Launch"}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </div>
-            )}
-          </div>
-        ))}
+  if (is("problem","issue","challenge","taking too long","broken","failing","complaint","why is","what's wrong","not working","struggle"))
+    results.push({ id: "problem-analyzer", label: "Analyze the problem", desc: "Identify root causes and business impact", color: "#1fbf9f", primary: results.length === 0 });
+
+  if (is("stakeholder","resistance","politics","sponsor","executive","who owns","pushback","opposition","alignment"))
+    results.push({ id: "stakeholder-analyzer", label: "Map stakeholders", desc: "Understand who influences success", color: "#facc15" });
+
+  if (is("process","workflow","step","manual","how does","as-is","current state","takes too many steps","approval"))
+    results.push({ id: "process-analyzer", label: "Analyze the process", desc: "Map current state and find bottlenecks", color: "#38bdf8" });
+
+  if (is("user story","stories","epic","sprint","backlog","agile","acceptance criteria","as a user"))
+    results.push({ id: "user-story-generator", label: "Generate user stories", desc: "Write stories with acceptance criteria", color: "#a78bfa" });
+
+  if (is("business case","cost","benefit","roi","investment","justify","budget","option"))
+    results.push({ id: "document-generator-brd", label: "Build a business case", desc: "Options, costs, benefits, recommendation", color: "#fb923c" });
+
+  // Default if nothing matched
+  if (results.length === 0)
+    results.push({ id: "problem-analyzer", label: "Analyze the problem", desc: "I'll ask a few questions then build a complete analysis", color: "#1fbf9f", primary: true });
+
+  // Ensure primary is set
+  if (!results.some(r => r.primary)) results[0].primary = true;
+
+  return results.slice(0, 3);
+}
+
+// ── Conversation Hub ──────────────────────────────────────────────────────────
+function ConversationHub({ onLaunch }: { onLaunch: (toolId: string, input: string, projectName?: string | null) => void }) {
+  const router = useRouter();
+  const [input, setInput]               = useState("");
+  const [suggestions, setSuggestions]   = useState<{ contentType: string; summary: string; projectName?: string | null; suggestions: Suggestion[] } | null>(null);
+  const [classifying, setClassifying]   = useState(false);
+  const [showAllTools, setShowAllTools] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => { textareaRef.current?.focus(); }, []);
+
+  async function handleSubmit() {
+    const trimmed = input.trim();
+    if (!trimmed || classifying) return;
+    setClassifying(true);
+    try {
+      const res = await fetch("/api/workspace/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: trimmed }),
+      });
+      const data = await res.json();
+      if (res.ok && data.suggestions?.length) {
+        setSuggestions(data);
+      } else {
+        setSuggestions({ contentType: "Content", summary: "", suggestions: getSuggestions(trimmed) });
+      }
+    } catch {
+      setSuggestions({ contentType: "Content", summary: "", suggestions: getSuggestions(trimmed) });
+    } finally {
+      setClassifying(false);
+    }
+  }
+
+  function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
+  }
+
+  const DIRECT_TOOLS = [
+    { id: "problem-analyzer",      label: "Problem Analysis",    color: "#1fbf9f" },
+    { id: "requirements-analyzer", label: "Requirements",         color: "#34d399" },
+    { id: "stakeholder-analyzer",  label: "Stakeholders",         color: "#facc15" },
+    { id: "process-analyzer",      label: "Process Analysis",     color: "#38bdf8" },
+    { id: "user-story-generator",  label: "User Stories",         color: "#a78bfa" },
+    { id: "document-generator",    label: "BRD / FRD",            color: "#fb923c" },
+  ];
+
+  if (classifying) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 16 }}>
+        <div style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid var(--teal)", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+        <p style={{ fontSize: 14, color: "var(--t3)", fontFamily: "var(--font-display)" }}>Reading your content...</p>
       </div>
+    );
+  }
 
-      {/* Quick links to existing tools */}
-      <div style={{ marginTop: 32, padding: "20px 24px", background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)", flexShrink: 0 }}>Also in your workspace</span>
-        {[
-          { label: "Resume Analyzer",    href: "/workspace/resumes",      color: "#38bdf8" },
-          { label: "Portfolio Builder",  href: "portfolio-builder",       color: "#a78bfa", internal: true },
-          { label: "Interview Copilot",  href: "interview-copilot",       color: "#7c6ef5", internal: true },
-          { label: "Career Suite",       href: "/career",                 color: "#fb923c" },
-          { label: "Process Flow",       href: "/tools/process-flow",     color: "#34d399" },
-          { label: "Saved Jobs",         href: "/workspace/jobs",         color: "#facc15" },
-        ].map(link => (
-          link.internal ? (
-            <button key={link.label} onClick={() => onSelectTool(link.href)} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--t2)", background: "none", border: "none", cursor: "pointer", transition: "color .15s", padding: 0 }}
-              onMouseEnter={e => (e.currentTarget.style.color = link.color)}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
+  if (suggestions) {
+    const list = suggestions.suggestions;
+    return (
+      <div style={{ padding: "48px 5% 40px" }}>
+
+        {/* Back + content type — single line */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
+          <button onClick={() => setSuggestions(null)}
+            style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}
+            onMouseEnter={e => e.currentTarget.style.color = "var(--t2)"}
+            onMouseLeave={e => e.currentTarget.style.color = "var(--t3)"}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Edit
+          </button>
+          <div style={{ width: 1, height: 12, background: "var(--border)" }} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: ".08em", textTransform: "uppercase" as const }}>{suggestions.contentType}</span>
+          {suggestions.summary && <span style={{ fontSize: 12.5, color: "var(--t4)" }}>{suggestions.summary}</span>}
+        </div>
+
+        {/* Pasted content — no card, just a left-bordered quote */}
+        <div style={{ borderLeft: "3px solid rgba(255,255,255,.08)", paddingLeft: 14, marginBottom: 32, fontSize: 13, color: "var(--t4)", lineHeight: 1.6, maxHeight: 60, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as never }}>
+          {input}
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t4)", letterSpacing: ".1em", textTransform: "uppercase" as const, marginBottom: 12 }}>What would you like to do?</div>
+
+        {/* Flat suggestion rows — no cards, no icon circles */}
+        <div style={{ display: "flex", flexDirection: "column", marginBottom: 32 }}>
+          {list.map((s) => (
+            <button key={s.id} onClick={() => s.id === "career" ? router.push("/career") : onLaunch(s.id, input, suggestions?.projectName)}
+              style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", background: "none", border: "none", borderLeft: `3px solid transparent`, cursor: "pointer", textAlign: "left", transition: "all .12s", borderRadius: 0 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = `${s.color}07`; (e.currentTarget as HTMLButtonElement).style.borderLeftColor = s.color; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.borderLeftColor = "transparent"; }}
             >
-              {link.label}
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 14.5, fontWeight: 700, color: "var(--t1)" }}>{s.label}</span>
+                <span style={{ fontSize: 13, color: "var(--t3)", marginLeft: 10 }}>{s.desc}</span>
+              </div>
+              {s.primary && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, color: s.color, letterSpacing: ".06em", textTransform: "uppercase" as const, flexShrink: 0 }}>Recommended</span>}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t4)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
             </button>
-          ) : (
-            <Link key={link.label} href={link.href} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
-              onMouseEnter={e => (e.currentTarget.style.color = link.color)}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
-            >
-              {link.label}
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
-            </Link>
-          )
-        ))}
+          ))}
+        </div>
+
+        {/* Direct tools — compact */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--t4)", marginRight: 4 }}>Or go directly to:</span>
+          {DIRECT_TOOLS.map(t => (
+            <button key={t.id} onClick={() => onLaunch(t.id, input)}
+              style={{ padding: "4px 10px", borderRadius: 5, background: "none", border: "1px solid var(--border)", cursor: "pointer", fontSize: 11.5, color: "var(--t3)", transition: "all .12s", whiteSpace: "nowrap" }}
+              onMouseEnter={e => { e.currentTarget.style.color = t.color; e.currentTarget.style.borderColor = `${t.color}40`; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--t3)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "auto" }}>
+      <div style={{ padding: "56px 5% 40px" }}>
+
+        {/* Header */}
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.03em", marginBottom: 8, lineHeight: 1.1 }}>
+            What are you working on?
+          </h1>
+          <p style={{ fontSize: 14, color: "var(--t3)", lineHeight: 1.6 }}>
+            Describe a problem, paste meeting notes, upload a document, or ask a BA question.
+          </p>
+        </div>
+
+        {/* Main input */}
+        <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", overflow: "hidden", marginBottom: 14, transition: "border-color .2s", boxShadow: "0 4px 24px rgba(0,0,0,.2)" }}
+          onFocusCapture={e => e.currentTarget.style.borderColor = "rgba(31,191,159,.35)"}
+          onBlurCapture={e => e.currentTarget.style.borderColor = "var(--border)"}
+        >
+          <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
+            placeholder={"Describe the business problem you're solving, paste meeting notes, or explain what you need help with...\n\nExamples:\n  • Customer onboarding takes 15 days and stakeholders are unhappy\n  • Paste workshop notes to extract requirements\n  • I need to map stakeholders for a digital transformation programme"}
+            rows={8}
+            style={{ width: "100%", background: "none", border: "none", outline: "none", padding: "20px 22px", fontSize: 15, color: "var(--t1)", lineHeight: 1.7, resize: "none", fontFamily: "var(--font-body)" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,.05)" }}>
+            <FileUploadButton color="#1fbf9f" onParsed={(text, name) => setInput(prev => prev ? `${prev}\n\n[From: ${name}]\n${text}` : `[From: ${name}]\n${text}`)} />
+            <button onClick={handleSubmit} disabled={!input.trim()}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 22px", borderRadius: 10, background: input.trim() ? "#1fbf9f" : "rgba(31,191,159,.2)", border: "none", cursor: input.trim() ? "pointer" : "not-allowed", fontSize: 14, fontWeight: 700, color: input.trim() ? "#041a13" : "var(--t4)", transition: "all .2s" }}>
+              Continue
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Projects nudge — inline text, no card */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 24, marginTop: 10 }}>
+          <span style={{ fontSize: 12.5, color: "var(--t4)" }}>Working on a real project?</span>
+          <button onClick={() => router.push("/projects")} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--teal)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textDecorationColor: "rgba(31,191,159,.3)" }}>
+            Go to Projects
+          </button>
+          <span style={{ fontSize: 12.5, color: "var(--t4)" }}>to save your work and build on it over time.</span>
+        </div>
+
+        {/* Direct access — flat, always visible */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--t4)" }}>Go directly to:</span>
+          {DIRECT_TOOLS.map(t => (
+            <button key={t.id} onClick={() => onLaunch(t.id, "")}
+              style={{ padding: "4px 10px", borderRadius: 5, background: "none", border: "1px solid var(--border)", cursor: "pointer", fontSize: 11.5, color: "var(--t3)", transition: "all .12s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = t.color; e.currentTarget.style.borderColor = `${t.color}40`; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--t3)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -839,7 +1374,16 @@ function WorkspaceHub({ onSelectTool }: { onSelectTool: (id: string) => void }) 
 
 // ── Main export ────────────────────────────────────────────────────────────────
 export default function WorkspaceClient({ user, profile, resumes, savedJobs }: Props) {
-  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [activeTool, setActiveTool]     = useState<string | null>(null);
+  const [initialInput, setInitialInput] = useState<string>("");
+  const [activeProjectName, setActiveProjectName] = useState<string | null>(null);
+  const [saveModal, setSaveModal]       = useState<{ content: string; toolId: string } | null>(null);
+
+  function launchTool(toolId: string, input: string, projectName?: string | null) {
+    setInitialInput(input);
+    setActiveProjectName(projectName ?? null);
+    setActiveTool(toolId === "stakeholder-analyzer" ? "stakeholder-analyzer" : toolId);
+  }
 
   // Inject CSS vars and animations if not already present
   useEffect(() => {
@@ -870,6 +1414,7 @@ export default function WorkspaceClient({ user, profile, resumes, savedJobs }: P
         40%{transform:scale(1);opacity:1;}
       }
       @keyframes spin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+      .msg-group:hover .msg-actions { display: flex !important; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { background: #07070a; }
       textarea::placeholder { color: var(--t4); }
@@ -892,11 +1437,26 @@ export default function WorkspaceClient({ user, profile, resumes, savedJobs }: P
         {activeTool === "document-generator" ? (
           <DocTypePicker onSelect={setActiveTool} onBack={() => setActiveTool(null)} />
         ) : activeTool && SESSION_CONFIGS[activeTool] ? (
-          <WorkspaceSession toolId={activeTool} onBack={() => setActiveTool(null)} />
+          <WorkspaceSession
+            key={activeTool + initialInput.slice(0, 20)}
+            toolId={activeTool}
+            onBack={() => { setActiveTool(null); setInitialInput(""); setActiveProjectName(null); }}
+            onSaveToProject={(content, toolId) => setSaveModal({ content, toolId })}
+            initialInput={initialInput}
+            projectName={activeProjectName}
+          />
         ) : (
-          <WorkspaceHub onSelectTool={setActiveTool} />
+          <ConversationHub onLaunch={launchTool} />
         )}
       </main>
+
+      {saveModal && (
+        <SaveToProjectModal
+          content={saveModal.content}
+          toolId={saveModal.toolId}
+          onClose={() => setSaveModal(null)}
+        />
+      )}
     </div>
   );
 }
