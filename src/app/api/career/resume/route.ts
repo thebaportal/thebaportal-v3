@@ -102,6 +102,8 @@ Rewrite and improve this resume. Keep the person's real experience and career hi
 
 Write like a real resume writer, not a template filler. Use confident, direct language. Every bullet should earn its place.
 
+Never use hyphens, em-dashes, or en-dashes anywhere in the output. Never start a sentence or bullet with a dash. Use plain punctuation only.
+
 Return ONLY valid JSON — no text outside it:
 {
   "professionalSummary": "<3-4 sentences. Specific, confident, no clichés. Reflects their actual background and target.>",

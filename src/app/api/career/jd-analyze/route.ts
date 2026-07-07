@@ -46,6 +46,16 @@ export async function POST(req: Request) {
 
   const analysisPrompt = `You are a senior career coach giving a candidate an honest, specific read on a job application.
 
+FIRST — validate the input before doing anything else.
+
+The JOB DESCRIPTION field must contain an actual job posting: a role with responsibilities, requirements, and qualifications from a company that is hiring. If the text looks like a resume, a cover letter, a news article, random text, or anything other than a job description, set "isValidJD" to false and return immediately with only the error fields. Do not fabricate a job description or attempt analysis on invalid input.
+
+Signs the input is NOT a job description:
+- It contains a person's name, contact information, or work history
+- It reads like a list of past accomplishments rather than future responsibilities
+- It lacks any hiring intent, role responsibilities, or candidate requirements
+- It appears to be a resume pasted into the wrong field
+
 JOB DESCRIPTION:
 ${jd}
 
@@ -56,6 +66,7 @@ Do not use: em-dashes, en-dashes, "leverage", "utilize", "seamlessly", "robust",
 
 Return ONLY valid JSON:
 {
+  "isValidJD": true,
   "jobTitle": "<exact job title from the JD>",
   "company": "<company name, or 'Not specified'>",
   "whatThisRoleIsAbout": "<2-3 sentences. What does this person actually do every day? Be specific.>",
@@ -88,6 +99,12 @@ Return ONLY valid JSON:
     "<third>",
     "<fourth>"
   ]
+}
+
+If the input is NOT a valid job description, return this instead and nothing else:
+{
+  "isValidJD": false,
+  "validationError": "<one plain sentence explaining what the input appears to be and what the user should paste instead>"
 }`;
 
   let analysis: Record<string, unknown>;
@@ -100,6 +117,9 @@ Return ONLY valid JSON:
     });
     const raw1 = r1.content[0].type === "text" ? r1.content[0].text : "";
     analysis = parseJSON(raw1);
+    if (analysis.isValidJD === false) {
+      return Response.json({ error: analysis.validationError || "The text in the Job Description field does not look like a job posting. Please paste the full job description from the company's career page or job board." }, { status: 400 });
+    }
   } catch (err) {
     console.error("JD analysis call 1 error:", err);
     return Response.json({ error: "Analysis failed. Please try again." }, { status: 500 });

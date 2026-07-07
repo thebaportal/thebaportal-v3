@@ -30,11 +30,12 @@ ${resumeText.slice(0, 4000)}
 Write 4 questions that probe whether the candidate has real experience behind each gap — experience they may have forgotten to include, did not know was relevant, or described in a way that did not surface in the analysis.
 
 Rules:
-1. Each question should reference a specific gap and ask whether they have done that kind of work — in any context, formal or informal, paid or unpaid.
-2. Frame questions as discovery, not interrogation. "Have you done any work involving X — even in a side project or informal setting?" not "Prove you have done X."
+1. Each question should reference a specific gap and ask whether they have done that kind of work, in any context, formal or informal, paid or unpaid.
+2. Frame questions as discovery, not interrogation. "Have you done any work involving X, even in a side project or informal setting?" not "Prove you have done X."
 3. If they say yes, encourage specifics: what tool, what outcome, what scale.
 4. Do not ask about things already clearly evidenced on their resume.
 5. Warm, conversational tone. Short sentences. No buzzwords.
+6. Never use hyphens, em-dashes, or en-dashes. Write in plain English.
 
 Return ONLY valid JSON:
 {
