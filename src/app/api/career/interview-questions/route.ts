@@ -9,34 +9,49 @@ export async function POST(req: Request) {
   if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
   const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const { jdText, company, resumeText } = await req.json();
+  const { jdText, company, resumeText, gaps, interviewFocus } = await req.json();
   if (!jdText || jdText.trim().length < 50) {
     return Response.json({ error: "Job description is required." }, { status: 400 });
   }
 
   const resumeSection = resumeText && resumeText.length > 100
-    ? `\nCANDIDATE RESUME (use to make questions relevant to their background):\n${resumeText.slice(0, 2000)}`
+    ? `\nCANDIDATE RESUME:\n${resumeText.slice(0, 2000)}`
     : "";
 
-  const prompt = `You are a BA interview coach preparing a candidate for a real interview. Generate a set of realistic interview questions based on the job description${company ? ` at ${company}` : ""}.
+  const gapsSection = Array.isArray(gaps) && gaps.length > 0
+    ? `\nKNOWN GAPS TO PROBE (questions must directly address these — this is what the candidate needs to prepare for):\n${gaps.map((g: string, i: number) => `${i + 1}. ${g}`).join("\n")}`
+    : "";
+
+  const focusSection = Array.isArray(interviewFocus) && interviewFocus.length > 0
+    ? `\nLIKELY INTERVIEW FOCUS (questions the interviewer will almost certainly ask):\n${interviewFocus.map((f: string, i: number) => `${i + 1}. ${f}`).join("\n")}`
+    : "";
+
+  const prompt = `You are preparing a candidate for a real interview for ${company ? `${company}` : "this role"}. Generate realistic, specific interview questions.
 
 JOB DESCRIPTION:
 ${jdText.slice(0, 2500)}
 ${resumeSection}
+${gapsSection}
+${focusSection}
 
-Generate 8 to 12 interview questions across these categories. Make them specific to this role — not generic. Include questions that probe the candidate's actual background where a resume is provided.
+Rules:
+- If gaps are provided, include at least one question per gap — these are the areas the candidate must prepare for
+- If interview focus areas are provided, turn them into direct questions
+- Make every question specific to this role and this candidate's background — no generic "tell me about yourself"
+- Mix categories: behavioral, technical, situational, and role-specific process questions
+- Generate 8 to 12 questions total
 
-Return ONLY valid JSON — no text outside it:
+Return ONLY valid JSON:
 {
   "questions": [
     {
       "id": "q1",
       "question": "<the interview question>",
-      "category": "behavioral" | "technical" | "stakeholder" | "process",
-      "hint": "<what a good answer looks like in 1 sentence — not shown to candidate until after they answer>"
+      "category": "behavioral" | "technical" | "situational" | "process",
+      "hint": "<what a strong answer includes — one sentence, not shown until after they answer>"
     }
   ],
-  "roleContext": "<1-2 sentences on what this interview will likely focus on, based on the JD>"
+  "roleContext": "<1-2 sentences on what this interview will focus on and what the interviewer is really trying to find out>"
 }`;
 
   try {

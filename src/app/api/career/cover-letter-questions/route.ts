@@ -17,15 +17,20 @@ export async function POST(req: Request) {
     return Response.json({ error: "Job description is required." }, { status: 400 });
   }
 
-  const prompt = `You are a BA career coach preparing to write a cover letter for a client. Before you write it, you need 3 to 4 pieces of information that will make it genuinely compelling rather than generic.
+  const prompt = `You are a career coach preparing to write a cover letter for a client. Before writing, you need 2 to 3 pieces of information the resume does not already show.
 
-Look at both the resume and the job description below, then ask targeted questions that will help you:
-- Pull out the most relevant experience for this specific role
-- Identify a genuine hook or connection to this company or role
-- Surface an achievement or result that directly addresses what the JD is asking for
-- Understand their motivation or interest in this particular move
+Look at the resume and job description. Ask questions that surface things you cannot see on paper:
+- A specific project, moment, or result that directly matches what this role needs
+- Something about this company specifically that the candidate can speak to concretely — not "I am excited about your mission" but a real reason this employer and not another
+- A context detail that explains something on the resume that might look weak or unclear to a screener
 
-Keep questions short and conversational. Don't ask for things already visible in the resume.
+NEVER ask any version of "Why do you think you would be a good fit?" That answer is already implied by the fact they are applying, and it produces generic self-promotional text that makes letters worse. Do not ask about career goals, aspirations, or what they hope to achieve. Do not ask them to summarise their experience — you can read it.
+
+Each question must be specific to this role and this resume. If the question could be asked of any candidate for any job, it is the wrong question.
+
+Keep questions short and direct. One sentence each.
+Never use em-dashes, en-dashes, or hyphens to connect clauses. Write two sentences instead.
+Plain everyday English. No buzzwords.
 
 RESUME:
 ${resumeText.slice(0, 3000)}

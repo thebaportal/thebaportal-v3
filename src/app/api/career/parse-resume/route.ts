@@ -61,16 +61,17 @@ export async function POST(req: Request) {
       }
     } else if (name.endsWith(".pdf")) {
       console.log("[parse-resume] parsing as PDF");
+      // Try pdf-parse first, fall back to raw text extraction
       try {
-        const { PDFParse } = await import("pdf-parse");
-        const parser = new PDFParse({ data: new Uint8Array(buffer) });
-        const result = await parser.getText();
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pdfParse = require("pdf-parse");
+        const result = await pdfParse(buffer);
         text = result.text;
         console.log(`[parse-resume] pdf-parse extracted ${text.length} chars`);
       } catch (pdfErr) {
         console.error("[parse-resume] pdf-parse error:", pdfErr);
         return Response.json({
-          error: "We could not read that PDF. If it is a scanned document or image-only PDF, it will not contain readable text. Please try a Word document instead.",
+          error: "We could not read that PDF. Use the paste option below to paste your text directly.",
         }, { status: 422 });
       }
     } else if (name.endsWith(".txt") || name.endsWith(".rtf")) {
@@ -94,7 +95,15 @@ export async function POST(req: Request) {
 
     if (cleaned.length < 100) {
       return Response.json({
-        error: "We could not extract enough readable text from that file. It may be image-based or protected. Try copying your resume text and pasting it instead.",
+        error: "We could not extract enough readable text from that file. Use the paste option to paste your text directly.",
+      }, { status: 422 });
+    }
+
+    // Detect binary garbage — if more than 15% of characters are non-printable, reject it
+    const nonPrintable = (cleaned.match(/[^\x20-\x7E\n\r\t]/g) || []).length;
+    if (nonPrintable / cleaned.length > 0.15) {
+      return Response.json({
+        error: "The file contained unreadable data. Use the paste option to paste your text directly.",
       }, { status: 422 });
     }
 

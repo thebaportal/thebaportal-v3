@@ -33,13 +33,14 @@ ${(strengths || []).slice(0, 3).join("\n")}
 
 RULES — every one of these matters:
 1. 3 to 4 sentences maximum. No more.
-2. Lead with the single most relevant and specific thing from the resume that matches this role. Name the actual project, employer, or outcome.
+2. Lead with the single most relevant and specific thing from the resume that matches this role. Name the actual employer, project type, or outcome.
 3. Every claim must be something the candidate can defend in an interview. No vague language, no inflated claims.
-4. No "I am excited to apply", no "I came across this opportunity", no "I believe I would be a great fit". These are filler phrases that say nothing.
-5. No buzzwords. No "leverage", "synergy", "passionate", "driven", "results-oriented".
-6. Do not restate the job title or company name back at them — they know what role they posted.
-7. End with one forward-looking sentence that connects the candidate's trajectory to what this role is about. Keep it specific.
-8. Write in first person. Conversational but professional. Short sentences.
+4. No "I am excited to apply", no "I came across this opportunity", no "I believe I would be a great fit", no "I am looking to build the next chapter of my career". These are filler phrases that say nothing.
+5. No buzzwords: "leverage", "synergy", "passionate", "driven", "results-oriented", "trajectory", "journey", "space", "environment where I can grow".
+6. Do not restate the job title or company name back at them.
+7. Never use em-dashes, en-dashes, or hyphens to connect clauses. Use plain punctuation. Write two sentences instead of one long hyphenated one.
+8. Do not add an aspirational closing line about where the candidate wants to take their career. If you close with anything, make it an offer — "Happy to walk through any of this in a conversation" — or skip the closing entirely. Statements about career goals belong in a different document.
+9. Write in first person. Short sentences. Conversational but professional.
 
 Return ONLY a JSON object:
 {

@@ -1,0 +1,62 @@
+import { getCareerUser } from "@/lib/career-auth";
+import Anthropic from "@anthropic-ai/sdk";
+
+export const maxDuration = 20;
+
+function parseJSON(raw: string) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("No JSON");
+  return JSON.parse(match[0]);
+}
+
+export async function POST(req: Request) {
+  const user = await getCareerUser();
+  if (!user) return Response.json({ error: "Unauthorised" }, { status: 401 });
+
+  const { jdText, resumeText } = await req.json();
+  if (!jdText?.trim() || !resumeText?.trim()) return Response.json({ questions: [] });
+
+  const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const prompt = `You are reviewing a job application to find specific gaps where the candidate's resume does not clearly show required experience, but where their career background suggests the experience may exist and simply was not included or described clearly.
+
+JOB DESCRIPTION:
+${(jdText as string).slice(0, 6000)}
+
+CANDIDATE RESUME:
+${(resumeText as string).slice(0, 6000)}
+
+TASK: Identify up to 5 questions to ask the candidate before building their application. Each question must:
+- Address a requirement that materially affects whether this candidate gets an interview
+- Be plausible given their known background — only ask if their career history makes the experience possible
+- Produce a specific, usable change in the resume, cover letter, or interview prep if answered with useful detail
+- Be one direct sentence
+
+Do NOT ask about experience the resume already clearly demonstrates.
+Do NOT ask questions where the answer would not change what gets written.
+Return fewer than 5 if fewer are needed. Return an empty array if the resume already covers the key requirements well enough that no questions would materially improve the application.
+
+Return ONLY valid JSON:
+{
+  "questions": [
+    {
+      "question": "<one direct question>",
+      "targets": "<what a useful answer unlocks — e.g. 'SCM Advisor bullet on contract negotiation'>"
+    }
+  ]
+}`;
+
+  try {
+    const r = await ai.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 700,
+      temperature: 0,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const raw = r.content[0].type === "text" ? r.content[0].text : "";
+    const parsed = parseJSON(raw);
+    return Response.json({ questions: (parsed.questions ?? []).slice(0, 5) });
+  } catch {
+    return Response.json({ questions: [] });
+  }
+}

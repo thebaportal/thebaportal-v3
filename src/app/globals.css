@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes skillFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @layer base {
   :root {
     /* Surfaces */
@@ -27,6 +37,40 @@
     /* Borders */
     --border:       rgba(255,255,255,0.07);
     --border-mid:   rgba(255,255,255,0.11);
+
+    /* ── Light content surfaces (dashboard, career suite, any light panel) ── */
+    --lc-bg:           #f1f5f9;
+    --lc-surface:      #ffffff;
+    --lc-faint:        #fafafa;
+    --lc-border:       #e2e8f0;
+    --lc-border-soft:  #e9edf2;
+    --lc-shadow-sm:    0 2px 8px -2px rgba(0,0,0,0.05);
+    --lc-shadow-md:    0 4px 24px -4px rgba(0,0,0,0.08);
+    --lc-shadow-lg:    0 20px 40px -12px rgba(0,0,0,0.12);
+
+    /* Light content text scale */
+    --lc-text-1:   #0f172a;
+    --lc-text-2:   #334155;
+    --lc-text-3:   #475569;
+    --lc-text-4:   #64748b;
+    --lc-text-5:   #94a3b8;
+
+    /* Light content accents */
+    --lc-teal:          #0891b2;
+    --lc-teal-bg:       rgba(8,145,178,0.08);
+    --lc-teal-border:   rgba(8,145,178,0.22);
+    --lc-green:         #16a34a;
+    --lc-green-bg:      rgba(22,163,74,0.07);
+    --lc-green-border:  #bbf7d0;
+    --lc-red:           #dc2626;
+    --lc-red-bg:        #fff5f5;
+    --lc-red-border:    #fee2e2;
+    --lc-red-accent:    #fecaca;
+    --lc-amber:         #d97706;
+    --lc-amber-bg:      rgba(217,119,6,0.07);
+    --lc-blue:          #0284c7;
+    --lc-blue-bg:       rgba(2,132,199,0.1);
+    --lc-blue-border:   rgba(2,132,199,0.2);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -221,14 +265,14 @@
     cursor: pointer;
     transition: all 0.15s ease;
     background: transparent;
-    color: var(--text-3);
+    color: var(--lc-text-4);
     border: none;
     text-decoration: none;
     line-height: 1;
   }
   .btn-ghost:hover {
-    color: var(--text-1);
-    background: rgba(255,255,255,0.05);
+    color: var(--lc-text-1);
+    background: rgba(0,0,0,0.05);
   }
 
   /* ─────────────────────────────────
@@ -379,6 +423,27 @@
     text-transform: uppercase;
     letter-spacing: 0.09em;
     color: var(--text-3);
+  }
+
+  .dash-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: gap 0.2s ease, opacity 0.15s ease;
+    text-decoration: none;
+  }
+  .dash-link svg {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  .dash-link:hover {
+    gap: 10px;
+    opacity: 0.75;
+  }
+  .dash-link:hover svg {
+    transform: translateX(4px);
   }
 
   .dot-grid {

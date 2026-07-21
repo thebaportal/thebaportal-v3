@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, LayoutDashboard, GraduationCap,
   Target, BriefcaseBusiness, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork, Zap, FileText, Brain, Folders,
+  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork, Zap, FileText, Brain, Folders, ListChecks,
 } from "lucide-react";
 
 const WORK_ITEMS = [
@@ -17,10 +17,11 @@ const WORK_ITEMS = [
 ];
 
 const CAREER_ITEMS = [
-  { icon: LayoutDashboard,   label: "Dashboard",    href: "/dashboard" },
-  { icon: BriefcaseBusiness, label: "Career Suite", href: "/career" },
-  { icon: Globe2,            label: "Jobs",         href: "/opportunities" },
-  { icon: MessageSquare,     label: "Interview Lab",href: "/interview" },
+  { icon: User,              label: "Career Profile",  href: "/career/profile" },
+  { icon: ListChecks,        label: "Job Plans",       href: "/job-plans" },
+  { icon: Globe2,            label: "Jobs",            href: "/opportunities" },
+  { icon: BriefcaseBusiness, label: "Career Suite",    href: "/career" },
+  { icon: MessageSquare,     label: "Interview Lab",   href: "/interview" },
 ];
 
 const LEARN_ITEMS = [

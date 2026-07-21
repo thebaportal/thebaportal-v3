@@ -504,11 +504,16 @@ export default function OpportunitiesClient({ initialJobs, isLoggedIn, savedJobI
     setSavingId(jobId);
     const isSaved = savedIds.has(jobId);
     try {
-      await fetch("/api/workspace/save-job", {
+      const res = await fetch("/api/workspace/save-job", {
         method: isSaved ? "DELETE" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_id: jobId }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("[save-job] failed:", res.status, body);
+        return;
+      }
       setSavedIds(prev => {
         const next = new Set(prev);
         isSaved ? next.delete(jobId) : next.add(jobId);

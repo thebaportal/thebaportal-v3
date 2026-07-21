@@ -33,6 +33,12 @@ interface JobItem {
   analysis_result: unknown;
   status: string;
   created_at: string;
+  submitted_resume_text?: string | null;
+  submitted_resume_name?: string | null;
+  applied_at?: string | null;
+  cover_letter?: string | null;
+  jd_analysis?: unknown;
+  interview_questions?: unknown;
   _analysing?: boolean;
 }
 
@@ -43,37 +49,32 @@ interface Props {
   hasResumes: boolean;
 }
 
-// ── Design tokens — exact from Claude design HTML ────────────────────────────
+// ── Design tokens ────────────────────────────────────────────────────────────
 
 const D = {
-  // Page
   pageBg:       "oklch(0.98 0.004 250)",
   text:         "oklch(0.22 0.015 250)",
   textMid:      "oklch(0.4 0.01 250)",
   textSub:      "oklch(0.5 0.01 250)",
   textMuted:    "oklch(0.6 0.01 250)",
-  // Surfaces
   white:        "#fff",
   border:       "oklch(0.91 0.005 250)",
   borderSoft:   "oklch(0.92 0.005 250)",
-  // Green (primary / Apply Now)
   green:        "oklch(0.5 0.14 165)",
   greenActive:  "oklch(0.55 0.13 165)",
   greenNavBg:   "oklch(0.94 0.03 165)",
   greenNavText: "oklch(0.4 0.1 165)",
   greenInsight: "oklch(0.96 0.025 165)",
-  // Amber (Improve First)
   amber:        "oklch(0.68 0.14 75)",
   amberInsight: "oklch(0.96 0.03 85)",
-  // Move On
   moveOn:       "oklch(0.52 0.03 25)",
   moveOnBg:     "oklch(0.95 0.008 25)",
 };
 
 const REC_STYLES = {
-  apply_now:     { btn: D.greenActive, insight: D.greenInsight, label: "Apply Now",      dot: D.greenActive,              dotLabel: "Strong match",    nextStep: "Update resume"       },
-  improve_first: { btn: D.amber,       insight: D.amberInsight, label: "Improve First",  dot: D.amber,                    dotLabel: "Worth improving", nextStep: "Build STAR stories"  },
-  move_on:       { btn: D.moveOn,      insight: D.moveOnBg,     label: "Lower Priority", dot: "oklch(0.72 0.005 250)",    dotLabel: "Lower priority",  nextStep: "Archive"             },
+  apply_now:     { btn: D.greenActive, insight: D.greenInsight, label: "Apply Now",      dot: D.greenActive,           dotLabel: "Strong match",    nextStep: "Update resume"      },
+  improve_first: { btn: D.amber,       insight: D.amberInsight, label: "Improve First",  dot: D.amber,                 dotLabel: "Worth improving", nextStep: "Build STAR stories" },
+  move_on:       { btn: D.moveOn,      insight: D.moveOnBg,     label: "Lower Priority", dot: "oklch(0.72 0.005 250)", dotLabel: "Lower priority",  nextStep: "Archive"            },
 };
 
 const TOOL_LINKS: Record<string, string> = {
@@ -82,6 +83,20 @@ const TOOL_LINKS: Record<string, string> = {
   interview:    "/career?cat=grow&intent=interview_preparation",
   cover_letter: "/career?cat=land&intent=cover_letter",
 };
+
+const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
+  saved:        { label: "Saved",        color: "oklch(0.5 0.01 250)",   bg: "oklch(0.95 0.005 250)"  },
+  applied:      { label: "Applied",      color: "oklch(0.45 0.12 250)",  bg: "oklch(0.94 0.03 250)"   },
+  interviewing: { label: "Interviewing", color: "oklch(0.5 0.14 165)",   bg: "oklch(0.94 0.03 165)"   },
+  offer:        { label: "Offer",        color: "oklch(0.45 0.14 145)",  bg: "oklch(0.93 0.04 145)"   },
+  rejected:     { label: "Rejected",     color: "oklch(0.5 0.03 25)",    bg: "oklch(0.95 0.008 25)"   },
+};
+
+const ALL_STATUSES: Status[] = ["saved", "applied", "interviewing", "offer", "rejected"];
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
+}
 
 function getA(job: JobItem): JobAnalysis | null {
   const a = job.analysis_result as JobAnalysis | null;
@@ -122,12 +137,12 @@ function TodaysFocusCard({ job, onStatusChange }: { job: JobItem; onStatusChange
         fetch("/api/career/profile/update-status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: job.job_id, source: job.source, status: "applied" }) });
       }}
       style={{ background: rec.btn, color: "#fff", fontWeight: 700, fontSize: 16, padding: "14px 26px", borderRadius: 10, textDecoration: "none", whiteSpace: "nowrap" }}>
-      Apply →
+      Apply
     </a>
   ) : a.recommendation === "improve_first" && a.action_tool ? (
     <Link href={TOOL_LINKS[a.action_tool] ?? "/career"}
       style={{ background: rec.btn, color: "#fff", fontWeight: 700, fontSize: 16, padding: "14px 26px", borderRadius: 10, textDecoration: "none", whiteSpace: "nowrap" }}>
-      Continue →
+      Continue
     </Link>
   ) : (
     <button onClick={() => { onStatusChange(job.id, "rejected"); fetch("/api/career/profile/update-status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: job.job_id, source: job.source, status: "rejected" }) }); }}
@@ -166,10 +181,14 @@ function JobListCard({ job, onRemove, onAnalysed, onStatusChange, hasResumes }: 
 }) {
   const [analysing, setAnalysing] = useState(false);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const a = getA(job);
   const rec = a ? REC_STYLES[a.recommendation] : null;
   const isExpired = !job.title && job.source === "portal";
   const noDescription = job.source === "portal" && job.has_description === false;
+  const statusMeta = STATUS_META[job.status] ?? STATUS_META.saved;
+  const hasPackage = !!(job.submitted_resume_text || job.cover_letter || job.interview_questions);
 
   async function analyse() {
     if (!hasResumes) { setError("Upload a resume in Career Profile first."); return; }
@@ -198,18 +217,24 @@ function JobListCard({ job, onRemove, onAnalysed, onStatusChange, hasResumes }: 
     } finally { setAnalysing(false); }
   }
 
+  async function changeStatus(s: Status) {
+    setShowStatusMenu(false);
+    onStatusChange(job.id, s);
+    fetch("/api/career/profile/update-status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: job.job_id, source: job.source, status: s }) });
+  }
+
   const cta = noDescription ? null : !isExpired && a && rec ? (
     a.recommendation === "apply_now" ? (
       <a href={job.apply_url ?? (job.source === "portal" ? `/jobs/${job.job_id}` : "#")}
         target={job.apply_url ? "_blank" : undefined} rel="noopener noreferrer"
-        onClick={() => { onStatusChange(job.id, "applied"); fetch("/api/career/profile/update-status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: job.job_id, source: job.source, status: "applied" }) }); }}
+        onClick={() => changeStatus("applied")}
         style={{ background: rec.btn, color: "#fff", fontWeight: 700, fontSize: 14.5, padding: "11px 20px", borderRadius: 9, textDecoration: "none", whiteSpace: "nowrap" }}>
-        Apply →
+        Apply
       </a>
     ) : a.recommendation === "improve_first" && a.action_tool ? (
       <Link href={TOOL_LINKS[a.action_tool] ?? "/career"}
         style={{ background: rec.btn, color: "#fff", fontWeight: 700, fontSize: 14.5, padding: "11px 20px", borderRadius: 9, textDecoration: "none", whiteSpace: "nowrap" }}>
-        Continue →
+        Continue
       </Link>
     ) : (
       <button onClick={remove}
@@ -224,79 +249,162 @@ function JobListCard({ job, onRemove, onAnalysed, onStatusChange, hasResumes }: 
     </button>
   ) : null;
 
-
+  const iqList = Array.isArray(job.interview_questions) ? job.interview_questions as string[] : null;
 
   return (
-    <div style={{ background: D.white, border: `1px solid ${D.border}`, borderRadius: 12, padding: "20px 22px", display: "flex", alignItems: "center", gap: 22 }}>
-      {/* Status indicator */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: 72, flexShrink: 0 }}>
-        {a && rec ? (
-          <>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: rec.dot }} />
-            <div style={{ fontSize: 10.5, color: D.textMuted, textAlign: "center", lineHeight: 1.3 }}>{rec.dotLabel}</div>
-          </>
-        ) : job._analysing ? (
-          <div style={{ fontSize: 11, color: D.green }}>…</div>
-        ) : (
-          <div style={{ width: 12, height: 12, borderRadius: "50%", background: D.border }} />
-        )}
-      </div>
+    <div style={{ background: D.white, border: `1px solid ${D.border}`, borderRadius: 12, overflow: "hidden" }}>
+      {/* Main row */}
+      <div style={{ padding: "20px 22px", display: "flex", alignItems: "center", gap: 22 }}>
+        {/* Fit indicator */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: 72, flexShrink: 0 }}>
+          {a && rec ? (
+            <>
+              <div style={{ width: 12, height: 12, borderRadius: "50%", background: rec.dot }} />
+              <div style={{ fontSize: 10.5, color: D.textMuted, textAlign: "center", lineHeight: 1.3 }}>{rec.dotLabel}</div>
+            </>
+          ) : job._analysing ? (
+            <div style={{ fontSize: 11, color: D.green }}>…</div>
+          ) : (
+            <div style={{ width: 12, height: 12, borderRadius: "50%", background: D.border }} />
+          )}
+        </div>
 
-      {/* Title + company */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: isExpired ? D.textMuted : D.text }}>{job.title ?? "Listing expired"}</div>
-        <div style={{ fontSize: 13.5, color: D.textSub, marginTop: 2 }}>{job.company}{job.location ? ` · ${job.location}` : ""}</div>
-        {job.source === "user" && <div style={{ fontSize: 10, color: D.textMuted, marginTop: 3, letterSpacing: "0.05em" }}>EXTERNAL</div>}
-      </div>
-
-      {/* Insight pill */}
-      <div style={{ flex: 1.6, minWidth: 0 }}>
-        {job._analysing ? (
-          <div style={{ background: "oklch(0.96 0.03 250)", borderRadius: 10, padding: "12px 16px", fontSize: 14, color: D.green }}>Analysing your fit…</div>
-        ) : a && rec ? (
-          <div style={{ background: rec.insight, borderRadius: 10, padding: "12px 16px" }}>
-            <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "oklch(0.25 0.01 250)", marginBottom: (a.recommendation === "apply_now" ? a.strengths : a.gaps).length > 0 ? 8 : 0 }}>
-              {a.recommendation_reason}
+        {/* Title + company + status badge */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: isExpired ? D.textMuted : D.text }}>{job.title ?? "Listing expired"}</div>
+          <div style={{ fontSize: 13.5, color: D.textSub, marginTop: 2 }}>{job.company}{job.location ? ` · ${job.location}` : ""}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+            {/* Status badge + menu */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowStatusMenu(p => !p)}
+                style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", color: statusMeta.color, background: statusMeta.bg, border: "none", borderRadius: 5, padding: "3px 9px", cursor: "pointer", fontFamily: "inherit" }}>
+                {statusMeta.label} ▾
+              </button>
+              {showStatusMenu && (
+                <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, background: D.white, border: `1px solid ${D.border}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 50, minWidth: 140 }}>
+                  {ALL_STATUSES.map(s => {
+                    const sm = STATUS_META[s];
+                    return (
+                      <button key={s} onClick={() => changeStatus(s)}
+                        style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 14px", fontSize: 13, fontWeight: job.status === s ? 700 : 400, color: job.status === s ? sm.color : D.textMid, background: job.status === s ? sm.bg : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                        {sm.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            {(a.recommendation === "apply_now" ? a.strengths : a.gaps).length > 0 && (
-              <ul style={{ margin: 0, padding: "0 0 0 16px" }}>
-                {(a.recommendation === "apply_now" ? a.strengths : a.gaps).slice(0, 3).map((b, i) => (
-                  <li key={i} style={{ fontSize: 12.5, color: "oklch(0.35 0.01 250)", marginBottom: 2, lineHeight: 1.4 }}>{b}</li>
-                ))}
-              </ul>
+            {job.applied_at && <span style={{ fontSize: 11, color: D.textMuted }}>Applied {fmtDate(job.applied_at)}</span>}
+            {job.source === "user" && <span style={{ fontSize: 10, color: D.textMuted, letterSpacing: "0.05em" }}>EXTERNAL</span>}
+          </div>
+        </div>
+
+        {/* Insight pill */}
+        <div style={{ flex: 1.6, minWidth: 0 }}>
+          {job._analysing ? (
+            <div style={{ background: "oklch(0.96 0.03 250)", borderRadius: 10, padding: "12px 16px", fontSize: 14, color: D.green }}>Analysing your fit…</div>
+          ) : a && rec ? (
+            <div style={{ background: rec.insight, borderRadius: 10, padding: "12px 16px" }}>
+              <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "oklch(0.25 0.01 250)", marginBottom: (a.recommendation === "apply_now" ? a.strengths : a.gaps).length > 0 ? 8 : 0 }}>
+                {a.recommendation_reason}
+              </div>
+              {(a.recommendation === "apply_now" ? a.strengths : a.gaps).length > 0 && (
+                <ul style={{ margin: 0, padding: "0 0 0 16px" }}>
+                  {(a.recommendation === "apply_now" ? a.strengths : a.gaps).slice(0, 3).map((b, i) => (
+                    <li key={i} style={{ fontSize: 12.5, color: "oklch(0.35 0.01 250)", marginBottom: 2, lineHeight: 1.4 }}>{b}</li>
+                  ))}
+                </ul>
+              )}
+              {a.hidden.length > 0 && a.recommendation !== "apply_now" && (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${rec.insight === D.moveOnBg ? "oklch(0.88 0.005 25)" : "oklch(0.88 0.01 85)"}`, fontSize: 12, color: D.textMuted }}>
+                  Your experience may not be fully represented. Add more resume versions in <Link href="/career/profile" style={{ color: D.textMid, fontWeight: 600 }}>Career Profile</Link> for a more accurate read.
+                </div>
+              )}
+            </div>
+          ) : noDescription ? (
+            <div style={{ background: "oklch(0.96 0.005 250)", borderRadius: 10, padding: "12px 16px", fontSize: 13.5, color: D.textMuted, lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 600, color: D.textMid, display: "block", marginBottom: 2 }}>Analysis unavailable</span>
+              We could not retrieve the job description. Revisit the posting or paste the description to enable AI analysis.
+            </div>
+          ) : !isExpired ? (
+            <div style={{ background: "oklch(0.96 0.005 250)", borderRadius: 10, padding: "12px 16px", fontSize: 14, color: D.textMuted }}>
+              {hasResumes ? "Not yet analysed." : "Upload a resume to analyse this role."}
+            </div>
+          ) : null}
+          {error && <div style={{ fontSize: 12, color: "#dc2626", marginTop: 6 }}>{error} <Link href="/career/profile" style={{ color: "#dc2626", fontWeight: 700 }}>Go to Career Profile</Link></div>}
+        </div>
+
+        {/* Action */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+          {rec && <div style={{ fontSize: 11.5, color: D.textMuted }}>{rec.nextStep}</div>}
+          {cta}
+          <div style={{ display: "flex", gap: 10 }}>
+            {hasPackage && (
+              <button onClick={() => setExpanded(p => !p)} style={{ fontSize: 11, color: D.green, fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontFamily: "inherit" }}>
+                {expanded ? "Hide package" : "View package"}
+              </button>
             )}
-            {a.hidden.length > 0 && a.recommendation !== "apply_now" && (
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${rec.insight === D.moveOnBg ? "oklch(0.88 0.005 25)" : "oklch(0.88 0.01 85)"}`, fontSize: 12, color: D.textMuted }}>
-                Your experience may not be fully represented. Add more resume versions in <Link href="/career/profile" style={{ color: D.textMid, fontWeight: 600 }}>Career Profile</Link> for a more accurate read.
+            {a && !analysing && (
+              <button onClick={reanalyse} style={{ fontSize: 11, color: D.textMuted, background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontFamily: "inherit" }}>Re-analyse</button>
+            )}
+            {a?.recommendation !== "move_on" && (
+              <button onClick={remove} style={{ fontSize: 11, color: D.textMuted, background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontFamily: "inherit" }}>Remove</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Application package — expands when user has been called for interview */}
+      {expanded && hasPackage && (
+        <div style={{ borderTop: `1px solid ${D.border}`, padding: "24px 22px", background: "oklch(0.985 0.003 250)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", color: D.textMuted, marginBottom: 16 }}>APPLICATION PACKAGE</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* Resume snapshot */}
+            {job.submitted_resume_text && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: D.textMid, marginBottom: 6 }}>
+                  Resume submitted{job.submitted_resume_name ? ` — ${job.submitted_resume_name}` : ""}
+                </div>
+                <pre style={{ fontSize: 12, color: D.textSub, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", background: D.white, border: `1px solid ${D.borderSoft}`, borderRadius: 8, padding: "14px 16px", maxHeight: 320, overflowY: "auto", margin: 0, fontFamily: "inherit" }}>
+                  {job.submitted_resume_text}
+                </pre>
+                <button onClick={() => navigator.clipboard.writeText(job.submitted_resume_text!).catch(() => {})}
+                  style={{ marginTop: 6, fontSize: 11, color: D.textMuted, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+                  Copy resume text
+                </button>
+              </div>
+            )}
+
+            {/* Cover letter / application message */}
+            {job.cover_letter && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: D.textMid, marginBottom: 6 }}>Application message / cover letter</div>
+                <pre style={{ fontSize: 12, color: D.textSub, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", background: D.white, border: `1px solid ${D.borderSoft}`, borderRadius: 8, padding: "14px 16px", maxHeight: 240, overflowY: "auto", margin: 0, fontFamily: "inherit" }}>
+                  {job.cover_letter}
+                </pre>
+                <button onClick={() => navigator.clipboard.writeText(job.cover_letter!).catch(() => {})}
+                  style={{ marginTop: 6, fontSize: 11, color: D.textMuted, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+                  Copy
+                </button>
+              </div>
+            )}
+
+            {/* Interview questions */}
+            {iqList && iqList.length > 0 && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: D.textMid, marginBottom: 8 }}>Likely interview questions</div>
+                <ol style={{ margin: 0, padding: "0 0 0 18px" }}>
+                  {iqList.map((q, i) => (
+                    <li key={i} style={{ fontSize: 13, color: D.textSub, lineHeight: 1.6, marginBottom: 6 }}>{q}</li>
+                  ))}
+                </ol>
               </div>
             )}
           </div>
-        ) : noDescription ? (
-          <div style={{ background: "oklch(0.96 0.005 250)", borderRadius: 10, padding: "12px 16px", fontSize: 13.5, color: D.textMuted, lineHeight: 1.5 }}>
-            <span style={{ fontWeight: 600, color: D.textMid, display: "block", marginBottom: 2 }}>Analysis unavailable</span>
-            We could not retrieve the job description. Revisit the posting or paste the description to enable AI analysis.
-          </div>
-        ) : !isExpired ? (
-          <div style={{ background: "oklch(0.96 0.005 250)", borderRadius: 10, padding: "12px 16px", fontSize: 14, color: D.textMuted }}>
-            {hasResumes ? "Not yet analysed." : "Upload a resume to analyse this role."}
-          </div>
-        ) : null}
-        {error && <div style={{ fontSize: 12, color: "#dc2626", marginTop: 6 }}>{error} <Link href="/career/profile" style={{ color: "#dc2626", fontWeight: 700 }}>Go to Career Profile</Link></div>}
-      </div>
-
-      {/* Action */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-        {rec && <div style={{ fontSize: 11.5, color: D.textMuted }}>{rec.nextStep}</div>}
-        {cta}
-        <div style={{ display: "flex", gap: 10 }}>
-          {a && !analysing && (
-            <button onClick={reanalyse} style={{ fontSize: 11, color: D.textMuted, background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontFamily: "inherit" }}>Re-analyse</button>
-          )}
-          {a?.recommendation !== "move_on" && (
-            <button onClick={remove} style={{ fontSize: 11, color: D.textMuted, background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontFamily: "inherit" }}>Remove</button>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -387,25 +495,34 @@ export default function JobsClient({ user, profile, allJobs, hasResumes }: Props
   const [jobs, setJobs] = useState(allJobs);
   const [filter, setFilter] = useState<Filter>("all");
   const [showAdd, setShowAdd] = useState(false);
+  const [search, setSearch] = useState("");
 
   function handleRemove(id: string) { setJobs(p => p.filter(j => j.id !== id)); }
   function handleAnalysed(id: string, a: JobAnalysis) { setJobs(p => p.map(j => j.id === id ? { ...j, analysis_result: a, _analysing: false } : j)); }
   function handleStatusChange(id: string, s: Status) { setJobs(p => p.map(j => j.id === id ? { ...j, status: s } : j)); }
   function handleAdded(job: JobItem) { setJobs(p => { const e = p.find(j => j.id === job.id); return e ? p.map(j => j.id === job.id ? job : j) : [job, ...p]; }); }
 
-  const active        = jobs.filter(j => j.status === "saved");
-  const applyNow      = active.filter(j => getA(j)?.recommendation === "apply_now");
-  const improveFirst  = active.filter(j => getA(j)?.recommendation === "improve_first");
-  const moveOnJobs    = active.filter(j => getA(j)?.recommendation === "move_on");
-  const unanalysed    = active.filter(j => !getA(j));
+  const q = search.toLowerCase().trim();
+  const searchFiltered = q
+    ? jobs.filter(j =>
+        (j.company ?? "").toLowerCase().includes(q) ||
+        (j.title ?? "").toLowerCase().includes(q)
+      )
+    : null;
+
+  const active       = jobs.filter(j => j.status === "saved");
+  const applyNow     = active.filter(j => getA(j)?.recommendation === "apply_now");
+  const improveFirst = active.filter(j => getA(j)?.recommendation === "improve_first");
+  const moveOnJobs   = active.filter(j => getA(j)?.recommendation === "move_on");
 
   const todayJob = applyNow[0] ?? improveFirst[0] ?? null;
 
-  const visibleJobs =
+  const visibleJobs = searchFiltered ?? (
     filter === "apply_now"     ? applyNow :
     filter === "improve_first" ? improveFirst :
     filter === "move_on"       ? moveOnJobs :
-    active;
+    active
+  );
 
   const counts = { all: active.length, apply_now: applyNow.length, improve_first: improveFirst.length, move_on: moveOnJobs.length };
 
@@ -425,11 +542,22 @@ export default function JobsClient({ user, profile, allJobs, hasResumes }: Props
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: D.pageBg, color: D.text, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" }}>
-      <AppSidebar activeHref="/workspace/jobs" profile={profile} user={user} />
+      <AppSidebar activeHref="/job-plans" profile={profile} user={user} />
 
       {showAdd && <AddJobModal onClose={() => setShowAdd(false)} onAdded={handleAdded} hasResumes={hasResumes} />}
 
       <div style={{ flex: 1, padding: "32px 40px", maxWidth: 1400 }}>
+
+        {/* Search */}
+        <div style={{ marginBottom: 20 }}>
+          <input
+            type="search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by company or job title…"
+            style={{ width: "100%", maxWidth: 420, padding: "10px 16px", borderRadius: 9, border: `1px solid ${D.border}`, fontSize: 14, color: D.text, background: D.white, fontFamily: "inherit", boxSizing: "border-box", outline: "none" }}
+          />
+        </div>
 
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
@@ -449,14 +577,14 @@ export default function JobsClient({ user, profile, allJobs, hasResumes }: Props
         </div>
 
         {/* What to do today */}
-        {(applyNow.length > 0 || improveFirst.length > 0 || moveOnJobs.length > 0) && (
+        {!searchFiltered && (applyNow.length > 0 || improveFirst.length > 0 || moveOnJobs.length > 0) && (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: D.textMuted, marginBottom: 10 }}>WHAT TO DO TODAY</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 32 }}>
               {([
-                { count: applyNow.length,     label: "Ready to Apply",   sub: "Strong fit, act now",          key: "apply_now"     },
-                { count: improveFirst.length,  label: "Improve First",    sub: "Close a gap before applying",  key: "improve_first" },
-                { count: moveOnJobs.length,    label: "Lower Priority",   sub: "Focus on stronger roles",      key: "move_on"       },
+                { count: applyNow.length,    label: "Ready to Apply",  sub: "Strong fit, act now",         key: "apply_now"     },
+                { count: improveFirst.length, label: "Improve First",   sub: "Close a gap before applying", key: "improve_first" },
+                { count: moveOnJobs.length,   label: "Lower Priority",  sub: "Focus on stronger roles",     key: "move_on"       },
               ] as const).map(s => (
                 <div key={s.key} style={{ background: D.white, border: `1px solid ${D.border}`, borderRadius: 12, padding: "16px 18px" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 2 }}>
@@ -471,7 +599,7 @@ export default function JobsClient({ user, profile, allJobs, hasResumes }: Props
         )}
 
         {/* Today's Focus */}
-        {todayJob && <TodaysFocusCard job={todayJob} onStatusChange={handleStatusChange} />}
+        {!searchFiltered && todayJob && <TodaysFocusCard job={todayJob} onStatusChange={handleStatusChange} />}
 
         {/* No resumes */}
         {!hasResumes && jobs.length > 0 && (
@@ -481,17 +609,21 @@ export default function JobsClient({ user, profile, allJobs, hasResumes }: Props
           </div>
         )}
 
-        {/* Job Plans list */}
+        {/* Job list */}
         {jobs.length > 0 && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-              <div style={{ fontSize: 19, fontWeight: 700 }}>Your Job Plans</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button style={filterBtnStyle("all")}           onClick={() => setFilter("all")}>All ({counts.all})</button>
-                <button style={filterBtnStyle("apply_now")}     onClick={() => setFilter("apply_now")}>Apply Now ({counts.apply_now})</button>
-                <button style={filterBtnStyle("improve_first")} onClick={() => setFilter("improve_first")}>Improve First ({counts.improve_first})</button>
-                <button style={filterBtnStyle("move_on")}       onClick={() => setFilter("move_on")}>Lower Priority ({counts.move_on})</button>
+              <div style={{ fontSize: 19, fontWeight: 700 }}>
+                {searchFiltered ? `${searchFiltered.length} result${searchFiltered.length !== 1 ? "s" : ""} for "${search}"` : "Your Job Plans"}
               </div>
+              {!searchFiltered && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={filterBtnStyle("all")}           onClick={() => setFilter("all")}>All ({counts.all})</button>
+                  <button style={filterBtnStyle("apply_now")}     onClick={() => setFilter("apply_now")}>Apply Now ({counts.apply_now})</button>
+                  <button style={filterBtnStyle("improve_first")} onClick={() => setFilter("improve_first")}>Improve First ({counts.improve_first})</button>
+                  <button style={filterBtnStyle("move_on")}       onClick={() => setFilter("move_on")}>Lower Priority ({counts.move_on})</button>
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
               {visibleJobs.map(j => (
