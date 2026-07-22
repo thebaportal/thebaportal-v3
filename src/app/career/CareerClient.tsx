@@ -2755,6 +2755,10 @@ function JDAnalyzerTool({ intentHeading, onBack, returningContext }: {
       updated[currentQ] = { question: q.question, answer };
       setQaAnswers(updated);
       setCurrentAnswer("");
+      // Save to vault immediately — answer is preserved even if package generation fails
+      if (answer?.trim()) {
+        fetch("/api/career/profile/vault", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q.question, answer, jdText }) }).catch(() => {});
+      }
       if (isLast) {
         buildPackage(updated);
       } else {

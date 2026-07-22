@@ -1,7 +1,16 @@
 import { getCareerUser } from "@/lib/career-auth";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 20;
+
+function admin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 function parseJSON(raw: string) {
   const match = raw.match(/\{[\s\S]*\}/);
@@ -16,6 +25,24 @@ export async function POST(req: Request) {
   const { jdText, resumeText } = await req.json();
   if (!jdText?.trim() || !resumeText?.trim()) return Response.json({ questions: [] });
 
+  // Fetch the vault — skip quietly if it fails
+  let vaultBlock = "";
+  try {
+    const { data: entries } = await admin()
+      .from("user_experience_vault")
+      .select("question, answer")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (entries && entries.length > 0) {
+      vaultBlock = `\n\nCANDIDATE EXPERIENCE VAULT (confirmed answers from previous applications):\n${
+        entries.map((e: { question: string; answer: string }, i: number) =>
+          `[Vault ${i + 1}]\nQ: ${e.question}\nA: ${e.answer.slice(0, 350)}`
+        ).join("\n\n")
+      }\n\nDo NOT ask about anything already covered by the vault above. Only ask about genuine gaps the vault does not answer.`;
+    }
+  } catch { /* vault is optional */ }
+
   const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const prompt = `You are reviewing a job application to find specific gaps where the candidate's resume does not clearly show required experience, but where their career background suggests the experience may exist and simply was not included or described clearly.
@@ -24,7 +51,7 @@ JOB DESCRIPTION:
 ${(jdText as string).slice(0, 6000)}
 
 CANDIDATE RESUME:
-${(resumeText as string).slice(0, 6000)}
+${(resumeText as string).slice(0, 6000)}${vaultBlock}
 
 TASK: Identify up to 5 questions to ask the candidate before building their application. Each question must:
 - Address a requirement that materially affects whether this candidate gets an interview

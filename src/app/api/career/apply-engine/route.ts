@@ -1,5 +1,14 @@
 import { getCareerUser } from "@/lib/career-auth";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
+
+function admin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 const GROUNDING_RULE = `ABSOLUTE RULE: Every word you write must be traceable to the resume or the job description. Preserve facts. Improve how they are communicated. Do not invent experience. Do not add credentials, degrees, certifications, tools, or outcomes not in the resume. A claim that is not grounded in the source puts false information in someone's mouth during a real interview.`;
 
@@ -29,6 +38,24 @@ export async function POST(req: Request) {
   const resume = (resumeText as string).slice(0, 8000);
   const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  // Fetch the vault — provides context from previous applications
+  let vaultBlock = "";
+  try {
+    const { data: entries } = await admin()
+      .from("user_experience_vault")
+      .select("question, answer")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(25);
+    if (entries && entries.length > 0) {
+      vaultBlock = `\n\nCANDIDATE EXPERIENCE VAULT (confirmed answers from previous applications — treat as if the candidate stated these directly):\n${
+        entries.map((e: { question: string; answer: string }, i: number) =>
+          `[Vault ${i + 1}]\nQ: ${e.question}\nA: ${e.answer.slice(0, 450)}`
+        ).join("\n\n")
+      }\n\nUse vault evidence to improve bullets, summary, and positioning where it is relevant to this role. Do not fabricate or extend beyond what the candidate said.`;
+    }
+  } catch { /* vault is optional — proceed without it */ }
+
   const answeredQA = (qaContext ?? []).filter((qa: { answer: string | null }) => qa.answer?.trim());
   const evidenceBlock = answeredQA.length
     ? `\n\nCANDIDATE-PROVIDED EVIDENCE (from pre-generation interview — must be used):\n${
@@ -38,7 +65,7 @@ export async function POST(req: Request) {
       }\n\nCRITICAL: Every evidence item above must produce a specific, visible change in at least one output. Map each answer directly to resume bullets, cover letter content, or interview preparation. Do not ignore evidence that was collected.`
     : "";
 
-  const sharedContext = `JOB DESCRIPTION:\n${jd}\n\nCANDIDATE RESUME:\n${resume}${evidenceBlock}`;
+  const sharedContext = `JOB DESCRIPTION:\n${jd}\n\nCANDIDATE RESUME:\n${resume}${vaultBlock}${evidenceBlock}`;
 
   // Two parallel calls — resume package + supporting materials
   const callA = ai.messages.create({
