@@ -36,6 +36,14 @@ Do NOT ask about experience the resume already clearly demonstrates.
 Do NOT ask questions where the answer would not change what gets written.
 Return fewer than 5 if fewer are needed. Return an empty array if the resume already covers the key requirements well enough that no questions would materially improve the application.
 
+TONE — each question must sound like a recruiter asking in a conversation, not a formal document:
+- Short sentences. One question per entry. Plain everyday language.
+- No hyphens, no "or has your role been primarily", no "and if so", no legal phrasing.
+- Bad: "Have you administered contracts that included holdback provisions under a specific provincial construction lien framework, and if so, which province?"
+- Good: "Have you dealt with construction holdbacks before? Which province?"
+- Bad: "Did any of the capital project packages you contracted involve civil, mechanical, or electrical construction scopes?"
+- Good: "What types of construction work were you buying at Suncor — civil, mechanical, electrical?"
+
 Return ONLY valid JSON:
 {
   "questions": [
