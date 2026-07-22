@@ -2458,14 +2458,35 @@ function CoverLetterTool({ fullName, onNavigate, intentHeading, onBack }: {
 
 // ── Apply Engine helpers ──────────────────────────────────────────────────────
 
-function CopyBlock({ label, text, mono }: { label: string; text: string; mono?: boolean }) {
+async function downloadDocx(text: string, type: "resume" | "cover_letter", fileName: string) {
+  try {
+    const res = await fetch("/api/career/generate-docx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, type, fileName }) });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch { /* ignore */ }
+}
+
+function CopyBlock({ label, text, mono, onDownload }: { label: string; text: string; mono?: boolean; onDownload?: () => void }) {
   const [copied, setCopied] = useState(false);
   const copy = () => { navigator.clipboard.writeText(text).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
         <div style={{ fontSize: "10px", fontWeight: 700, color: C.faded, letterSpacing: "0.1em" }}>{label}</div>
-        <button onClick={copy} style={{ fontSize: "12px", fontWeight: 600, color: C.teal, background: C.tealBg, border: `1px solid ${C.tealBorder}`, borderRadius: "6px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>{copied ? "Copied" : "Copy"}</button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {onDownload && (
+            <button onClick={onDownload} style={{ fontSize: "12px", fontWeight: 600, color: C.muted, background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "6px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+              Download .docx
+            </button>
+          )}
+          <button onClick={copy} style={{ fontSize: "12px", fontWeight: 600, color: C.teal, background: C.tealBg, border: `1px solid ${C.tealBorder}`, borderRadius: "6px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>{copied ? "Copied" : "Copy"}</button>
+        </div>
       </div>
       <pre style={{ fontSize: "13px", color: C.textMid, lineHeight: 1.65, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, fontFamily: mono ? "JetBrains Mono, monospace" : "inherit", maxHeight: "520px", overflowY: "auto" }}>{text}</pre>
     </div>
@@ -2893,11 +2914,13 @@ function JDAnalyzerTool({ intentHeading, onBack, returningContext }: {
           <div style={{ background: C.panel, border: `1px solid ${C.borderSoft}`, borderTop: "none", borderRadius: "0 0 14px 14px", padding: "24px" }}>
 
             {activeTab === "resume" && (
-              <CopyBlock label="TAILORED RESUME" text={pkg.tailoredResume} mono />
+              <CopyBlock label="TAILORED RESUME" text={pkg.tailoredResume} mono
+                onDownload={() => downloadDocx(pkg.tailoredResume, "resume", `${(pkg.company || "resume").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-resume.docx`)} />
             )}
 
             {activeTab === "cover" && (
-              <CopyBlock label="COVER LETTER" text={pkg.coverLetter} />
+              <CopyBlock label="COVER LETTER" text={pkg.coverLetter}
+                onDownload={() => downloadDocx(pkg.coverLetter, "cover_letter", `${(pkg.company || "cover").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-cover-letter.docx`)} />
             )}
 
             {activeTab === "answers" && (
