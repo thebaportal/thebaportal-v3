@@ -43,16 +43,24 @@ export async function POST(req: Request) {
   try {
     const { data: entries } = await admin()
       .from("user_experience_vault")
-      .select("question, answer")
+      .select("question, answer, tags")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(25);
+      .limit(30);
     if (entries && entries.length > 0) {
-      vaultBlock = `\n\nCANDIDATE EXPERIENCE VAULT (confirmed answers from previous applications — treat as if the candidate stated these directly):\n${
-        entries.map((e: { question: string; answer: string }, i: number) =>
-          `[Vault ${i + 1}]\nQ: ${e.question}\nA: ${e.answer.slice(0, 450)}`
-        ).join("\n\n")
-      }\n\nUse vault evidence to improve bullets, summary, and positioning where it is relevant to this role. Do not fabricate or extend beyond what the candidate said.`;
+      type VE = { question: string; answer: string; tags?: Record<string, string> | null };
+      const all = entries as VE[];
+      const regular = all.filter(e => e.tags?.type !== "tailored_resume").slice(0, 20);
+      const previous = all.filter(e => e.tags?.type === "tailored_resume");
+
+      if (regular.length > 0) {
+        vaultBlock += `\n\nCANDIDATE EXPERIENCE VAULT (confirmed answers — treat as if the candidate said this directly):\n${
+          regular.map((e, i) => `[Vault ${i + 1}]\nQ: ${e.question}\nA: ${e.answer.slice(0, 450)}`).join("\n\n")
+        }\n\nUse vault evidence to improve bullets, summary, and positioning where relevant. Do not fabricate or extend beyond what the candidate said.`;
+      }
+      if (previous.length > 0) {
+        vaultBlock += `\n\nPREVIOUSLY TAILORED RESUME (already optimised for a similar role — use this as your starting point, not the original resume above):\n${previous[0].answer.slice(0, 4000)}\n\nBase your rewrite on this tailored version. Preserve what is already strong. Only adjust for new JD-specific requirements or vault evidence not yet reflected in it.`;
+      }
     }
   } catch { /* vault is optional — proceed without it */ }
 
@@ -87,6 +95,7 @@ TASK — REWRITE THE COMPLETE RESUME:
 - Remove bullets that actively hurt this application. Consolidate duplicates.
 - Rewrite the professional summary only if the current one is weak or misaligned for this role. If it is already strong, keep it.
 - Never add credentials, tools, methodologies, or outcomes not in the resume.
+- SKILLS SECTION: Only include tools this specific JD would expect. Remove anything irrelevant — for contracts and procurement roles that means dropping data science and programming tools (Python, R, SQL, Tableau, Anaplan, cloud platforms) unless the JD explicitly asks for them. Group remaining tools into 2-3 concise categories. A focused skills section is stronger than a complete one.
 
 Then:
 - List 3-5 specific changes made (what was improved, in plain language)
@@ -162,6 +171,16 @@ Return ONLY valid JSON:
     const rawB = resB.content[0].type === "text" ? resB.content[0].text : "";
     const a = parseJSON(rawA);
     const b = parseJSON(rawB);
+
+    // Save tailored resume to vault — enables silent re-runs with zero questions
+    if (a.tailoredResume && a.jobTitle) {
+      admin().from("user_experience_vault").insert({
+        user_id: user.id,
+        question: `[TAILORED_RESUME] ${a.jobTitle} at ${a.company ?? "Unknown"}`,
+        answer: a.tailoredResume,
+        tags: { type: "tailored_resume", jobTitle: a.jobTitle ?? "", company: a.company ?? "" },
+      }).then().catch(() => {});
+    }
 
     return Response.json({
       jobTitle: a.jobTitle ?? "Role",

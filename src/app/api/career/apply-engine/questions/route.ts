@@ -30,16 +30,24 @@ export async function POST(req: Request) {
   try {
     const { data: entries } = await admin()
       .from("user_experience_vault")
-      .select("question, answer")
+      .select("question, answer, tags")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(25);
     if (entries && entries.length > 0) {
-      vaultBlock = `\n\nCANDIDATE EXPERIENCE VAULT (confirmed answers from previous applications):\n${
-        entries.map((e: { question: string; answer: string }, i: number) =>
-          `[Vault ${i + 1}]\nQ: ${e.question}\nA: ${e.answer.slice(0, 350)}`
-        ).join("\n\n")
-      }\n\nDo NOT ask about anything already covered by the vault above. Only ask about genuine gaps the vault does not answer.`;
+      type VE = { question: string; answer: string; tags?: Record<string, string> | null };
+      const all = entries as VE[];
+      const regular = all.filter(e => e.tags?.type !== "tailored_resume").slice(0, 15);
+      const previous = all.filter(e => e.tags?.type === "tailored_resume");
+
+      if (regular.length > 0) {
+        vaultBlock += `\n\nCANDIDATE EXPERIENCE VAULT (confirmed evidence — each entry is a fully resolved gap):\n${
+          regular.map((e, i) => `[Vault ${i + 1}]\nQ: ${e.question}\nA: ${e.answer.slice(0, 350)}`).join("\n\n")
+        }\n\nFor every question you consider asking: check whether a vault entry already addresses it. If yes, that gap is resolved — drop the question. Default to skipping. Only include a question if the gap has zero vault coverage and the answer would materially change the output.`;
+      }
+      if (previous.length > 0) {
+        vaultBlock += `\n\nPREVIOUSLY TAILORED RESUME (this candidate already completed this process for a similar role):\n${previous[0].answer.slice(0, 2500)}\n\nIf this JD requires substantially the same experience as the role above, return an empty questions array immediately. Only generate questions for requirements this tailored resume genuinely does not address.`;
+      }
     }
   } catch { /* vault is optional */ }
 
@@ -61,7 +69,9 @@ TASK: Identify up to 5 questions to ask the candidate before building their appl
 
 Do NOT ask about experience the resume already clearly demonstrates.
 Do NOT ask questions where the answer would not change what gets written.
-Return fewer than 5 if fewer are needed. Return an empty array if the resume already covers the key requirements well enough that no questions would materially improve the application.
+Do NOT re-ask anything already answered by the vault or covered by the previous tailored resume.
+Default to fewer questions, not more. When in doubt, skip the question.
+Return an empty array if the vault and previous resume together cover all material gaps for this role.
 
 TONE — each question must sound like a recruiter asking in a conversation, not a formal document:
 - Short sentences. One question per entry. Plain everyday language.
