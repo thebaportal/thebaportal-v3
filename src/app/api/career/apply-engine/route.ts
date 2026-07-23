@@ -96,6 +96,7 @@ TASK — REWRITE THE COMPLETE RESUME:
 - Rewrite the professional summary only if the current one is weak or misaligned for this role. If it is already strong, keep it.
 - Never add credentials, tools, methodologies, or outcomes not in the resume.
 - SKILLS SECTION: Only include tools this specific JD would expect. Remove anything irrelevant — for contracts and procurement roles that means dropping data science and programming tools (Python, R, SQL, Tableau, Anaplan, cloud platforms) unless the JD explicitly asks for them. Group remaining tools into 2-3 concise categories. A focused skills section is stronger than a complete one.
+- VERB TENSE: For current roles where the end date is "Present" or the role is clearly active, write bullets in present tense (Manage, Administer, Lead). For all past roles use past tense (Managed, Administered, Led). Never use past tense for an active role.
 
 Then:
 - List 3-5 specific changes made (what was improved, in plain language)
