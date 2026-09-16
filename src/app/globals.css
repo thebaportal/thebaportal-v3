@@ -38,6 +38,19 @@
     --border:       rgba(255,255,255,0.07);
     --border-mid:   rgba(255,255,255,0.11);
 
+    /* Secondary dark scale — previously injected ad-hoc into document.head by
+       individual pages (Workspace, Template Studio, Decision Intelligence),
+       which meant other pages only rendered correctly if one of those had
+       already been visited first in the same browser session. Made real and
+       global with the same values so every consumer renders consistently. */
+    --bg-1: #0d0d12;
+    --bg-2: #111117;
+    --bg-3: #16161e;
+    --t1:   #f2f2f8;
+    --t2:   #9090a8;
+    --t3:   #505068;
+    --t4:   #2a2a38;
+
     /* ── Light content surfaces (dashboard, career suite, any light panel) ── */
     --lc-bg:           #f1f5f9;
     --lc-surface:      #ffffff;
@@ -71,6 +84,14 @@
     --lc-blue:          #0284c7;
     --lc-blue-bg:       rgba(2,132,199,0.1);
     --lc-blue-border:   rgba(2,132,199,0.2);
+
+    /* Shared, theme-agnostic tokens — safe on both dark and light surfaces */
+    --font-display: 'Inter', 'Open Sans', sans-serif;
+    --font-body:    'Open Sans', sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+    --radius-sm:    10px;
+    --radius:       16px;
+    --radius-lg:    22px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }

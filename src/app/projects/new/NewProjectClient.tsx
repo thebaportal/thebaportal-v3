@@ -69,18 +69,18 @@ export default function NewProjectClient({ user, profile, organizations }: Props
   }
 
   const inputStyle = {
-    width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10,
-    padding: "11px 14px", fontSize: 14, color: "var(--t1)", outline: "none", fontFamily: "var(--font-body)",
+    width: "100%", background: "var(--lc-faint)", border: "1px solid var(--lc-border)", borderRadius: 10,
+    padding: "11px 14px", fontSize: 14, color: "var(--lc-text-1)", outline: "none", fontFamily: "var(--font-body)",
     transition: "border-color .15s",
   };
 
   const labelStyle = {
-    display: "block" as const, fontSize: 12.5, fontWeight: 600, color: "var(--t2)",
+    display: "block" as const, fontSize: 12.5, fontWeight: 600, color: "var(--lc-text-2)",
     marginBottom: 6, letterSpacing: ".01em",
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--lc-bg)" }}>
       <AppSidebar activeHref="/projects" profile={profile} user={user} />
 
       <main style={{ flex: 1, overflowY: "auto" }}>
@@ -88,26 +88,26 @@ export default function NewProjectClient({ user, profile, organizations }: Props
 
           {/* Back */}
           <button onClick={() => router.push("/projects")}
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 32, transition: "color .15s" }}
-            onMouseEnter={e => e.currentTarget.style.color = "var(--t2)"}
-            onMouseLeave={e => e.currentTarget.style.color = "var(--t3)"}
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--lc-text-3)", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 32, transition: "color .15s" }}
+            onMouseEnter={e => e.currentTarget.style.color = "var(--lc-text-2)"}
+            onMouseLeave={e => e.currentTarget.style.color = "var(--lc-text-3)"}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to projects
           </button>
 
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.03em", marginBottom: 6 }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.03em", marginBottom: 6 }}>
             New project
           </h1>
-          <p style={{ fontSize: 14, color: "var(--t3)", lineHeight: 1.6, marginBottom: 36 }}>
+          <p style={{ fontSize: 14, color: "var(--lc-text-3)", lineHeight: 1.6, marginBottom: 36 }}>
             Describe your problem once. Every tool you run in this project will know the context automatically.
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
             {/* Organisation */}
-            <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "20px 22px" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--t3)", letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 14 }}>
+            <div style={{ background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: "var(--radius)", padding: "20px 22px" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--lc-text-3)", letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 14 }}>
                 Organisation
               </div>
 
@@ -115,7 +115,7 @@ export default function NewProjectClient({ user, profile, organizations }: Props
                 <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                   {(["existing", "new"] as const).map(mode => (
                     <button key={mode} onClick={() => setOrgMode(mode)}
-                      style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${orgMode === mode ? "rgba(31,191,159,.3)" : "var(--border)"}`, background: orgMode === mode ? "rgba(31,191,159,.08)" : "none", color: orgMode === mode ? "var(--teal)" : "var(--t3)", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .15s" }}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${orgMode === mode ? "rgba(31,191,159,.3)" : "var(--lc-border)"}`, background: orgMode === mode ? "rgba(31,191,159,.08)" : "none", color: orgMode === mode ? "var(--teal)" : "var(--lc-text-3)", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .15s" }}
                     >
                       {mode === "existing" ? "Use existing" : "Create new"}
                     </button>
@@ -146,7 +146,7 @@ export default function NewProjectClient({ user, profile, organizations }: Props
                     placeholder="e.g. First Bank Nigeria, Suncor Energy, ACME Corp"
                     style={inputStyle}
                     onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"}
-                    onBlur={e => e.target.style.borderColor = "var(--border)"}
+                    onBlur={e => e.target.style.borderColor = "var(--lc-border)"}
                   />
                 </div>
               )}
@@ -159,7 +159,7 @@ export default function NewProjectClient({ user, profile, organizations }: Props
                 placeholder="e.g. Customer Onboarding Transformation, CEMS Obsolescence Review"
                 style={inputStyle}
                 onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"}
-                onBlur={e => e.target.style.borderColor = "var(--border)"}
+                onBlur={e => e.target.style.borderColor = "var(--lc-border)"}
               />
             </div>
 
@@ -171,9 +171,9 @@ export default function NewProjectClient({ user, profile, organizations }: Props
                 rows={4}
                 style={{ ...inputStyle, resize: "none", lineHeight: 1.65 }}
                 onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"}
-                onBlur={e => e.target.style.borderColor = "var(--border)"}
+                onBlur={e => e.target.style.borderColor = "var(--lc-border)"}
               />
-              <div style={{ fontSize: 12, color: "var(--t4)", marginTop: 5 }}>
+              <div style={{ fontSize: 12, color: "var(--lc-text-4)", marginTop: 5 }}>
                 The more specific you are here, the better every tool performs.
               </div>
             </div>
@@ -184,15 +184,15 @@ export default function NewProjectClient({ user, profile, organizations }: Props
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {METHODOLOGIES.map(m => (
                   <label key={m.id}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: methodology === m.id ? "rgba(31,191,159,.06)" : "var(--bg-2)", border: `1px solid ${methodology === m.id ? "rgba(31,191,159,.25)" : "var(--border)"}`, borderRadius: 10, cursor: "pointer", transition: "all .15s" }}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: methodology === m.id ? "rgba(31,191,159,.06)" : "var(--lc-faint)", border: `1px solid ${methodology === m.id ? "rgba(31,191,159,.25)" : "var(--lc-border)"}`, borderRadius: 10, cursor: "pointer", transition: "all .15s" }}
                   >
-                    <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${methodology === m.id ? "var(--teal)" : "var(--t4)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .15s" }}>
+                    <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${methodology === m.id ? "var(--teal)" : "var(--lc-text-4)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .15s" }}>
                       {methodology === m.id && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--teal)" }} />}
                     </div>
                     <input type="radio" name="methodology" value={m.id} checked={methodology === m.id} onChange={() => setMethodology(m.id)} style={{ display: "none" }} />
                     <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--t1)", marginBottom: 2 }}>{m.label}</div>
-                      <div style={{ fontSize: 12, color: "var(--t3)" }}>{m.desc}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--lc-text-1)", marginBottom: 2 }}>{m.label}</div>
+                      <div style={{ fontSize: 12, color: "var(--lc-text-3)" }}>{m.desc}</div>
                     </div>
                   </label>
                 ))}
@@ -205,7 +205,7 @@ export default function NewProjectClient({ user, profile, organizations }: Props
                 <label style={labelStyle}>Industry</label>
                 <select value={industry} onChange={e => setIndustry(e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}
                   onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"}
-                  onBlur={e => e.target.style.borderColor = "var(--border)"}
+                  onBlur={e => e.target.style.borderColor = "var(--lc-border)"}
                 >
                   <option value="">Select industry</option>
                   {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
@@ -215,7 +215,7 @@ export default function NewProjectClient({ user, profile, organizations }: Props
                 <label style={labelStyle}>Primary country</label>
                 <select value={country} onChange={e => setCountry(e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}
                   onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"}
-                  onBlur={e => e.target.style.borderColor = "var(--border)"}
+                  onBlur={e => e.target.style.borderColor = "var(--lc-border)"}
                 >
                   <option value="">Select country</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -225,13 +225,13 @@ export default function NewProjectClient({ user, profile, organizations }: Props
 
             {/* Additional context */}
             <div>
-              <label style={labelStyle}>Additional context <span style={{ fontWeight: 400, color: "var(--t4)" }}>(optional)</span></label>
+              <label style={labelStyle}>Additional context <span style={{ fontWeight: 400, color: "var(--lc-text-4)" }}>(optional)</span></label>
               <textarea value={context} onChange={e => setContext(e.target.value)}
                 placeholder="Any other context the tools should know — stakeholder constraints, existing systems, regulatory context, previous decisions."
                 rows={3}
                 style={{ ...inputStyle, resize: "none", lineHeight: 1.65 }}
                 onFocus={e => e.target.style.borderColor = "rgba(31,191,159,.4)"}
-                onBlur={e => e.target.style.borderColor = "var(--border)"}
+                onBlur={e => e.target.style.borderColor = "var(--lc-border)"}
               />
             </div>
 

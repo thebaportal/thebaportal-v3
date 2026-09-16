@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 
@@ -45,21 +46,47 @@ function fmtDate(iso: string) {
 
 export default function ProjectsClient({ user, profile, projects, organizations }: Props) {
   const router = useRouter();
+  const [upgradeBanner, setUpgradeBanner] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgrade") !== "success" || !params.get("session_id")) return;
+    fetch("/api/stripe/verify-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: params.get("session_id") }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setUpgradeBanner(true);
+          window.history.replaceState({}, "", "/projects");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--lc-bg)" }}>
       <AppSidebar activeHref="/projects" profile={profile} user={user} />
 
       <main style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 32px" }}>
 
+          {upgradeBanner && (
+            <div style={{ marginBottom: 24, padding: "14px 20px", background: "var(--lc-green-bg)", border: "1px solid var(--lc-green-border)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--lc-green)" }}>You are now on Pro. All tools are unlocked.</span>
+              <button onClick={() => setUpgradeBanner(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--lc-text-5)", fontSize: 18, lineHeight: 1 }}>×</button>
+            </div>
+          )}
+
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 40 }}>
             <div>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.03em", marginBottom: 6 }}>
+              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.03em", marginBottom: 6 }}>
                 My Projects
               </h1>
-              <p style={{ fontSize: 14, color: "var(--t3)", lineHeight: 1.6 }}>
+              <p style={{ fontSize: 14, color: "var(--lc-text-3)", lineHeight: 1.6 }}>
                 {projects.length > 0
                   ? `${projects.length} project${projects.length !== 1 ? "s" : ""} across ${organizations.length} organisation${organizations.length !== 1 ? "s" : ""}`
                   : "Your work lives here. Create your first project to get started."}
@@ -78,14 +105,14 @@ export default function ProjectsClient({ user, profile, projects, organizations 
 
           {/* Empty state */}
           {projects.length === 0 && (
-            <div style={{ textAlign: "center", padding: "80px 32px", background: "var(--bg-1)", border: "1px dashed rgba(255,255,255,.08)", borderRadius: "var(--radius-lg)" }}>
+            <div style={{ textAlign: "center", padding: "80px 32px", background: "var(--lc-surface)", border: "1px dashed var(--lc-border)", borderRadius: "var(--radius-lg)" }}>
               <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(31,191,159,.08)", border: "1px solid rgba(31,191,159,.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
               </div>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--t1)", marginBottom: 8 }}>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--lc-text-1)", marginBottom: 8 }}>
                 Start your first project
               </h2>
-              <p style={{ fontSize: 14, color: "var(--t3)", lineHeight: 1.65, maxWidth: 400, margin: "0 auto 28px" }}>
+              <p style={{ fontSize: 14, color: "var(--lc-text-3)", lineHeight: 1.65, maxWidth: 400, margin: "0 auto 28px" }}>
                 Describe your problem once. Every tool you use — Requirements, User Stories, Process Analysis — will know the context automatically.
               </p>
               <button
@@ -109,40 +136,40 @@ export default function ProjectsClient({ user, profile, projects, organizations 
                   <div
                     key={project.id}
                     onClick={() => router.push(`/projects/${project.id}`)}
-                    style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "24px 28px", cursor: "pointer", transition: "border-color .2s, background .2s, transform .15s", position: "relative" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(31,191,159,.2)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLDivElement).style.transform = "translateX(3px)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLDivElement).style.transform = "none"; }}
+                    style={{ background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: "var(--radius-lg)", padding: "24px 28px", cursor: "pointer", transition: "border-color .2s, background .2s, transform .15s", position: "relative" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(31,191,159,.2)"; (e.currentTarget as HTMLDivElement).style.background = "var(--lc-faint)"; (e.currentTarget as HTMLDivElement).style.transform = "translateX(3px)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--lc-border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--lc-surface)"; (e.currentTarget as HTMLDivElement).style.transform = "none"; }}
                   >
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-                          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.01em", margin: 0 }}>
+                          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--lc-text-1)", letterSpacing: "-0.01em", margin: 0 }}>
                             {project.name}
                           </h2>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, textTransform: "uppercase", letterSpacing: ".06em" }}>
                             {project.status.replace("_", " ")}
                           </span>
                           {project.methodology && (
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t3)", padding: "2px 7px", borderRadius: 5, background: "var(--bg-3)", border: "1px solid var(--border)" }}>
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--lc-text-3)", padding: "2px 7px", borderRadius: 5, background: "var(--lc-faint)", border: "1px solid var(--lc-border)" }}>
                               {METHODOLOGY_LABEL[project.methodology] ?? project.methodology}
                             </span>
                           )}
                         </div>
 
                         {project.organizations?.name && (
-                          <div style={{ fontSize: 12, color: "var(--t3)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{ fontSize: 12, color: "var(--lc-text-3)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                             {project.organizations.name}
                           </div>
                         )}
 
                         {project.problem_statement && (
-                          <p style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.6, margin: "0 0 12px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as never }}>
+                          <p style={{ fontSize: 13.5, color: "var(--lc-text-2)", lineHeight: 1.6, margin: "0 0 12px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as never }}>
                             {project.problem_statement}
                           </p>
                         )}
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 12, color: "var(--t3)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 12, color: "var(--lc-text-3)" }}>
                           {artifactCount > 0 && (
                             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -154,7 +181,7 @@ export default function ProjectsClient({ user, profile, projects, organizations 
                         </div>
                       </div>
 
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t4)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 4 }}><path d="M9 18l6-6-6-6"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lc-text-4)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 4 }}><path d="M9 18l6-6-6-6"/></svg>
                     </div>
                   </div>
                 );

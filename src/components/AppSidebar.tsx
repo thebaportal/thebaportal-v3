@@ -3,32 +3,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen, LayoutDashboard, GraduationCap,
-  Target, BriefcaseBusiness, Settings, LogOut,
-  User, ChevronLeft, ChevronRight, Menu, X, Mic, Globe2, MessageSquare, GitFork, Zap, FileText, Brain, Folders, ListChecks,
+  BookOpen, Settings, LogOut, User, ChevronLeft, ChevronRight, Menu, X,
+  FileText, Brain, Folders, FileSearch,
 } from "lucide-react";
 
 const WORK_ITEMS = [
-  { icon: Folders,  label: "Projects",                href: "/projects" },
-  { icon: Zap,      label: "Workspace",              href: "/workspace" },
-  { icon: Brain,    label: "Decision Intelligence",   href: "/decision-intelligence" },
-  { icon: FileText, label: "Template Studio",         href: "/templates" },
-  { icon: GitFork,  label: "Process Flow",            href: "/tools/process-flow" },
-];
-
-const CAREER_ITEMS = [
-  { icon: User,              label: "Career Profile",  href: "/career/profile" },
-  { icon: ListChecks,        label: "Job Plans",       href: "/job-plans" },
-  { icon: Globe2,            label: "Jobs",            href: "/opportunities" },
-  { icon: BriefcaseBusiness, label: "Career Suite",    href: "/career" },
-  { icon: MessageSquare,     label: "Interview Lab",   href: "/interview" },
-];
-
-const LEARN_ITEMS = [
-  { icon: GraduationCap, label: "Learning",      href: "/learning" },
-  { icon: Target,        label: "Practice Lab",  href: "/scenarios" },
-  { icon: Mic,           label: "PitchReady",    href: "/pitchready" },
-  { icon: BookOpen,      label: "Exam Prep",     href: "/exam" },
+  { icon: Folders,    label: "Projects",        href: "/projects" },
+  { icon: Brain,      label: "Decision Lab",    href: "/decision-lab" },
+  { icon: FileSearch, label: "BA Intelligence", href: "/ba-intelligence" },
+  { icon: FileText,   label: "Template Studio", href: "/templates" },
 ];
 
 interface AppSidebarProps {
@@ -41,15 +24,16 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
     const saved = localStorage.getItem("sidebar_collapsed");
-    if (saved !== null) return saved === "true";
-    return window.innerWidth < 1024;
-  });
-  const [isMobile, setIsMobile] = useState<boolean>(() =>
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
-  );
+    if (saved !== null) setCollapsed(saved === "true");
+    else if (window.innerWidth < 1024) setCollapsed(true);
+    setIsMobile(window.innerWidth < 768);
+  }, []);
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -100,9 +84,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
   function NavItem({
     icon: Icon, label, href, isCollapsed,
   }: { icon: React.ElementType; label: string; href: string; isCollapsed: boolean }) {
-    const active = href === "/dashboard"
-      ? activeHref === href
-      : activeHref === href || activeHref.startsWith(href);
+    const active = activeHref === href;
 
     return (
       <button
@@ -224,25 +206,9 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
       {/* Nav */}
       <nav style={{ flex: 1, padding: "16px 8px 8px", overflowY: "auto", overflowX: "hidden" }}>
 
-        {/* Section 1: Work */}
+        {/* Work — the whole active product */}
         <SectionLabel label="Work" isCollapsed={isCollapsed} />
         {WORK_ITEMS.map(item => (
-          <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
-        ))}
-
-        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "20px 4px 16px" }} />
-
-        {/* Section 2: Career */}
-        <SectionLabel label="Career" isCollapsed={isCollapsed} />
-        {CAREER_ITEMS.map(item => (
-          <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
-        ))}
-
-        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "20px 4px 16px" }} />
-
-        {/* Section 3: Learn */}
-        <SectionLabel label="Learn & Practice" isCollapsed={isCollapsed} />
-        {LEARN_ITEMS.map(item => (
           <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
         ))}
 
@@ -294,7 +260,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
             {/* Identity */}
             <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>
-                {fullName || "BA Learner"}
+                {fullName || "Business Analyst"}
               </div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, wordBreak: "break-all" }}>
                 {user.email}
@@ -385,7 +351,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
           {!isCollapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {fullName || "BA Learner"}
+                {fullName || "Business Analyst"}
               </div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>
                 {isPro ? "Pro Member" : "Free Plan"}

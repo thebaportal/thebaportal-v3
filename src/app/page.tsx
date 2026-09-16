@@ -3,1150 +3,1044 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, useScroll, useTransform } from "framer-motion";
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-const DEMO_INPUT = "Customer onboarding takes 17 days and complaints are rising.";
-
-const REASONING_STEPS = [
-  "Mapped 8 stakeholders across Operations and IT",
-  "Identified current-state process — 14 handoff points",
-  "Found 12 bottlenecks introduced by CRM migration",
-  "Surfaced 23 functional requirements",
-  "Built full traceability graph",
+// ── Lifecycle stages — real product concepts, not decorative art ──────────────
+const LIFECYCLE = [
+  { label: "Problem Analysis",     icon: "doc" },
+  { label: "Stakeholder Analysis", icon: "people" },
+  { label: "Requirements",         icon: "list" },
+  { label: "User Stories",         icon: "bookmark" },
+  { label: "Process Analysis",     icon: "activity" },
+  { label: "Testing",              icon: "check" },
 ];
 
-const DELIVERABLE_ARTIFACTS = [
-  { label: "Problem Statement",   color: "#1fbf9f", detail: null },
-  { label: "Stakeholder Map",     color: "#38bdf8", detail: "8 stakeholders" },
-  { label: "Root Cause Analysis", color: "#a78bfa", detail: "12 bottlenecks" },
-  { label: "Requirements Matrix", color: "#fb923c", detail: "23 requirements" },
-  { label: "User Stories",        color: "#facc15", detail: "14 stories" },
-  { label: "UAT Package",         color: "#f87171", detail: null },
+// ── A marketing preview of a real Decision Lab output — Compare Options mode,
+// same shape the tool actually produces, not an invented capability. ────────
+const DECISION_SCENARIO = {
+  question: "Should we replace the legacy scheduling platform?",
+  options: [
+    {
+      label: "Standalone platform", tag: null,
+      items: [{ text: "Lower cost", level: "good" }, { text: "Higher risk", level: "bad" }, { text: "Limited scalability", level: "bad" }],
+    },
+    {
+      label: "ERP module", tag: "Recommended",
+      items: [{ text: "Moderate cost", level: "mid" }, { text: "Lower risk", level: "good" }, { text: "Stronger fit", level: "good" }],
+    },
+    {
+      label: "Custom build", tag: null,
+      items: [{ text: "Higher cost", level: "bad" }, { text: "Higher risk", level: "bad" }, { text: "Longer timeframe", level: "bad" }],
+    },
+  ],
+  recommendation: "ERP module",
+};
+
+const LEVEL_COLOR: Record<string, string> = { good: "#16a34a", mid: "#d97706", bad: "#dc2626" };
+
+const TEMPLATE_PREVIEWS = [
+  { label: "Business Requirements Document",   kind: "doc",   color: "#1fbf9f" },
+  { label: "Functional Requirements Document", kind: "doc",   color: "#38bdf8" },
+  { label: "Requirements Traceability Matrix", kind: "table", color: "#a78bfa" },
 ];
 
-const TICKER_ITEMS = [
-  "Problem Analyzer", "User Story Generator", "BRD Generator", "FRD Generator",
-  "Stakeholder Intelligence", "Root Cause Analysis", "Resume Analyzer",
-  "Interview Copilot", "Business Case Generator", "Process Analyzer",
-  "BABOK Aligned", "Decision Intelligence", "Template Studio",
-  "Banking", "Healthcare", "Energy", "Technology", "Insurance",
+// ── A marketing preview of a coming capability — NOT a built feature yet.
+// Shape mirrors the real workstreams (requirements, user stories, process,
+// gap-checking) that already exist in Project Workspace, so the preview
+// stays honest about what "same project context" actually means today. ────
+const BA_INTEL_SOURCE = "Stakeholder Workshop Transcript";
+
+const BA_INTEL_FINDINGS = [
+  { count: 14, label: "Potential Requirements",       color: "#0e9c81" },
+  { count: 6,  label: "Business Rules",                color: "#38bdf8" },
+  { count: 3,  label: "Unresolved Questions",          color: "#d97706" },
+  { count: 2,  label: "Stakeholder Contradictions",    color: "#dc2626" },
+  { count: 4,  label: "Possible Edge Cases",           color: "#a78bfa" },
 ];
 
-const PLATFORM_GROUPS = [
-  {
-    group: "Work", color: "#1fbf9f",
-    items: [
-      { label: "BA Workspace",         desc: "From problem to full deliverable package",                 href: "/workspace",    color: "#1fbf9f", icon: "⚡" },
-      { label: "Decision Intelligence", desc: "Analyze options, identify risks, get recommendations",     href: "/decision-intelligence", color: "#a78bfa", icon: "🧠" },
-    ],
-  },
-  {
-    group: "Career", color: "#38bdf8",
-    items: [
-      { label: "Career Hub", desc: "Resume analyzer, interview copilot, portfolio builder",  href: "/career",       color: "#38bdf8", icon: "💼" },
-      { label: "Jobs",       desc: "Curated BA roles and how to win them",                   href: "/opportunities", color: "#34d399", icon: "🌐" },
-    ],
-  },
-  {
-    group: "Grow", color: "#fb923c",
-    items: [
-      { label: "Learning Hub",  desc: "Structured BA paths from beginner to advanced",            href: "/learning",   color: "#fb923c", icon: "📚" },
-      { label: "Practice Lab",  desc: "Stakeholder simulations and scenario practice",             href: "/scenarios",  color: "#38bdf8", icon: "🎯" },
-    ],
-  },
+const BA_INTEL_ACTIONS = ["Review Requirements", "Generate User Stories", "Create Process Flow", "Check for Gaps"];
+
+const DECISION_MODES = [
+  { label: "Compare Options",          desc: "Weigh 2–3 choices and get a reasoned recommendation.", color: "#a78bfa" },
+  { label: "Assess Risks",             desc: "Build a risk register anchored in your actual situation.", color: "#f472b6" },
+  { label: "Challenge Assumptions",    desc: "Surface stated and hidden assumptions before they cost you.", color: "#60a5fa" },
+  { label: "Stakeholder Intelligence", desc: "Map influence and likely objections before you present.", color: "#34d399" },
+  { label: "Decision Explorer",        desc: "Ask follow-up questions against the same analysis.", color: "#fbbf24" },
 ];
 
-const PLATFORM_ITEMS = PLATFORM_GROUPS.flatMap(g => g.items);
+const TEMPLATES = ["BRD", "FRD", "Use Cases", "RACI", "Business Case", "RTM"];
 
-const INDUSTRIES = [
-  "Banking", "Healthcare", "Energy", "Technology",
-  "Insurance", "Government", "Retail", "Logistics",
+// ── Hero-only content — the connected-workflow panel and value strip ────────
+const WORKFLOW_STAGES = [
+  { label: "Business Need",         done: true },
+  { label: "Stakeholder Analysis",  done: true },
+  { label: "Requirements",          done: true },
+  { label: "User Stories",          done: true },
+  { label: "Process Analysis",      done: true },
+  { label: "Testing",               done: false },
 ];
 
-// ── Icon helpers ───────────────────────────────────────────────────────────────
-function ArrowRight({ size = 16 }: { size?: number }) {
+const VALUE_ITEMS = [
+  { icon: "doc",    text: "Turn complexity into clarity" },
+  { icon: "people", text: "Work with full context" },
+  { icon: "bolt",   text: "Move faster with confidence" },
+  { icon: "chart",  text: "Deliver measurable business value" },
+];
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+// ── Icons ───────────────────────────────────────────────────────────────────
+function ArrowRight({ size = 15 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
       <path d="M5 12h14M12 5l7 7-7 7" />
     </svg>
   );
 }
-function ChevronRight({ size = 13 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-      <path d="M9 18l6-6-6-6" />
+
+const VALUE_ICONS: Record<string, React.ReactNode> = {
+  doc: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
     </svg>
-  );
-}
-function CheckIcon({ color = "#505068" }: { color?: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 3 }}>
+  ),
+  people: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  bolt: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
+  chart: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  ),
+};
+
+const LIFECYCLE_ICONS: Record<string, React.ReactNode> = {
+  doc: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+    </svg>
+  ),
+  people: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  list: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  ),
+  bookmark: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  activity: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  ),
+  check: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
     </svg>
-  );
-}
-function StarIcon() {
+  ),
+};
+
+function PlayCircle({ size = 18 }: { size?: number }) {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="#facc15">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
     </svg>
   );
 }
+
 function LogoMark({ size = 28 }: { size?: number }) {
   return (
     <div style={{
-      width: size, height: size,
-      background: "rgba(31,191,159,0.12)",
-      border: "1px solid rgba(31,191,159,0.25)",
-      borderRadius: 8,
+      width: size, height: size, borderRadius: 6, flexShrink: 0,
+      background: "rgba(31,191,159,0.16)", border: "1px solid rgba(31,191,159,0.4)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--teal)",
-    }}>BA</div>
+      fontFamily: "'JetBrains Mono', monospace", fontSize: size * 0.34, fontWeight: 700, color: "#2ddbb8",
+    }}>
+      BA
+    </div>
   );
 }
 
-// ── Intelligence Demo ──────────────────────────────────────────────────────────
-type DemoPhase = "idle" | "input" | "reasoning" | "deliverables";
+// ── Layer 1 — slow drifting colour clouds, the "atmosphere" behind everything ─
+function AuroraLayer() {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
+      <div className="aurora-blob aurora-1" />
+      <div className="aurora-blob aurora-2" />
+      <div className="aurora-blob aurora-3" />
+    </div>
+  );
+}
 
-function IntelligenceDemo() {
-  const [phase, setPhase] = useState<DemoPhase>("idle");
-  const [reasoningDone, setReasoningDone] = useState(0);
-  const [deliverablesVisible, setDeliverablesVisible] = useState(0);
+// ── Layer 2 — a living constellation of connected work, hand-built in canvas ──
+// There's no licensed footage to drop in here, so this stands in for a video
+// background: continuous motion, parallax to the cursor, always on.
+function CinematicBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const add = (fn: () => void, ms: number) => { timers.push(setTimeout(fn, ms)); };
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    function runLoop() {
-      setPhase("idle");
-      setReasoningDone(0);
-      setDeliverablesVisible(0);
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const colors = ["#1fbf9f", "#7c3aed", "#38bdf8", "#f59e0b"];
+    let particles: { x: number; y: number; vx: number; vy: number; r: number; color: string }[] = [];
+    let raf = 0;
+    let mouse = { x: -9999, y: -9999 };
 
-      let t = 700;
-      add(() => setPhase("input"), t);
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas!.width = window.innerWidth * dpr;
+      canvas!.height = window.innerHeight * dpr;
+      canvas!.style.width = window.innerWidth + "px";
+      canvas!.style.height = window.innerHeight + "px";
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
 
-      t += 1800;
-      add(() => setPhase("reasoning"), t);
+    const count = Math.min(85, Math.max(40, Math.floor(window.innerWidth / 17)));
+    particles = Array.from({ length: count }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
+      r: Math.random() * 1.5 + 0.8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }));
 
-      for (let i = 0; i < REASONING_STEPS.length; i++) {
-        t += 660;
-        const step = i + 1;
-        add(() => setReasoningDone(step), t);
+    function frame() {
+      const w = window.innerWidth, h = window.innerHeight;
+      ctx!.clearRect(0, 0, w, h);
+
+      if (!prefersReduced) {
+        for (const p of particles) {
+          p.x += p.vx; p.y += p.vy;
+          const dx = p.x - mouse.x, dy = p.y - mouse.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < 14000) { p.x += dx * 0.0025; p.y += dy * 0.0025; }
+          if (p.x < -20) p.x = w + 20; if (p.x > w + 20) p.x = -20;
+          if (p.y < -20) p.y = h + 20; if (p.y > h + 20) p.y = -20;
+        }
       }
 
-      t += 560;
-      add(() => setPhase("deliverables"), t);
-
-      for (let i = 0; i < DELIVERABLE_ARTIFACTS.length; i++) {
-        t += 380;
-        const step = i + 1;
-        add(() => setDeliverablesVisible(step), t);
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const a = particles[i], b = particles[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 130) {
+            ctx!.strokeStyle = `rgba(45,219,184,${0.16 * (1 - dist / 130)})`;
+            ctx!.lineWidth = 1;
+            ctx!.beginPath();
+            ctx!.moveTo(a.x, a.y);
+            ctx!.lineTo(b.x, b.y);
+            ctx!.stroke();
+          }
+        }
       }
 
-      t += 4200;
-      add(runLoop, t);
-    }
+      for (const p of particles) {
+        ctx!.beginPath();
+        ctx!.fillStyle = p.color;
+        ctx!.globalAlpha = 0.9;
+        ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx!.fill();
+      }
+      ctx!.globalAlpha = 1;
 
-    runLoop();
-    return () => timers.forEach(clearTimeout);
+      if (!prefersReduced) raf = requestAnimationFrame(frame);
+    }
+    frame();
+
+    function onResize() { resize(); }
+    function onMove(e: MouseEvent) { mouse = { x: e.clientX, y: e.clientY }; }
+    window.addEventListener("resize", onResize);
+    window.addEventListener("mousemove", onMove);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("mousemove", onMove);
+    };
   }, []);
 
-  const isActive = phase !== "idle";
-  const isComplete = phase === "deliverables" && deliverablesVisible === DELIVERABLE_ARTIFACTS.length;
-  const statusLabel = isComplete ? "Complete" : phase === "reasoning" ? "Analyzing" : phase === "input" ? "Reading" : "Ready";
-  const statusColor = isComplete ? "#1fbf9f" : phase === "reasoning" ? "var(--teal)" : phase === "input" ? "#38bdf8" : "var(--t4)";
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none" }} aria-hidden="true" />;
+}
 
+// ── Layer 3 — a whisper of film grain for texture ────────────────────────────
+function GrainLayer() {
   return (
     <div style={{
-      background: "var(--bg-1)",
-      border: "1px solid var(--border)",
-      borderRadius: "var(--radius-lg)",
-      overflow: "hidden",
-      boxShadow: "0 0 0 1px rgba(255,255,255,.04), 0 32px 80px rgba(0,0,0,.56)",
+      position: "fixed", inset: 0, zIndex: 2, opacity: 0.05, pointerEvents: "none", mixBlendMode: "overlay",
+      backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+    }} />
+  );
+}
+
+// ── Kinetic headline — lines rise from behind a mask, film-title style ───────
+function KineticHeadline({ lines }: { lines: { text: string; color?: string }[] }) {
+  return (
+    <h1 style={{
+      fontFamily: "'Inter','Open Sans',sans-serif", fontWeight: 800,
+      fontSize: "clamp(34px, 4.6vw, 54px)", lineHeight: 1.1, letterSpacing: "-0.03em",
+      color: "#f8f8fb", margin: "0 0 20px",
     }}>
-      {/* Chrome bar */}
-      <div style={{ background: "var(--bg-2)", padding: "12px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ display: "flex", gap: 5 }}>
-          {["#f87171","#fb923c","#1fbf9f"].map((c,i) => (
-            <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: c, opacity: 0.65 }} />
-          ))}
-        </div>
-        <div style={{ flex: 1, textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500, color: "var(--t3)", letterSpacing: "0.04em" }}>
-          Intelligence Engine · BA Workspace
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10, color: statusColor, transition: "color .4s" }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: statusColor, transition: "background .4s", animation: isActive && !isComplete ? "pulse-dot 1.8s ease-in-out infinite" : "none" }} />
-          {statusLabel}
-        </div>
-      </div>
-
-      {/* Input */}
-      <div style={{ padding: "13px 18px", borderBottom: "1px solid rgba(255,255,255,.04)" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: "var(--t4)", letterSpacing: "0.14em", textTransform: "uppercase" as const, marginBottom: 8 }}>Input</div>
-        {isActive ? (
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--t1)", lineHeight: 1.55, padding: "9px 12px", background: "rgba(31,191,159,.06)", border: "1px solid rgba(31,191,159,.14)", borderRadius: 7, animation: "slide-msg .3s ease both" }}>
-            &ldquo;{DEMO_INPUT}&rdquo;
-          </div>
-        ) : (
-          <div style={{ height: 34, borderRadius: 7, background: "var(--bg-3)", border: "1px solid var(--border)", display: "flex", alignItems: "center", padding: "0 12px", gap: 8 }}>
-            <div style={{ width: 110, height: 7, background: "var(--bg-2)", borderRadius: 4 }} />
-            <div style={{ width: 5, height: 13, background: "rgba(31,191,159,.3)", borderRadius: 1, animation: "pulse-dot 1s ease-in-out infinite" }} />
-          </div>
-        )}
-      </div>
-
-      {/* Reasoning */}
-      <div style={{ padding: "13px 18px", borderBottom: "1px solid rgba(255,255,255,.04)", minHeight: 132 }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: "var(--t4)", letterSpacing: "0.14em", textTransform: "uppercase" as const, marginBottom: 10 }}>Reasoning</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-          {REASONING_STEPS.map((step, i) => {
-            const done = i < reasoningDone;
-            const show = (phase === "reasoning" || phase === "deliverables") && done;
-            return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, opacity: show ? 1 : 0, transform: show ? "translateY(0)" : "translateY(4px)", transition: "opacity .32s, transform .32s" }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t2)" }}>{step}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Deliverables */}
-      <div style={{ padding: "13px 18px", background: "var(--bg)" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" as const, marginBottom: 10, color: isComplete ? "var(--teal)" : "var(--t4)", transition: "color .5s" }}>
-          {isComplete ? "Deliverables Ready" : "Deliverables"}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          {DELIVERABLE_ARTIFACTS.map((a, i) => {
-            const vis = i < deliverablesVisible;
-            return (
-              <div key={a.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 7, background: vis ? `${a.color}09` : "var(--bg-2)", border: vis ? `1px solid ${a.color}22` : "1px solid var(--border)", opacity: vis ? 1 : 0.35, transition: "all .38s ease" }}>
-                {vis ? (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={a.color} strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
-                ) : (
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--t4)", flexShrink: 0 }} />
-                )}
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, color: vis ? a.color : "var(--t4)", flex: 1, transition: "color .38s" }}>{a.label}</span>
-                {vis && a.detail && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--t3)" }}>{a.detail}</span>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+      {lines.map((line, i) => (
+        <span key={i} style={{ display: "block", overflow: "hidden" }}>
+          <motion.span
+            style={{ display: "block", color: line.color }}
+            initial={{ y: "110%" }}
+            animate={{ y: "0%" }}
+            transition={{ duration: 0.9, delay: 0.15 + i * 0.12, ease: EASE }}
+          >
+            {line.text}
+          </motion.span>
+        </span>
+      ))}
+    </h1>
   );
 }
 
-// ── Ticker ─────────────────────────────────────────────────────────────────────
-function Ticker() {
-  const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
+// ── Cinematic clip — real footage of real people, not a photo trick. Muted
+// autoplay + loop is required for browsers to allow autoplay at all, which
+// is exactly right for a decorative background element with no need for sound.
+function CinematicPortrait({ src, poster, focus = "55% 35%" }: { src: string; poster?: string; focus?: string }) {
   return (
-    <div style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "var(--bg-1)", overflow: "hidden" }}>
-      <div style={{ display: "flex", whiteSpace: "nowrap", animation: "ticker 36s linear infinite" }}>
-        {items.map((item, i) => (
-          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px 36px", fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 500, color: "var(--t3)", flexShrink: 0 }}>
-            <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
-            {item}
-            <span style={{ color: "var(--t4)", margin: "0 4px" }}>·</span>
-          </span>
-        ))}
-      </div>
+    <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 14, overflow: "hidden", boxShadow: "0 30px 80px -20px rgba(0,0,0,0.6)" }}>
+      <video
+        src={src}
+        poster={poster}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: focus }}
+      />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 55%, rgba(8,8,11,0.5) 100%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, boxShadow: "inset 0 0 60px rgba(0,0,0,0.35)", pointerEvents: "none" }} />
     </div>
   );
 }
 
-// ── useReveal ──────────────────────────────────────────────────────────────────
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  return { ref, style: {} };
-}
-
-// ── Eyebrow ────────────────────────────────────────────────────────────────────
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500, color: "var(--teal)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 18 }}>
-      <div style={{ width: 18, height: 1, background: "var(--teal)", opacity: 0.6 }} />
-      {children}
-    </div>
-  );
-}
-
-// ── PricingCard ────────────────────────────────────────────────────────────────
-function PricingCard({ plan, price, period, features, cta, href, featured }: {
-  plan: string; price: string; period: string; features: string[];
-  cta: string; href: string; featured: boolean;
-}) {
-  return (
-    <div style={{
-      background: featured ? "rgba(31,191,159,.04)" : "var(--bg-1)",
-      border: featured ? "1px solid rgba(31,191,159,.22)" : "1px solid var(--border)",
-      borderRadius: "var(--radius-lg)",
-      padding: "40px 36px",
-      position: "relative",
-      overflow: "hidden",
-      flex: 1,
-    }}>
-      {featured && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, var(--teal), transparent)" }} />}
-      {featured && (
-        <div style={{ position: "absolute", top: 16, right: 16, fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, color: "var(--teal)", background: "rgba(31,191,159,.1)", border: "1px solid rgba(31,191,159,.22)", padding: "3px 10px", borderRadius: 5, letterSpacing: ".06em", textTransform: "uppercase" as const }}>
-          Most Popular
-        </div>
-      )}
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase" as const, letterSpacing: ".1em", marginBottom: 12 }}>{plan}</div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginBottom: 28 }}>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 44, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.04em" }}>{price}</span>
-        <span style={{ fontSize: 13, color: "var(--t3)" }}>{period}</span>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 30 }}>
-        {features.map((f, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-            <CheckIcon color={featured ? "var(--teal)" : "var(--t3)"} />
-            <span style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.5 }}>{f}</span>
-          </div>
-        ))}
-      </div>
-      <Link href={href} style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-        padding: "13px 22px", borderRadius: "var(--radius-sm)",
-        fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700,
-        background: featured ? "var(--teal)" : "rgba(255,255,255,.05)",
-        color: featured ? "#041a13" : "var(--t1)",
-        border: featured ? "none" : "1px solid var(--border)",
-        transition: "all .2s",
-        textDecoration: "none",
-      }}
-        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = featured ? "var(--teal-hi)" : "rgba(255,255,255,.09)"; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = featured ? "var(--teal)" : "rgba(255,255,255,.05)"; }}
-      >
-        {cta} {featured && <ArrowRight size={14} />}
-      </Link>
-    </div>
-  );
-}
-
-// ── IndustryIcon ───────────────────────────────────────────────────────────────
-function IndustryIcon({ name }: { name: string }) {
-  const s = { width: 22, height: 22, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  switch (name) {
-    case "Banking":    return <svg {...s} viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v12a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M9 22V12h6v10"/></svg>;
-    case "Healthcare": return <svg {...s} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>;
-    case "Energy":     return <svg {...s} viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>;
-    case "Technology": return <svg {...s} viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
-    case "Insurance":  return <svg {...s} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
-    case "Government": return <svg {...s} viewBox="0 0 24 24"><path d="M3 22h18M12 3L2 9h20L12 3z"/><path d="M5 9v10M9 9v10M15 9v10M19 9v10"/></svg>;
-    case "Retail":     return <svg {...s} viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>;
-    case "Logistics":  return <svg {...s} viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>;
-    default: return null;
-  }
-}
-
-// ── Nav helpers ────────────────────────────────────────────────────────────────
-const AVATAR_COLORS = ["#1fbf9f","#a78bfa","#38bdf8","#fb923c","#f87171","#facc15","#34d399"];
-function avatarColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
-function initials(name: string): string {
-  const p = name.trim().split(/\s+/);
-  if (p.length >= 2) return (p[0][0] + p[p.length - 1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
-
-// ── Platform Dropdown ──────────────────────────────────────────────────────────
-function PlatformDropdown() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <button onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 500, color: open ? "var(--t1)" : "var(--t2)", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color .15s" }}
-        onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
-        onMouseLeave={e => { if (!open) e.currentTarget.style.color = "var(--t2)"; }}
-      >
-        Platform
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-          style={{ transition: "transform .22s ease", transform: open ? "rotate(180deg)" : "rotate(0deg)", marginTop: 1 }}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-
-      {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 16px)", left: "50%", transform: "translateX(-50%)", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "10px", width: 380, boxShadow: "0 16px 48px rgba(0,0,0,0.6)", zIndex: 300, animation: "slide-down-fade .18s ease both" }}>
-          <div style={{ position: "absolute", top: -5, left: "50%", transform: "translateX(-50%)", width: 10, height: 5, overflow: "hidden" }}>
-            <div style={{ width: 8, height: 8, background: "rgba(255,255,255,0.09)", transform: "rotate(45deg) translateY(3px)", margin: "0 auto", borderTop: "1px solid rgba(255,255,255,0.09)", borderLeft: "1px solid rgba(255,255,255,0.09)" }} />
-          </div>
-          {PLATFORM_GROUPS.map((group, gi) => (
-            <div key={group.group} style={{ marginBottom: gi < PLATFORM_GROUPS.length - 1 ? 4 : 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: group.color, letterSpacing: "0.1em", textTransform: "uppercase" as const, padding: "8px 12px 6px", opacity: 0.8 }}>{group.group}</div>
-              {group.items.map(item => (
-                <Link key={item.label} href={item.href} onClick={() => setOpen(false)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 12px", borderRadius: 12, textDecoration: "none", marginBottom: 2, transition: "background .15s" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = `${item.color}09`; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-                >
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${item.color}12`, border: `1px solid ${item.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
-                    {item.icon}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#ffffff", marginBottom: 2 }}>{item.label}</div>
-                    <div style={{ fontSize: 11.5, fontWeight: 500, color: "#D1D5DB", lineHeight: 1.5 }}>{item.desc}</div>
-                  </div>
-                </Link>
-              ))}
-              {gi < PLATFORM_GROUPS.length - 1 && <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "4px 0 2px" }} />}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── GuestCTAs ──────────────────────────────────────────────────────────────────
-function GuestCTAs() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <Link href="/auth/login" style={{ fontSize: 14, fontWeight: 600, color: "var(--t2)", padding: "8px 16px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "color .15s" }}
-        onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
-        onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
-      >
-        Sign in
-      </Link>
-      <Link href="/auth/signup" style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "9px 20px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .15s, transform .15s", letterSpacing: "0.01em", whiteSpace: "nowrap" }}
-        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; }}
-      >
-        Try It Free
-      </Link>
-    </div>
-  );
-}
-
-// ── UserMenu ───────────────────────────────────────────────────────────────────
-function UserMenu({ name }: { name: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const first = name.split(" ")[0] || "there";
-  const color = avatarColor(name);
-  const abbr  = initials(name) || "BA";
+// ── Hero cinematic background — the hero's own supplied clip, full-bleed.
+// Nothing floats on top of it as a "player"; it IS the scene. Graded down
+// (dimmer, slightly desaturated, a hair of blur) so it reads as atmosphere,
+// not as competing content, then layered with gradients for text contrast.
+// Falls back to a static frame for prefers-reduced-motion instead of autoplaying.
+function HeroCinematicVideo() {
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
-  async function handleSignOut() {
-    const { createClient } = await import("@/lib/supabase/client");
-    await createClient().auth.signOut();
-    router.push("/");
-    router.refresh();
-  }
-
-  const menuItemStyle: React.CSSProperties = {
-    display: "flex", alignItems: "center", width: "100%",
-    padding: "9px 12px", borderRadius: 9,
-    fontSize: 13, fontWeight: 600,
-    textDecoration: "none", transition: "background .12s",
+  const frameStyle: React.CSSProperties = {
+    position: "absolute", inset: 0, width: "100%", height: "100%",
+    objectFit: "cover", objectPosition: "62% 30%",
+    filter: "brightness(0.6) saturate(0.82) blur(0.5px)",
   };
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ fontSize: 13, color: "var(--t2)", fontWeight: 500, animation: "fade-in-avatar .25s ease both" }}>
-        Hi, {first}
-      </span>
-      <button onClick={() => setOpen(o => !o)} style={{ width: 34, height: 34, borderRadius: "50%", background: `${color}20`, border: `1.5px solid ${color}45`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color, cursor: "pointer", outline: "2px solid transparent", outlineOffset: "2px", transition: "outline-color .15s, outline-offset .15s", animation: "fade-in-avatar .2s ease both" }}
-        onMouseEnter={e => { e.currentTarget.style.outlineColor = "var(--teal)"; }}
-        onMouseLeave={e => { e.currentTarget.style.outlineColor = "transparent"; }}
-        aria-label="Account menu"
-      >
-        {abbr}
-      </button>
-
-      {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 12px)", right: 0, background: "rgba(10,10,15,0.98)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 14, padding: "5px", width: 176, boxShadow: "0 24px 64px rgba(0,0,0,.72), 0 0 0 1px rgba(255,255,255,.03)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", zIndex: 300, animation: "slide-down-fade .15s ease both" }}>
-          <Link href="/workspace" onClick={() => setOpen(false)} style={{ ...menuItemStyle, color: "var(--t1)" }}
-            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.06)"}
-            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
-          >Workspace</Link>
-          <Link href="/dashboard" onClick={() => setOpen(false)} style={{ ...menuItemStyle, color: "var(--t1)" }}
-            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.06)"}
-            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
-          >Dashboard</Link>
-          <Link href="/settings" onClick={() => setOpen(false)} style={{ ...menuItemStyle, color: "var(--t1)" }}
-            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.06)"}
-            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
-          >Settings</Link>
-          <div style={{ height: 1, background: "var(--border)", margin: "4px 6px" }} />
-          <button onClick={handleSignOut} style={{ ...menuItemStyle, color: "#f87171", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = "rgba(248,113,113,0.08)"}
-            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = "transparent"}
-          >Sign out</button>
-        </div>
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }} aria-hidden="true">
+      {reducedMotion ? (
+        <img src="/photos/hero-video-poster.jpg" alt="" style={frameStyle} />
+      ) : (
+        <video autoPlay muted loop playsInline preload="metadata" poster="/photos/hero-video-poster.jpg" style={frameStyle}>
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
       )}
+      {/* left-to-right scrim — dark where the copy sits, clear where the scene reads */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(6,9,10,0.94) 0%, rgba(6,9,10,0.82) 28%, rgba(6,9,10,0.5) 52%, rgba(6,9,10,0.18) 75%, rgba(6,9,10,0.05) 100%)" }} />
+      {/* top/bottom vignette — settles the nav seam and the value strip */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(5,8,10,0.55) 0%, transparent 18%, transparent 72%, rgba(5,8,10,0.75) 100%)" }} />
+      {/* a whisper of brand teal to keep the grade on-identity rather than generic grey */}
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 70% at 15% 30%, rgba(31,191,159,0.1), transparent 60%)" }} />
+      {/* full-bleed fade to the page's own dark base at the very bottom, so the seam into Lifecycle is invisible */}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "18%", background: "linear-gradient(180deg, transparent, #08080b)" }} />
     </div>
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────────
-export default function LandingPage() {
-  const [scrolled, setScrolled]         = useState(false);
-  const [billingAnnual, setBillingAnnual] = useState(true);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [authState, setAuthState]       = useState<"loading" | "authenticated" | "unauthenticated">("unauthenticated");
-  const [navUserName, setNavUserName]   = useState("");
+// ── Connected-workflow panel — a demonstration of the lifecycle, not nav ─────
+function WorkflowPanel() {
+  return (
+    // Plain div owns the absolute positioning + vertical centering (top:50%
+    // + translateY(-50%)). That has to live outside the motion.div: Framer
+    // Motion writes its own `transform` for the x/y entrance animation and
+    // clobbers any literal transform string set alongside it, which is why
+    // this panel used to render at top:50% with the centering offset silently
+    // dropped — it looked "too low" because it never actually got its -50%.
+    <div className="home-workflow-panel" style={{ position: "absolute", right: "6%", top: "50%", transform: "translateY(-50%)", zIndex: 2, width: 240 }}>
+      <motion.div
+        initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.55, ease: EASE }}
+        style={{
+          background: "rgba(14,18,20,0.55)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px", boxShadow: "0 24px 60px -20px rgba(0,0,0,0.55)",
+        }}
+      >
+      {WORKFLOW_STAGES.map((s, i) => (
+        <div key={s.label} style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8,
+          borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)",
+        }}>
+          {s.done ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" fill="rgba(45,219,184,0.16)" stroke="#2ddbb8" strokeWidth="1.5" />
+              <path d="M8 12.5l2.5 2.5L16 9.5" stroke="#2ddbb8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="3 3" />
+            </svg>
+          )}
+          <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: s.done ? "#f0f0f4" : "#8a8aa0" }}>{s.label}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+        </div>
+      ))}
+      </motion.div>
+    </div>
+  );
+}
 
-  const modulesReveal   = useReveal();
-  const statsReveal     = useReveal();
-  const hiwReveal       = useReveal();
-  const featuresReveal  = useReveal();
-  const industriesReveal = useReveal();
-  const pricingHeadReveal = useReveal();
-  const pricingReveal   = useReveal();
-  const finalReveal     = useReveal();
+// ── Value strip — four short proofs, not four cards ──────────────────────────
+function ValueStrip() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.75, ease: EASE }}
+      className="home-value-strip"
+      style={{ position: "relative", zIndex: 2, padding: "0 48px" }}
+    >
+      <div className="home-value-row" style={{ maxWidth: 1400, margin: "0 auto", display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0" }}>
+        {VALUE_ITEMS.map((item, i) => (
+          <div key={item.text} className="home-value-item" style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "0 22px",
+            borderLeft: i === 0 ? "none" : "1px solid rgba(255,255,255,0.14)",
+          }}>
+            <span style={{ color: "#2ddbb8", flexShrink: 0 }}>{VALUE_ICONS[item.icon]}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#dcdce4", lineHeight: 1.3, maxWidth: 150 }}>{item.text}</span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
 
-  useEffect(() => {
-    let subscription: { unsubscribe: () => void } | null = null;
-    import("@/lib/supabase/client").then(({ createClient }) => {
-      const supabase = createClient();
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setAuthState("authenticated");
-          setNavUserName(session.user.user_metadata?.full_name ?? session.user.email ?? "");
-        } else {
-          setAuthState("unauthenticated");
-          setNavUserName("");
-        }
-      });
-      subscription = data.subscription;
-    });
-    return () => { subscription?.unsubscribe(); };
-  }, []);
-
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 30);
-    window.addEventListener("scroll", fn);
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-
-
-  const workspaceHref = authState === "authenticated" ? "/workspace" : "/auth/signup";
+// ── Lifecycle — one connected journey: a thin rail, restrained circular
+// markers, and a teal fill that advances as the visitor scrolls through it.
+// The first stage reads as "you start here" (solid, always active); the fill
+// sweeping across is the "sequential progression" — one purposeful moving
+// element, not six cards each animating independently. ──────────────────────
+function LifecycleJourney() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.8", "end 0.6"] });
+  const fillSize = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   return (
-    <div style={{ background: "var(--bg)", color: "var(--t1)", fontFamily: "var(--font-body)", minHeight: "100vh", WebkitFontSmoothing: "antialiased" }}>
+    <div ref={ref} className="home-journey" style={{ position: "relative", padding: "8px 0" }}>
+      <div className="home-journey-rail" style={{ position: "absolute", background: "var(--lc-border)", borderRadius: 2 }} />
+      <motion.div className="home-journey-fill" style={{ position: "absolute", background: "linear-gradient(90deg, #1fbf9f, #2ddbb8)", borderRadius: 2, width: fillSize }} />
 
-      {/* ── NAV ──────────────────────────────────────────────────────────── */}
-      <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 200, height: 62, display: "flex", alignItems: "center", padding: "0 28px", background: scrolled ? "rgba(7,7,10,0.95)" : "rgba(7,7,10,0.75)", backdropFilter: "blur(24px) saturate(1.5)", WebkitBackdropFilter: "blur(24px) saturate(1.5)", borderBottom: "1px solid var(--border)", transition: "background .3s" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.01em" }}>
-            <LogoMark />
-            The<span style={{ color: "var(--teal)" }}>BA</span>Portal
-          </Link>
+      <div className="home-journey-row" style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(${LIFECYCLE.length}, 1fr)` }}>
+        {LIFECYCLE.map((stage, i) => (
+          <motion.div
+            key={stage.label}
+            className="home-journey-node"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: i * 0.08, ease: EASE }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}
+          >
+            <div style={{
+              width: 38, height: 38, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              background: i === 0 ? "#1fbf9f" : "var(--lc-surface)",
+              border: i === 0 ? "none" : "1.5px solid var(--lc-border)",
+              color: i === 0 ? "#ffffff" : "var(--lc-text-4)",
+              boxShadow: i === 0 ? "0 6px 16px -4px rgba(31,191,159,0.55)" : "0 1px 3px rgba(15,23,42,0.05)",
+            }}>
+              {LIFECYCLE_ICONS[stage.icon]}
+            </div>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--lc-text-2)", textAlign: "center", lineHeight: 1.35, maxWidth: 96 }}>
+              {stage.label}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-          <div className="dsk-nav" style={{ display: "flex", alignItems: "center", gap: 32 }}>
-            <PlatformDropdown />
-            {[["How it Works", "#how-it-works"], ["Pricing", "#pricing"]].map(([l, href]) => (
-              <Link key={l} href={href} style={{ fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", transition: "color .15s" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "var(--t1)")}
-                onMouseLeave={e => (e.currentTarget.style.color = "var(--t2)")}
-              >{l}</Link>
-            ))}
-          </div>
-
-          <div className="dsk-nav" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", minWidth: 260 }}>
-            {authState === "authenticated" ? <UserMenu name={navUserName} /> : <GuestCTAs />}
-          </div>
-
-          <button className="mob-only" onClick={() => setMobileNavOpen(true)}
-            style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 5, width: 38, height: 38, background: "none", border: "1px solid var(--border)", borderRadius: 9, cursor: "pointer" }}>
-            {[0,1,2].map(i => <span key={i} style={{ width: 16, height: 1.5, background: "var(--t2)", borderRadius: 2, display: "block" }} />)}
-          </button>
+// ── Decision Lab preview — a real Compare Options output shape, staged as a
+// marketing screenshot: dark surface, on purpose, for contrast against the
+// light section around it. Not a live tool, not an invented capability. ────
+function DecisionPreviewPanel() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.7, ease: EASE }}
+      style={{
+        background: "#0e0e12", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: "20px 22px",
+        boxShadow: "0 30px 70px -24px rgba(0,0,0,0.4)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(45,219,184,0.16)", border: "1px solid rgba(45,219,184,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2ddbb8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
         </div>
-      </nav>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: "#f2f2f8", flex: 1 }}>Decision Explorer</span>
+        <span style={{ fontSize: 11.5, color: "#8a8aa0", display: "flex", alignItems: "center", gap: 4 }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /></svg>
+          Share
+        </span>
+        <span style={{ color: "#5a5a68", fontSize: 15, letterSpacing: "1px" }}>⋯</span>
+      </div>
 
-      {/* ── MOBILE NAV ───────────────────────────────────────────────────── */}
-      {mobileNavOpen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex" }}>
-          <div onClick={() => setMobileNavOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
-          <div style={{ position: "relative", width: "85%", maxWidth: 320, height: "100%", background: "var(--bg-1)", borderRight: "1px solid var(--border)", padding: "22px 18px", display: "flex", flexDirection: "column", overflowY: "auto", animation: "slide-in-left .22s ease both" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-              <Link href="/" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "var(--t1)" }}>
-                <LogoMark size={24} />
-                The<span style={{ color: "var(--teal)" }}>BA</span>Portal
-              </Link>
-              <button onClick={() => setMobileNavOpen(false)} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
+      <p style={{ fontSize: 14.5, fontWeight: 700, color: "#f2f2f8", marginBottom: 16, lineHeight: 1.4 }}>{DECISION_SCENARIO.question}</p>
 
-            <div style={{ marginBottom: 6 }}>
-              {PLATFORM_GROUPS.map((group, gi) => (
-                <div key={group.group} style={{ marginBottom: gi < PLATFORM_GROUPS.length - 1 ? 10 : 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: group.color, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 6, paddingLeft: 4, opacity: 0.8 }}>{group.group}</div>
-                  {group.items.map(item => (
-                    <Link key={item.label} href={item.href} onClick={() => setMobileNavOpen(false)}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px", borderRadius: 10, textDecoration: "none", marginBottom: 2, transition: "background .15s" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.05)"}
-                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}
-                    >
-                      <div style={{ width: 34, height: 34, borderRadius: 9, background: `${item.color}12`, border: `1px solid ${item.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>{item.icon}</div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>{item.label}</div>
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ height: 1, background: "var(--border)", margin: "10px 0" }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 20 }}>
-              {[["How it Works", "#how-it-works"], ["Pricing", "#pricing"], ["Contact", "/contact"]].map(([label, href]) => (
-                <Link key={label} href={href} onClick={() => setMobileNavOpen(false)}
-                  style={{ padding: "11px 10px", fontSize: 14, fontWeight: 500, color: "var(--t2)", textDecoration: "none", borderRadius: 10, transition: "color .15s" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = "var(--t1)"}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = "var(--t2)"}
-                >{label}</Link>
-              ))}
-            </div>
-
-            <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-              {authState === "authenticated" ? (
-                <>
-                  <Link href="/workspace" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
-                    Open Workspace <ArrowRight size={14} />
-                  </Link>
-                  <button onClick={async () => { setMobileNavOpen(false); const { createClient } = await import("@/lib/supabase/client"); await createClient().auth.signOut(); window.location.href = "/"; }} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#f87171", background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", cursor: "pointer" }}>
-                    Sign out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/login" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--t1)", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", textDecoration: "none" }}>Sign in</Link>
-                  <Link href="/auth/signup" onClick={() => setMobileNavOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", textDecoration: "none" }}>
-                    Try It Free <ArrowRight size={14} />
-                  </Link>
-                </>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }} className="home-decision-options">
+        {DECISION_SCENARIO.options.map(opt => (
+          <div key={opt.label} style={{
+            background: opt.tag ? "rgba(45,219,184,0.07)" : "rgba(255,255,255,0.03)",
+            border: opt.tag ? "1px solid rgba(45,219,184,0.28)" : "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 10, padding: "12px 12px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 9, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#f2f2f8", lineHeight: 1.3 }}>{opt.label}</span>
+              {opt.tag && (
+                <span style={{ fontSize: 8.5, fontWeight: 700, color: "#2ddbb8", background: "rgba(45,219,184,0.16)", border: "1px solid rgba(45,219,184,0.3)", borderRadius: 4, padding: "1px 5px", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                  {opt.tag}
+                </span>
               )}
             </div>
+            {opt.items.map(it => (
+              <div key={it.text} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: LEVEL_COLOR[it.level], flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: "#a8a8ba" }}>{it.text}</span>
+              </div>
+            ))}
           </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(45,219,184,0.09)", border: "1px solid rgba(45,219,184,0.25)", borderRadius: 10, padding: "10px 14px" }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#2ddbb8" stroke="none" style={{ flexShrink: 0 }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#2ddbb8", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 1 }}>Recommended direction</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#f2f2f8" }}>{DECISION_SCENARIO.recommendation}</div>
         </div>
-      )}
+        <ArrowRight size={15} />
+      </div>
+    </motion.div>
+  );
+}
 
-      {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <section style={{ minHeight: "100vh", paddingTop: 62, display: "flex", alignItems: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(31,191,159,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(31,191,159,.025) 1px, transparent 1px)", backgroundSize: "56px 56px", maskImage: "radial-gradient(ellipse 70% 60% at 55% 40%, black 0%, transparent 100%)" }} />
-          <div style={{ position: "absolute", top: "-18%", left: "42%", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(31,191,159,.08) 0%, transparent 60%)", filter: "blur(48px)" }} />
-          <div style={{ position: "absolute", bottom: "-24%", right: "8%", width: 520, height: 520, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(124,110,245,.06) 0%, transparent 60%)", filter: "blur(56px)" }} />
-          <div style={{ position: "absolute", top: "30%", left: "-8%", width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(56,189,248,.04) 0%, transparent 60%)", filter: "blur(60px)" }} />
-        </div>
-
-        <div style={{ position: "relative", zIndex: 1, width: "100%", padding: "80px 0 100px" }}>
-          <div className="hero-grid" style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
-
-            {/* Left */}
-            <div>
-              {/* Badge */}
-              <div className="a1" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "rgba(31,191,159,.08)", border: "1px solid rgba(31,191,159,.18)", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--teal)", letterSpacing: "0.05em", marginBottom: 28 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--teal)", animation: "pulse-dot 1.8s ease-in-out infinite" }} />
-                BA OPERATING SYSTEM
-              </div>
-
-              <h1 className="a2" style={{ fontFamily: "var(--font-display)", fontSize: "clamp(44px, 5.4vw, 70px)", fontWeight: 900, lineHeight: 0.97, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 26 }}>
-                The only platform<br />
-                that thinks like<br />
-                <span style={{ background: "linear-gradient(110deg, var(--teal) 0%, #2ddbb8 38%, #60d4f7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                  a senior BA.
-                </span>
-              </h1>
-
-              <p className="a3" style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.72, maxWidth: 440, marginBottom: 38 }}>
-                Describe your business problem in plain language.{" "}
-                <strong style={{ color: "var(--t1)", fontWeight: 600 }}>
-                  The Intelligence Engine maps stakeholders, traces root causes, surfaces requirements, and generates your complete deliverable package — BABOK-aligned, connected, and fully traceable.
-                </strong>
-              </p>
-
-              {/* Fast lanes */}
-              <div className="a4 fast-lanes" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 40 }}>
-                {[
-                  { label: "I need to get work done",    href: workspaceHref,              color: "#1fbf9f", icon: "⚡" },
-                  { label: "I need to make a decision",  href: "/decision-intelligence",   color: "#a78bfa", icon: "🧠" },
-                  { label: "I am job hunting",           href: "/career",                  color: "#38bdf8", icon: "💼" },
-                  { label: "I am learning BA",           href: "/learning",                color: "#fb923c", icon: "📚" },
-                ].map(lane => (
-                  <Link key={lane.label} href={lane.href} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: "var(--radius-sm)", background: "var(--bg-2)", border: "1px solid var(--border)", textDecoration: "none", transition: "border-color .2s, background .2s" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = `${lane.color}35`; (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-3)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-2)"; }}
-                  >
-                    <span style={{ fontSize: 15 }}>{lane.icon}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--t2)", lineHeight: 1.3 }}>{lane.label}</span>
-                    <ChevronRight />
-                  </Link>
-                ))}
-              </div>
-
-              {/* Social proof */}
-              <div className="a5" style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ display: "flex" }}>
-                  {[["#a78bfa","rgba(167,139,250,.12)"],["#38bdf8","rgba(56,189,248,.12)"],["#1fbf9f","rgba(31,191,159,.12)"],["#fb923c","rgba(251,146,60,.12)"],["#f87171","rgba(248,113,113,.12)"]].map(([c,bg], i) => (
-                    <div key={i} style={{ width: 30, height: 30, borderRadius: "50%", border: "2px solid var(--bg)", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 600, color: c, marginLeft: i > 0 ? -8 : 0 }}>BA</div>
-                  ))}
-                </div>
-                <div>
-                  <div style={{ display: "flex", gap: 2, marginBottom: 2 }}>{[1,2,3,4,5].map(i => <StarIcon key={i} />)}</div>
-                  <div style={{ fontSize: 12, color: "var(--t3)" }}><strong style={{ color: "var(--t2)" }}>Trusted by BA practitioners</strong> across banking, energy and tech</div>
-                </div>
-              </div>
+// ── Templates preview — a light fan of real document shapes, not icons ──────
+function TemplatePreviewCards() {
+  return (
+    <div style={{ position: "relative", width: "100%", maxWidth: 340, height: 240, margin: "0 auto" }}>
+      {TEMPLATE_PREVIEWS.map((t, i) => (
+        <motion.div
+          key={t.label}
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.6, delay: i * 0.1, ease: EASE }}
+          style={{
+            position: "absolute", top: i * 14, left: i * 26, width: 220,
+            background: "#ffffff", border: "1px solid var(--lc-border-soft)", borderRadius: 10, padding: "16px 16px",
+            boxShadow: "0 16px 40px -14px rgba(15,23,42,0.18)",
+            transform: `rotate(${(i - 1) * 3}deg)`, zIndex: i,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ width: 22, height: 22, borderRadius: 5, background: `${t.color}18`, border: `1px solid ${t.color}35`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={t.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+              </svg>
             </div>
-
-            {/* Right — Intelligence Demo */}
-            <div className="a5"><IntelligenceDemo /></div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--lc-text-2)", lineHeight: 1.25 }}>{t.label}</span>
           </div>
+          {t.kind === "table" ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+              {Array.from({ length: 9 }).map((_, k) => (
+                <div key={k} style={{ height: 8, borderRadius: 2, background: k < 3 ? "var(--lc-border)" : "var(--lc-faint)", border: "1px solid var(--lc-border-soft)" }} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[100, 85, 92, 70, 88].map((w, k) => (
+                <div key={k} style={{ height: 5, borderRadius: 3, background: "var(--lc-border)", width: `${w}%` }} />
+              ))}
+            </div>
+          )}
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+
+// ── BA Intelligence preview — a coming capability, staged honestly as a
+// marketing screenshot of an analysis workspace, not a chatbot and not a
+// live tool. Every action row reads from the same source at the top, which
+// is the one idea this panel exists to communicate. ─────────────────────────
+function BAIntelligencePreview() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.7, ease: EASE }}
+      style={{
+        background: "#0e0e12", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: "20px 22px",
+        boxShadow: "0 30px 70px -24px rgba(0,0,0,0.4)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(45,219,184,0.16)", border: "1px solid rgba(45,219,184,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2ddbb8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: "#f2f2f8", flex: 1 }}>Analysis Workspace</span>
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: "#8a8aa0", letterSpacing: "0.08em", textTransform: "uppercase", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 4, padding: "3px 6px" }}>
+          BA Intelligence
+        </span>
+      </div>
+
+      {/* Source */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "11px 14px", marginBottom: 14 }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a8aa0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "#d4d4dc" }}>{BA_INTEL_SOURCE}</span>
+      </div>
+
+      {/* Findings */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+        {BA_INTEL_FINDINGS.map(f => (
+          <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 9, padding: "3px 0" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.color, flexShrink: 0 }} />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: "#f2f2f8", flexShrink: 0, width: 18 }}>{f.count}</span>
+            <span style={{ fontSize: 12, color: "#a8a8ba" }}>{f.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
+        <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: "#5a5a68", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+          Same project context
+        </span>
+        <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+      </div>
+
+      {/* Linked actions — all read from the transcript + findings above */}
+      <div className="home-baintel-actions" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+        {BA_INTEL_ACTIONS.map(a => (
+          <div key={a} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+            background: "rgba(45,219,184,0.06)", border: "1px solid rgba(45,219,184,0.2)", borderRadius: 8, padding: "10px 12px",
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#e4e4ec" }}>{a}</span>
+            <ArrowRight size={12} />
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── A running document-index mark used to structure each light section ──────
+function SectionMark({ n, of, label }: { n: number; of: number; label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 22 }}>
+      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: "#0e9c81", flexShrink: 0 }}>
+        {String(n).padStart(2, "0")}<span style={{ color: "var(--lc-text-5)" }}>/{String(of).padStart(2, "0")}</span>
+      </span>
+      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--lc-text-4)", flexShrink: 0 }}>
+        {label}
+      </span>
+      <span style={{ flex: 1, height: 1, background: "var(--lc-border)" }} />
+    </div>
+  );
+}
+
+function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.7, delay, ease: EASE }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export default function HomePage() {
+  const router = useRouter();
+  const [authState, setAuthState] = useState<"unknown" | "out" | "in">("unknown");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Session presence only — never fetches project or business data on this
+  // public page. Used solely to swap CTA copy between logged-out and
+  // logged-in states.
+  useEffect(() => {
+    let active = true;
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const supabase = createClient();
+      supabase.auth.getSession().then(({ data }) => {
+        if (active) setAuthState(data.session ? "in" : "out");
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (active) setAuthState(session ? "in" : "out");
+      });
+      return () => sub.subscription.unsubscribe();
+    });
+    return () => { active = false; };
+  }, []);
+
+  const loggedIn = authState === "in";
+  const primaryHref = loggedIn ? "/projects" : "/auth/signup";
+  const primaryLabel = loggedIn ? "Open Projects" : "Start a project";
+
+  async function signOut() {
+    const { createClient } = await import("@/lib/supabase/client");
+    await createClient().auth.signOut();
+    router.push("/");
+  }
+
+  return (
+    <div style={{ background: "#08080b", minHeight: "100vh", fontFamily: "'Open Sans', sans-serif", WebkitFontSmoothing: "antialiased" }}>
+      <AuroraLayer />
+      <CinematicBackground />
+      <GrainLayer />
+
+      {/* ── Header ── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 100,
+        background: "rgba(8,8,11,0.75)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px", height: 61, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <LogoMark />
+            <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: 15, color: "#f0f0f4", letterSpacing: "-0.02em" }}>
+              The<span style={{ color: "#2ddbb8" }}>BA</span>Portal
+            </span>
+          </Link>
+
+          <nav style={{ display: "flex", alignItems: "center", gap: 28 }} className="home-nav-links">
+            <a href="#lifecycle" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Product</a>
+            <a href="#decision-lab" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Decision Lab</a>
+            <Link href="/templates" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Templates</Link>
+            <Link href="/pricing" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Pricing</Link>
+          </nav>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }} className="home-nav-cta">
+            {loggedIn ? (
+              <>
+                <button onClick={signOut} style={{ fontSize: 13, color: "#9090a0", background: "none", border: "none", cursor: "pointer" }}>Sign out</button>
+                <Link href="/projects" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#05120f", background: "#2ddbb8", padding: "9px 16px", borderRadius: 6, textDecoration: "none" }}>
+                  Open Projects
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" style={{ fontSize: 13, color: "#9090a0", textDecoration: "none" }}>Sign in</Link>
+                <Link href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#05120f", background: "#2ddbb8", padding: "9px 16px", borderRadius: 6, textDecoration: "none" }}>
+                  Get started
+                </Link>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => setMobileNavOpen(v => !v)}
+            className="home-mobile-toggle"
+            style={{ display: "none", background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, width: 36, height: 36, color: "#f0f0f4", cursor: "pointer" }}
+          >
+            ☰
+          </button>
+        </div>
+
+        {mobileNavOpen && (
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+            <a href="#lifecycle" onClick={() => setMobileNavOpen(false)} style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Product</a>
+            <a href="#decision-lab" onClick={() => setMobileNavOpen(false)} style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Decision Lab</a>
+            <Link href="/templates" style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Templates</Link>
+            <Link href="/pricing" style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Pricing</Link>
+            <div style={{ height: 1, background: "rgba(255,255,255,0.08)" }} />
+            {loggedIn ? (
+              <Link href="/projects" style={{ fontSize: 14, fontWeight: 700, color: "#2ddbb8", textDecoration: "none" }}>Open Projects</Link>
+            ) : (
+              <>
+                <Link href="/auth/login" style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Sign in</Link>
+                <Link href="/auth/signup" style={{ fontSize: 14, fontWeight: 700, color: "#2ddbb8", textDecoration: "none" }}>Get started</Link>
+              </>
+            )}
+          </div>
+        )}
+      </header>
+
+      {/* ── Hero — full-bleed cinematic environment ──
+          Vertical rhythm is a single flex column so the layers below (value
+          row, scroll cue) can never overlap the copy above, regardless of
+          viewport height: copy gets the flexible middle (flex: 1, centered
+          within it), the bottom block just takes its natural height at the
+          end of the column. The workflow panel is the one genuinely
+          absolutely-positioned element, anchored to the full-height section
+          itself (not the copy wrap, which is only as tall as its own text —
+          that mismatch was why it used to drift low). */}
+      <section className="home-hero" style={{ position: "relative", zIndex: 1, minHeight: "calc(100vh - 61px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <HeroCinematicVideo />
+        <WorkflowPanel />
+
+        <div className="home-hero-wrap" style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", maxWidth: 1400, margin: "0 auto", padding: "0 48px" }}>
+          <div className="home-hero-copy" style={{ maxWidth: 600 }}>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}
+              style={{ marginBottom: 22 }}
+            >
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#2ddbb8" }}>
+                The connected workspace for business analysts
+              </span>
+            </motion.div>
+
+            <KineticHeadline lines={[
+              { text: "From insight" },
+              { text: "to impact." },
+              { text: "All in one place.", color: "#2ddbb8" },
+            ]} />
+
+            <motion.p
+              initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.5, ease: EASE }}
+              style={{ fontSize: 16.5, lineHeight: 1.7, color: "#c4c4ce", maxWidth: 540, margin: "0 0 32px", textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}
+            >
+              Capture a business need once. Carry that context through stakeholder analysis, requirements, user stories,
+              process analysis, and testing, so your work stays connected from problem to delivery.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.65, ease: EASE }}
+              className="home-hero-cta" style={{ display: "flex", alignItems: "center", gap: 26, flexWrap: "wrap" }}
+            >
+              <Link href={primaryHref} style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "14px 28px", borderRadius: 8, background: "#2ddbb8",
+                color: "#04140f", fontWeight: 700, fontSize: 15.5, textDecoration: "none",
+                boxShadow: "0 0 0 1px rgba(45,219,184,0.4), 0 12px 30px -8px rgba(45,219,184,0.55)",
+              }}>
+                {primaryLabel} <ArrowRight />
+              </Link>
+              <a href="#lifecycle" style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                fontSize: 15, fontWeight: 700, color: "#f0f0f4", textDecoration: "none",
+              }}>
+                <PlayCircle /> See how it connects
+              </a>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Bottom block — natural height, sits at the end of the column below
+            the flexible copy area, so it can never overlap the CTA above it. */}
+        <div style={{ position: "relative", zIndex: 2, flexShrink: 0, marginTop: 24, padding: "0 0 28px" }}>
+          <ValueStrip />
+
+          <motion.a
+            href="#lifecycle"
+            className="home-scroll-cue"
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+              margin: "22px auto 0", width: "fit-content",
+              color: "#9090a0", textDecoration: "none",
+            }}
+          >
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, letterSpacing: "0.14em", textTransform: "uppercase" }}>Scroll to explore</span>
+            <svg width="16" height="22" viewBox="0 0 16 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="14" height="22" rx="7" /><line x1="8" y1="6" x2="8" y2="10" strokeLinecap="round" /></svg>
+          </motion.a>
         </div>
       </section>
 
-      {/* ── TICKER ───────────────────────────────────────────────────────── */}
-      <Ticker />
+      {/* ── Lifecycle — pale icy blue, the first light surface after the hero ── */}
+      <section id="lifecycle" style={{ position: "relative", zIndex: 1, background: "#eef4f8" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "88px 24px 80px" }}>
+          <Reveal><SectionMark n={1} of={3} label="Connected Workflow" /></Reveal>
 
-      {/* ── MOAT STRIP ───────────────────────────────────────────────────── */}
-      <section style={{ padding: "56px 0", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div style={{ textAlign: "center", marginBottom: 40 }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--t3)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
-              Why this is not ChatGPT with a BA hat on
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, background: "var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+          <Reveal>
+            <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--lc-text-1)", margin: "0 0 14px", lineHeight: 1.2, maxWidth: 620 }}>
+              One business need.<br />One connected journey.
+            </h2>
+            <p style={{ fontSize: 15.5, color: "var(--lc-text-3)", lineHeight: 1.7, marginBottom: 56, maxWidth: 560 }}>
+              Start where your project is. Approved context carries into whatever you work on next, so nothing gets re-explained from scratch.
+            </p>
+          </Reveal>
+
+          <LifecycleJourney />
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 64 }}>
             {[
-              {
-                color: "#1fbf9f",
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round" width="20" height="20"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>,
-                title: "Structured BA reasoning",
-                desc: "Not a general AI prompted to act like a BA. A system built on how senior BAs actually elicit, analyse, and deliver — from first question to signed-off requirement.",
-              },
-              {
-                color: "#a78bfa",
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3M5.64 5.64l2.12 2.12M16.24 16.24l2.12 2.12M5.64 18.36l2.12-2.12M16.24 7.76l2.12-2.12"/></svg>,
-                title: "Full traceability built in",
-                desc: "Every user story links to a requirement. Every requirement links to a business problem. Every output connects to the one above it. Nothing exists in isolation.",
-              },
-              {
-                color: "#38bdf8",
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-                title: "Gets smarter with every project",
-                desc: "Your saved templates, project history, and BA patterns accumulate over time. The more you use it, the harder it is to replace — for you or your organisation.",
-              },
+              { title: "Describe the problem once", body: "A short problem statement becomes shared context the rest of your project can draw on." },
+              { title: "Reuse what's already approved", body: "Approve a workstream's output and TheBAPortal carries it wherever it's relevant, no re-explaining, no copy-paste." },
+              { title: "Export real deliverables", body: "Word-compatible documents you can hand to a sponsor, a delivery team, or a client, as-is." },
             ].map((item, i) => (
-              <div key={i} style={{ background: "var(--bg-1)", padding: "36px 32px", transition: "background .2s" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-1)")}
-              >
-                <div style={{ width: 44, height: 44, borderRadius: 13, background: `${item.color}10`, border: `1px solid ${item.color}20`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
-                  {item.icon}
-                </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>{item.title}</div>
-                <p style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.68, margin: 0 }}>{item.desc}</p>
-              </div>
+              <Reveal key={item.title} delay={i * 0.1}>
+                <h3 style={{ fontSize: 15.5, fontWeight: 700, color: "var(--lc-text-1)", marginBottom: 8 }}>{item.title}</h3>
+                <p style={{ fontSize: 14, color: "var(--lc-text-3)", lineHeight: 1.65, margin: 0 }}>{item.body}</p>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── THE FOUR MODULES ─────────────────────────────────────────────── */}
-      <section id="modules" style={{ padding: "90px 0 70px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div ref={modulesReveal.ref} style={{ ...modulesReveal.style, textAlign: "center", marginBottom: 52 }}>
-            <Eyebrow>The Platform</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>
-              One place for everything a BA needs
-            </h2>
-            <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 500, margin: "0 auto", lineHeight: 1.68 }}>
-              From the work on your desk today to the role you want next. All six modules serve a single purpose — making your life as a BA easier.
-            </p>
-          </div>
-
-          <div className="module-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-            {[
-              {
-                href: workspaceHref,
-                color: "#1fbf9f",
-                title: "BA Workspace",
-                tag: "Daily Driver",
-                desc: "Paste anything — notes, a problem, a transcript. Get a complete, connected set of BABOK-aligned deliverables.",
-                tools: ["Problem Analyzer", "User Story Generator", "BRD / FRD", "Process Analyzer"],
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
-              },
-              {
-                href: workspaceHref,
-                color: "#a78bfa",
-                title: "Decision Intelligence",
-                tag: "Differentiator",
-                desc: "Bring a real business problem. The platform reasons through it like a senior BA — root causes, risks, options, and a recommendation.",
-                tools: ["Root Cause Analysis", "Solution Evaluator", "Risk Radar", "Stakeholder Intelligence"],
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>,
-              },
-              {
-                href: "/career",
-                color: "#38bdf8",
-                title: "Career Hub",
-                tag: "For Every Stage",
-                desc: "Resume analyzer, job match scoring, interview copilot, and portfolio builder — all optimized specifically for BA roles.",
-                tools: ["Resume Analyzer", "Job Match Analyzer", "Interview Copilot", "Portfolio Builder"],
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>,
-              },
-              {
-                href: "/learning",
-                color: "#fb923c",
-                title: "Learning Hub",
-                tag: "Aspiring BAs",
-                desc: "Structured paths from beginner to advanced. Learning happens as a byproduct of real work — every output explains why it was built that way.",
-                tools: ["Beginner Path", "Intermediate Path", "Advanced Path", "BABOK Foundations"],
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>,
-              },
-              {
-                href: "/scenarios",
-                color: "#facc15",
-                title: "Practice Lab",
-                tag: "Build Confidence",
-                desc: "Simulate real stakeholder conversations, discovery workshops, and elicitation sessions. For the BA who learns best by doing.",
-                tools: ["Stakeholder Simulator", "Workshop Simulator", "Elicitation Practice", "Conflict Scenarios"],
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#facc15" strokeWidth="2" strokeLinecap="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>,
-              },
-              {
-                href: workspaceHref,
-                color: "#f87171",
-                title: "Template Studio",
-                tag: "Your Standards",
-                desc: "Start from BABOK-compliant templates. Customise them to your organisation's format. Save and reuse them forever.",
-                tools: ["Generic Templates", "Org Customiser", "Saved Templates", "Team Sharing"],
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-              },
-            ].map(card => (
-              <Link key={card.title} href={card.href} style={{ textDecoration: "none", display: "block" }}>
-                <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "32px 28px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s", cursor: "pointer", height: "100%", display: "flex", flexDirection: "column" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}30`; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-                >
-                  <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(ellipse, ${card.color}08 0%, transparent 65%)`, pointerEvents: "none" }} />
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 13, background: `${card.color}12`, border: `1px solid ${card.color}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {card.icon}
-                    </div>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, padding: "3px 9px", borderRadius: 5, textTransform: "uppercase" as const, letterSpacing: ".06em", background: `${card.color}10`, color: card.color, border: `1px solid ${card.color}20` }}>{card.tag}</span>
-                  </div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em" }}>{card.title}</div>
-                  <p style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.68, marginBottom: 20, flex: 1 }}>{card.desc}</p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-                    {card.tools.map(t => (
-                      <span key={t} style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 6, background: `${card.color}08`, color: "var(--t3)", border: `1px solid ${card.color}14` }}>{t}</span>
-                    ))}
-                  </div>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: card.color }}>
-                    Explore <ArrowRight size={13} />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── STATS BAR ────────────────────────────────────────────────────── */}
-      <section style={{ padding: "0 0 80px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div ref={statsReveal.ref} style={{ ...statsReveal.style, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 2, background: "var(--border)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-            {[
-              { val: "15+",  label: "Deliverable Types",  sub: "BRD, FRD, User Stories, Stakeholder Maps and more" },
-              { val: "6",    label: "Intelligent Modules", sub: "Workspace, Career, Decision, Learning, Practice, Templates" },
-              { val: "100%", label: "BABOK Aligned",       sub: "Every output follows BABOK knowledge areas" },
-              { val: "3",    label: "Personas Served",     sub: "Aspiring · Practicing · Senior BA" },
-            ].map((s, i) => (
-              <div key={i} style={{ background: "var(--bg-1)", padding: "36px 28px", textAlign: "center", transition: "background .2s", cursor: "default" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-1)")}
-              >
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 42, fontWeight: 800, color: "var(--teal)", letterSpacing: "-0.04em", lineHeight: 1, marginBottom: 8 }}>{s.val}</div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--t1)", marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)", lineHeight: 1.5 }}>{s.sub}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW THE INTELLIGENCE ENGINE WORKS ────────────────────────────── */}
-      <section id="how-it-works" style={{ padding: "0 0 100px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div ref={hiwReveal.ref} style={{ ...hiwReveal.style, textAlign: "center", marginBottom: 64 }}>
-            <Eyebrow>The Intelligence Engine</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 16 }}>
-              It does not generate. It reasons.
-            </h2>
-            <p style={{ fontSize: 16, color: "var(--t2)", maxWidth: 520, margin: "0 auto", lineHeight: 1.68 }}>
-              Most AI tools produce output the moment you press enter. The Intelligence Engine does not — because a senior BA does not either. It asks the right questions, understands dependencies, and builds everything connected. That structure is the thing that cannot be replicated in six months.
-            </p>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, position: "relative" }}>
-            <div style={{ position: "absolute", top: 44, left: "calc(12.5% + 10px)", right: "calc(12.5% + 10px)", height: 1, background: "linear-gradient(to right, transparent 0%, rgba(31,191,159,.25) 15%, rgba(31,191,159,.25) 85%, transparent 100%)", pointerEvents: "none", zIndex: 0 }} />
-
-            {[
-              { num: "01", color: "#1fbf9f", title: "You bring the situation",  desc: "Paste meeting notes, type a problem, describe a situation. No forms. No structure required. Just your words." },
-              { num: "02", color: "#38bdf8", title: "The engine interrogates",  desc: "Before building anything, the engine asks exactly what a senior BA would ask — filling the gaps, challenging assumptions." },
-              { num: "03", color: "#a78bfa", title: "Everything is connected",  desc: "Artifacts are not produced in isolation. Every user story links to a requirement. Every requirement links to a business problem." },
-              { num: "04", color: "#fb923c", title: "You walk away with work",  desc: "BABOK-compliant deliverables, ready to use. Plus explanations of why each section was built the way it was." },
-            ].map((step, i) => (
-              <div key={step.num} style={{ position: "relative", zIndex: 1 }}>
-                <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "28px 24px", height: "100%", transition: "border-color .2s, background .2s" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${step.color}30`; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-                >
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${step.color}12`, border: `2px solid ${step.color}28`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: step.color }}>
-                    {step.num}
-                  </div>
-                  {i < 3 && (
-                    <div style={{ position: "absolute", top: 44, right: -8, width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(31,191,159,0.35)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </div>
-                  )}
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 15.5, fontWeight: 700, color: "var(--t1)", marginBottom: 10, letterSpacing: "-0.02em", lineHeight: 1.2 }}>{step.title}</div>
-                  <div style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65 }}>{step.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Traceability callout */}
-          <div style={{ marginTop: 24, background: "rgba(31,191,159,.03)", border: "1px solid rgba(31,191,159,.12)", borderRadius: "var(--radius)", padding: "28px 36px", display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.1em", textTransform: "uppercase", flexShrink: 0 }}>Full Traceability</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: 1 }}>
-              {["Business Problem", "Stakeholders", "Requirements", "User Stories", "Acceptance Criteria", "Risks", "Business Case"].map((item, i, arr) => (
-                <div key={item} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 600, color: "var(--t2)", padding: "4px 10px", borderRadius: 7, background: "var(--bg-2)", border: "1px solid var(--border)" }}>{item}</span>
-                  {i < arr.length - 1 && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t4)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>}
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize: 12.5, color: "var(--t3)", maxWidth: 260, lineHeight: 1.6 }}>Every artifact links back to the one above it. Nothing exists in isolation.</div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURE SHOWCASE ─────────────────────────────────────────────── */}
-      <section style={{ padding: "0 0 100px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div ref={featuresReveal.ref} style={{ ...featuresReveal.style, textAlign: "center", marginBottom: 56 }}>
-            <Eyebrow>What You Can Do</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)" }}>
-              The tools that matter most to a BA
-            </h2>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
-
-            {/* Large feature — Intelligence Engine */}
-            <div style={{ gridRow: "1 / 3", background: "var(--bg-1)", border: "1px solid rgba(31,191,159,.14)", borderRadius: "var(--radius-xl)", padding: "44px 40px", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              <div style={{ position: "absolute", top: -60, right: -60, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(31,191,159,.07) 0%, transparent 65%)", pointerEvents: "none" }} />
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, var(--teal), transparent)" }} />
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--teal)", letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 14 }}>Core Feature</div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.03em", marginBottom: 16, lineHeight: 1.15 }}>
-                From a sentence to a full BA package
-              </div>
-              <p style={{ fontSize: 15, color: "var(--t2)", lineHeight: 1.72, marginBottom: 32, flex: 1 }}>
-                Enter any business problem in plain language. The Intelligence Engine asks clarifying questions, then produces a Problem Statement, Stakeholder Map, Root Cause Analysis, Requirements, User Stories, and a Business Case — all linked together.
+      {/* ── Decision Lab — a subtly different cool neutral, dark preview panel for contrast ── */}
+      <section id="decision-lab" style={{ position: "relative", zIndex: 1, background: "#eef1f2" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "88px 24px 96px" }}>
+          <Reveal><SectionMark n={2} of={3} label="Decision Lab" /></Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 56, alignItems: "center" }} className="home-decision-grid">
+            <Reveal>
+              <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontSize: 30, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--lc-text-1)", margin: "0 0 16px", lineHeight: 1.2 }}>
+                Some Business Analyst work isn't documentation.<br />It's judgement.
+              </h2>
+              <p style={{ fontSize: 15.5, color: "var(--lc-text-3)", lineHeight: 1.7, marginBottom: 28 }}>
+                Compare options. Surface risks. Challenge assumptions. Understand stakeholders. Recommend a direction.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-                {[
-                  { input: "Customer onboarding takes 15 days",    output: "Problem statement + root causes + stakeholder map + requirements" },
-                  { input: "Stakeholders disagree on priorities",   output: "Influence matrix + alignment strategies + communication plan" },
-                  { input: "Messy meeting notes from a workshop",   output: "Action items + decisions log + functional requirements" },
-                ].map((ex, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--t2)", flex: 1, minWidth: 0 }}>&ldquo;{ex.input}&rdquo;</div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--teal)", flex: 1, minWidth: 0 }}>{ex.output}</div>
-                  </div>
-                ))}
-              </div>
-              <Link href={workspaceHref} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "13px 24px", borderRadius: "var(--radius-sm)", textDecoration: "none", transition: "background .2s", alignSelf: "flex-start" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; }}
-              >
-                Open the Workspace <ArrowRight size={14} />
+              <Link href="/decision-lab" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, color: "#0e9c81", textDecoration: "none" }}>
+                Open Decision Lab <ArrowRight size={14} />
               </Link>
-            </div>
+            </Reveal>
 
-            {/* Resume Analyzer */}
-            <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "32px 32px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,.25)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(56,189,248,.1)", border: "1px solid rgba(56,189,248,.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
-              </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--t1)", marginBottom: 8 }}>Resume Analyzer</div>
-              <p style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65, marginBottom: 16 }}>Upload your resume. Get an ATS score, a BA competency score, missing keywords, and specific improvement recommendations.</p>
-              <Link href="/career" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#38bdf8", textDecoration: "none" }}>
-                Go to Career Hub <ChevronRight />
-              </Link>
-            </div>
-
-            {/* Interview Copilot */}
-            <div style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "32px 32px", position: "relative", overflow: "hidden", transition: "border-color .2s, background .2s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(167,139,250,.25)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(167,139,250,.1)", border: "1px solid rgba(167,139,250,.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" width="22" height="22"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
-              </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--t1)", marginBottom: 8 }}>Interview Copilot</div>
-              <p style={{ fontSize: 13.5, color: "var(--t2)", lineHeight: 1.65, marginBottom: 16 }}>Paste a job description. Get tailored STAR responses, likely scenario questions, and coached answers ready before your interview.</p>
-              <Link href="/interview" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#a78bfa", textDecoration: "none" }}>
-                Prep for my interview <ChevronRight />
-              </Link>
-            </div>
+            <Reveal delay={0.1}>
+              <DecisionPreviewPanel />
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ── INDUSTRIES ───────────────────────────────────────────────────── */}
-      <section style={{ padding: "0 0 100px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div ref={industriesReveal.ref} style={{ ...industriesReveal.style, textAlign: "center", marginBottom: 44 }}>
-            <Eyebrow>Industry Coverage</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)" }}>
-              Optimized for your industry
-            </h2>
-            <p style={{ fontSize: 15, color: "var(--t2)", maxWidth: 480, margin: "16px auto 0", lineHeight: 1.68 }}>
-              The Intelligence Engine understands that a banking BRD looks different from a healthcare one. Context matters. Output reflects it.
-            </p>
+      {/* ── BA Intelligence — subtly warmer light than the two sections above,
+          still calm and restrained. Replaces Templates as the third homepage
+          chapter; Templates itself lives on unchanged at /templates. ── */}
+      <section style={{ position: "relative", zIndex: 1, background: "#f6f1ea" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "88px 24px 96px" }}>
+          <Reveal><SectionMark n={3} of={3} label="BA Intelligence" /></Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 56, alignItems: "center" }} className="home-decision-grid">
+            <Reveal>
+              <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontSize: 30, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--lc-text-1)", margin: "0 0 16px", lineHeight: 1.2 }}>
+                Spend less time documenting.<br />Spend more time analysing.
+              </h2>
+              <p style={{ fontSize: 15.5, color: "var(--lc-text-3)", lineHeight: 1.7, marginBottom: 28 }}>
+                Turn messy stakeholder input into structured analysis, surface what is missing, and move from
+                conversation to requirements without starting from a blank page.
+              </p>
+              <Link href="/ba-intelligence" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, color: "#0e9c81", textDecoration: "none" }}>
+                Open BA Intelligence <ArrowRight size={14} />
+              </Link>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <BAIntelligencePreview />
+            </Reveal>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
-            {INDUSTRIES.map(name => (
-              <div key={name} style={{ background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "26px 14px", textAlign: "center", transition: "border-color .2s, background .2s", cursor: "default" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(31,191,159,.18)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; }}
-              >
-                <div style={{ marginBottom: 10, display: "flex", justifyContent: "center", color: "var(--t3)" }}>
-                  <IndustryIcon name={name} />
-                </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600, color: "var(--t2)" }}>{name}</div>
-              </div>
-            ))}
-          </div>
-          <p style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t4)" }}>
-            +6 more industries on the roadmap
+        </div>
+      </section>
+
+      {/* ── Closing CTA — back onto the dark base; the fixed aurora/constellation
+          layers show through naturally since this section paints no opaque
+          background of its own. ── */}
+      <section style={{ position: "relative", zIndex: 1, maxWidth: 720, margin: "0 auto", padding: "120px 24px 110px", textAlign: "center" }}>
+        <Reveal>
+          <h2 style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontSize: 27, fontWeight: 800, letterSpacing: "-0.02em", color: "#f8f8fb", marginBottom: 14 }}>
+            Your next project starts with clarity.
+          </h2>
+          <p style={{ fontSize: 15, color: "#9090a8", marginBottom: 28 }}>
+            Same context. Less rework. Greater impact.
           </p>
-        </div>
+          <Link href={primaryHref} style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "14px 30px", borderRadius: 8, background: "#2ddbb8",
+            color: "#04140f", fontWeight: 700, fontSize: 15.5, textDecoration: "none",
+            boxShadow: "0 0 0 1px rgba(45,219,184,0.4), 0 12px 30px -8px rgba(45,219,184,0.55)",
+          }}>
+            {primaryLabel} <ArrowRight />
+          </Link>
+        </Reveal>
       </section>
 
-      {/* ── PRICING ──────────────────────────────────────────────────────── */}
-      <section style={{ padding: "0 0 100px" }} id="pricing">
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div ref={pricingHeadReveal.ref} style={{ ...pricingHeadReveal.style, textAlign: "center", marginBottom: 0 }}>
-            <Eyebrow>Pricing</Eyebrow>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--t1)", marginBottom: 24 }}>Simple, honest pricing</h2>
-            <div style={{ display: "inline-flex", padding: 4, borderRadius: "var(--radius-sm)", background: "var(--bg-2)", border: "1px solid var(--border)", marginBottom: 48 }}>
-              {[{ label: "Annual · Save 35%", val: "annual" }, { label: "Monthly", val: "monthly" }].map(opt => (
-                <button key={opt.val} onClick={() => setBillingAnnual(opt.val === "annual")} style={{ padding: "7px 22px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, transition: "all .2s", background: (opt.val === "annual") === billingAnnual ? "var(--teal)" : "transparent", color: (opt.val === "annual") === billingAnnual ? "#041a13" : "var(--t2)" }}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+      {/* ── Footer ── */}
+      <footer style={{ position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.08)", padding: "32px 24px" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <LogoMark size={22} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#9090a8" }}>TheBAPortal</span>
           </div>
-          <div ref={pricingReveal.ref} style={{ ...pricingReveal.style, display: "flex", gap: 16, maxWidth: 820, margin: "0 auto" }}>
-            <PricingCard
-              plan="Free" price="$0" period="forever" href="/auth/signup" cta="Get Started" featured={false}
-              features={[
-                "BA Workspace — 5 analyses per month",
-                "User Story Generator",
-                "Resume Analyzer",
-                "Beginner Learning Path",
-                "3 Practice Lab simulations",
-                "Generic template library",
-              ]}
-            />
-            <PricingCard
-              plan="Pro" price={billingAnnual ? "$19" : "$29"} period={billingAnnual ? "/mo · billed annually" : "/month"} href="/pricing" cta="Upgrade to Pro" featured={true}
-              features={[
-                "Unlimited BA Workspace analyses",
-                "Full Decision Intelligence suite",
-                "Complete Career Hub (resume, interview, portfolio)",
-                "All learning paths — beginner to advanced",
-                "Unlimited Practice Lab simulations",
-                "Template Studio with org customisation",
-                "Full traceability across all deliverables",
-                "Priority support",
-              ]}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ────────────────────────────────────────────────────── */}
-      <section style={{ padding: "0 0 100px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
-          <div ref={finalReveal.ref} style={{ ...finalReveal.style, background: "rgba(31,191,159,.04)", border: "1px solid rgba(31,191,159,.14)", borderRadius: "var(--radius-xl)", padding: "88px 60px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 340, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(31,191,159,.08) 0%, transparent 65%)", filter: "blur(40px)", pointerEvents: "none" }} />
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 5vw, 58px)", fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.04em", marginBottom: 18, position: "relative" }}>
-              Bring your next<br />problem here.
-            </h2>
-            <p style={{ fontSize: 17, color: "var(--t2)", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 38px", position: "relative" }}>
-              The most senior BA in the room is waiting. Start in under 60 seconds.
-            </p>
-            <Link href={workspaceHref} style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: "#041a13", background: "var(--teal)", padding: "17px 36px", borderRadius: 14, textDecoration: "none", transition: "all .2s", boxShadow: "0 0 52px rgba(31,191,159,.28)", position: "relative" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal-hi)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 12px 56px rgba(31,191,159,.38)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--teal)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 52px rgba(31,191,159,.28)"; }}
-            >
-              Open the Workspace <ArrowRight size={19} />
-            </Link>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--t4)", marginTop: 14 }}>
-              Free forever · No credit card required · Cancel anytime
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer style={{ borderTop: "1px solid var(--border)", background: "var(--bg-1)", padding: "44px 28px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 800, color: "var(--t1)" }}>
-            <LogoMark size={26} />
-            The<span style={{ color: "var(--teal)" }}>BA</span>Portal
-          </div>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            {[
-              ["Workspace", workspaceHref],
-              ["Career Hub", "/career"],
-              ["Learning", "/learning"],
-              ["Practice Lab", "/scenarios"],
-              ["Jobs", "/opportunities"],
-              ["Pricing", "#pricing"],
-              ["FAQ", "/faq"],
-              ["Contact", "/contact"],
-              ["Privacy", "/privacy"],
-              ["Terms", "/terms"],
-            ].map(([l, href]) => (
-              <Link key={l} href={href} style={{ fontSize: 13, color: "var(--t3)", textDecoration: "none", transition: "color .15s" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "var(--t2)")}
-                onMouseLeave={e => (e.currentTarget.style.color = "var(--t3)")}
-              >{l}</Link>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            {[["Pricing", "/pricing"], ["FAQ", "/faq"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"]].map(([label, href]) => (
+              <Link key={label} href={href} style={{ fontSize: 13, color: "#6b6b80", textDecoration: "none" }}>{label}</Link>
             ))}
           </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t4)" }}>© 2026 TheBAPortal</div>
         </div>
       </footer>
+
+      <style>{`
+        .aurora-blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.32; }
+        .aurora-1 { width: 520px; height: 520px; background: #1fbf9f; top: -12%; left: -10%; animation: auroraDrift1 26s ease-in-out infinite; }
+        .aurora-2 { width: 480px; height: 480px; background: #7c3aed; top: 28%; right: -15%; animation: auroraDrift2 32s ease-in-out infinite; }
+        .aurora-3 { width: 420px; height: 420px; background: #0ea5e9; bottom: -15%; left: 22%; animation: auroraDrift3 24s ease-in-out infinite; }
+        @keyframes auroraDrift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px,40px) scale(1.15); } }
+        @keyframes auroraDrift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,60px) scale(1.1); } }
+        @keyframes auroraDrift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,-50px) scale(1.2); } }
+        .home-journey-rail, .home-journey-fill { top: 19px; left: 8.333%; right: 8.333%; height: 3px; }
+        @media (prefers-reduced-motion: reduce) {
+          .aurora-1, .aurora-2, .aurora-3 { animation: none; }
+        }
+        @media (max-width: 1180px) {
+          .home-workflow-panel { display: none !important; }
+        }
+        @media (max-width: 860px) {
+          .home-nav-links, .home-nav-cta { display: none !important; }
+          .home-mobile-toggle { display: flex !important; align-items: center; justify-content: center; }
+          .home-decision-grid { grid-template-columns: 1fr !important; }
+          .home-template-cards-order { order: 2; margin-top: 32px; }
+          .home-hero { min-height: 0 !important; }
+          .home-hero-wrap { padding: 32px 20px 24px !important; }
+          .home-hero-copy { max-width: 100% !important; }
+          .home-value-strip { padding: 0 20px !important; }
+          .home-value-row { row-gap: 14px !important; }
+          .home-value-item { flex: 1 1 45% !important; border-left: none !important; padding: 0 10px 0 0 !important; }
+          .home-decision-options { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          .home-journey-rail { left: 19px; right: auto; top: 8.333%; bottom: 8.333%; width: 3px; height: auto; }
+          .home-journey-fill { display: none; }
+          .home-journey-row { grid-template-columns: 1fr !important; row-gap: 28px; }
+          .home-journey-node { flex-direction: row !important; justify-content: flex-start; text-align: left; gap: 16px !important; }
+          .home-journey-node span { max-width: none !important; text-align: left !important; }
+          .home-baintel-actions { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }
