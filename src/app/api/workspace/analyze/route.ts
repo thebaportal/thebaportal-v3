@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { isRateLimited } from "@/lib/rateLimit";
 
 const SYSTEM_PROMPT = `You are a Senior Business Analyst with 20+ years of experience. Your job in Problem Analysis is to DIAGNOSE — to understand what is happening and why. You do not prescribe solutions, write requirements, or design future states.
 
@@ -57,6 +59,23 @@ Analysis complete.
 Confidence Level: [High/Medium/Low].
 Recommended next workstream: [Requirements / Stakeholder Analysis / Process Analysis — whichever is most appropriate based on the problem].
 
+---
+
+CONTEXT PRECEDENCE
+
+When interpreting the supplied information:
+
+1. The current Business Analyst instruction determines the task to perform now.
+2. Approved artifacts represent the established project position.
+3. Validated BA Intelligence represents accepted source evidence and informs the analysis, but does not silently override approved artifacts.
+4. Project metadata provides background context.
+
+If supplied sources conflict, do not silently reconcile them or invent which source is correct. Surface the conflict or uncertainty in the appropriate section of the output.
+
+If the Business Analyst explicitly instructs you to depart from established project context, follow the instruction for the current task, but make any material departure visible in the output.
+
+---
+
 RULES:
 - Diagnose only. Do not write requirements. Do not recommend solutions. Do not design future states.
 - Be specific. Use the context provided — no generic advice.
@@ -73,6 +92,11 @@ WRITING STYLE — MANDATORY:
 - Contractions are fine where they sound natural.`;
 
 export async function POST(request: Request) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   try {
     const { messages } = await request.json();
 
@@ -101,7 +125,10 @@ export async function POST(request: Request) {
       ? response.content[0].text
       : "I need a moment — could you rephrase your problem?";
 
-    return NextResponse.json({ response: text });
+    // stop_reason === "max_tokens" means the model was cut off mid-generation,
+    // not that it finished. The client must not treat this as a completed,
+    // saveable/approvable deliverable.
+    return NextResponse.json({ response: text, truncated: response.stop_reason === "max_tokens" });
 
   } catch (error) {
     console.error("Workspace analyze error:", error);

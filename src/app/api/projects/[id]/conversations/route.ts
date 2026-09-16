@@ -28,7 +28,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (type) query.eq("workstream_type", type);
 
   const { data, error } = await query.order("updated_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error("[api/projects/id/conversations]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
   return NextResponse.json({ conversations: data ?? [] });
 }
 
@@ -41,15 +41,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!workstream_type || !messages) return NextResponse.json({ error: "workstream_type and messages required" }, { status: 400 });
 
   const db = admin();
+  // Conflict target includes user_id (matches the artifact_conversations unique
+  // constraint) so an upsert can never collide with, and silently overwrite, a
+  // different user's row for the same project_id + workstream_type.
   const { data, error } = await db
     .from("artifact_conversations")
     .upsert(
       { project_id: params.id, user_id: user.id, workstream_type, messages, artifact_id: artifact_id ?? null },
-      { onConflict: "project_id,workstream_type" }
+      { onConflict: "project_id,workstream_type,user_id" }
     )
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error("[api/projects/id/conversations]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
   return NextResponse.json({ conversation: data });
 }

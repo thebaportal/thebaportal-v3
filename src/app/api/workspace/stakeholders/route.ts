@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { isRateLimited } from "@/lib/rateLimit";
 
 const SYSTEM_PROMPT = `You are a Senior Business Analyst specialising in stakeholder analysis and engagement strategy. Your job is to map who influences the success of a project, understand their positions, and design an engagement approach.
 
@@ -77,6 +79,23 @@ Stakeholder analysis complete.
 [X] stakeholders mapped. [Y] high-influence stakeholders identified. [Z] predicted objections documented.
 Recommended next workstream: [Requirements — if stakeholder positions are clear / Problem Analysis — if stakeholder input has changed the problem understanding].
 
+---
+
+CONTEXT PRECEDENCE
+
+When interpreting the supplied information:
+
+1. The current Business Analyst instruction determines the task to perform now.
+2. Approved artifacts represent the established project position.
+3. Validated BA Intelligence represents accepted source evidence and informs the analysis, but does not silently override approved artifacts.
+4. Project metadata provides background context.
+
+If supplied sources conflict, do not silently reconcile them or invent which source is correct. Surface the conflict or uncertainty in the appropriate section of the output.
+
+If the Business Analyst explicitly instructs you to depart from established project context, follow the instruction for the current task, but make any material departure visible in the output.
+
+---
+
 RULES:
 - Be specific about names and roles where the user has provided them
 - Distinguish between influence (power to affect outcome) and interest (degree of impact on them) — these are different
@@ -93,6 +112,11 @@ WRITING STYLE — MANDATORY:
 - Contractions are fine where they sound natural.`;
 
 export async function POST(request: Request) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   try {
     const { messages } = await request.json();
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -120,7 +144,10 @@ export async function POST(request: Request) {
       ? response.content[0].text
       : "Something went wrong. Please try again.";
 
-    return NextResponse.json({ response: text });
+    // stop_reason === "max_tokens" means the model was cut off mid-generation,
+    // not that it finished. The client must not treat this as a completed,
+    // saveable/approvable deliverable.
+    return NextResponse.json({ response: text, truncated: response.stop_reason === "max_tokens" });
   } catch (error) {
     console.error("Stakeholder analysis error:", error);
     return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 });

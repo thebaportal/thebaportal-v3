@@ -34,6 +34,7 @@
     "dagre": "^0.8.5",
     "docx": "^9.6.1",
     "elkjs": "^0.11.1",
+    "exceljs": "^4.4.0",
     "fast-xml-parser": "^5.5.9",
     "fflate": "^0.8.2",
     "framer-motion": "^12.34.4",

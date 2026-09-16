@@ -1,4 +1,18 @@
 import { NextResponse } from "next/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
+import { isRateLimited } from "@/lib/rateLimit";
+import { buildRequirementsWorkbook, buildUserStoriesWorkbook, buildTestingWorkbook } from "@/lib/xlsxExport";
+
+const XLSX_TYPES = new Set(["requirements", "user_stories", "test_case"]);
+
+function admin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -11,7 +25,17 @@ function extractProjectName(content: string, fallback: string): string {
   // Prefer explicit project/situation fields
   const projectMatch = content.match(/\*\*Project(?:\s*\/\s*Situation)?:\*\*\s*([^\n]+)/);
   if (projectMatch) {
-    return projectMatch[1].replace(/\s*[—–-]+.*$/, "").trim().slice(0, 60);
+    // Strip a trailing " — subtitle" using a real em/en dash only. A plain ASCII
+    // hyphen is often just part of the project's own name (e.g. "Website Redesign
+    // - Phase 2") and must not be truncated away.
+    return projectMatch[1].replace(/\s*[—–]+.*$/, "").trim().slice(0, 60);
+  }
+  // Process Analysis has no **Project:** field of its own — it names the
+  // process instead. Without this, every Process Analysis export fell through
+  // to the generic "Process Analysis" fallback regardless of the actual process.
+  const processMatch = content.match(/\*\*Process:\*\*\s*([^\n]+)/);
+  if (processMatch) {
+    return processMatch[1].replace(/\s*[—–]+.*$/, "").trim().slice(0, 60);
   }
   // For Solution Evaluator: skip leading question word, take first 5 content words
   const decisionMatch = content.match(/\*\*Decision:\*\*\s*([^\n]+)/);
@@ -28,12 +52,51 @@ function extractProjectName(content: string, fallback: string): string {
 }
 
 export async function POST(request: Request) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   try {
-    const { content, title, format } = await request.json();
+    const { content, title, format, type, projectId } = await request.json();
     if (!content || !title) return NextResponse.json({ error: "Content and title required" }, { status: 400 });
 
     const dateStr = currentDateStr();
     const projectName = extractProjectName(content, title);
+
+    // ── XLSX export ──────────────────────────────────────────────────────────
+    if (format === "xlsx") {
+      if (!XLSX_TYPES.has(type)) return NextResponse.json({ error: "This deliverable does not support an XLSX export." }, { status: 400 });
+
+      let buffer: Awaited<ReturnType<typeof buildRequirementsWorkbook>>;
+      if (type === "requirements") {
+        buffer = await buildRequirementsWorkbook(content);
+      } else if (type === "user_stories") {
+        buffer = await buildUserStoriesWorkbook(content);
+      } else {
+        // Testing's Traceability Matrix sheet needs every approved requirements /
+        // user_stories / test_case artifact in the project, not just the one being
+        // exported, to match the in-app RTM panel's own coverage computation.
+        if (!projectId) return NextResponse.json({ error: "projectId is required for the Testing workbook" }, { status: 400 });
+        const db = admin();
+        const { data: rtmArtifacts, error } = await db
+          .from("artifacts")
+          .select("type,status,content")
+          .eq("project_id", projectId)
+          .eq("user_id", user.id)
+          .in("type", ["requirements", "user_stories", "test_case"]);
+        if (error) { console.error("[export xlsx] artifact fetch failed:", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
+        buffer = await buildTestingWorkbook(content, rtmArtifacts ?? []);
+      }
+
+      const safeFilename = projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return new Response(buffer as unknown as BodyInit, {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="${safeFilename}-${type.replace(/_/g, "-")}.xlsx"`,
+        },
+      });
+    }
 
     // ── Plain text export ────────────────────────────────────────────────────
     if (format === "txt") {
@@ -84,11 +147,11 @@ export async function POST(request: Request) {
         TabStopType,
       } = await import("docx");
 
-      function inlineRuns(text: string, defaultSize = 22, defaultColor?: string): InstanceType<typeof TextRun>[] {
+      function inlineRuns(text: string, defaultSize = 22, defaultColor?: string, forceBold = false): InstanceType<typeof TextRun>[] {
         const clean = text.replace(/\*/g, "**").replace(/\*{4}/g, "**");
         const parts = clean.split(/\*\*([^*]+)\*\*/);
         return parts.filter(p => p !== "").map((part, i) =>
-          new TextRun({ text: part, bold: i % 2 === 1, size: defaultSize, color: defaultColor })
+          new TextRun({ text: part, bold: forceBold || i % 2 === 1, size: defaultSize, color: defaultColor })
         );
       }
 
@@ -214,7 +277,7 @@ export async function POST(request: Request) {
                     width: { size: colWidth, type: WidthType.DXA },
                     shading: isHeader ? { type: ShadingType.SOLID, fill: "E8F8F4" } : undefined,
                     children: [new Paragraph({
-                      children: inlineRuns(cellText, 18),
+                      children: inlineRuns(cellText, 18, undefined, isHeader),
                       spacing: { before: 60, after: 60 },
                     })],
                     margins: { top: 60, bottom: 60, left: 100, right: 100 },
@@ -296,7 +359,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ error: "Invalid format. Use txt or docx." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid format. Use txt, docx, or xlsx." }, { status: 400 });
 
   } catch (error) {
     console.error("Export error:", error);

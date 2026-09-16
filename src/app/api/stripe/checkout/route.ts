@@ -9,13 +9,6 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    console.log("=== CHECKOUT DEBUG ===");
-    console.log("STRIPE_SECRET_KEY exists:", !!process.env.STRIPE_SECRET_KEY);
-    console.log("STRIPE_MONTHLY_PRICE_ID:", process.env.STRIPE_MONTHLY_PRICE_ID);
-    console.log("STRIPE_ANNUAL_PRICE_ID:", process.env.STRIPE_ANNUAL_PRICE_ID);
-    console.log("SUPABASE_SERVICE_ROLE_KEY exists:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    console.log("APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
-
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
     }
@@ -44,8 +37,6 @@ export async function POST(request: Request) {
       : process.env.STRIPE_MONTHLY_PRICE_ID!;
 
     console.log("Using price ID:", priceId);
-
-    console.log("[checkout] service role key present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY, "prefix:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10));
 
     const supabaseAdmin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -95,7 +86,7 @@ export async function POST(request: Request) {
       mode: "subscription",
       success_url: return_job
         ? `${siteUrl()}/jobs/${return_job}?return=true&session_id={CHECKOUT_SESSION_ID}`
-        : `${siteUrl()}/dashboard?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
+        : `${siteUrl()}/projects?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: return_job
         ? `${siteUrl()}/jobs/${return_job}?cancelled=true`
         : `${siteUrl()}/pricing?canceled=true`,

@@ -23,7 +23,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error("[api/projects/id/decisions]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
   return NextResponse.json({ decisions: data ?? [] });
 }
 
@@ -51,7 +51,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error("[api/projects/id/decisions]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
   return NextResponse.json({ decision: data });
 }
 
@@ -73,6 +73,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error("[api/projects/id/decisions]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
   return NextResponse.json({ decision: data });
 }
