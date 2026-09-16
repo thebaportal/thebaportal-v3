@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && user) {
-      const dest = (next && next !== "/dashboard" && next !== "/scenarios") ? next : "/workspace";
+      const dest = next && next.startsWith("/") ? next : "/projects";
       return NextResponse.redirect(`${origin}${dest}`);
     }
   }

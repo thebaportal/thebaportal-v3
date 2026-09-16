@@ -96,8 +96,8 @@ export default function SettingsClient({ userId, email, fullName, isPro, subscri
 
       {/* ── Top bar ── */}
       <div style={{ height: 58, borderBottom: "1px solid var(--border)", background: "var(--bg-1)", display: "flex", alignItems: "center", padding: "0 28px", gap: 16 }}>
-        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, color: "var(--t3)", textDecoration: "none" }}>
-          <IconArrowLeft /> Dashboard
+        <Link href="/projects" style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, color: "var(--t3)", textDecoration: "none" }}>
+          <IconArrowLeft /> Projects
         </Link>
         <div style={{ width: 1, height: 16, background: "var(--border)" }} />
         <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)", fontFamily: "var(--font-display)" }}>Settings</span>

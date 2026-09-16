@@ -6,28 +6,19 @@ import { motion } from "framer-motion";
 import { BookOpen, Check, Crown, Zap, ArrowLeft, Loader2 } from "lucide-react";
 
 const freeFeatures = [
-  "BA Workspace — 5 analyses per month",
-  "User Story Generator",
-  "Requirements Analyzer",
-  "3 Practice Lab simulations",
-  "Career advisor starter flows",
-  "Resume history",
-  "8 downloadable BABOK templates",
-  "Beginner Learning Path",
+  "Unlimited projects",
+  "Problem Analysis, Stakeholder Analysis, Requirements",
+  "User Stories and Process Analysis",
+  "5 Decision Lab analyses per month",
+  "8 downloadable professional templates",
 ];
 
 const proFeatures = [
-  "Unlimited BA Workspace — all 5 tools",
-  "Full Decision Intelligence suite (4 tools)",
-  "Document Generator — BRD, FRD, Use Cases",
-  "Process Analyzer",
-  "Interview Copilot — JD-tailored prep pack",
-  "Portfolio Builder — professional case studies",
-  "Full Career Hub — all advisor flows",
-  "All Practice Lab simulations (unlimited)",
-  "All Learning Paths — beginner to advanced",
-  "Exam Prep — CBAP, CCBA, PMI-PBA",
-  "Template Studio org customisation",
+  "Everything in Free",
+  "Unlimited Decision Lab analyses — all 5 modes",
+  "Testing and Requirements Traceability Matrix",
+  "Priority document generation",
+  "Template Studio organisation customisation",
   "Priority support",
 ];
 
@@ -91,7 +82,7 @@ function PricingInner() {
           </span>
         </div>
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/projects")}
           style={{
             display: "flex", alignItems: "center", gap: 6,
             fontSize: 13, color: "var(--text-2)",
@@ -101,7 +92,7 @@ function PricingInner() {
           onMouseLeave={e => (e.currentTarget.style.color = "var(--text-2)")}
         >
           <ArrowLeft size={14} />
-          Back to Dashboard
+          Back to Projects
         </button>
       </header>
 
@@ -122,10 +113,10 @@ function PricingInner() {
             Simple, transparent pricing
           </div>
           <h1 style={{ fontSize: 36, fontWeight: 800, color: "var(--text-1)", marginBottom: 12 }}>
-            Unlock the full Intelligence Engine
+            Unlock the full workbench
           </h1>
           <p style={{ fontSize: 16, color: "var(--text-2)", maxWidth: 480, margin: "0 auto" }}>
-            The complete BA operating system. Do your work, make better decisions, land your next role — all in one place.
+            Everything you need to run real BA project work, from problem to delivery, in one connected workspace.
           </p>
 
           {/* Billing toggle */}

@@ -10,19 +10,19 @@ const FAQ_GROUPS = [
     items: [
       {
         q: "What exactly is The BA Portal?",
-        a: "The BA Portal is an AI-powered operating system for business analysts. You bring your real work — a business problem, a set of messy meeting notes, a job description you want to prepare for — and the platform helps you think it through, produce professional deliverables, and grow your career. It serves aspiring BAs, practising BAs, and senior analysts or consultants.",
+        a: "The BA Portal is a work tool for practising business analysts. You create a project, describe the problem, and work through Problem Analysis, Stakeholder Analysis, Requirements, User Stories, Process Analysis, Testing, and Decision Lab — with each step's approved context carrying forward automatically into the next.",
       },
       {
         q: "Who is this for?",
-        a: "Three types of people. Aspiring BAs who are trying to break into the field and need structured learning, practice, and career tools. Practising BAs who need to produce deliverables faster and make better decisions at work. Senior BAs and consultants who want decision intelligence tools and a way to articulate their value.",
+        a: "Business analysts doing real project work — whether you're on a delivery team, consulting, or running a project solo. It's built around the day-to-day BA lifecycle, not training or certification prep.",
       },
       {
-        q: "Do I need BA experience to start?",
-        a: "No. The Learning Hub starts from foundations and follows a structured path from beginner to advanced. The BA Workspace tools are designed to work with whatever input you have — even rough notes or a plain-language description of a problem. The more context you give, the better the output.",
+        q: "Do I need to set anything up before I start?",
+        a: "No. Create a project, add a short problem statement, and start with whichever workstream makes sense. The tools work with rough notes or a plain-language description — the more context you give, the better the output.",
       },
       {
-        q: "How is this different from ChatGPT or other AI tools?",
-        a: "Generic AI tools produce generic output. The BA Portal is trained in BABOK knowledge areas, understands how BA work is structured, asks the questions a senior BA would ask before generating anything, and produces output that a real BA — or a hiring manager — would recognise as legitimate. It also maintains context across a session and links deliverables together.",
+        q: "How is this different from a generic AI chat tool?",
+        a: "A generic AI chat starts from zero every time. The BA Portal keeps your project context — problem statement, approved requirements, prior decisions — and carries it forward automatically as you move between workstreams, so later steps build on earlier ones instead of repeating them.",
       },
     ],
   },
@@ -30,28 +30,16 @@ const FAQ_GROUPS = [
     group: "The Tools",
     items: [
       {
-        q: "What is the BA Workspace?",
-        a: "The Workspace is where you do your real BA work. It has five AI tools: Problem Analyzer (business problem to full analysis package), Requirements Analyzer (messy notes to structured FR, NFR, assumptions, risks), User Story Generator (requirements to INVEST-format stories with acceptance criteria), Document Generator (BRD, FRD, or Use Cases), and Process Analyzer (current state, bottlenecks, future state). You can also attach PDF or Word documents to any tool.",
+        q: "What is a Project?",
+        a: "A Project is where your BA work lives. Inside it, you work through Problem Analysis, Stakeholder Analysis, Requirements, User Stories, Process Analysis, Testing, and a Business Case — each one a focused conversation that produces a real, editable deliverable, with approved outputs from one step automatically feeding the next. A Requirements Traceability Matrix view shows coverage across requirements, stories, and test cases at a glance.",
       },
       {
-        q: "What is Decision Intelligence?",
-        a: "Decision Intelligence is a separate module with four tools that go beyond document generation into judgment and reasoning. Solution Evaluator compares 2–3 options and recommends one with reasoning. Risk Radar produces a full risk register with the risks your team is probably not talking about. Assumptions Challenger finds every assumption — stated and hidden — in any document you paste. Stakeholder Intelligence maps influence, predicts objections, and generates an alignment strategy.",
+        q: "What is Decision Lab?",
+        a: "Decision Lab is for structured reasoning, separate from document generation. Compare Options weighs 2–3 choices and recommends one with stated reasoning. Assess Risks builds a risk register. Challenge Assumptions surfaces stated and hidden assumptions in anything you paste. Stakeholder Intelligence maps influence and likely objections. A Decision Explorer lets you ask follow-up questions against the same analysis.",
       },
       {
-        q: "What is the Career Hub?",
-        a: "The Career Hub covers everything around getting hired and growing your BA career: a personalised career advisor, resume analyser, job description analyser, interview copilot (JD → full prep pack with 15 questions and STAR templates), cover letter generator, LinkedIn optimiser, and salary benchmarking. The Interview Copilot in the Workspace is a faster version for when you just need a prep pack quickly.",
-      },
-      {
-        q: "What is the Template Studio?",
-        a: "A library of eight BABOK-aligned templates — BRD, FRD, Use Cases, Stakeholder Register / RACI, Business Case, Process Analysis, RTM, and User Story Backlog. All are downloadable and Word-compatible. Pro members (coming soon) will be able to customise templates to their organisation's format and save them for reuse.",
-      },
-      {
-        q: "What is the Portfolio Builder?",
-        a: "A workspace tool that turns your real project experience into a professional BA case study. You describe the project, the engine asks two clarifying questions about outcome and the hardest challenge, then produces a structured write-up with BABOK techniques table, metrics, and three ready-to-use interview talking points drawn from your project.",
-      },
-      {
-        q: "What is PitchReady?",
-        a: "PitchReady is an interview communication practice tool. You record yourself answering BA interview questions and get feedback on clarity, structure, pacing, and executive presence. It sits in the Practice section alongside the Simulation Lab and is best used after you have used the Interview Copilot to prepare your content.",
+        q: "What is Template Studio?",
+        a: "A library of practical, downloadable templates for common BA deliverables — Business Requirements Document, Functional Requirements Document, Use Cases, Stakeholder Register / RACI, Business Case, Process Analysis, Requirements Traceability Matrix, and User Story Backlog. All are Word-compatible and free to download.",
       },
     ],
   },
@@ -60,19 +48,15 @@ const FAQ_GROUPS = [
     items: [
       {
         q: "What is free?",
-        a: "The free tier includes five BA Workspace analyses per month, the User Story Generator, Requirements Analyzer, three Practice Lab simulations, Career Advisor starter flows, resume history, eight downloadable templates, and the Beginner Learning Path. No credit card required.",
+        a: "Unlimited projects, all core workstreams (Problem Analysis, Stakeholder Analysis, Requirements, User Stories, Process Analysis), a limited number of Decision Lab analyses per month, and all downloadable templates. No credit card required.",
       },
       {
         q: "What does Pro unlock?",
-        a: "Unlimited BA Workspace analyses across all five tools, the full Decision Intelligence suite, Document Generator (BRD, FRD, Use Cases), Process Analyzer, Interview Copilot, Portfolio Builder, full Career Hub with all advisor flows, unlimited Practice Lab, all Learning Paths, Exam Prep, and Template Studio org customisation. Pro is $29/month or $19/month billed annually.",
+        a: "Unlimited Decision Lab analyses across all modes, Testing and RTM, priority document generation, and Template Studio organisation customisation.",
       },
       {
         q: "Can I cancel at any time?",
         a: "Yes. Cancel from Settings at any time. You keep full access until the end of your billing period. No cancellation fees or complicated steps.",
-      },
-      {
-        q: "Is there a student or nonprofit discount?",
-        a: "Not listed on the pricing page currently, but reach out directly and we will see what we can do.",
       },
     ],
   },
@@ -80,16 +64,16 @@ const FAQ_GROUPS = [
     group: "Technical",
     items: [
       {
-        q: "What file types can I attach to the workspace tools?",
+        q: "What file types can I attach?",
         a: "PDF, Word (.docx, .doc), and plain text (.txt). The document is parsed server-side and the text is inserted into the input field so you can review it before sending. Maximum file size is 10 MB.",
       },
       {
         q: "What browser do I need?",
-        a: "Any modern browser — Chrome, Firefox, Safari, or Edge. PitchReady requires microphone access for recording, which all modern browsers support with a one-time permission prompt.",
+        a: "Any modern browser — Chrome, Firefox, Safari, or Edge.",
       },
       {
         q: "Is my data private?",
-        a: "Yes. Your workspace sessions, career data, and project information are private to your account. We do not sell or share personal data. See our Privacy Policy for full details.",
+        a: "Yes. Your projects and business information are private to your account. We do not sell or share personal data. See our Privacy Policy for full details.",
       },
       {
         q: "Something is not working. What do I do?",

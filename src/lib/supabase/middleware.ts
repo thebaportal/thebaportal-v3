@@ -27,10 +27,8 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const protectedRoutes = ["/dashboard", "/scenarios", "/profile", "/settings", "/career", "/exam", "/pitchready", "/interview", "/progress", "/portfolio", "/workspace", "/learning"];
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const protectedRoutes = ["/profile", "/settings", "/decision-lab", "/projects", "/templates", "/ba-intelligence"];
+  const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route));
 
   const authRoutes = ["/auth/login", "/auth/signup", "/login", "/signup"];
   const isAuthRoute = authRoutes.some((route) =>
@@ -47,7 +45,7 @@ export async function updateSession(request: NextRequest) {
 
     if (user && isAuthRoute) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/dashboard";
+      redirectUrl.pathname = "/projects";
       return NextResponse.redirect(redirectUrl);
     }
   }

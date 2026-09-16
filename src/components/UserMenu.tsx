@@ -70,7 +70,7 @@ export default function UserMenu({ fullName, email, isPro, initials }: UserMenuP
               fontFamily: "'Inter','Open Sans',sans-serif",
               marginBottom: "2px",
             }}>
-              {fullName || "BA Learner"}
+              {fullName || "Business Analyst"}
             </div>
             <div style={{ fontSize: "11px", color: "var(--text-3)", wordBreak: "break-all" }}>
               {email}
@@ -172,7 +172,7 @@ export default function UserMenu({ fullName, email, isPro, initials }: UserMenuP
             fontSize: "13px", fontWeight: 600, color: "var(--text-1)",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
-            {fullName || "BA Learner"}
+            {fullName || "Business Analyst"}
           </div>
           <div style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "1px" }}>
             {isPro ? "Pro Member" : "Free Plan"}

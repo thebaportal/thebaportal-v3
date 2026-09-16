@@ -57,7 +57,7 @@ function LoginForm() {
         return;
       }
       router.refresh();
-      router.push(redirectTo || "/workspace");
+      router.push(redirectTo || "/projects");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(`Sign in error: ${msg}`);
@@ -278,7 +278,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ display: "flex", gap: "28px", position: "relative", zIndex: 1 }}>
-          {[{ val: "10+", label: "AI tools" }, { val: "BABOK", label: "Aligned output" }, { val: "3", label: "Personas served" }].map(s => (
+          {[{ val: "7", label: "BA workstreams" }, { val: "5", label: "Decision Lab modes" }, { val: "1", label: "Connected project" }].map(s => (
             <div key={s.label}>
               <div style={{ fontSize: "20px", fontWeight: 800, color: "#1fbf9f", letterSpacing: "-0.03em", fontFamily: "'Inter', sans-serif" }}>{s.val}</div>
               <div style={{ fontSize: "11px", color: "#505060", marginTop: "2px" }}>{s.label}</div>

@@ -22,10 +22,10 @@ function BAPortalLogo({ size = 32 }: { size?: number }) {
 }
 
 const PERKS = [
-  { icon: "⚡", text: "BA Workspace — 5 AI tools, free to start" },
-  { icon: "🧠", text: "Decision Intelligence — solve real problems, not exercises" },
-  { icon: "💼", text: "Career Hub — resume, interview prep, job matching" },
-  { icon: "📚", text: "Learning Hub — structured paths from beginner to advanced" },
+  { icon: "📁", text: "Projects — one connected workspace for the whole BA lifecycle" },
+  { icon: "🧠", text: "Decision Lab — structured reasoning for real decisions" },
+  { icon: "📄", text: "Requirements, User Stories, Testing, and RTM in one place" },
+  { icon: "📋", text: "Free, downloadable templates for common BA deliverables" },
 ];
 
 function SignupForm() {
@@ -120,7 +120,7 @@ function SignupForm() {
       if (signInError) { setError(signInError.message); return; }
 
       router.refresh();
-      router.push(redirectTo || "/workspace");
+      router.push(redirectTo || "/projects");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

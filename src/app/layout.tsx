@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: "TheBAPortal",
     template: "%s | TheBAPortal",
   },
-  description: "Certification practice, AI-powered scenarios, and real BA deliverables — built for BAs preparing for ECBA, CCBA, and CBAP.",
+  description: "A work tool for practising business analysts — projects, requirements, user stories, process analysis, testing, and decision support, all connected in one workspace.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
