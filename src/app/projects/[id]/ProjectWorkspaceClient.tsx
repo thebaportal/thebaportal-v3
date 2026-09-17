@@ -80,7 +80,13 @@ const STATUS_COLOR: Record<string, { bg:string; text:string; border:string }> = 
 };
 const DECISION_STATUS_COLOR: Record<string, string> = { open:"#60a5fa", accepted:"#1fbf9f", deferred:"#fb923c", rejected:"#f87171" };
 
-function fmtDate(iso:string){ return new Date(iso).toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }
+// timeZone must be pinned explicitly — this renders on the server (Vercel,
+// UTC) and then hydrates on the client (the visitor's own browser timezone).
+// Without a fixed zone, toLocaleDateString resolves to each runtime's local
+// time, so the same timestamp can format to a different calendar date on
+// each side of a day boundary — a real, reproducible hydration mismatch
+// (React errors #425/#418/#423), not a cosmetic warning.
+function fmtDate(iso:string){ return new Date(iso).toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"}); }
 
 // Artifact types with a meaningful structured workbook. Everything else only
 // ever offers DOCX/TXT — a free-text analysis has no rows and columns to give.
