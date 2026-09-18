@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -869,6 +870,7 @@ function buildDecisionArtifactContent(situation: string, results: Partial<Record
 }
 
 export default function DecisionLabClient({ user, initialProjectId }: Props) {
+  const router = useRouter();
   const [situation, setSituation] = useState("");
   const [activeMode, setActiveMode] = useState<Mode | null>(null);
   const [results, setResults] = useState<Partial<Record<Mode, ModeResult>>>({});
@@ -1053,6 +1055,13 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
             <div>
+              {selectedProjectId && (
+                <button onClick={() => router.push(`/projects/${selectedProjectId}`)}
+                  style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#64748B", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 10 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                  Back to project
+                </button>
+              )}
               <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "#1C1C2E", letterSpacing: "-0.02em", margin: "0 0 6px" }}>
                 Decision Lab
               </h1>

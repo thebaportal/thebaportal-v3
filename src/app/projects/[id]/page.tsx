@@ -20,12 +20,15 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   if (!user) redirect("/auth/login");
 
   const db = admin();
-  const [profileRes, projectRes, artifactsRes, decisionsRes, findings] = await Promise.all([
+  const [profileRes, projectRes, artifactsRes, decisionsRes, findings, reviewFindingsRes] = await Promise.all([
     db.from("profiles").select("full_name, subscription_tier").eq("id", user.id).single(),
     db.from("projects").select("*, organizations(name, country, industry)").eq("id", params.id).eq("user_id", user.id).single(),
     db.from("artifacts").select("*").eq("project_id", params.id).eq("user_id", user.id).order("created_at", { ascending: false }),
     db.from("decision_log").select("*").eq("project_id", params.id).eq("user_id", user.id).order("created_at", { ascending: false }),
     getAcceptedFindings(params.id, user.id),
+    // Lightweight, separate from getAcceptedFindings — attention needs review_status
+    // across every finding (to find unreviewed ones), not just accepted context.
+    db.from("ba_intel_findings").select("id, review_status").eq("project_id", params.id).eq("user_id", user.id),
   ]);
 
   if (!projectRes.data) notFound();
@@ -38,6 +41,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       initialArtifacts={(artifactsRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialArtifacts"]}
       initialDecisions={(decisionsRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialDecisions"]}
       initialFindings={findings as Parameters<typeof ProjectWorkspaceClient>[0]["initialFindings"]}
+      initialReviewFindings={(reviewFindingsRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialReviewFindings"]}
     />
   );
 }

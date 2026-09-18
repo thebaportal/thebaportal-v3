@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 import DocumentViewer from "@/components/DocumentViewer";
 import { buildRTM } from "@/lib/rtm";
+import { computeAttention, type AttentionItem } from "@/lib/projects/attention";
+import ProjectHome from "./ProjectHome";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Organization { name: string; country?: string; industry?: string; }
@@ -15,7 +17,8 @@ interface Project {
 }
 interface Artifact {
   id: string; type: string; title?: string; content: string;
-  status: string; version: number; created_at: string; reasoning_context?: Record<string, unknown>;
+  status: string; version: number; created_at: string; updated_at?: string;
+  reasoning_context?: Record<string, unknown>; source_artifact_ids?: string[];
 }
 interface Decision {
   id: string; decision_text: string; made_by?: string;
@@ -35,6 +38,7 @@ interface Finding {
   id: string; session_id: string; category: string;
   finding_text: string; source_evidence: string | null; created_at: string;
 }
+interface ReviewFinding { id: string; review_status: string; }
 interface Props {
   user: { email: string };
   profile: { full_name: string | null; subscription_tier: string | null } | null;
@@ -42,6 +46,7 @@ interface Props {
   initialArtifacts: Artifact[];
   initialDecisions: Decision[];
   initialFindings: Finding[];
+  initialReviewFindings: ReviewFinding[];
 }
 
 // ── Workstream definitions ─────────────────────────────────────────────────────
@@ -84,6 +89,12 @@ const STATUS_COLOR: Record<string, { bg:string; text:string; border:string }> = 
   archived:  { bg:"rgba(156,148,128,.07)",text:"#9c9480", border:"rgba(156,148,128,.12)" },
 };
 const DECISION_STATUS_COLOR: Record<string, string> = { open:"#3b72ac", accepted:"#2e7a4e", deferred:"#b5741f", rejected:"#a83f32" };
+const WS_STATUS_LABEL: Record<WsStatus, string> = { available:"Available", draft:"Draft", in_review:"In Review", approved:"Approved" };
+const WS_STATUS_COLOR: Record<WsStatus, string> = { available:"var(--lc-text-4)", draft:"#b5741f", in_review:"#3b72ac", approved:"#2e7a4e" };
+function wsStatusInfo(artifactType: string, artifacts: { type: string; status: string }[]): { label: string; color: string } {
+  const status = getWsStatus(artifactType, artifacts);
+  return { label: WS_STATUS_LABEL[status], color: WS_STATUS_COLOR[status] };
+}
 
 // timeZone must be pinned explicitly — this renders on the server (Vercel,
 // UTC) and then hydrates on the client (the visitor's own browser timezone).
@@ -122,7 +133,7 @@ async function downloadOutput(content: string, title: string, format: "txt" | "d
 // ── Workstream status logic ────────────────────────────────────────────────────
 type WsStatus = "available" | "draft" | "in_review" | "approved";
 
-function getWsStatus(artifactType: string, artifacts: Artifact[]): WsStatus {
+function getWsStatus(artifactType: string, artifacts: { type: string; status: string }[]): WsStatus {
   const active = artifacts.filter(a => a.type === artifactType && a.status !== "superseded" && a.status !== "archived");
   if (!active.length) return "available";
   if (active.some(a => a.status === "approved"))  return "approved";
@@ -1041,9 +1052,6 @@ function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; arti
   const recommended = getRecommended(artifacts, project.methodology);
   const methodology = project.methodology ?? "agile";
 
-  const wsStatusLabel: Record<WsStatus, string> = { available:"Available", draft:"Draft", in_review:"In Review", approved:"Approved" };
-  const wsStatusColor: Record<WsStatus, string> = { available:"var(--lc-text-4)", draft:"#fb923c", in_review:"#60a5fa", approved:"#1fbf9f" };
-
   return (
     <div style={{padding:"28px 24px",overflowY:"auto",height:"100%"}}>
       <h2 style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.02em",marginBottom:4}}>
@@ -1077,7 +1085,7 @@ function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; arti
                 <div style={{fontSize:12,color:"var(--lc-text-4)"}}>{ws.question}</div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:wsStatusColor[status]}}>{wsStatusLabel[status]}</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:WS_STATUS_COLOR[status]}}>{WS_STATUS_LABEL[status]}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--lc-text-4)" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
               </div>
             </div>
@@ -1092,16 +1100,44 @@ function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; arti
 }
 
 // ── Main export ────────────────────────────────────────────────────────────────
-export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings}:Props) {
+export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings,initialReviewFindings}:Props) {
   const router = useRouter();
+  const [activeTab, setActiveTab]           = useState<"home"|"work">("home");
   const [activeWs, setActiveWs]             = useState<Workstream|null>(null);
   const [viewingArtifact, setViewingArtifact] = useState<Artifact|null>(null);
   const [artifacts, setArtifacts]           = useState<Artifact[]>(initialArtifacts);
   const [decisions, setDecisions]           = useState<Decision[]>(initialDecisions);
   const findings = initialFindings;
+  const attentionItems: AttentionItem[]     = computeAttention(artifacts, initialReviewFindings);
   const [decisionModal, setDecisionModal]   = useState<{open:boolean;prefill?:string}>({open:false});
   const [panelOpen, setPanelOpen]           = useState(true);
   const [showRTM, setShowRTM]               = useState(false);
+
+  function goToWorkstream(wsId: WorkstreamId) {
+    const ws = WORKSTREAMS.find(w => w.id === wsId);
+    if (!ws) return;
+    setActiveTab("work");
+    setActiveWs(ws);
+    setViewingArtifact(null);
+    setShowRTM(false);
+    setPanelOpen(false);
+  }
+
+  // Below 768px the project panel (context/artifacts/decisions) can't sit
+  // permanently beside the working area — there isn't room for three columns
+  // (app nav, panel, workstream) side by side. It reuses the same panelOpen
+  // state but renders as an off-canvas drawer instead of a static column —
+  // matching AppSidebar's own mobile pattern — defaulting closed so mobile
+  // opens on exactly one primary view (the workstream/document).
+  const [isMobile, setIsMobile]             = useState(false);
+  useEffect(() => {
+    const mobile = window.innerWidth < 768;
+    setIsMobile(mobile);
+    if (mobile) setPanelOpen(false);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const handleArtifactSaved = useCallback((a:Artifact) => {
     setArtifacts(prev=>[a,...prev.filter(x=>x.id!==a.id)]);
@@ -1116,29 +1152,72 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
 
   const activeArtifacts = artifacts.filter(a=>a.status!=="superseded"&&a.status!=="archived");
 
+  const TABS: {id:"home"|"work"|"decisions"|"intelligence"; label:string; onClick:()=>void}[] = [
+    {id:"home", label:"Home", onClick:()=>setActiveTab("home")},
+    {id:"work", label:"Work", onClick:()=>setActiveTab("work")},
+    {id:"decisions", label:"Decisions", onClick:()=>router.push(`/decision-lab?project=${project.id}`)},
+    {id:"intelligence", label:"Intelligence", onClick:()=>router.push(`/ba-intelligence?project=${project.id}`)},
+  ];
+
   return (
     <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--lc-bg)"}}>
       <AppSidebar activeHref="/projects" profile={profile} user={user}/>
 
-      {/* Project panel */}
-      <aside style={{width:panelOpen?260:0,flexShrink:0,borderRight:panelOpen?"1px solid var(--lc-border)":"none",display:"flex",flexDirection:"column",overflow:"hidden",background:"var(--lc-surface)",transition:"width 240ms ease"}}>
-
-        <div style={{padding:"14px 14px 12px",borderBottom:"1px solid var(--lc-border)",flexShrink:0}}>
+      <div className="app-shell-main" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {/* Project nav — Home / Work / Decisions / Intelligence. Decisions and
+            Intelligence are project-scoped destinations (Decision Lab and BA
+            Intelligence), reached from here rather than global app nav. */}
+        <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:2,padding:"0 20px",height:52,borderBottom:"1px solid var(--lc-border)",background:"var(--lc-surface)",overflowX:"auto"}}>
           <button onClick={()=>router.push("/projects")}
-            style={{display:"flex",alignItems:"center",gap:4,fontSize:11.5,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:10}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
+            style={{display:"flex",alignItems:"center",gap:4,fontSize:11.5,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0,marginRight:14,flexShrink:0}}
+            onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> All projects
           </button>
-          <h1 style={{fontFamily:"var(--font-display)",fontSize:13.5,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.01em",lineHeight:1.35,marginBottom:3}}>{project.name}</h1>
-          {project.organizations?.name && (
-            <div style={{fontSize:11,color:"var(--lc-text-3)",display:"flex",alignItems:"center",gap:3}}>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-              {project.organizations.name}
-            </div>
-          )}
+          <span style={{fontSize:13,fontWeight:700,color:"var(--lc-text-1)",marginRight:18,flexShrink:0,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project.name}</span>
+          {TABS.map(t=>{
+            const active = t.id===activeTab;
+            return (
+              <button key={t.id} onClick={t.onClick}
+                style={{padding:"7px 12px",borderRadius:8,fontSize:12.5,fontWeight:active?700:600,color:active?"var(--teal)":"var(--lc-text-2)",background:active?"rgba(52,64,125,.07)":"none",border:"1px solid transparent",cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}
+                onMouseEnter={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-1)";}}
+                onMouseLeave={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-2)";}}>
+                {t.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Context */}
-        <div style={{padding:"12px 14px",borderBottom:"1px solid var(--lc-border)",flexShrink:0}}>
+        <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+
+      {/* On mobile the project panel is an off-canvas drawer (below the 56px
+          AppSidebar header bar), not a permanent column — closing it over
+          the backdrop taps through to dismiss, same pattern as AppSidebar's
+          own mobile nav. */}
+      {activeTab==="work" && isMobile && panelOpen && (
+        <div onClick={()=>setPanelOpen(false)}
+          style={{position:"fixed",top:56,left:0,right:0,bottom:0,zIndex:230,background:"rgba(0,0,0,.5)"}}/>
+      )}
+
+      {/* Project panel */}
+      {activeTab==="work" && <aside style={isMobile ? {
+          position:"fixed",top:56,left:0,bottom:0,zIndex:240,
+          width:panelOpen?"85vw":0,maxWidth:320,
+          borderRight:panelOpen?"1px solid var(--lc-border)":"none",
+          display:"flex",flexDirection:"column",overflow:"hidden",
+          background:"var(--lc-surface)",transition:"width 220ms ease",
+          boxShadow:panelOpen?"10px 0 28px rgba(0,0,0,.3)":"none",
+        } : {width:panelOpen?260:0,flexShrink:0,borderRight:panelOpen?"1px solid var(--lc-border)":"none",display:"flex",flexDirection:"column",overflow:"hidden",background:"var(--lc-surface)",transition:"width 240ms ease"}}>
+
+        {/* Context — the panel now begins with workstream context itself;
+            project identity and "All projects" navigation live in the shared
+            project shell/top nav above, not repeated here. */}
+        <div style={{padding:"14px 14px 12px",borderBottom:"1px solid var(--lc-border)",flexShrink:0,position:"relative"}}>
+          {isMobile && (
+            <button onClick={()=>setPanelOpen(false)} aria-label="Close project panel"
+              style={{position:"absolute",top:10,right:10,width:26,height:26,borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          )}
           <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:700,color:"var(--lc-text-4)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Context</div>
           {project.problem_statement && (
             <div style={{fontSize:12,color:"var(--lc-text-2)",lineHeight:1.58,marginBottom:7,padding:"8px 10px",background:"rgba(52,64,125,.04)",border:"1px solid rgba(52,64,125,.1)",borderRadius:8,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical" as never}}>
@@ -1213,43 +1292,54 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
             Traceability (RTM)
           </button>
 
-          <div style={{height:1,background:"var(--lc-border)",margin:"12px 0 10px"}}/>
-
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:700,color:"var(--lc-text-4)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:7}}>
-            Analysis Tools
-          </div>
-          <button onClick={()=>router.push(`/decision-lab?project=${project.id}`)}
-            style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"8px 9px",borderRadius:8,background:"none",border:"1px solid var(--lc-border)",color:"var(--lc-text-2)",fontSize:11.5,fontWeight:600,cursor:"pointer",textAlign:"left" as const,marginBottom:6}}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9.5 2a5.5 5.5 0 00-3.3 9.9c.5.4.8 1 .8 1.6v.5a1 1 0 001 1h4a1 1 0 001-1v-.5c0-.6.3-1.2.8-1.6A5.5 5.5 0 009.5 2z"/><line x1="8" y1="19" x2="11" y2="19"/></svg>
-            Decision Lab
-          </button>
-          <button onClick={()=>router.push(`/ba-intelligence?project=${project.id}`)}
-            style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"8px 9px",borderRadius:8,background:"none",border:"1px solid var(--lc-border)",color:"var(--lc-text-2)",fontSize:11.5,fontWeight:600,cursor:"pointer",textAlign:"left" as const}}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            BA Intelligence
-          </button>
         </div>
-      </aside>
+      </aside>}
 
       {/* Main area */}
       <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        {showRTM ? (
-          <RTMPanel artifacts={artifacts} onClose={()=>setShowRTM(false)}/>
-        ) : viewingArtifact ? (
-          <ArtifactViewer artifact={viewingArtifact} projectId={project.id} onStatusChange={handleStatusChange} onClose={()=>setViewingArtifact(null)}/>
-        ) : activeWs ? (
-          <WorkstreamSession
-            ws={activeWs} project={project} artifacts={artifacts} findings={findings}
-            onBack={()=>{setActiveWs(null);setPanelOpen(true);}}
-            onArtifactSaved={handleArtifactSaved}
-            onDecisionLog={(prefill)=>setDecisionModal({open:true,prefill})}
-            panelOpen={panelOpen}
-            onTogglePanel={()=>setPanelOpen(v=>!v)}
-          />
-        ) : (
-          <WorkstreamsHub project={project} artifacts={artifacts} onSelectWs={(ws)=>{setActiveWs(ws);setViewingArtifact(null);setShowRTM(false);setPanelOpen(false);}}/>
+        {activeTab==="work" && isMobile && (
+          <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderBottom:"1px solid var(--lc-border)",background:"var(--lc-surface)"}}>
+            <button onClick={()=>setPanelOpen(true)}
+              style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+              Project
+            </button>
+            <div style={{fontSize:12.5,fontWeight:700,color:"var(--lc-text-1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{project.name}</div>
+          </div>
         )}
+        <div style={{flex:1,minHeight:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+          {activeTab==="home" ? (
+            <ProjectHome
+              project={project}
+              artifacts={artifacts}
+              decisions={decisions}
+              attentionItems={attentionItems}
+              workstreams={WORKSTREAMS}
+              methodologyLabel={METHODOLOGY_LABEL}
+              wsStatusLabel={wsStatusInfo}
+              onSelectWs={(wsId)=>goToWorkstream(wsId as WorkstreamId)}
+              onOpenIntelligence={()=>router.push(`/ba-intelligence?project=${project.id}`)}
+            />
+          ) : showRTM ? (
+            <RTMPanel artifacts={artifacts} onClose={()=>setShowRTM(false)} onGoToRequirements={()=>{setShowRTM(false);setActiveWs(WORKSTREAMS.find(w=>w.id==="requirements")??null);}}/>
+          ) : viewingArtifact ? (
+            <ArtifactViewer artifact={viewingArtifact} projectId={project.id} onStatusChange={handleStatusChange} onClose={()=>setViewingArtifact(null)}/>
+          ) : activeWs ? (
+            <WorkstreamSession
+              ws={activeWs} project={project} artifacts={artifacts} findings={findings}
+              onBack={()=>{setActiveWs(null);if(!isMobile)setPanelOpen(true);}}
+              onArtifactSaved={handleArtifactSaved}
+              onDecisionLog={(prefill)=>setDecisionModal({open:true,prefill})}
+              panelOpen={panelOpen}
+              onTogglePanel={()=>setPanelOpen(v=>!v)}
+            />
+          ) : (
+            <WorkstreamsHub project={project} artifacts={artifacts} onSelectWs={(ws)=>{setActiveWs(ws);setViewingArtifact(null);setShowRTM(false);setPanelOpen(false);}}/>
+          )}
+        </div>
       </main>
+        </div>
+      </div>
 
       {decisionModal.open && (
         <AddDecisionModal projectId={project.id} onSaved={handleDecisionSaved} onClose={()=>setDecisionModal({open:false})} prefill={decisionModal.prefill}/>

@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Settings, LogOut, User, ChevronLeft, ChevronRight, Menu, X,
-  FileText, Brain, Folders, FileSearch,
+  FileText, Folders,
 } from "lucide-react";
 
+// Decision Lab and BA Intelligence are project-scoped now (reached via a
+// project's own Decisions/Intelligence tabs), not global destinations —
+// see ProjectWorkspaceClient's project nav.
 const WORK_ITEMS = [
   { icon: Folders,    label: "Projects",        href: "/projects" },
-  { icon: Brain,      label: "Decision Lab",    href: "/decision-lab" },
-  { icon: FileSearch, label: "BA Intelligence", href: "/ba-intelligence" },
   { icon: FileText,   label: "Template Studio", href: "/templates" },
 ];
 

@@ -155,7 +155,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const { data, error } = await db
     .from("artifacts")
-    .update({ status })
+    .update({ status, updated_at: new Date().toISOString() })
     .eq("id", artifactId)
     .eq("project_id", params.id)
     .eq("user_id", user.id)

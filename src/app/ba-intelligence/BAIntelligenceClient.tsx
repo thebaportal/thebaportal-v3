@@ -513,6 +513,10 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
                   <button onClick={changeProject} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--teal)", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit" }}>
                     Switch project
                   </button>
+                  {" · "}
+                  <Link href={`/projects/${selectedProjectId}`} style={{ color: "var(--teal)", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>
+                    Back to project
+                  </Link>
                 </div>
               </div>
 
