@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen, Settings, LogOut, User, ChevronLeft, ChevronRight, Menu, X,
+  Settings, LogOut, User, ChevronLeft, ChevronRight, Menu, X,
   FileText, Brain, Folders, FileSearch,
 } from "lucide-react";
 
@@ -164,16 +164,16 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
       }}>
         <div
           onClick={() => router.push("/")}
-          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flex: 1, minWidth: 0 }}
+          style={{ display: "flex", alignItems: "center", cursor: "pointer", flex: 1, minWidth: 0 }}
         >
-          <div style={{
-            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-            background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <BookOpen size={15} color="var(--teal)" />
-          </div>
-          {!isCollapsed && (
+          {isCollapsed ? (
+            <span style={{
+              fontFamily: "'Inter','Open Sans',sans-serif",
+              fontWeight: 800, fontSize: 15, color: "var(--teal)", letterSpacing: "-0.02em",
+            }}>
+              BA
+            </span>
+          ) : (
             <span style={{
               fontFamily: "'Inter','Open Sans',sans-serif",
               fontWeight: 800, fontSize: 15,
@@ -393,19 +393,26 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
       {/* Mobile */}
       {isMobile && (
         <>
-          <button
-            onClick={() => setMobileOpen(v => !v)}
-            style={{
-              position: "fixed", top: 12, left: 12, zIndex: 300,
-              width: 40, height: 40, borderRadius: 10,
-              background: "var(--surface)", border: "1px solid var(--border)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "var(--text-2)",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
-            }}
-          >
-            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, height: 56, zIndex: 300,
+            background: "var(--surface)", borderBottom: "1px solid var(--border)",
+            display: "flex", alignItems: "center", gap: 12, padding: "0 12px",
+          }}>
+            <button
+              onClick={() => setMobileOpen(v => !v)}
+              style={{
+                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                background: "none", border: "1px solid var(--border)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", color: "var(--text-2)",
+              }}
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.01em" }}>
+              The<span style={{ color: "var(--teal)" }}>BA</span>Portal
+            </span>
+          </div>
 
           {mobileOpen && (
             <div

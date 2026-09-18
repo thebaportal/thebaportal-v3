@@ -9,7 +9,7 @@ const SECTIONS = [
   },
   {
     title: "Description of service",
-    body: `TheBAPortal provides a practice platform for Business Analysts, including simulated BA scenarios, AI-powered stakeholder interviews, submission scoring, learning modules, career tools, and exam preparation. The platform is provided on an "as is" and "as available" basis.`,
+    body: `TheBAPortal is a connected workspace for Business Analysts. Within a project, it helps you analyse the business problem, map stakeholders, draft and refine requirements, write user stories, analyse process, build a business case, and produce test cases and requirements traceability — with Decision Lab for structured decision support and BA Intelligence for analysing stakeholder input, all sharing the same project context. The platform is provided on an "as is" and "as available" basis.`,
   },
   {
     title: "Account registration",
@@ -29,11 +29,11 @@ const SECTIONS = [
   },
   {
     title: "Intellectual property",
-    body: `All platform content — challenges, learning modules, evaluation frameworks, scoring logic, and branding — is owned by TheBAPortal or its licensors. Your submissions and deliverables remain yours. We do not claim ownership over work you produce on the platform. You grant us a limited licence to store and process your submissions for the purpose of providing the service (scoring, feedback, progress tracking).`,
+    body: `All platform content — the application itself, its tools, templates, and branding — is owned by TheBAPortal or its licensors. Your project data, inputs, and the deliverables you generate remain yours. We do not claim ownership over work you produce on the platform. You grant us a limited licence to store and process your data for the purpose of providing the service (generating artifacts, exports, and project history).`,
   },
   {
     title: "AI-generated content",
-    body: `The platform uses AI to simulate stakeholder conversations and generate evaluation feedback. AI output is not professional advice and should not be relied upon as such. Scores and feedback are generated for practice purposes only. We make no guarantees about the accuracy or completeness of AI-generated responses.`,
+    body: `The platform uses AI to analyse your project context and generate business analysis artifacts — including problem analyses, requirements, user stories, process maps, business cases, test cases, and decision support. AI output is a drafting aid, not professional advice, and should be reviewed before you rely on it or share it with stakeholders. We make no guarantees about the accuracy or completeness of AI-generated content.`,
   },
   {
     title: "Disclaimers and limitation of liability",
@@ -55,9 +55,8 @@ export default function TermsPage() {
 
       <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, height: 58, display: "flex", alignItems: "center", padding: "0 28px", background: "rgba(7,7,10,0.92)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 800, color: "#f2f2f8", letterSpacing: "-0.01em" }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontSize: 9, fontWeight: 600, color: "#1fbf9f" }}>BA</div>
-            The<span style={{ color: "#1fbf9f" }}>BA</span>Portal
+          <Link href="/" style={{ textDecoration: "none", fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 700, color: "#f2f2f8", letterSpacing: "-0.02em" }}>
+            The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
           </Link>
           <Link href="/" style={{ fontSize: 13, color: "#505068", textDecoration: "none", fontFamily: "'Open Sans',sans-serif" }}>← Back to home</Link>
         </div>
@@ -66,7 +65,7 @@ export default function TermsPage() {
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "110px 28px 80px" }}>
 
         <div style={{ marginBottom: "52px" }}>
-          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#1fbf9f", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>Legal</div>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#34407d", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>Legal</div>
           <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#f2f2f8", marginBottom: "14px", lineHeight: 1.05 }}>Terms of Service</h1>
           <p style={{ fontSize: "14px", color: "#505068", fontFamily: "monospace" }}>Last updated: March 2026</p>
         </div>
@@ -75,7 +74,7 @@ export default function TermsPage() {
           {SECTIONS.map((s, i) => (
             <div key={s.title}>
               <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "17px", fontWeight: 700, color: "#f2f2f8", marginBottom: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontFamily: "monospace", fontSize: "12px", color: "#1fbf9f", fontWeight: 600, minWidth: "24px" }}>{String(i + 1).padStart(2, "0")}</span>
+                <span style={{ fontFamily: "monospace", fontSize: "12px", color: "#34407d", fontWeight: 600, minWidth: "24px" }}>{String(i + 1).padStart(2, "0")}</span>
                 {s.title}
               </h2>
               <p style={{ fontSize: "14px", color: "#9090a8", lineHeight: 1.78 }}>{s.body}</p>

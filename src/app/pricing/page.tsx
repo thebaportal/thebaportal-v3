@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, Check, Crown, Zap, ArrowLeft, Loader2 } from "lucide-react";
+import { Check, Crown, Zap, ArrowLeft, Loader2, Lock, CreditCard, RotateCcw, Globe } from "lucide-react";
 
 const freeFeatures = [
   "Unlimited projects",
@@ -68,17 +68,9 @@ function PricingInner() {
         alignItems: "center",
         justifyContent: "space-between",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 32, height: 32,
-            background: "var(--teal)",
-            borderRadius: 8,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <BookOpen size={16} color="#09090b" />
-          </div>
-          <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--text-1)" }}>
-            TheBAPortal
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+            The<span style={{ color: "var(--teal)", fontWeight: 800 }}>BA</span>Portal
           </span>
         </div>
         <button
@@ -150,7 +142,7 @@ function PricingInner() {
             >
               Annual
               <span style={{
-                background: "rgba(31,191,159,0.15)", color: "var(--teal)",
+                background: "var(--teal-soft)", color: "var(--teal)",
                 fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
               }}>
                 Save 34%
@@ -242,7 +234,7 @@ function PricingInner() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)" }}>Pro</h2>
                 <span style={{
-                  background: "var(--teal)", color: "#09090b",
+                  background: "var(--teal)", color: "#f5f1e7",
                   fontSize: 11, fontWeight: 700,
                   padding: "4px 10px", borderRadius: 999,
                   display: "flex", alignItems: "center", gap: 4,
@@ -279,7 +271,7 @@ function PricingInner() {
                 style={{
                   width: "100%", height: 44,
                   background: "var(--teal)",
-                  color: "#09090b",
+                  color: "#f5f1e7",
                   fontWeight: 700, fontSize: 14,
                   borderRadius: 12, border: "none", cursor: loading ? "wait" : "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -318,12 +310,15 @@ function PricingInner() {
           }}
         >
           {[
-            "🔒 256-bit SSL encryption",
-            "💳 Powered by Stripe",
-            "↩️ Cancel anytime",
-            "🌍 Used by BAs in 20+ countries",
-          ].map((t) => (
-            <span key={t}>{t}</span>
+            { icon: Lock, label: "256-bit SSL encryption" },
+            { icon: CreditCard, label: "Powered by Stripe" },
+            { icon: RotateCcw, label: "Cancel anytime" },
+            { icon: Globe, label: "Used by BAs in 20+ countries" },
+          ].map(({ icon: Icon, label }) => (
+            <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon size={13} color="var(--text-3)" />
+              {label}
+            </span>
           ))}
         </motion.div>
       </div>

@@ -51,18 +51,18 @@ interface Props {
 // ── Config ────────────────────────────────────────────────────────────────────
 const CATEGORY_META: { id: Category; label: string; color: string }[] = [
   { id: "requirement",          label: "Potential Requirements",  color: "var(--teal)" },
-  { id: "business_rule",        label: "Business Rules",          color: "#38bdf8" },
-  { id: "unresolved_question",  label: "Unresolved Questions",    color: "#d97706" },
-  { id: "contradiction",        label: "Contradictions",          color: "#dc2626" },
-  { id: "edge_case",            label: "Possible Edge Cases",     color: "#a78bfa" },
+  { id: "business_rule",        label: "Business Rules",          color: "#3b72ac" },
+  { id: "unresolved_question",  label: "Unresolved Questions",    color: "#b5741f" },
+  { id: "contradiction",        label: "Contradictions",          color: "#a83f32" },
+  { id: "edge_case",            label: "Possible Edge Cases",     color: "#74628f" },
 ];
 
 const SOURCE_TYPES = ["Meeting Notes", "Workshop Notes", "Interview Notes", "Discovery Notes", "Transcript"];
 
 const REVIEW_STATUS_STYLE: Record<ReviewStatus, { bg: string; text: string; border: string; label: string }> = {
   proposed: { bg: "var(--lc-faint)", text: "var(--lc-text-3)", border: "var(--lc-border)", label: "Proposed" },
-  accepted: { bg: "rgba(31,191,159,.1)", text: "#1fbf9f", border: "rgba(31,191,159,.2)", label: "Accepted" },
-  rejected: { bg: "rgba(248,113,113,.08)", text: "#f87171", border: "rgba(248,113,113,.2)", label: "Rejected" },
+  accepted: { bg: "var(--lc-green-bg)", text: "var(--lc-green)", border: "var(--lc-green-border)", label: "Accepted" },
+  rejected: { bg: "var(--lc-red-bg)", text: "var(--lc-red)", border: "var(--lc-red-border)", label: "Rejected" },
 };
 
 const LOADING_MESSAGES = [
@@ -96,7 +96,7 @@ function ProjectSelectScreen({ projects, onSelect }: { projects: ProjectOption[]
           <p style={{ fontSize: 14, color: "var(--lc-text-3)", lineHeight: 1.65, maxWidth: 360, margin: "0 auto 20px" }}>
             You don&apos;t have a project yet. Create one, then come back here to start an analysis.
           </p>
-          <Link href="/projects/new" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 22px", background: "var(--teal)", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#041a13", textDecoration: "none" }}>
+          <Link href="/projects/new" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 22px", background: "var(--teal)", borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#f5f1e7", textDecoration: "none" }}>
             Create a project
           </Link>
         </div>
@@ -108,7 +108,7 @@ function ProjectSelectScreen({ projects, onSelect }: { projects: ProjectOption[]
                 key={p.id}
                 onClick={() => onSelect(p.id)}
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, textAlign: "left", width: "100%", background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: "var(--radius)", padding: "16px 18px", cursor: "pointer", fontFamily: "inherit", transition: "border-color .15s, background .15s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(31,191,159,.3)"; e.currentTarget.style.background = "var(--lc-faint)"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--lc-teal-border)"; e.currentTarget.style.background = "var(--lc-faint)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--lc-border)"; e.currentTarget.style.background = "var(--lc-surface)"; }}
               >
                 <span style={{ fontSize: 14.5, fontWeight: 700, color: "var(--lc-text-1)" }}>{p.name}</span>
@@ -199,12 +199,12 @@ function FindingCard({
       ref={cardRef}
       style={{
         background: "var(--lc-surface)",
-        border: `1px solid ${highlighted ? "rgba(31,191,159,.5)" : "var(--lc-border)"}`,
+        border: `1px solid ${highlighted ? "var(--teal)" : "var(--lc-border)"}`,
         borderRadius: "var(--radius)",
         padding: "16px 18px",
         opacity: subdued ? 0.6 : 1,
         transition: "border-color .3s, opacity .2s",
-        boxShadow: highlighted ? "0 0 0 3px rgba(31,191,159,.15)" : "none",
+        boxShadow: highlighted ? "0 0 0 3px var(--lc-teal-bg)" : "none",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -224,10 +224,10 @@ function FindingCard({
             onChange={e => onEditDraftChange(e.target.value)}
             autoFocus
             rows={3}
-            style={{ width: "100%", fontSize: 14, color: "var(--lc-text-1)", lineHeight: 1.6, fontFamily: "inherit", border: "1px solid rgba(31,191,159,.35)", borderRadius: 8, padding: "10px 12px", resize: "vertical", boxSizing: "border-box" }}
+            style={{ width: "100%", fontSize: 14, color: "var(--lc-text-1)", lineHeight: 1.6, fontFamily: "inherit", border: "1px solid var(--lc-teal-border)", borderRadius: 8, padding: "10px 12px", resize: "vertical", boxSizing: "border-box" }}
           />
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button onClick={onSaveEdit} style={{ fontSize: 12.5, fontWeight: 700, color: "#041a13", background: "var(--teal)", border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Save</button>
+            <button onClick={onSaveEdit} style={{ fontSize: 12.5, fontWeight: 700, color: "#f5f1e7", background: "var(--teal)", border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Save</button>
             <button onClick={onCancelEdit} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--lc-text-3)", background: "none", border: "1px solid var(--lc-border)", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Cancel</button>
           </div>
         </div>
@@ -249,7 +249,7 @@ function FindingCard({
       {finding.category === "contradiction" && hasLinkedTarget && onViewRelated && !isEditing && (
         <button
           onClick={onViewRelated}
-          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 10 }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--lc-red)", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 10 }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
           Conflicts with another finding — view
@@ -258,7 +258,7 @@ function FindingCard({
 
       {!isEditing && finding.review_status === "proposed" && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={onAccept} style={{ fontSize: 12.5, fontWeight: 700, color: "#041a13", background: "var(--teal)", border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Accept</button>
+          <button onClick={onAccept} style={{ fontSize: 12.5, fontWeight: 700, color: "#f5f1e7", background: "var(--teal)", border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Accept</button>
           <button onClick={onStartEdit} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--lc-text-2)", background: "none", border: "1px solid var(--lc-border)", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Edit</button>
           <button onClick={onReject} style={{ fontSize: 12.5, fontWeight: 600, color: "#f87171", background: "none", border: "1px solid rgba(248,113,113,.25)", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Reject</button>
 
@@ -564,7 +564,7 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
                   />
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                    <span style={{ fontSize: 12, color: inputText.trim().length > 0 && inputText.trim().length < MIN_INPUT_LENGTH ? "#d97706" : "var(--lc-text-4)" }}>
+                    <span style={{ fontSize: 12, color: inputText.trim().length > 0 && inputText.trim().length < MIN_INPUT_LENGTH ? "var(--lc-amber)" : "var(--lc-text-4)" }}>
                       {inputText.length} characters
                       {inputText.trim().length > 0 && inputText.trim().length < MIN_INPUT_LENGTH ? ` — paste at least ${MIN_INPUT_LENGTH} characters` : ""}
                     </span>
@@ -580,7 +580,7 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
                     style={{
                       marginTop: 18, display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 26px",
                       background: inputText.trim().length < MIN_INPUT_LENGTH ? "var(--lc-border)" : "var(--teal)",
-                      color: inputText.trim().length < MIN_INPUT_LENGTH ? "var(--lc-text-4)" : "#041a13",
+                      color: inputText.trim().length < MIN_INPUT_LENGTH ? "var(--lc-text-4)" : "#f5f1e7",
                       border: "none", borderRadius: 9, fontSize: 14.5, fontWeight: 700,
                       cursor: inputText.trim().length < MIN_INPUT_LENGTH ? "not-allowed" : "pointer", fontFamily: "inherit",
                     }}

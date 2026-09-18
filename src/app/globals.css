@@ -14,78 +14,74 @@
 
 @layer base {
   :root {
-    /* Surfaces */
-    --bg:           #09090b;
-    --surface:      #0e0e12;
-    --card:         #131318;
-    --card-hover:   #17171e;
+    /* Surfaces — dark (AppSidebar and any dark context). Folio: deep graphite/ink,
+       not pure black — a whisper of warmth to match the light canvas below. */
+    --bg:           #16140f;
+    --surface:      #16140f;
+    --card:         #211e16;
+    --card-hover:   #2a2619;
 
-    /* Premium calmer teal — replaces all #00e5a0 and #00ffb3 */
-    --teal:         #1fbf9f;
-    --teal-bright:  #25d4b0;
-    --teal-dim:     #178a74;
-    --teal-soft:    rgba(31,191,159,0.08);
-    --teal-border:  rgba(31,191,159,0.18);
-    --teal-glow:    rgba(31,191,159,0.10);
+    /* Folio brand accent — a restrained indigo. Variable names keep the historic
+       "teal" naming (hundreds of existing consumers reference var(--teal) /
+       var(--lc-teal)) — only the values changed, per the approved Folio direction.
+       Do not reintroduce teal hues here. */
+    --teal:         #34407d;
+    --teal-bright:  #46549a;
+    --teal-dim:     #242c57;
+    --teal-soft:    rgba(52,64,125,0.40);
+    --teal-border:  rgba(52,64,125,0.45);
+    --teal-glow:    rgba(52,64,125,0.14);
 
-    /* Text scale */
-    --text-1:       #f0f0f4;
-    --text-2:       #9090a0;
-    --text-3:       #505060;
-    --text-4:       #333342;
+    /* Text scale — on dark */
+    --text-1:       #f0ead9;
+    --text-2:       #c4bca6;
+    --text-3:       #8c8570;
+    --text-4:       #5c5748;
 
-    /* Borders */
-    --border:       rgba(255,255,255,0.07);
-    --border-mid:   rgba(255,255,255,0.11);
+    /* Borders — on dark */
+    --border:       rgba(240,234,217,0.09);
+    --border-mid:   rgba(240,234,217,0.15);
 
-    /* Secondary dark scale — previously injected ad-hoc into document.head by
-       individual pages (Workspace, Template Studio, Decision Intelligence),
-       which meant other pages only rendered correctly if one of those had
-       already been visited first in the same browser session. Made real and
-       global with the same values so every consumer renders consistently. */
-    --bg-1: #0d0d12;
-    --bg-2: #111117;
-    --bg-3: #16161e;
-    --t1:   #f2f2f8;
-    --t2:   #9090a8;
-    --t3:   #505068;
-    --t4:   #2a2a38;
-
-    /* ── Light content surfaces (dashboard, career suite, any light panel) ── */
-    --lc-bg:           #f1f5f9;
+    /* ── Light content surfaces — the shared authenticated shell (Projects,
+       New Project, Workspace, Templates, Settings, BA Intelligence, Decision Lab).
+       Folio: warm light canvas, a third "sunken" step for zoning (--lc-faint),
+       crisp white working surfaces. ── */
+    --lc-bg:           #f2ede1;
     --lc-surface:      #ffffff;
-    --lc-faint:        #fafafa;
-    --lc-border:       #e2e8f0;
-    --lc-border-soft:  #e9edf2;
-    --lc-shadow-sm:    0 2px 8px -2px rgba(0,0,0,0.05);
-    --lc-shadow-md:    0 4px 24px -4px rgba(0,0,0,0.08);
-    --lc-shadow-lg:    0 20px 40px -12px rgba(0,0,0,0.12);
+    --lc-faint:        #e9e0cc;
+    --lc-border:       #d6ccaf;
+    --lc-border-soft:  #e8dfc9;
+    --lc-shadow-sm:    0 2px 8px -2px rgba(23,20,15,0.06);
+    --lc-shadow-md:    0 4px 24px -4px rgba(23,20,15,0.10);
+    --lc-shadow-lg:    0 20px 40px -12px rgba(23,20,15,0.16);
 
     /* Light content text scale */
-    --lc-text-1:   #0f172a;
-    --lc-text-2:   #334155;
-    --lc-text-3:   #475569;
-    --lc-text-4:   #64748b;
-    --lc-text-5:   #94a3b8;
+    --lc-text-1:   #1d1a14;
+    --lc-text-2:   #332f24;
+    --lc-text-3:   #5b5546;
+    --lc-text-4:   #7a7360;
+    --lc-text-5:   #9c9480;
 
-    /* Light content accents */
-    --lc-teal:          #0891b2;
-    --lc-teal-bg:       rgba(8,145,178,0.08);
-    --lc-teal-border:   rgba(8,145,178,0.22);
-    --lc-green:         #16a34a;
-    --lc-green-bg:      rgba(22,163,74,0.07);
-    --lc-green-border:  #bbf7d0;
-    --lc-red:           #dc2626;
-    --lc-red-bg:        #fff5f5;
-    --lc-red-border:    #fee2e2;
-    --lc-red-accent:    #fecaca;
-    --lc-amber:         #d97706;
-    --lc-amber-bg:      rgba(217,119,6,0.07);
-    --lc-blue:          #0284c7;
-    --lc-blue-bg:       rgba(2,132,199,0.1);
-    --lc-blue-border:   rgba(2,132,199,0.2);
+    /* Light content accents — brand accent (indigo) kept fully independent of
+       status colours, which each get their own deliberate token. */
+    --lc-teal:          #34407d;
+    --lc-teal-bg:       rgba(52,64,125,0.08);
+    --lc-teal-border:   rgba(52,64,125,0.22);
+    --lc-green:         #2e7a4e;
+    --lc-green-bg:      rgba(46,122,78,0.08);
+    --lc-green-border:  #c3ddc9;
+    --lc-red:           #a83f32;
+    --lc-red-bg:        #f7ece9;
+    --lc-red-border:    #e8cec8;
+    --lc-red-accent:    #dcb0a4;
+    --lc-amber:         #b5741f;
+    --lc-amber-bg:      rgba(181,116,31,0.09);
+    --lc-blue:          #3b72ac;
+    --lc-blue-bg:       rgba(59,114,172,0.09);
+    --lc-blue-border:   rgba(59,114,172,0.22);
 
-    /* Shared, theme-agnostic tokens — safe on both dark and light surfaces */
+    /* Shared, theme-agnostic tokens — safe on both dark and light surfaces.
+       Fonts unchanged — the existing sans system is preserved as-is. */
     --font-display: 'Inter', 'Open Sans', sans-serif;
     --font-body:    'Open Sans', sans-serif;
     --font-mono:    'JetBrains Mono', monospace;
@@ -96,8 +92,8 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  ::selection { background: #0f172a; color: #ffffff; }
-  ::-moz-selection { background: #0f172a; color: #ffffff; }
+  ::selection { background: #1d1a14; color: #ffffff; }
+  ::-moz-selection { background: #1d1a14; color: #ffffff; }
 
   html {
     scroll-behavior: smooth;
@@ -497,32 +493,45 @@
   }
 
   /* ─────────────────────────────────
-     SCORE CARDS
+     APP SHELL — mobile header offset
+     AppSidebar renders a fixed 56px mobile top bar (hamburger) below 768px;
+     .app-shell-main reserves space for it so page content never renders
+     underneath/clipped by it. Breakpoint matches AppSidebar's isMobile JS
+     check (window.innerWidth < 768).
   ───────────────────────────────── */
 
-  .score-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px 22px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  @media (max-width: 767px) {
+    .app-shell-main {
+      padding-top: 56px;
+    }
+
+    .settings-grid {
+      grid-template-columns: 1fr !important;
+      padding: 24px 18px !important;
+      gap: 28px !important;
+    }
   }
 
-  .score-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-3);
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    margin-bottom: 6px;
+  /* New Project's two-column composition (task column + companion guidance
+     panel) collapses to a single column below ~900px — the panel moves
+     below the form instead of competing for width, per Folio's page-shell
+     rule that a task column is never alone, but also never squeezed. */
+  @media (max-width: 900px) {
+    .np-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .np-companion {
+      position: static !important;
+    }
   }
 
-  .score-value {
-    font-family: 'Inter', 'Open Sans', sans-serif;
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: var(--text-1);
-    line-height: 1;
+  /* Workstream session header — the question subtitle and the divider are
+     the least essential pieces (the title and context pills carry the real
+     information), so they're the first to go at narrow widths rather than
+     letting the whole row clip or overlap. */
+  @media (max-width: 640px) {
+    .ws-question-sub, .ws-header-divider {
+      display: none !important;
+    }
   }
 }

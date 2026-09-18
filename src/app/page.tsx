@@ -15,6 +15,32 @@ const LIFECYCLE = [
   { label: "Testing",              icon: "check" },
 ];
 
+// ── Public Features menu — action-led product copy for the nav only. The
+// internal app keeps its formal workstream names (AppSidebar, workspace
+// tabs); this wording exists solely for marketing navigation. "DO THE WORK"
+// items are informational (the lifecycle strip below has no per-stage
+// anchors) — the group links out once, to the strip itself. Hrefs are
+// root-relative (/#...) so the menu works from any page, not just "/". ─────
+const FEATURES_WORK_ITEMS = [
+  "Clarify the Problem",
+  "Map Stakeholders",
+  "Define Requirements",
+  "Shape User Stories",
+  "Analyse the Process",
+  "Build the Business Case",
+  "Plan Testing & Traceability",
+];
+
+const FEATURES_MENU = [
+  {
+    heading: "THINK DEEPER",
+    items: [
+      { label: "Turn Input into Insight", href: "/#ba-intelligence" },
+      { label: "Explore Decisions",       href: "/#decision-lab" },
+    ],
+  },
+];
+
 // ── A marketing preview of a real Decision Lab output — Compare Options mode,
 // same shape the tool actually produces, not an invented capability. ────────
 const DECISION_SCENARIO = {
@@ -39,7 +65,7 @@ const DECISION_SCENARIO = {
 const LEVEL_COLOR: Record<string, string> = { good: "#16a34a", mid: "#d97706", bad: "#dc2626" };
 
 const TEMPLATE_PREVIEWS = [
-  { label: "Business Requirements Document",   kind: "doc",   color: "#1fbf9f" },
+  { label: "Business Requirements Document",   kind: "doc",   color: "#34407d" },
   { label: "Functional Requirements Document", kind: "doc",   color: "#38bdf8" },
   { label: "Requirements Traceability Matrix", kind: "table", color: "#a78bfa" },
 ];
@@ -51,7 +77,7 @@ const TEMPLATE_PREVIEWS = [
 const BA_INTEL_SOURCE = "Stakeholder Workshop Transcript";
 
 const BA_INTEL_FINDINGS = [
-  { count: 14, label: "Potential Requirements",       color: "#0e9c81" },
+  { count: 14, label: "Potential Requirements",       color: "#34407d" },
   { count: 6,  label: "Business Rules",                color: "#38bdf8" },
   { count: 3,  label: "Unresolved Questions",          color: "#d97706" },
   { count: 2,  label: "Stakeholder Contradictions",    color: "#dc2626" },
@@ -166,19 +192,6 @@ function PlayCircle({ size = 18 }: { size?: number }) {
   );
 }
 
-function LogoMark({ size = 28 }: { size?: number }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: 6, flexShrink: 0,
-      background: "rgba(31,191,159,0.16)", border: "1px solid rgba(31,191,159,0.4)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "'JetBrains Mono', monospace", fontSize: size * 0.34, fontWeight: 700, color: "#2ddbb8",
-    }}>
-      BA
-    </div>
-  );
-}
-
 // ── Layer 1 — slow drifting colour clouds, the "atmosphere" behind everything ─
 function AuroraLayer() {
   return (
@@ -203,7 +216,7 @@ function CinematicBackground() {
     if (!ctx) return;
 
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const colors = ["#1fbf9f", "#7c3aed", "#38bdf8", "#f59e0b"];
+    const colors = ["#34407d", "#7c3aed", "#38bdf8", "#f59e0b"];
     let particles: { x: number; y: number; vx: number; vy: number; r: number; color: string }[] = [];
     let raf = 0;
     let mouse = { x: -9999, y: -9999 };
@@ -249,7 +262,7 @@ function CinematicBackground() {
           const dx = a.x - b.x, dy = a.y - b.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < 130) {
-            ctx!.strokeStyle = `rgba(45,219,184,${0.16 * (1 - dist / 130)})`;
+            ctx!.strokeStyle = `rgba(141,151,217,${0.16 * (1 - dist / 130)})`;
             ctx!.lineWidth = 1;
             ctx!.beginPath();
             ctx!.moveTo(a.x, a.y);
@@ -378,7 +391,7 @@ function HeroCinematicVideo() {
       {/* top/bottom vignette — settles the nav seam and the value strip */}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(5,8,10,0.55) 0%, transparent 18%, transparent 72%, rgba(5,8,10,0.75) 100%)" }} />
       {/* a whisper of brand teal to keep the grade on-identity rather than generic grey */}
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 70% at 15% 30%, rgba(31,191,159,0.1), transparent 60%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 70% at 15% 30%, rgba(52,64,125,0.1), transparent 60%)" }} />
       {/* full-bleed fade to the page's own dark base at the very bottom, so the seam into Lifecycle is invisible */}
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "18%", background: "linear-gradient(180deg, transparent, #08080b)" }} />
     </div>
@@ -409,8 +422,8 @@ function WorkflowPanel() {
         }}>
           {s.done ? (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10" fill="rgba(45,219,184,0.16)" stroke="#2ddbb8" strokeWidth="1.5" />
-              <path d="M8 12.5l2.5 2.5L16 9.5" stroke="#2ddbb8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="12" r="10" fill="rgba(141,151,217,0.16)" stroke="#8d97d9" strokeWidth="1.5" />
+              <path d="M8 12.5l2.5 2.5L16 9.5" stroke="#8d97d9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           ) : (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
@@ -440,7 +453,7 @@ function ValueStrip() {
             display: "flex", alignItems: "center", gap: 10, padding: "0 22px",
             borderLeft: i === 0 ? "none" : "1px solid rgba(255,255,255,0.14)",
           }}>
-            <span style={{ color: "#2ddbb8", flexShrink: 0 }}>{VALUE_ICONS[item.icon]}</span>
+            <span style={{ color: "#8d97d9", flexShrink: 0 }}>{VALUE_ICONS[item.icon]}</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: "#dcdce4", lineHeight: 1.3, maxWidth: 150 }}>{item.text}</span>
           </div>
         ))}
@@ -462,7 +475,7 @@ function LifecycleJourney() {
   return (
     <div ref={ref} className="home-journey" style={{ position: "relative", padding: "8px 0" }}>
       <div className="home-journey-rail" style={{ position: "absolute", background: "var(--lc-border)", borderRadius: 2 }} />
-      <motion.div className="home-journey-fill" style={{ position: "absolute", background: "linear-gradient(90deg, #1fbf9f, #2ddbb8)", borderRadius: 2, width: fillSize }} />
+      <motion.div className="home-journey-fill" style={{ position: "absolute", background: "linear-gradient(90deg, #34407d, #8d97d9)", borderRadius: 2, width: fillSize }} />
 
       <div className="home-journey-row" style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(${LIFECYCLE.length}, 1fr)` }}>
         {LIFECYCLE.map((stage, i) => (
@@ -477,10 +490,10 @@ function LifecycleJourney() {
           >
             <div style={{
               width: 38, height: 38, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              background: i === 0 ? "#1fbf9f" : "var(--lc-surface)",
+              background: i === 0 ? "#34407d" : "var(--lc-surface)",
               border: i === 0 ? "none" : "1.5px solid var(--lc-border)",
               color: i === 0 ? "#ffffff" : "var(--lc-text-4)",
-              boxShadow: i === 0 ? "0 6px 16px -4px rgba(31,191,159,0.55)" : "0 1px 3px rgba(15,23,42,0.05)",
+              boxShadow: i === 0 ? "0 6px 16px -4px rgba(52,64,125,0.55)" : "0 1px 3px rgba(15,23,42,0.05)",
             }}>
               {LIFECYCLE_ICONS[stage.icon]}
             </div>
@@ -507,8 +520,8 @@ function DecisionPreviewPanel() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(45,219,184,0.16)", border: "1px solid rgba(45,219,184,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2ddbb8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(141,151,217,0.16)", border: "1px solid rgba(141,151,217,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8d97d9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
         </div>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: "#f2f2f8", flex: 1 }}>Decision Explorer</span>
         <span style={{ fontSize: 11.5, color: "#8a8aa0", display: "flex", alignItems: "center", gap: 4 }}>
@@ -523,14 +536,14 @@ function DecisionPreviewPanel() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }} className="home-decision-options">
         {DECISION_SCENARIO.options.map(opt => (
           <div key={opt.label} style={{
-            background: opt.tag ? "rgba(45,219,184,0.07)" : "rgba(255,255,255,0.03)",
-            border: opt.tag ? "1px solid rgba(45,219,184,0.28)" : "1px solid rgba(255,255,255,0.08)",
+            background: opt.tag ? "rgba(141,151,217,0.07)" : "rgba(255,255,255,0.03)",
+            border: opt.tag ? "1px solid rgba(141,151,217,0.28)" : "1px solid rgba(255,255,255,0.08)",
             borderRadius: 10, padding: "12px 12px",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 9, flexWrap: "wrap" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#f2f2f8", lineHeight: 1.3 }}>{opt.label}</span>
               {opt.tag && (
-                <span style={{ fontSize: 8.5, fontWeight: 700, color: "#2ddbb8", background: "rgba(45,219,184,0.16)", border: "1px solid rgba(45,219,184,0.3)", borderRadius: 4, padding: "1px 5px", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                <span style={{ fontSize: 8.5, fontWeight: 700, color: "#8d97d9", background: "rgba(141,151,217,0.16)", border: "1px solid rgba(141,151,217,0.3)", borderRadius: 4, padding: "1px 5px", textTransform: "uppercase", letterSpacing: ".04em" }}>
                   {opt.tag}
                 </span>
               )}
@@ -545,10 +558,10 @@ function DecisionPreviewPanel() {
         ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(45,219,184,0.09)", border: "1px solid rgba(45,219,184,0.25)", borderRadius: 10, padding: "10px 14px" }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="#2ddbb8" stroke="none" style={{ flexShrink: 0 }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(141,151,217,0.09)", border: "1px solid rgba(141,151,217,0.25)", borderRadius: 10, padding: "10px 14px" }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#8d97d9" stroke="none" style={{ flexShrink: 0 }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#2ddbb8", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 1 }}>Recommended direction</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#8d97d9", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 1 }}>Recommended direction</div>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "#f2f2f8" }}>{DECISION_SCENARIO.recommendation}</div>
         </div>
         <ArrowRight size={15} />
@@ -615,8 +628,8 @@ function BAIntelligencePreview() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(45,219,184,0.16)", border: "1px solid rgba(45,219,184,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2ddbb8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(141,151,217,0.16)", border: "1px solid rgba(141,151,217,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8d97d9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </div>
@@ -658,7 +671,7 @@ function BAIntelligencePreview() {
         {BA_INTEL_ACTIONS.map(a => (
           <div key={a} style={{
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-            background: "rgba(45,219,184,0.06)", border: "1px solid rgba(45,219,184,0.2)", borderRadius: 8, padding: "10px 12px",
+            background: "rgba(141,151,217,0.06)", border: "1px solid rgba(141,151,217,0.2)", borderRadius: 8, padding: "10px 12px",
           }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#e4e4ec" }}>{a}</span>
             <ArrowRight size={12} />
@@ -673,7 +686,7 @@ function BAIntelligencePreview() {
 function SectionMark({ n, of, label }: { n: number; of: number; label: string }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 22 }}>
-      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: "#0e9c81", flexShrink: 0 }}>
+      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: "#34407d", flexShrink: 0 }}>
         {String(n).padStart(2, "0")}<span style={{ color: "var(--lc-text-5)" }}>/{String(of).padStart(2, "0")}</span>
       </span>
       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--lc-text-4)", flexShrink: 0 }}>
@@ -701,6 +714,8 @@ export default function HomePage() {
   const router = useRouter();
   const [authState, setAuthState] = useState<"unknown" | "out" | "in">("unknown");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [mobileFeaturesOpen, setMobileFeaturesOpen] = useState(false);
 
   // Session presence only — never fetches project or business data on this
   // public page. Used solely to swap CTA copy between logged-out and
@@ -743,17 +758,78 @@ export default function HomePage() {
         borderBottom: "1px solid rgba(255,255,255,0.08)",
       }}>
         <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px", height: 61, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <LogoMark />
+          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
             <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: 15, color: "#f0f0f4", letterSpacing: "-0.02em" }}>
-              The<span style={{ color: "#2ddbb8" }}>BA</span>Portal
+              The<span style={{ color: "#8d97d9" }}>BA</span>Portal
             </span>
           </Link>
 
           <nav style={{ display: "flex", alignItems: "center", gap: 28 }} className="home-nav-links">
-            <a href="#lifecycle" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Product</a>
-            <a href="#decision-lab" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Decision Lab</a>
-            <Link href="/templates" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Templates</Link>
+            <div
+              onMouseEnter={() => setFeaturesOpen(true)}
+              onMouseLeave={() => setFeaturesOpen(false)}
+              style={{ position: "relative" }}
+            >
+              <button
+                type="button"
+                onClick={() => setFeaturesOpen(v => !v)}
+                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13.5, color: "#9090a0", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "'Open Sans', sans-serif" }}
+              >
+                Features
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transform: featuresOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {featuresOpen && (
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, marginTop: 14, zIndex: 200,
+                  display: "flex", gap: 36, padding: "20px 24px",
+                  background: "rgba(15,15,20,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12,
+                  boxShadow: "0 24px 60px -20px rgba(0,0,0,0.6)",
+                }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", color: "#505060", textTransform: "uppercase", margin: "0 0 6px" }}>
+                      DO THE WORK
+                    </div>
+                    {FEATURES_WORK_ITEMS.map(label => (
+                      <div key={label} style={{ fontSize: 13.5, color: "#8a8a98", padding: "6px 8px", margin: "0 -8px", whiteSpace: "nowrap" }}>
+                        {label}
+                      </div>
+                    ))}
+                    <Link
+                      href="/#lifecycle"
+                      onClick={() => setFeaturesOpen(false)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "#8d97d9", textDecoration: "none", padding: "8px 8px 6px", margin: "4px -8px 0", borderTop: "1px solid rgba(255,255,255,0.08)" }}
+                    >
+                      Explore the connected workflow
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </Link>
+                  </div>
+                  {FEATURES_MENU.map(group => (
+                    <div key={group.heading} style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", color: "#505060", textTransform: "uppercase", margin: "0 0 6px" }}>
+                        {group.heading}
+                      </div>
+                      {group.items.map(item => (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          onClick={() => setFeaturesOpen(false)}
+                          style={{ fontSize: 13.5, color: "#c8c8d4", textDecoration: "none", padding: "6px 8px", margin: "0 -8px", borderRadius: 6, whiteSpace: "nowrap", transition: "background 0.15s, color 0.15s" }}
+                          onMouseEnter={e => { e.currentTarget.style.background = "rgba(141,151,217,0.08)"; e.currentTarget.style.color = "#f0f0f4"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#c8c8d4"; }}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <Link href="/pricing" style={{ fontSize: 13.5, color: "#9090a0", textDecoration: "none" }}>Pricing</Link>
           </nav>
 
@@ -761,14 +837,14 @@ export default function HomePage() {
             {loggedIn ? (
               <>
                 <button onClick={signOut} style={{ fontSize: 13, color: "#9090a0", background: "none", border: "none", cursor: "pointer" }}>Sign out</button>
-                <Link href="/projects" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#05120f", background: "#2ddbb8", padding: "9px 16px", borderRadius: 6, textDecoration: "none" }}>
+                <Link href="/projects" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#f5f1e7", background: "#34407d", padding: "9px 16px", borderRadius: 6, textDecoration: "none" }}>
                   Open Projects
                 </Link>
               </>
             ) : (
               <>
                 <Link href="/auth/login" style={{ fontSize: 13, color: "#9090a0", textDecoration: "none" }}>Sign in</Link>
-                <Link href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#05120f", background: "#2ddbb8", padding: "9px 16px", borderRadius: 6, textDecoration: "none" }}>
+                <Link href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#f5f1e7", background: "#34407d", padding: "9px 16px", borderRadius: 6, textDecoration: "none" }}>
                   Get started
                 </Link>
               </>
@@ -786,17 +862,67 @@ export default function HomePage() {
 
         {mobileNavOpen && (
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-            <a href="#lifecycle" onClick={() => setMobileNavOpen(false)} style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Product</a>
-            <a href="#decision-lab" onClick={() => setMobileNavOpen(false)} style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Decision Lab</a>
-            <Link href="/templates" style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Templates</Link>
-            <Link href="/pricing" style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Pricing</Link>
+            <div>
+              <button
+                type="button"
+                onClick={() => setMobileFeaturesOpen(v => !v)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", fontSize: 14, color: "#c8c8d4", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "'Open Sans', sans-serif" }}
+              >
+                Features
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transform: mobileFeaturesOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {mobileFeaturesOpen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 12, paddingLeft: 4 }}>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", color: "#505060", textTransform: "uppercase", margin: "0 0 6px" }}>
+                      DO THE WORK
+                    </div>
+                    {FEATURES_WORK_ITEMS.map(label => (
+                      <div key={label} style={{ fontSize: 13.5, color: "#8a8a98", padding: "7px 0" }}>
+                        {label}
+                      </div>
+                    ))}
+                    <Link
+                      href="/#lifecycle"
+                      onClick={() => { setMobileNavOpen(false); setMobileFeaturesOpen(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "#8d97d9", textDecoration: "none", padding: "9px 0 5px" }}
+                    >
+                      Explore the connected workflow
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </Link>
+                  </div>
+                  {FEATURES_MENU.map(group => (
+                    <div key={group.heading} style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", color: "#505060", textTransform: "uppercase", margin: "0 0 6px" }}>
+                        {group.heading}
+                      </div>
+                      {group.items.map(item => (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          onClick={() => { setMobileNavOpen(false); setMobileFeaturesOpen(false); }}
+                          style={{ display: "block", fontSize: 13.5, color: "#c8c8d4", textDecoration: "none", padding: "7px 0" }}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Link href="/pricing" onClick={() => setMobileNavOpen(false)} style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Pricing</Link>
             <div style={{ height: 1, background: "rgba(255,255,255,0.08)" }} />
             {loggedIn ? (
-              <Link href="/projects" style={{ fontSize: 14, fontWeight: 700, color: "#2ddbb8", textDecoration: "none" }}>Open Projects</Link>
+              <Link href="/projects" style={{ fontSize: 14, fontWeight: 700, color: "#8d97d9", textDecoration: "none" }}>Open Projects</Link>
             ) : (
               <>
                 <Link href="/auth/login" style={{ fontSize: 14, color: "#c8c8d4", textDecoration: "none" }}>Sign in</Link>
-                <Link href="/auth/signup" style={{ fontSize: 14, fontWeight: 700, color: "#2ddbb8", textDecoration: "none" }}>Get started</Link>
+                <Link href="/auth/signup" style={{ fontSize: 14, fontWeight: 700, color: "#8d97d9", textDecoration: "none" }}>Get started</Link>
               </>
             )}
           </div>
@@ -822,7 +948,7 @@ export default function HomePage() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}
               style={{ marginBottom: 22 }}
             >
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#2ddbb8" }}>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#8d97d9" }}>
                 The connected workspace for business analysts
               </span>
             </motion.div>
@@ -830,7 +956,7 @@ export default function HomePage() {
             <KineticHeadline lines={[
               { text: "From insight" },
               { text: "to impact." },
-              { text: "All in one place.", color: "#2ddbb8" },
+              { text: "All in one place.", color: "#8d97d9" },
             ]} />
 
             <motion.p
@@ -847,9 +973,9 @@ export default function HomePage() {
             >
               <Link href={primaryHref} style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "14px 28px", borderRadius: 8, background: "#2ddbb8",
-                color: "#04140f", fontWeight: 700, fontSize: 15.5, textDecoration: "none",
-                boxShadow: "0 0 0 1px rgba(45,219,184,0.4), 0 12px 30px -8px rgba(45,219,184,0.55)",
+                padding: "14px 28px", borderRadius: 8, background: "#34407d",
+                color: "#f5f1e7", fontWeight: 700, fontSize: 15.5, textDecoration: "none",
+                boxShadow: "0 0 0 1px rgba(52,64,125,0.4), 0 12px 30px -8px rgba(52,64,125,0.55)",
               }}>
                 {primaryLabel} <ArrowRight />
               </Link>
@@ -917,7 +1043,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Decision Lab — a subtly different cool neutral, dark preview panel for contrast ── */}
-      <section id="decision-lab" style={{ position: "relative", zIndex: 1, background: "#eef1f2" }}>
+      <section id="decision-lab" style={{ position: "relative", zIndex: 1, background: "#eef1f2", scrollMarginTop: 61 }}>
         <div style={{ maxWidth: 1120, margin: "0 auto", padding: "88px 24px 96px" }}>
           <Reveal><SectionMark n={2} of={3} label="Decision Lab" /></Reveal>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 56, alignItems: "center" }} className="home-decision-grid">
@@ -928,7 +1054,7 @@ export default function HomePage() {
               <p style={{ fontSize: 15.5, color: "var(--lc-text-3)", lineHeight: 1.7, marginBottom: 28 }}>
                 Compare options. Surface risks. Challenge assumptions. Understand stakeholders. Recommend a direction.
               </p>
-              <Link href="/decision-lab" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, color: "#0e9c81", textDecoration: "none" }}>
+              <Link href="/decision-lab" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, color: "#34407d", textDecoration: "none" }}>
                 Open Decision Lab <ArrowRight size={14} />
               </Link>
             </Reveal>
@@ -943,7 +1069,7 @@ export default function HomePage() {
       {/* ── BA Intelligence — subtly warmer light than the two sections above,
           still calm and restrained. Replaces Templates as the third homepage
           chapter; Templates itself lives on unchanged at /templates. ── */}
-      <section style={{ position: "relative", zIndex: 1, background: "#f6f1ea" }}>
+      <section id="ba-intelligence" style={{ position: "relative", zIndex: 1, background: "#f6f1ea", scrollMarginTop: 61 }}>
         <div style={{ maxWidth: 1120, margin: "0 auto", padding: "88px 24px 96px" }}>
           <Reveal><SectionMark n={3} of={3} label="BA Intelligence" /></Reveal>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 56, alignItems: "center" }} className="home-decision-grid">
@@ -955,7 +1081,7 @@ export default function HomePage() {
                 Turn messy stakeholder input into structured analysis, surface what is missing, and move from
                 conversation to requirements without starting from a blank page.
               </p>
-              <Link href="/ba-intelligence" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, color: "#0e9c81", textDecoration: "none" }}>
+              <Link href="/ba-intelligence" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, color: "#34407d", textDecoration: "none" }}>
                 Open BA Intelligence <ArrowRight size={14} />
               </Link>
             </Reveal>
@@ -980,9 +1106,9 @@ export default function HomePage() {
           </p>
           <Link href={primaryHref} style={{
             display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "14px 30px", borderRadius: 8, background: "#2ddbb8",
-            color: "#04140f", fontWeight: 700, fontSize: 15.5, textDecoration: "none",
-            boxShadow: "0 0 0 1px rgba(45,219,184,0.4), 0 12px 30px -8px rgba(45,219,184,0.55)",
+            padding: "14px 30px", borderRadius: 8, background: "#34407d",
+            color: "#f5f1e7", fontWeight: 700, fontSize: 15.5, textDecoration: "none",
+            boxShadow: "0 0 0 1px rgba(52,64,125,0.4), 0 12px 30px -8px rgba(52,64,125,0.55)",
           }}>
             {primaryLabel} <ArrowRight />
           </Link>
@@ -992,9 +1118,10 @@ export default function HomePage() {
       {/* ── Footer ── */}
       <footer style={{ position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.08)", padding: "32px 24px" }}>
         <div style={{ maxWidth: 1120, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <LogoMark size={22} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#9090a8" }}>TheBAPortal</span>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#9090a8" }}>
+              The<span style={{ color: "#6b6b80" }}>BA</span>Portal
+            </span>
           </div>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
             {[["Pricing", "/pricing"], ["FAQ", "/faq"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"]].map(([label, href]) => (
@@ -1006,7 +1133,7 @@ export default function HomePage() {
 
       <style>{`
         .aurora-blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.32; }
-        .aurora-1 { width: 520px; height: 520px; background: #1fbf9f; top: -12%; left: -10%; animation: auroraDrift1 26s ease-in-out infinite; }
+        .aurora-1 { width: 520px; height: 520px; background: #34407d; top: -12%; left: -10%; animation: auroraDrift1 26s ease-in-out infinite; }
         .aurora-2 { width: 480px; height: 480px; background: #7c3aed; top: 28%; right: -15%; animation: auroraDrift2 32s ease-in-out infinite; }
         .aurora-3 { width: 420px; height: 420px; background: #0ea5e9; bottom: -15%; left: 22%; animation: auroraDrift3 24s ease-in-out infinite; }
         @keyframes auroraDrift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px,40px) scale(1.15); } }

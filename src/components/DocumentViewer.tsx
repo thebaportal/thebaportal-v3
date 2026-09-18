@@ -45,7 +45,7 @@ function InlineText({ text }: { text: string }) {
 }
 
 // ── Main document renderer ────────────────────────────────────────────────────
-export default function DocumentViewer({ content, title, accentColor = "#1fbf9f", onBack, onDownload, downloadFormats = ["docx", "txt"], onCopy }: Props) {
+export default function DocumentViewer({ content, title, accentColor = "#34407d", onBack, onDownload, downloadFormats = ["docx", "txt"], onCopy }: Props) {
   const sections = extractSections(content);
   const [activeSection, setActiveSection] = useState<string>("");
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -173,7 +173,7 @@ export default function DocumentViewer({ content, title, accentColor = "#1fbf9f"
         <ul key={`ul-${i}`} style={{ margin: "8px 0 16px", paddingLeft: 0, listStyle: "none" }}>
           {items.map((item, ii) => (
             <li key={ii} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 7 }}>
-              <span style={{ color: accentColor, flexShrink: 0, marginTop: 4, fontSize: 10 }}>●</span>
+              <span style={{ color: "var(--lc-text-5)", flexShrink: 0, marginTop: 4, fontSize: 10 }}>●</span>
               <span style={{ fontSize: 15, color: "var(--lc-text-2)", lineHeight: 1.75 }}><InlineText text={item} /></span>
             </li>
           ))}

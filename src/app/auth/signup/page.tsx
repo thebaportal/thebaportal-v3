@@ -5,22 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-function BAPortalLogo({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 2L36 11V29L20 38L4 29V11L20 2Z" fill="none" stroke="#1fbf9f" strokeWidth="1.5" opacity="0.4" />
-      <path d="M20 8L32 20L20 32L8 20L20 8Z" fill="none" stroke="#1fbf9f" strokeWidth="1.5" opacity="0.7" />
-      <text x="20" y="24" textAnchor="middle" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="11" fill="#1fbf9f" letterSpacing="-0.5">BA</text>
-      <circle cx="20" cy="2" r="2" fill="#1fbf9f" opacity="0.8" />
-      <circle cx="36" cy="11" r="1.5" fill="#1fbf9f" opacity="0.4" />
-      <circle cx="36" cy="29" r="1.5" fill="#1fbf9f" opacity="0.4" />
-      <circle cx="20" cy="38" r="2" fill="#1fbf9f" opacity="0.8" />
-      <circle cx="4" cy="29" r="1.5" fill="#1fbf9f" opacity="0.4" />
-      <circle cx="4" cy="11" r="1.5" fill="#1fbf9f" opacity="0.4" />
-    </svg>
-  );
-}
-
 const PERKS = [
   { icon: "📁", text: "Projects — one connected workspace for the whole BA lifecycle" },
   { icon: "🧠", text: "Decision Lab — structured reasoning for real decisions" },
@@ -85,7 +69,7 @@ function SignupForm() {
     setStrength(s);
   }
 
-  const strengthColor = ["", "#ef4444", "#fb923c", "#eab308", "#1fbf9f"][strength];
+  const strengthColor = ["", "#ef4444", "#fb923c", "#eab308", "#2e7a4e"][strength];
   const strengthLabel = ["", "Weak", "Fair", "Good", "Strong"][strength];
 
   async function handleSignup(e: React.FormEvent) {
@@ -135,16 +119,16 @@ function SignupForm() {
     borderRadius: "10px",
     border: hasError
       ? "1px solid rgba(248,113,113,0.6)"
-      : `1px solid ${focused ? "rgba(31,191,159,0.45)" : "#27272a"}`,
+      : `1px solid ${focused ? "rgba(52,64,125,0.45)" : "#27272a"}`,
     background: hasError
       ? "rgba(248,113,113,0.04)"
-      : focused ? "rgba(31,191,159,0.05)" : "rgba(15,15,20,0.8)",
+      : focused ? "rgba(52,64,125,0.05)" : "rgba(15,15,20,0.8)",
     color: "#f0f0f4", fontSize: "14px",
     fontFamily: "'Open Sans', sans-serif",
     outline: "none",
     boxShadow: hasError
       ? "0 0 0 3px rgba(248,113,113,0.07)"
-      : focused ? "0 0 0 3px rgba(31,191,159,0.07)" : "none",
+      : focused ? "0 0 0 3px rgba(52,64,125,0.07)" : "none",
     transition: "all 0.18s ease",
   });
 
@@ -157,12 +141,12 @@ function SignupForm() {
   if (done) {
     return (
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: "52px", height: "52px", borderRadius: "50%", background: "rgba(31,191,159,0.1)", border: "1px solid rgba(31,191,159,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", margin: "0 auto 16px" }}>✓</div>
+        <div style={{ width: "52px", height: "52px", borderRadius: "50%", background: "rgba(52,64,125,0.1)", border: "1px solid rgba(52,64,125,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", margin: "0 auto 16px" }}>✓</div>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.03em", color: "#f0f0f4", margin: "0 0 8px" }}>Check your email.</h2>
         <p style={{ fontSize: "13px", color: "#9090a0", lineHeight: 1.6, margin: "0 0 20px" }}>
           Confirmation link sent to <strong style={{ color: "#f0f0f4" }}>{email}</strong>.
         </p>
-        <Link href={loginHref} style={{ display: "inline-flex", alignItems: "center", padding: "11px 24px", borderRadius: "10px", background: "#1fbf9f", color: "#05120f", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: "'Inter', sans-serif" }}>
+        <Link href={loginHref} style={{ display: "inline-flex", alignItems: "center", padding: "11px 24px", borderRadius: "10px", background: "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: "'Inter', sans-serif" }}>
           Go to sign in
         </Link>
       </div>
@@ -213,7 +197,7 @@ function SignupForm() {
               style={{ ...inp(pf), padding: "0 46px 0 14px" }} />
             <button type="button"
               onMouseDown={e => { e.preventDefault(); setShowPass(s => !s); }}
-              style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#1fbf9f", fontSize: "12px", fontWeight: 600, lineHeight: 1, fontFamily: "'Inter', sans-serif", padding: "4px 6px" }}>
+              style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#34407d", fontSize: "12px", fontWeight: 600, lineHeight: 1, fontFamily: "'Inter', sans-serif", padding: "4px 6px" }}>
               {showPass ? "Hide" : "Show"}
             </button>
           </div>
@@ -235,11 +219,11 @@ function SignupForm() {
 
         {/* Submit */}
         <button type="submit" disabled={loading}
-          style={{ width: "100%", padding: "13px", borderRadius: "10px", border: "none", background: loading ? "rgba(31,191,159,0.5)" : "#1fbf9f", color: "#05120f", fontSize: "14px", fontWeight: 700, fontFamily: "'Inter', sans-serif", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: loading ? "none" : "0 0 20px rgba(31,191,159,0.18)", transition: "all 0.18s ease" }}
+          style={{ width: "100%", padding: "13px", borderRadius: "10px", border: "none", background: loading ? "rgba(52,64,125,0.5)" : "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, fontFamily: "'Inter', sans-serif", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: loading ? "none" : "0 0 20px rgba(52,64,125,0.18)", transition: "all 0.18s ease" }}
           onMouseEnter={e => { if (!loading) e.currentTarget.style.filter = "brightness(1.1)"; }}
           onMouseLeave={e => { if (!loading) e.currentTarget.style.filter = "brightness(1)"; }}>
           {loading
-            ? <><span style={{ width: "14px", height: "14px", borderRadius: "50%", border: "2px solid #05120f", borderTopColor: "transparent", animation: "spin 0.8s linear infinite", display: "inline-block" }} />Creating account...</>
+            ? <><span style={{ width: "14px", height: "14px", borderRadius: "50%", border: "2px solid #f5f1e7", borderTopColor: "transparent", animation: "spin 0.8s linear infinite", display: "inline-block" }} />Creating account...</>
             : "Create my account"}
         </button>
 
@@ -254,7 +238,7 @@ function SignupForm() {
         {/* Sign in */}
         <p style={{ textAlign: "center", fontSize: "13px", color: "#52525b", margin: 0 }}>
           Already have an account?{" "}
-          <Link href={loginHref} style={{ color: "#1fbf9f", textDecoration: "none", fontWeight: 600 }}
+          <Link href={loginHref} style={{ color: "#34407d", textDecoration: "none", fontWeight: 600 }}
             onMouseEnter={e => (e.currentTarget.style.opacity = "0.75")}
             onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
             Sign in
@@ -269,15 +253,16 @@ export default function SignupPage() {
   return (
     <div style={{ height: "100vh", background: "#09090b", display: "flex", fontFamily: "'Open Sans', sans-serif", overflow: "hidden" }}>
       {/* Background grid */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(31,191,159,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(31,191,159,0.03) 1px, transparent 1px)`, backgroundSize: "60px 60px", maskImage: "radial-gradient(ellipse 60% 80% at 70% 50%, black 20%, transparent 100%)" }} />
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.03) 1px, transparent 1px)`, backgroundSize: "60px 60px", maskImage: "radial-gradient(ellipse 60% 80% at 70% 50%, black 20%, transparent 100%)" }} />
 
       {/* Left panel — form */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 48px", position: "relative" }}>
         {/* Logo */}
         <div style={{ position: "absolute", top: "28px", left: "36px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "9px", textDecoration: "none" }}>
-            <BAPortalLogo size={30} />
-            <span style={{ fontSize: "16px", fontWeight: 700, color: "#f0f0f4", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>TheBAPortal</span>
+          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+            <span style={{ fontSize: "16px", fontWeight: 700, color: "#f0f0f4", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
+              The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
+            </span>
           </Link>
         </div>
 
@@ -289,14 +274,14 @@ export default function SignupPage() {
       </div>
 
       {/* Right panel — perks */}
-      <div className="hidden lg:flex" style={{ flex: "0 0 42%", flexDirection: "column", justifyContent: "center", padding: "36px 48px", borderLeft: "1px solid rgba(255,255,255,0.05)", position: "relative", overflow: "hidden", background: "linear-gradient(200deg, rgba(31,191,159,0.04) 0%, transparent 50%)" }}>
+      <div className="hidden lg:flex" style={{ flex: "0 0 42%", flexDirection: "column", justifyContent: "center", padding: "36px 48px", borderLeft: "1px solid rgba(255,255,255,0.05)", position: "relative", overflow: "hidden", background: "linear-gradient(200deg, rgba(52,64,125,0.04) 0%, transparent 50%)" }}>
         {/* Grid overlay */}
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(31,191,159,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(31,191,159,0.07) 1px, transparent 1px)`, backgroundSize: "40px 40px", maskImage: "radial-gradient(ellipse 80% 80% at 70% 50%, black 10%, transparent 80%)" }} />
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.07) 1px, transparent 1px)`, backgroundSize: "40px 40px", maskImage: "radial-gradient(ellipse 80% 80% at 70% 50%, black 10%, transparent 80%)" }} />
         {/* Glow — reduced intensity */}
-        <div style={{ position: "absolute", bottom: "25%", right: "5%", width: "300px", height: "300px", background: "radial-gradient(ellipse, rgba(31,191,159,0.06) 0%, transparent 65%)", filter: "blur(70px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "25%", right: "5%", width: "300px", height: "300px", background: "radial-gradient(ellipse, rgba(52,64,125,0.06) 0%, transparent 65%)", filter: "blur(70px)", pointerEvents: "none" }} />
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#1fbf9f", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Inter', sans-serif", marginBottom: "12px" }}>What you get</div>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "#34407d", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Inter', sans-serif", marginBottom: "12px" }}>What you get</div>
 
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "20px", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.25, color: "#d4d4d8", margin: "0 0 20px" }}>
             Describe your problem.<br />Walk away with your deliverables.
@@ -305,7 +290,7 @@ export default function SignupPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
             {PERKS.map((p, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: "rgba(31,191,159,0.08)", border: "1px solid rgba(31,191,159,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
+                <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: "rgba(52,64,125,0.08)", border: "1px solid rgba(52,64,125,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
                   {p.icon}
                 </div>
                 <p style={{ fontSize: "13px", color: "#9090a0", lineHeight: 1.5, margin: 0 }}>{p.text}</p>
@@ -314,16 +299,9 @@ export default function SignupPage() {
           </div>
 
           <div style={{ padding: "14px 16px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <p style={{ fontSize: "12px", color: "#a1a1aa", lineHeight: 1.6, margin: "0 0 10px", fontStyle: "italic" }}>
-              &ldquo;I pasted my meeting notes and had a full BRD, stakeholder map, and requirements matrix in under ten minutes. Nothing else comes close.&rdquo;
+            <p style={{ fontSize: "12px", color: "#a1a1aa", lineHeight: 1.6, margin: 0 }}>
+              Paste your meeting notes in, and walk away with a BRD, a stakeholder map, and a requirements matrix — usually in minutes, not hours.
             </p>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(31,191,159,0.15)", border: "1px solid rgba(31,191,159,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", fontWeight: 700, color: "#1fbf9f", fontFamily: "'Inter', sans-serif" }}>JO</div>
-              <div>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "#f0f0f4", fontFamily: "'Inter', sans-serif" }}>James O.</div>
-                <div style={{ fontSize: "11px", color: "#505060" }}>Lead BA · RBC</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

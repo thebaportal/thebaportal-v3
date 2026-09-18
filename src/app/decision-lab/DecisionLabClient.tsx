@@ -63,7 +63,7 @@ const MODES: { id: Mode; label: string; shortLabel: string; description: string;
     label: "Stakeholder Analysis",
     shortLabel: "Stakeholders",
     description: "Examine stakeholder influence, impact, priorities, and potential conflicts.",
-    color: "#0d9488",
+    color: "#0e7d72",
   },
   {
     id: "recommend-direction",
@@ -115,7 +115,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
     if (line.startsWith("# ")) {
       nodes.push(<h2 key={i} style={{ fontSize: 20, fontWeight: 800, color: "#1C1C2E", letterSpacing: "-0.02em", margin: "0 0 20px", fontFamily: "var(--font-display)" }}>{line.slice(2)}</h2>);
     } else if (line.startsWith("## ")) {
-      nodes.push(<h3 key={i} style={{ fontSize: 14, fontWeight: 700, color: "#0d9488", letterSpacing: "0.02em", textTransform: "uppercase" as const, margin: "28px 0 10px", paddingBottom: 6, borderBottom: "1px solid rgba(13,148,136,0.15)", fontFamily: "var(--font-mono)" }}>{line.slice(3)}</h3>);
+      nodes.push(<h3 key={i} style={{ fontSize: 14, fontWeight: 700, color: "#34407d", letterSpacing: "0.02em", textTransform: "uppercase" as const, margin: "28px 0 10px", paddingBottom: 6, borderBottom: "1px solid rgba(52,64,125,0.15)", fontFamily: "var(--font-mono)" }}>{line.slice(3)}</h3>);
     } else if (line.startsWith("### ")) {
       nodes.push(<h4 key={i} style={{ fontSize: 14, fontWeight: 700, color: "#1C1C2E", margin: "18px 0 6px" }}>{line.slice(4)}</h4>);
     } else if (line.startsWith("**") && line.endsWith("**") && line.length > 4 && !line.slice(2, -2).includes("**")) {
@@ -123,7 +123,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       nodes.push(
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 6 }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#0d9488", flexShrink: 0, marginTop: 8 }} />
+          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#34407d", flexShrink: 0, marginTop: 8 }} />
           <span style={{ fontSize: 14, color: "#374151", lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
         </div>
       );
@@ -132,7 +132,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
       const content = line.replace(/^\d+\.\s/, "");
       nodes.push(
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
-          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(13,148,136,0.1)", border: "1px solid rgba(13,148,136,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#0d9488", flexShrink: 0, marginTop: 1 }}>{num}</div>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(52,64,125,0.1)", border: "1px solid rgba(52,64,125,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#34407d", flexShrink: 0, marginTop: 1 }}>{num}</div>
           <span style={{ fontSize: 14, color: "#374151", lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: content.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
         </div>
       );
@@ -188,19 +188,19 @@ function ModeCard({ mode, isActive, isComplete, isLoading, isRunning, onRun }: {
   const [hovered, setHovered] = useState(false);
 
   const borderColor = isActive
-    ? "#0d9488"
+    ? "#34407d"
     : hovered
     ? "#CBD5E1"
     : "#E5E7EB";
 
   const bg = isActive
-    ? "rgba(13,148,136,0.05)"
+    ? "rgba(52,64,125,0.05)"
     : hovered
     ? "#FAFAFA"
     : "#fff";
 
-  const labelColor = isActive ? "#0d9488" : "#1C1C2E";
-  const shadow = hovered && !isActive ? "0 2px 8px rgba(0,0,0,0.07)" : isActive ? "0 2px 8px rgba(13,148,136,0.12)" : "none";
+  const labelColor = isActive ? "#34407d" : "#1C1C2E";
+  const shadow = hovered && !isActive ? "0 2px 8px rgba(0,0,0,0.07)" : isActive ? "0 2px 8px rgba(52,64,125,0.12)" : "none";
   const transform = hovered && !isActive ? "translateY(-1px)" : "none";
 
   return (
@@ -227,10 +227,10 @@ function ModeCard({ mode, isActive, isComplete, isLoading, isRunning, onRun }: {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
         {isLoading && (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0" /></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#34407d" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0" /></svg>
         )}
         {isComplete && !isLoading && (
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#0d9488", flexShrink: 0, display: "inline-block" }} />
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34407d", flexShrink: 0, display: "inline-block" }} />
         )}
         <span style={{ fontSize: 13, fontWeight: 700, color: labelColor, lineHeight: 1.3 }}>
           {isLoading ? "Analyzing..." : mode.label}
@@ -282,7 +282,7 @@ function InputPanel({ situation, onChange, onRun, loading, activeMode, completed
               placeholder="Describe the decision, problem, or situation. Include any context that matters."
               rows={situationLocked ? 4 : 6}
               style={{ width: "100%", border: "1px solid #E5E7EB", borderRadius: 10, padding: "14px 16px", fontSize: 14, color: "#1C1C2E", lineHeight: 1.7, resize: "vertical", outline: "none", fontFamily: "inherit", background: "#FAFAFA", boxSizing: "border-box", transition: "border-color 180ms ease" }}
-              onFocus={e => e.currentTarget.style.borderColor = "#0d9488"}
+              onFocus={e => e.currentTarget.style.borderColor = "#34407d"}
               onBlur={e => e.currentTarget.style.borderColor = "#E5E7EB"}
             />
           )}
@@ -351,7 +351,7 @@ function CopyButton({ content, generatedAt }: { content: string; generatedAt: nu
       </span>
       <button
         onClick={handleCopy}
-        style={{ fontSize: 12, fontWeight: 600, color: copied ? "#0d9488" : "#6B7280", background: copied ? "rgba(13,148,136,0.06)" : "none", border: `1px solid ${copied ? "rgba(13,148,136,0.3)" : "#E5E7EB"}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+        style={{ fontSize: 12, fontWeight: 600, color: copied ? "#34407d" : "#6B7280", background: copied ? "rgba(52,64,125,0.06)" : "none", border: `1px solid ${copied ? "rgba(52,64,125,0.3)" : "#E5E7EB"}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
       >
         {copied ? "Copied" : "Copy"}
       </button>
@@ -396,13 +396,13 @@ function Level2Action({ name, onAdd }: { name: string; onAdd: (n: string) => voi
         disabled={added}
         style={{
           flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "7px 16px", borderRadius: 7,
-          border: added ? "1px solid rgba(13,148,136,0.3)" : "1px solid #CBD5E1",
-          background: added ? "rgba(13,148,136,0.06)" : "#fff",
-          color: added ? "#0d9488" : "#374151",
+          border: added ? "1px solid rgba(52,64,125,0.3)" : "1px solid #CBD5E1",
+          background: added ? "rgba(52,64,125,0.06)" : "#fff",
+          color: added ? "#34407d" : "#374151",
           cursor: added ? "default" : "pointer",
           fontFamily: "inherit", transition: "all 0.15s",
         }}
-        onMouseEnter={e => { if (!added) { e.currentTarget.style.borderColor = "#0d9488"; e.currentTarget.style.color = "#0d9488"; } }}
+        onMouseEnter={e => { if (!added) { e.currentTarget.style.borderColor = "#34407d"; e.currentTarget.style.color = "#34407d"; } }}
         onMouseLeave={e => { if (!added) { e.currentTarget.style.borderColor = "#CBD5E1"; e.currentTarget.style.color = "#374151"; } }}
       >
         {added ? "Added" : "Add to situation"}
@@ -475,9 +475,9 @@ function SuggestionsPanel({ situation, onAdd }: {
                 disabled={added.has(alt.name)}
                 style={{
                   flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-                  border: added.has(alt.name) ? "1px solid rgba(13,148,136,0.3)" : "1px solid #E5E7EB",
-                  background: added.has(alt.name) ? "rgba(13,148,136,0.06)" : "#fff",
-                  color: added.has(alt.name) ? "#0d9488" : "#374151",
+                  border: added.has(alt.name) ? "1px solid rgba(52,64,125,0.3)" : "1px solid #E5E7EB",
+                  background: added.has(alt.name) ? "rgba(52,64,125,0.06)" : "#fff",
+                  color: added.has(alt.name) ? "#34407d" : "#374151",
                   cursor: added.has(alt.name) ? "default" : "pointer",
                   fontFamily: "inherit", transition: "all 0.15s",
                 }}
@@ -507,7 +507,7 @@ function SuggestionsPanel({ situation, onAdd }: {
           display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s",
           opacity: loading ? 0.7 : 1,
         }}
-        onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "#0d9488"; e.currentTarget.style.color = "#0d9488"; } }}
+        onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "#34407d"; e.currentTarget.style.color = "#34407d"; } }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = "#CBD5E1"; e.currentTarget.style.color = "#374151"; }}
       >
         {loading && (
@@ -608,7 +608,7 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
       {/* Loading state */}
       {!explorerActive && loading && !currentResult && (
         <div style={{ padding: "48px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 40, height: 40, border: `3px solid ${activeConfig?.color ?? "#0d9488"}20`, borderTop: `3px solid ${activeConfig?.color ?? "#0d9488"}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+          <div style={{ width: 40, height: 40, border: `3px solid ${activeConfig?.color ?? "#34407d"}20`, borderTop: `3px solid ${activeConfig?.color ?? "#34407d"}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
           <p style={{ fontSize: 14, color: "#6B7280", margin: 0 }}>Running {activeConfig?.label ?? "analysis"}...</p>
         </div>
       )}
@@ -621,7 +621,7 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
           </p>
           <button
             onClick={() => onSwitchMode("compare-options")}
-            style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: "8px 18px", borderRadius: 8, border: "1px solid #0d9488", background: "rgba(13,148,136,0.06)", color: "#0d9488", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const }}
+            style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: "8px 18px", borderRadius: 8, border: "1px solid #34407d", background: "rgba(52,64,125,0.06)", color: "#34407d", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const }}
           >
             Run Compare Options
           </button>
@@ -728,8 +728,8 @@ function DecisionExplorerPanel({ situation }: { situation: string }) {
                 <p style={{ fontSize: 14, color: "#1C1C2E", fontWeight: 600, margin: 0, lineHeight: 1.55, paddingTop: 2 }}>{entry.question}</p>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(13,148,136,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: "#0d9488" }}>A</span>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(52,64,125,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: "#34407d" }}>A</span>
                 </div>
                 <div style={{ flex: 1 }}>
                   {renderMarkdown(entry.answer)}
@@ -760,7 +760,7 @@ function DecisionExplorerPanel({ situation }: { situation: string }) {
               boxSizing: "border-box" as const, transition: "border-color 180ms ease",
               opacity: loading ? 0.6 : 1,
             }}
-            onFocus={e => e.currentTarget.style.borderColor = "#0d9488"}
+            onFocus={e => e.currentTarget.style.borderColor = "#34407d"}
             onBlur={e => e.currentTarget.style.borderColor = "#E5E7EB"}
           />
           <button
@@ -768,7 +768,7 @@ function DecisionExplorerPanel({ situation }: { situation: string }) {
             disabled={!question.trim() || loading}
             style={{
               flexShrink: 0, width: 38, height: 38, borderRadius: 10,
-              border: "none", background: (!question.trim() || loading) ? "#E5E7EB" : "#0d9488",
+              border: "none", background: (!question.trim() || loading) ? "#E5E7EB" : "#34407d",
               cursor: (!question.trim() || loading) ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               transition: "background 150ms ease",
@@ -1066,7 +1066,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
                 <button
                   onClick={saveToProject}
                   disabled={saveStatus === "saving"}
-                  style={{ fontSize: 13, fontWeight: 700, color: saveStatus === "saved" ? "#0d9488" : "#fff", background: saveStatus === "saved" ? "rgba(13,148,136,0.08)" : "#0d9488", border: saveStatus === "saved" ? "1px solid rgba(13,148,136,0.3)" : "none", borderRadius: 8, padding: "8px 16px", cursor: saveStatus === "saving" ? "default" : "pointer", fontFamily: "inherit" }}
+                  style={{ fontSize: 13, fontWeight: 700, color: saveStatus === "saved" ? "#34407d" : "#fff", background: saveStatus === "saved" ? "rgba(52,64,125,0.08)" : "#34407d", border: saveStatus === "saved" ? "1px solid rgba(52,64,125,0.3)" : "none", borderRadius: 8, padding: "8px 16px", cursor: saveStatus === "saving" ? "default" : "pointer", fontFamily: "inherit" }}
                 >
                   {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved to project" : saveStatus === "error" ? "Save failed, retry" : "Save to project"}
                 </button>
@@ -1088,7 +1088,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Decision Log
                 {sessions.length > 0 && (
-                  <span style={{ fontSize: 10, fontWeight: 700, background: "#0d9488", color: "#fff", borderRadius: 10, padding: "1px 6px" }}>{sessions.length}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, background: "#34407d", color: "#fff", borderRadius: 10, padding: "1px 6px" }}>{sessions.length}</span>
                 )}
               </button>
             </div>

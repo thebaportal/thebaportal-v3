@@ -90,8 +90,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
       <button
         onClick={() => setOpen(o => !o)}
         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "20px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
-        <span style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontSize: "15px", fontWeight: 600, color: open ? "var(--teal, #1fbf9f)" : "#f2f2f8", lineHeight: 1.4, transition: "color 0.15s" }}>{q}</span>
-        <ChevronDown size={16} style={{ color: open ? "var(--teal, #1fbf9f)" : "#505068", flexShrink: 0, transition: "transform 0.2s, color 0.15s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }} />
+        <span style={{ fontFamily: "'Inter','Open Sans',sans-serif", fontSize: "15px", fontWeight: 600, color: open ? "var(--teal, #34407d)" : "#f2f2f8", lineHeight: 1.4, transition: "color 0.15s" }}>{q}</span>
+        <ChevronDown size={16} style={{ color: open ? "var(--teal, #34407d)" : "#505068", flexShrink: 0, transition: "transform 0.2s, color 0.15s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }} />
       </button>
       {open && (
         <p style={{ fontSize: "14px", color: "#9090a8", lineHeight: 1.75, paddingBottom: "20px", maxWidth: "680px" }}>{a}</p>
@@ -105,16 +105,15 @@ export default function FAQPage() {
     <div style={{ background: "#07070a", color: "#f2f2f8", minHeight: "100vh", fontFamily: "'Open Sans',sans-serif", WebkitFontSmoothing: "antialiased" }}>
 
       {/* Nav */}
-      <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, height: 58, display: "flex", alignItems: "center", padding: "0 28px", background: "rgba(7,7,10,0.92)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 800, color: "#f2f2f8", letterSpacing: "-0.01em" }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(31,191,159,0.12)", border: "1px solid rgba(31,191,159,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontSize: 9, fontWeight: 600, color: "#1fbf9f" }}>BA</div>
-            The<span style={{ color: "#1fbf9f" }}>BA</span>Portal
+      <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, minHeight: 58, display: "flex", alignItems: "center", padding: "10px 28px", background: "rgba(7,7,10,0.92)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="faq-nav-row" style={{ maxWidth: 860, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px 16px" }}>
+          <Link href="/" style={{ textDecoration: "none", fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 700, color: "#f2f2f8", letterSpacing: "-0.02em" }}>
+            The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
           </Link>
-          <div style={{ display: "flex", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <Link href="/pricing" style={{ fontSize: 13, color: "#505068", textDecoration: "none", transition: "color .15s" }} onMouseEnter={e => (e.currentTarget.style.color = "#9090a8")} onMouseLeave={e => (e.currentTarget.style.color = "#505068")}>Pricing</Link>
             <Link href="/auth/login"   style={{ fontSize: 13, color: "#505068", textDecoration: "none", transition: "color .15s" }} onMouseEnter={e => (e.currentTarget.style.color = "#9090a8")} onMouseLeave={e => (e.currentTarget.style.color = "#505068")}>Sign in</Link>
-            <Link href="/auth/signup"  style={{ fontSize: 13, fontWeight: 700, color: "#041a13", background: "#1fbf9f", padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
+            <Link href="/auth/signup"  style={{ fontSize: 13, fontWeight: 700, color: "#f5f1e7", background: "#34407d", padding: "7px 16px", borderRadius: 8, textDecoration: "none" }}>Get Started</Link>
           </div>
         </div>
       </nav>
@@ -122,7 +121,7 @@ export default function FAQPage() {
       {/* Content */}
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "110px 28px 80px" }}>
         <div style={{ marginBottom: "56px" }}>
-          <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 600, color: "#1fbf9f", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>Support</div>
+          <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 600, color: "#34407d", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>Support</div>
           <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(34px, 5vw, 52px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#f2f2f8", marginBottom: "16px", lineHeight: 1.05 }}>
             Frequently asked questions
           </h1>
@@ -144,14 +143,14 @@ export default function FAQPage() {
           ))}
         </div>
 
-        <div style={{ marginTop: "64px", padding: "40px", borderRadius: "20px", background: "rgba(31,191,159,0.04)", border: "1px solid rgba(31,191,159,0.12)", textAlign: "center" }}>
+        <div style={{ marginTop: "64px", padding: "40px", borderRadius: "20px", background: "rgba(52,64,125,0.04)", border: "1px solid rgba(52,64,125,0.12)", textAlign: "center" }}>
           <p style={{ fontSize: "16px", color: "#9090a8", marginBottom: "8px" }}>Still have questions?</p>
           <p style={{ fontSize: "14px", color: "#505068", marginBottom: "24px" }}>
             Email us at{" "}
-            <a href="mailto:hello@thebaportal.com" style={{ color: "#1fbf9f", textDecoration: "none" }}>hello@thebaportal.com</a>
+            <a href="mailto:hello@thebaportal.com" style={{ color: "#34407d", textDecoration: "none" }}>hello@thebaportal.com</a>
             {" "}and we will get back to you within one business day.
           </p>
-          <Link href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 28px", borderRadius: "12px", background: "#1fbf9f", color: "#041a13", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: "'Inter',sans-serif" }}>
+          <Link href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 28px", borderRadius: "12px", background: "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: "'Inter',sans-serif" }}>
             Start free — no credit card required
           </Link>
         </div>

@@ -13,19 +13,19 @@ const TEMPLATES = [
   {
     id: "brd",
     category: "Requirements",
-    categoryColor: "#1fbf9f",
+    categoryColor: "#52658a",
     label: "Business Requirements Document",
     short: "BRD",
     desc: "Full BRD covering objectives, scope, stakeholders, requirements, assumptions, risks, and approval sign-off.",
     pages: "8–12 pages",
     standard: "For sponsor sign-off",
     sections: ["Executive Summary", "Business Objectives", "Scope", "Stakeholder Register", "Business Requirements", "Assumptions & Constraints", "Risks", "Success Criteria", "Approval"],
-    color: "#1fbf9f",
+    color: "#52658a",
   },
   {
     id: "frd",
     category: "Requirements",
-    categoryColor: "#1fbf9f",
+    categoryColor: "#52658a",
     label: "Functional Requirements Document",
     short: "FRD",
     desc: "System-level FRD with functional requirements by module, NFR table, business rules, integration specs, and open issues log.",
@@ -37,7 +37,7 @@ const TEMPLATES = [
   {
     id: "usecases",
     category: "Requirements",
-    categoryColor: "#1fbf9f",
+    categoryColor: "#52658a",
     label: "Use Case Document",
     short: "Use Cases",
     desc: "Complete use case template with actor table, use case summary matrix, and detailed use case specs including alternative and exception flows.",
@@ -85,7 +85,7 @@ const TEMPLATES = [
   {
     id: "traceability-matrix",
     category: "Requirements",
-    categoryColor: "#1fbf9f",
+    categoryColor: "#52658a",
     label: "Requirements Traceability Matrix",
     short: "RTM",
     desc: "RTM linking business requirements to functional requirements, test cases, and user stories. Tracks status through delivery.",
@@ -229,7 +229,7 @@ function TemplateCard({ template }: { template: typeof TEMPLATES[0] }) {
       {/* Download row */}
       <div style={{ borderTop: "1px solid rgba(0,0,0,.05)", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,.015)" }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--lc-text-4)" }}>Word-compatible · Editable</span>
-        <button onClick={handleDownload} style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 16px", borderRadius: 8, background: downloaded ? "rgba(31,191,159,.12)" : `${template.color}14`, border: `1px solid ${downloaded ? "rgba(31,191,159,.3)" : template.color + "28"}`, cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: downloaded ? "var(--teal)" : template.color, transition: "all .2s" }}>
+        <button onClick={handleDownload} style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 16px", borderRadius: 8, background: downloaded ? "var(--lc-green-bg)" : "var(--lc-faint)", border: `1px solid ${downloaded ? "var(--lc-green-border)" : "var(--lc-border)"}`, cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: downloaded ? "var(--lc-green)" : "var(--lc-text-2)", transition: "all .2s" }}>
           {downloaded ? (
             <>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -262,7 +262,7 @@ export default function TemplateStudioClient({ profile, user }: Props) {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--lc-bg)" }}>
       <AppSidebar activeHref="/templates" profile={profile} user={user} />
 
-      <main style={{ flex: 1, overflowY: "auto" }}>
+      <main className="app-shell-main" style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: "32px 36px" }}>
 
           {/* Header */}
@@ -283,7 +283,7 @@ export default function TemplateStudioClient({ profile, user }: Props) {
               </svg>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…"
                 style={{ width: "100%", background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: 10, padding: "9px 12px 9px 34px", fontSize: 13, color: "var(--lc-text-1)", outline: "none", fontFamily: "var(--font-body)", transition: "border-color .2s" }}
-                onFocus={e => (e.target.style.borderColor = "rgba(31,191,159,.3)")}
+                onFocus={e => (e.target.style.borderColor = "var(--lc-teal-border)")}
                 onBlur={e => (e.target.style.borderColor = "var(--lc-border)")}
               />
             </div>

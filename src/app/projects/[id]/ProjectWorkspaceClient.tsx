@@ -51,34 +51,39 @@ interface Props {
 // baIntelligenceCategories: which accepted BA Intelligence finding categories this
 // workstream directly consumes, per the Connected Context Strategy architecture
 // review — not every workstream gets every category, and most get none at all.
+// Workstream colours — one coherent muted-earth-and-slate family (Folio),
+// not seven unrelated saturated hues. Kept per-workstream because it aids
+// orientation across 7 tools; none collide with a status colour.
 const WORKSTREAMS = [
-  { id: "problem-analysis",    label: "Problem Analysis",    question: "What is happening and why?",      color: "#1fbf9f", endpoint: "/api/workspace/analyze",       artifactType: "problem_analysis",    suggestedAfter: [],                           contextTypes: [],                                                     methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "stakeholder-analysis",label: "Stakeholder Analysis",question: "Who influences success?",          color: "#facc15", endpoint: "/api/workspace/stakeholders",  artifactType: "stakeholder_analysis", suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "requirements",        label: "Requirements",        question: "What must change?",                color: "#34d399", endpoint: "/api/workspace/requirements",  artifactType: "requirements",         suggestedAfter: ["problem_analysis","stakeholder_analysis"], contextTypes: ["problem_analysis","stakeholder_analysis","decision_lab_output"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["requirement","business_rule","unresolved_question","contradiction","edge_case"] as string[], baFindingsNoun: "validated finding" },
-  { id: "process-analysis",    label: "Process Analysis",    question: "How does work flow today?",        color: "#38bdf8", endpoint: "/api/workspace/process",       artifactType: "process_map",          suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["business_rule","edge_case"] as string[], baFindingsNoun: "process-relevant finding" },
-  { id: "user-stories",        label: "User Stories",        question: "What does the team build?",        color: "#a78bfa", endpoint: "/api/workspace/user-stories",  artifactType: "user_stories",         suggestedAfter: ["requirements"],             contextTypes: ["requirements"],                                       methodologies: ["agile","safe","hybrid"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "business-case",       label: "Business Case",       question: "Why does this justify investment?",color: "#fb923c", endpoint: "/api/workspace/documents",     artifactType: "brd",                  suggestedAfter: ["problem_analysis","requirements"], contextTypes: ["problem_analysis","stakeholder_analysis","requirements"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "testing",             label: "Testing",             question: "How do we know it works?",         color: "#f87171", endpoint: "/api/workspace/testing",       artifactType: "test_case",            suggestedAfter: ["requirements","user_stories"], contextTypes: ["requirements","user_stories"],                        methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["edge_case"] as string[], baFindingsNoun: "validated edge case" },
+  { id: "problem-analysis",    label: "Problem Analysis",    question: "What is happening and why?",      color: "#52658a", endpoint: "/api/workspace/analyze",       artifactType: "problem_analysis",    suggestedAfter: [],                           contextTypes: [],                                                     methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
+  { id: "stakeholder-analysis",label: "Stakeholder Analysis",question: "Who influences success?",          color: "#8a7440", endpoint: "/api/workspace/stakeholders",  artifactType: "stakeholder_analysis", suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
+  { id: "requirements",        label: "Requirements",        question: "What must change?",                color: "#6b8452", endpoint: "/api/workspace/requirements",  artifactType: "requirements",         suggestedAfter: ["problem_analysis","stakeholder_analysis"], contextTypes: ["problem_analysis","stakeholder_analysis","decision_lab_output"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["requirement","business_rule","unresolved_question","contradiction","edge_case"] as string[], baFindingsNoun: "validated finding" },
+  { id: "process-analysis",    label: "Process Analysis",    question: "How does work flow today?",        color: "#6e7c8c", endpoint: "/api/workspace/process",       artifactType: "process_map",          suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["business_rule","edge_case"] as string[], baFindingsNoun: "process-relevant finding" },
+  { id: "user-stories",        label: "User Stories",        question: "What does the team build?",        color: "#74628f", endpoint: "/api/workspace/user-stories",  artifactType: "user_stories",         suggestedAfter: ["requirements"],             contextTypes: ["requirements"],                                       methodologies: ["agile","safe","hybrid"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
+  { id: "business-case",       label: "Business Case",       question: "Why does this justify investment?",color: "#9c6b4a", endpoint: "/api/workspace/documents",     artifactType: "brd",                  suggestedAfter: ["problem_analysis","requirements"], contextTypes: ["problem_analysis","stakeholder_analysis","requirements"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
+  { id: "testing",             label: "Testing",             question: "How do we know it works?",         color: "#8c5850", endpoint: "/api/workspace/testing",       artifactType: "test_case",            suggestedAfter: ["requirements","user_stories"], contextTypes: ["requirements","user_stories"],                        methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["edge_case"] as string[], baFindingsNoun: "validated edge case" },
 ] as const;
 
 type WorkstreamId = typeof WORKSTREAMS[number]["id"];
 type Workstream = typeof WORKSTREAMS[number];
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const METHODOLOGY_LABEL: Record<string, string> = { agile:"Agile", waterfall:"Waterfall", hybrid:"Hybrid", safe:"SAFe", babok:"BABOK" };
+const METHODOLOGY_LABEL: Record<string, string> = { agile:"Agile", waterfall:"Waterfall", hybrid:"Hybrid", safe:"SAFe", babok:"Structured Analysis" };
 const ARTIFACT_TYPE_LABEL: Record<string, string> = {
   problem_analysis:"Problem Analysis", stakeholder_analysis:"Stakeholder Analysis",
   requirements:"Requirements", process_map:"Process Analysis",
   user_stories:"User Stories", brd:"Business Case", test_case:"Test Cases",
 };
+// Status colours — deliberately independent of the brand accent (var(--teal),
+// now indigo). Never reuse var(--teal) for a status; each gets its own token.
 const STATUS_COLOR: Record<string, { bg:string; text:string; border:string }> = {
-  draft:     { bg:"rgba(251,146,60,.1)",  text:"#fb923c", border:"rgba(251,146,60,.2)" },
-  in_review: { bg:"rgba(96,165,250,.1)",  text:"#60a5fa", border:"rgba(96,165,250,.2)" },
-  approved:  { bg:"rgba(31,191,159,.1)",  text:"#1fbf9f", border:"rgba(31,191,159,.2)" },
-  superseded:{ bg:"rgba(80,80,104,.08)", text:"#505068", border:"rgba(80,80,104,.12)" },
-  archived:  { bg:"rgba(80,80,104,.06)", text:"#404058", border:"rgba(80,80,104,.1)" },
+  draft:     { bg:"rgba(181,116,31,.09)", text:"#b5741f", border:"rgba(181,116,31,.22)" },
+  in_review: { bg:"rgba(59,114,172,.09)", text:"#3b72ac", border:"rgba(59,114,172,.22)" },
+  approved:  { bg:"rgba(46,122,78,.09)",  text:"#2e7a4e", border:"rgba(46,122,78,.22)" },
+  superseded:{ bg:"rgba(122,115,96,.08)", text:"#7a7360", border:"rgba(122,115,96,.15)" },
+  archived:  { bg:"rgba(156,148,128,.07)",text:"#9c9480", border:"rgba(156,148,128,.12)" },
 };
-const DECISION_STATUS_COLOR: Record<string, string> = { open:"#60a5fa", accepted:"#1fbf9f", deferred:"#fb923c", rejected:"#f87171" };
+const DECISION_STATUS_COLOR: Record<string, string> = { open:"#3b72ac", accepted:"#2e7a4e", deferred:"#b5741f", rejected:"#a83f32" };
 
 // timeZone must be pinned explicitly — this renders on the server (Vercel,
 // UTC) and then hydrates on the client (the visitor's own browser timezone).
@@ -163,10 +168,10 @@ const MULTI_INSTANCE_TYPES = ["decision_lab_output"];
 // CATEGORY_META so the two surfaces read as the same product.
 const FINDING_CATEGORY_META: { id: string; label: string; color: string }[] = [
   { id: "requirement",         label: "Potential Requirements", color: "var(--teal)" },
-  { id: "business_rule",       label: "Business Rules",         color: "#38bdf8" },
-  { id: "unresolved_question", label: "Unresolved Questions",   color: "#d97706" },
-  { id: "contradiction",       label: "Contradictions",         color: "#dc2626" },
-  { id: "edge_case",           label: "Possible Edge Cases",    color: "#a78bfa" },
+  { id: "business_rule",       label: "Business Rules",         color: "#3b72ac" },
+  { id: "unresolved_question", label: "Unresolved Questions",   color: "#b5741f" },
+  { id: "contradiction",       label: "Contradictions",         color: "#a83f32" },
+  { id: "edge_case",           label: "Possible Edge Cases",    color: "#74628f" },
 ];
 const FINDING_CATEGORY_GUIDANCE: Record<string, string> = {
   requirement: "may inform requirement drafting, do not copy directly into a formal requirement",
@@ -232,7 +237,7 @@ function MdBold({ t }: { t: string }) {
   const parts = t.split(/\*\*([^*]+)\*\*/);
   return <>{parts.map((p,i) => i%2===1 ? <strong key={i} style={{fontWeight:700,color:"var(--lc-text-1)"}}>{p}</strong> : <span key={i}>{p}</span>)}</>;
 }
-function renderMd(text: string, accent = "#1fbf9f"): React.ReactNode[] {
+function renderMd(text: string, accent = "#34407d"): React.ReactNode[] {
   const lines = text.split("\n");
   const nodes: React.ReactNode[] = [];
   let i = 0;
@@ -260,7 +265,10 @@ function renderMd(text: string, accent = "#1fbf9f"): React.ReactNode[] {
     if (t.startsWith("- ") || t.startsWith("* ")) {
       const items: string[] = [];
       while (i < lines.length && (lines[i]?.trim().startsWith("- ") || lines[i]?.trim().startsWith("* "))) { items.push(lines[i].trim().slice(2)); i++; }
-      nodes.push(<ul key={`ul${i}`} style={{margin:"6px 0 12px",paddingLeft:0,listStyle:"none"}}>{items.map((item,ii)=><li key={ii} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:5}}><div style={{width:4,height:4,borderRadius:"50%",background:accent,flexShrink:0,marginTop:8}}/><span style={{fontSize:13,color:"var(--lc-text-2)",lineHeight:1.65}}><MdBold t={item}/></span></li>)}</ul>);
+      {/* Bullet markers are neutral, not accent-coloured — a list marker
+          carries no status or brand meaning, so it shouldn't compete with
+          colour that does. */}
+      nodes.push(<ul key={`ul${i}`} style={{margin:"6px 0 12px",paddingLeft:0,listStyle:"none"}}>{items.map((item,ii)=><li key={ii} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:5}}><div style={{width:4,height:4,borderRadius:"50%",background:"var(--lc-text-5)",flexShrink:0,marginTop:8}}/><span style={{fontSize:13,color:"var(--lc-text-2)",lineHeight:1.65}}><MdBold t={item}/></span></li>)}</ul>);
       continue;
     }
     if (t.startsWith("**") && t.endsWith("**") && !t.slice(2,-2).includes("**")) { nodes.push(<p key={i} style={{fontSize:13,fontWeight:700,color:"var(--lc-text-1)",margin:"10px 0 4px",fontFamily:"var(--font-display)"}}>{t.slice(2,-2)}</p>); i++; continue; }
@@ -300,7 +308,7 @@ function AddDecisionModal({projectId,onSaved,onClose,prefill}:{projectId:string;
           </div>
           <div><div style={{fontSize:12,fontWeight:600,color:"var(--lc-text-3)",marginBottom:5}}>Impact / Artifacts affected</div><input value={impact} onChange={e=>setImpact(e.target.value)} placeholder="e.g. Affects Requirements and User Stories" style={inp}/></div>
           <div style={{display:"flex",gap:10,paddingTop:4}}>
-            <button onClick={save} disabled={!text.trim()||saving} style={{flex:1,padding:"10px",background:text.trim()?"var(--teal)":"rgba(31,191,159,.3)",border:"none",borderRadius:9,fontSize:13.5,fontWeight:700,color:"#041a13",cursor:text.trim()?"pointer":"not-allowed"}}>{saving?"Saving...":"Save decision"}</button>
+            <button onClick={save} disabled={!text.trim()||saving} style={{flex:1,padding:"10px",background:text.trim()?"var(--teal)":"rgba(52,64,125,.3)",border:"none",borderRadius:9,fontSize:13.5,fontWeight:700,color:"#f5f1e7",cursor:text.trim()?"pointer":"not-allowed"}}>{saving?"Saving...":"Save decision"}</button>
             <button onClick={onClose} style={{padding:"10px 18px",background:"none",border:"1px solid var(--lc-border)",borderRadius:9,fontSize:13,color:"var(--lc-text-3)",cursor:"pointer"}}>Cancel</button>
           </div>
         </div>
@@ -329,16 +337,39 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose}:{artifact:Ar
         <span style={{fontFamily:"var(--font-mono)",fontSize:10,padding:"3px 8px",borderRadius:6,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`}}>{artifact.status.replace("_"," ")}</span>
       </header>
       <div style={{flex:1,overflowY:"auto",padding:"24px"}}>
-        <div style={{background:"var(--lc-surface)",border:"1px solid rgba(31,191,159,.1)",borderRadius:"var(--radius)",padding:"22px 24px",position:"relative",overflow:"hidden"}}>
+        <div style={{background:"var(--lc-surface)",border:"1px solid rgba(52,64,125,.1)",borderRadius:"var(--radius)",padding:"22px 24px",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,var(--teal),transparent)"}}/>
           {renderMd(artifact.content)}
         </div>
       </div>
-      <div style={{padding:"12px 24px",borderTop:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",flexShrink:0}}>
-        <span style={{fontSize:12,color:"var(--lc-text-3)",marginRight:2}}>Status:</span>
-        {["draft","in_review","approved","archived"].map(s=>(
-          <button key={s} onClick={()=>changeStatus(s)} style={{padding:"5px 11px",borderRadius:7,border:`1px solid ${artifact.status===s?"rgba(31,191,159,.3)":"var(--lc-border)"}`,background:artifact.status===s?"rgba(31,191,159,.08)":"none",color:artifact.status===s?"var(--teal)":"var(--lc-text-3)",fontSize:12,fontWeight:600,cursor:"pointer",textTransform:"capitalize" as const}}>{s.replace("_"," ")}</button>
-        ))}
+      {/* Approving is a workflow action, not a display filter — it gets its
+          own primary button, sized and coloured for what it actually is.
+          Other status moves stay available as small text actions, clearly
+          secondary to Approve. */}
+      <div style={{padding:"12px 24px",borderTop:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",flexShrink:0}}>
+        {(artifact.status==="draft"||artifact.status==="in_review") && (
+          <button onClick={()=>changeStatus("approved")} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"var(--lc-green)",color:"#f5f1e7",fontSize:12.5,fontWeight:700,cursor:"pointer"}}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Approve
+          </button>
+        )}
+        {artifact.status==="approved" && (
+          <span style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-green-bg)",border:"1px solid var(--lc-green-border)",color:"var(--lc-green)",fontSize:12.5,fontWeight:700}}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Approved
+          </span>
+        )}
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          {artifact.status!=="in_review" && artifact.status!=="approved" && (
+            <button onClick={()=>changeStatus("in_review")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Move to review</button>
+          )}
+          {artifact.status!=="draft" && (
+            <button onClick={()=>changeStatus("draft")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Back to draft</button>
+          )}
+          {artifact.status!=="archived" && (
+            <button onClick={()=>changeStatus("archived")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Archive</button>
+          )}
+        </div>
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
           {artifact.type !== "process_diagram" && ([...(["docx","txt"] as const), ...(XLSX_TYPES.has(artifact.type) ? (["xlsx"] as const) : [])]).map(fmt=>(
             <button key={fmt} onClick={()=>downloadOutput(artifact.content, `${ARTIFACT_TYPE_LABEL[artifact.type]??artifact.type} v${artifact.version}`, fmt, artifact.type, projectId)}
@@ -356,7 +387,7 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose}:{artifact:Ar
 }
 
 // ── RTM panel ────────────────────────────────────────────────────────────────
-function RTMPanel({artifacts, onClose}: {artifacts: Artifact[]; onClose: () => void}) {
+function RTMPanel({artifacts, onClose, onGoToRequirements}: {artifacts: Artifact[]; onClose: () => void; onGoToRequirements: () => void}) {
   const rows = buildRTM(artifacts);
   const covered = rows.filter(r => r.coveredBy.length > 0).length;
 
@@ -372,8 +403,16 @@ function RTMPanel({artifacts, onClose}: {artifacts: Artifact[]; onClose: () => v
       </header>
       <div style={{flex:1,overflowY:"auto",padding:"24px"}}>
         {rows.length === 0 ? (
-          <div style={{fontSize:13,color:"var(--lc-text-4)",lineHeight:1.6}}>
-            No approved Requirements or User Stories yet. Approve one, then generate Test Cases, to see traceability here.
+          <div style={{maxWidth:420}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"var(--lc-faint)",border:"1px solid var(--lc-border)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12}}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--lc-text-3)" strokeWidth="2" strokeLinecap="round"><path d="M9 17H7a2 2 0 01-2-2V5a2 2 0 012-2h6l4 4v8a2 2 0 01-2 2h-2M9 12h6M9 16h3"/></svg>
+            </div>
+            <p style={{fontSize:13,color:"var(--lc-text-3)",lineHeight:1.6,margin:"0 0 14px"}}>
+              No approved Requirements or User Stories yet. Approve one, then generate Test Cases, to see traceability here.
+            </p>
+            <button onClick={onGoToRequirements} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 15px",borderRadius:8,border:"none",background:"var(--teal)",color:"#f5f1e7",fontSize:12.5,fontWeight:700,cursor:"pointer"}}>
+              Go to Requirements
+            </button>
           </div>
         ) : (
           <div style={{overflowX:"auto",borderRadius:8,border:"1px solid var(--lc-border)",overflow:"hidden"}}>
@@ -388,7 +427,7 @@ function RTMPanel({artifacts, onClose}: {artifacts: Artifact[]; onClose: () => v
                 {rows.map(r => (
                   <tr key={r.id} style={{borderBottom:"1px solid var(--lc-border)"}}>
                     <td style={{padding:"8px 13px",color:"var(--lc-text-1)",fontFamily:"var(--font-mono)",fontWeight:600}}>{r.id}</td>
-                    <td style={{padding:"8px 13px",color:r.coveredBy.length ? "var(--teal)" : "#f87171"}}>
+                    <td style={{padding:"8px 13px",color:r.coveredBy.length ? "var(--lc-green)" : "var(--lc-red)"}}>
                       {r.coveredBy.length ? r.coveredBy.join(", ") : "Not covered"}
                     </td>
                   </tr>
@@ -760,24 +799,24 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       {/* Header */}
-      <header style={{padding:"14px 22px",borderBottom:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+      <header className="ws-header" style={{padding:"14px 22px",borderBottom:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",rowGap:8,flexShrink:0}}>
         <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:5,fontSize:13,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Workstreams
         </button>
-        <div style={{width:1,height:14,background:"var(--lc-border)"}}/>
+        <div className="ws-header-divider" style={{width:1,height:14,background:"var(--lc-border)"}}/>
         <div style={{display:"flex",alignItems:"center",gap:7}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:ws.color,animation:"pulse-dot 1.8s ease-in-out infinite"}}/>
+          <div style={{width:7,height:7,borderRadius:"50%",background:ws.color,animation:"pulse-dot 1.8s ease-in-out infinite",flexShrink:0}}/>
           <span style={{fontFamily:"var(--font-display)",fontSize:14,fontWeight:700,color:"var(--lc-text-1)"}}>{ws.label}</span>
-          <span style={{fontSize:12,color:"var(--lc-text-4)"}}>— {ws.question}</span>
+          <span className="ws-question-sub" style={{fontSize:12,color:"var(--lc-text-4)"}}>— {ws.question}</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"rgba(31,191,159,.07)",border:"1px solid rgba(31,191,159,.15)",borderRadius:6,fontSize:11,color:"var(--teal)",fontFamily:"var(--font-mono)"}}>
-          <div style={{width:5,height:5,borderRadius:"50%",background:"var(--teal)"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"rgba(52,64,125,.07)",border:"1px solid rgba(52,64,125,.15)",borderRadius:6,fontSize:11,color:"var(--teal)",fontFamily:"var(--font-mono)",flexShrink:0}}>
+          <div style={{width:5,height:5,borderRadius:"50%",background:"var(--teal)",flexShrink:0}}/>
           Context active
         </div>
         {relevantFindings.length > 0 && (
           <button onClick={()=>setShowFindings(true)}
-            style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"rgba(99,102,241,.07)",border:"1px solid rgba(99,102,241,.18)",borderRadius:6,fontSize:11,color:"#6366f1",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
-            <div style={{width:5,height:5,borderRadius:"50%",background:"#6366f1"}}/>
+            style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:6,fontSize:11,color:"var(--teal)",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
+            <div style={{width:5,height:5,borderRadius:"50%",background:"var(--teal)"}}/>
             BA Intelligence ({relevantFindings.length})
           </button>
         )}
@@ -798,26 +837,42 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
       {/* Messages */}
       <div style={{flex:1,overflowY:"auto",padding:"20px 22px"}}>
         {messages.length === 0 && (
-          <div style={{textAlign:"center",paddingTop:40,maxWidth:500,margin:"0 auto"}}>
-            <div style={{width:44,height:44,borderRadius:"50%",background:`${ws.color}14`,border:`1px solid ${ws.color}28`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:800,color:ws.color}}>BA</div>
-            <h2 style={{fontFamily:"var(--font-display)",fontSize:19,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.02em",marginBottom:8}}>{ws.label}</h2>
-            <div style={{padding:"9px 12px",background:"rgba(31,191,159,.05)",border:"1px solid rgba(31,191,159,.12)",borderRadius:9,fontSize:12,color:"var(--teal)",marginBottom:missingContext.length?8:14,textAlign:"left",lineHeight:1.6}}>
+          <div style={{maxWidth:560,margin:"0 auto"}}>
+            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:14}}>
+              <div style={{width:28,height:28,borderRadius:8,background:`${ws.color}14`,border:`1px solid ${ws.color}28`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"var(--font-mono)",fontSize:10,fontWeight:800,color:ws.color}}>BA</div>
+              <h2 style={{fontFamily:"var(--font-display)",fontSize:17,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.02em",margin:0}}>{ws.label}</h2>
+            </div>
+            <div style={{padding:"9px 12px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:9,fontSize:12,color:"var(--teal)",marginBottom:missingContext.length?8:14,lineHeight:1.6}}>
               <strong>Context loaded:</strong> {project.problem_statement
                 ? `"${project.problem_statement.slice(0,100)}${project.problem_statement.length>100?"...":""}"`
                 : project.name}
             </div>
             {missingContext.length > 0 && (
-              <div style={{padding:"9px 12px",background:"rgba(251,146,60,.06)",border:"1px solid rgba(251,146,60,.18)",borderRadius:9,fontSize:12,color:"#fb923c",marginBottom:14,textAlign:"left",lineHeight:1.6}}>
+              <div style={{padding:"9px 12px",background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.22)",borderRadius:9,fontSize:12,color:"var(--lc-amber)",marginBottom:14,lineHeight:1.6}}>
                 <strong>No approved {missingContext.map(t=>CONTEXT_TYPE_LABEL[t]??t).join(" or ")} yet.</strong> This workstream normally builds on it — you can continue anyway, or go approve it first for a stronger result.
               </div>
             )}
             {relevantFindings.length > 0 && (
-              <div style={{padding:"9px 12px",background:"rgba(99,102,241,.05)",border:"1px solid rgba(99,102,241,.15)",borderRadius:9,fontSize:12,color:"#6366f1",marginBottom:14,textAlign:"left",lineHeight:1.6,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+              <div style={{padding:"9px 12px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:9,fontSize:12,color:"var(--teal)",marginBottom:14,lineHeight:1.6,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
                 <span><strong>BA Intelligence:</strong> {relevantFindings.length} {ws.baFindingsNoun}{relevantFindings.length===1?"":"s"} available.</span>
-                <button onClick={()=>setShowFindings(true)} style={{fontSize:11.5,fontWeight:700,color:"#6366f1",background:"none",border:"none",cursor:"pointer",padding:0,flexShrink:0}}>View</button>
+                <button onClick={()=>setShowFindings(true)} style={{fontSize:11.5,fontWeight:700,color:"var(--teal)",background:"none",border:"none",cursor:"pointer",padding:0,flexShrink:0}}>View</button>
               </div>
             )}
-            <p style={{fontSize:13,color:"var(--lc-text-3)",lineHeight:1.65}}>Your project context is active. Describe what you need and this workstream will use it automatically.</p>
+            {/* Suggested starting points — a running start instead of a bare
+                box waiting for the user to think of what to type. */}
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+              {missingContext.length===0 && (
+                <button onClick={()=>{setInput(`Draft the ${ws.label} using the approved project context.`);textareaRef.current?.focus();}}
+                  style={{padding:"7px 13px",borderRadius:8,border:`1px solid ${ws.color}35`,background:`${ws.color}0f`,color:ws.color,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  Draft from approved context
+                </button>
+              )}
+              <button onClick={()=>textareaRef.current?.focus()}
+                style={{padding:"7px 13px",borderRadius:8,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                Start from scratch
+              </button>
+            </div>
+            <p style={{fontSize:12.5,color:"var(--lc-text-4)",lineHeight:1.6,margin:0}}>Your project context is active — describe what you need and this workstream will use it automatically.</p>
           </div>
         )}
 
@@ -835,7 +890,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
                     onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();submitEdit();}if(e.key==="Escape")setEditingIdx(null);}}
                   />
                   <div style={{display:"flex",gap:7,marginTop:6,justifyContent:"flex-end"}}>
-                    <button onClick={submitEdit} disabled={!editText.trim()||loading} style={{padding:"6px 14px",background:editText.trim()?ws.color:"rgba(0,0,0,.08)",border:"none",borderRadius:7,fontSize:12.5,fontWeight:700,color:editText.trim()?"#041a13":"var(--lc-text-4)",cursor:editText.trim()?"pointer":"not-allowed"}}>Re-run</button>
+                    <button onClick={submitEdit} disabled={!editText.trim()||loading} style={{padding:"6px 14px",background:editText.trim()?ws.color:"rgba(0,0,0,.08)",border:"none",borderRadius:7,fontSize:12.5,fontWeight:700,color:editText.trim()?"#f5f1e7":"var(--lc-text-4)",cursor:editText.trim()?"pointer":"not-allowed"}}>Re-run</button>
                     <button onClick={()=>setEditingIdx(null)} style={{padding:"6px 12px",background:"none",border:"1px solid var(--lc-border)",borderRadius:7,fontSize:12,color:"var(--lc-text-3)",cursor:"pointer"}}>Cancel</button>
                   </div>
                 </div>
@@ -862,17 +917,17 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
 
           if (!isUser && msg.truncated) return (
             <div key={i} style={{marginBottom:16}}>
-              <div style={{background:"var(--lc-surface)",border:"1px solid rgba(251,146,60,.35)",borderRadius:"var(--radius)",padding:"24px 28px",position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#fb923c,transparent)"}}/>
+              <div style={{background:"var(--lc-surface)",border:"1px solid rgba(181,116,31,.35)",borderRadius:"var(--radius)",padding:"24px 28px",position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#b5741f,transparent)"}}/>
                 {renderMd(msg.content, ws.color)}
               </div>
-              <div style={{marginTop:10,padding:"11px 14px",background:"rgba(251,146,60,.08)",border:"1px solid rgba(251,146,60,.25)",borderRadius:9,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-                <span style={{display:"flex",alignItems:"center",gap:7,fontSize:12.5,color:"#c2680a",fontWeight:600,lineHeight:1.5}}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div style={{marginTop:10,padding:"11px 14px",background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.3)",borderRadius:9,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+                <span style={{display:"flex",alignItems:"center",gap:7,fontSize:12.5,color:"var(--lc-amber)",fontWeight:600,lineHeight:1.5}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lc-amber)" strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                   Generation stopped before finishing — it reached the model&apos;s output limit. This is not a complete deliverable and has not been saved.
                 </span>
                 <button onClick={()=>continueGeneration(i)} disabled={loading}
-                  style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"#fb923c",border:"none",cursor:loading?"not-allowed":"pointer",fontSize:12.5,fontWeight:700,color:"#3a1d02",flexShrink:0}}>
+                  style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"#b5741f",border:"none",cursor:loading?"not-allowed":"pointer",fontSize:12.5,fontWeight:700,color:"#f5f1e7",flexShrink:0}}>
                   {loading ? "Continuing..." : "Continue generation"}
                 </button>
               </div>
@@ -911,14 +966,14 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
 
       {/* Clear end state */}
       {hasAnalysis && (
-        <div style={{padding:"12px 22px",borderTop:"1px solid rgba(0,0,0,.06)",background:"rgba(31,191,159,.03)",flexShrink:0}}>
+        <div style={{padding:"12px 22px",borderTop:"1px solid rgba(0,0,0,.06)",background:"rgba(52,64,125,.03)",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1fbf9f" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lc-green)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
             <span style={{fontFamily:"var(--font-display)",fontSize:13,fontWeight:700,color:"var(--lc-text-1)"}}>Analysis complete</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
             <button onClick={()=>setViewMode("document")}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"7px 14px",borderRadius:8,background:ws.color,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:700,color:"#041a13"}}>
+              style={{display:"flex",alignItems:"center",gap:5,padding:"7px 14px",borderRadius:8,background:ws.color,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:700,color:"#f5f1e7"}}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               View as document
             </button>
@@ -929,18 +984,18 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
               </div>
             )}
             {saveStatus === "saved" && (
-              <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"rgba(31,191,159,.08)",border:"1px solid rgba(31,191,159,.2)",fontSize:12.5,fontWeight:600,color:"var(--teal)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"rgba(52,64,125,.08)",border:"1px solid rgba(52,64,125,.2)",fontSize:12.5,fontWeight:600,color:"var(--teal)"}}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                 Saved to project
               </div>
             )}
             {saveStatus === "error" && (
-              <button onClick={()=>saveArtifact()} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"rgba(248,113,113,.08)",border:"1px solid rgba(248,113,113,.25)",fontSize:12.5,fontWeight:600,color:"#f87171",cursor:"pointer"}}>
+              <button onClick={()=>saveArtifact()} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-red-bg)",border:"1px solid var(--lc-red-border)",fontSize:12.5,fontWeight:600,color:"var(--lc-red)",cursor:"pointer"}}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Save failed — retry
               </button>
             )}
-            <button onClick={()=>onDecisionLog()} style={{padding:"7px 12px",borderRadius:8,background:"none",border:"1px solid rgba(96,165,250,.25)",color:"#60a5fa",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+            <button onClick={()=>onDecisionLog()} style={{padding:"7px 12px",borderRadius:8,background:"none",border:"1px solid rgba(59,114,172,.25)",color:"#3b72ac",fontSize:12,fontWeight:600,cursor:"pointer"}}>
               Log decision
             </button>
             <button onClick={()=>navigator.clipboard?.writeText(analysisContent)} style={{padding:"7px 12px",borderRadius:8,background:"none",border:"1px solid var(--lc-border)",color:"var(--lc-text-3)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
@@ -971,7 +1026,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
               {hasAnalysis ? "Conversation stays open — keep adding context" : "Enter to send · Shift+Enter for new line"}
             </span>
             <button onClick={send} disabled={!input.trim()||loading}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"6px 14px",borderRadius:7,background:input.trim()&&!loading?ws.color:`${ws.color}20`,border:"none",cursor:input.trim()&&!loading?"pointer":"not-allowed",fontSize:12.5,fontWeight:700,color:input.trim()&&!loading?"#041a13":"var(--lc-text-4)",transition:"all .2s"}}>
+              style={{display:"flex",alignItems:"center",gap:5,padding:"6px 14px",borderRadius:7,background:input.trim()&&!loading?ws.color:`${ws.color}20`,border:"none",cursor:input.trim()&&!loading?"pointer":"not-allowed",fontSize:12.5,fontWeight:700,color:input.trim()&&!loading?"#f5f1e7":"var(--lc-text-4)",transition:"all .2s"}}>
               {loading?"Thinking...":"Send"}
             </button>
           </div>
@@ -1006,9 +1061,9 @@ function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; arti
 
           return (
             <div key={ws.id} onClick={()=>onSelectWs(ws)}
-              style={{background:isRec?"rgba(31,191,159,.04)":"var(--lc-surface)",border:`1px solid ${isRec?"rgba(31,191,159,.2)":"var(--lc-border)"}`,borderRadius:"var(--radius)",padding:"16px 18px",cursor:"pointer",transition:"border-color .2s, background .2s",display:"flex",alignItems:"center",gap:14,position:"relative"}}
+              style={{background:isRec?"rgba(52,64,125,.04)":"var(--lc-surface)",border:`1px solid ${isRec?"rgba(52,64,125,.2)":"var(--lc-border)"}`,borderRadius:"var(--radius)",padding:"16px 18px",cursor:"pointer",transition:"border-color .2s, background .2s",display:"flex",alignItems:"center",gap:14,position:"relative"}}
               onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.borderColor=`${ws.color}30`;(e.currentTarget as HTMLDivElement).style.background="var(--lc-faint)";}}
-              onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.borderColor=isRec?"rgba(31,191,159,.2)":"var(--lc-border)";(e.currentTarget as HTMLDivElement).style.background=isRec?"rgba(31,191,159,.04)":"var(--lc-surface)";}}
+              onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.borderColor=isRec?"rgba(52,64,125,.2)":"var(--lc-border)";(e.currentTarget as HTMLDivElement).style.background=isRec?"rgba(52,64,125,.04)":"var(--lc-surface)";}}
             >
               <div style={{width:36,height:36,borderRadius:10,background:`${ws.color}12`,border:`1px solid ${ws.color}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <div style={{width:8,height:8,borderRadius:"50%",background:ws.color}}/>
@@ -1016,7 +1071,7 @@ function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; arti
               <div style={{flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
                   <div style={{fontFamily:"var(--font-display)",fontSize:14,fontWeight:700,color:"var(--lc-text-1)"}}>{ws.label}</div>
-                  {isRec && <span style={{fontFamily:"var(--font-mono)",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:4,background:"rgba(31,191,159,.12)",color:"var(--teal)",border:"1px solid rgba(31,191,159,.2)"}}>SUGGESTED</span>}
+                  {isRec && <span style={{fontFamily:"var(--font-mono)",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:4,background:"rgba(52,64,125,.12)",color:"var(--teal)",border:"1px solid rgba(52,64,125,.2)"}}>SUGGESTED</span>}
                   {isAgileSuggested && <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--lc-text-4)",padding:"2px 6px",borderRadius:4,border:"1px solid var(--lc-border)"}}>Agile only</span>}
                 </div>
                 <div style={{fontSize:12,color:"var(--lc-text-4)"}}>{ws.question}</div>
@@ -1086,12 +1141,12 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
         <div style={{padding:"12px 14px",borderBottom:"1px solid var(--lc-border)",flexShrink:0}}>
           <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:700,color:"var(--lc-text-4)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Context</div>
           {project.problem_statement && (
-            <div style={{fontSize:12,color:"var(--lc-text-2)",lineHeight:1.58,marginBottom:7,padding:"8px 10px",background:"rgba(31,191,159,.04)",border:"1px solid rgba(31,191,159,.1)",borderRadius:8,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical" as never}}>
+            <div style={{fontSize:12,color:"var(--lc-text-2)",lineHeight:1.58,marginBottom:7,padding:"8px 10px",background:"rgba(52,64,125,.04)",border:"1px solid rgba(52,64,125,.1)",borderRadius:8,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical" as never}}>
               {project.problem_statement}
             </div>
           )}
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {project.methodology && <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,padding:"2px 6px",borderRadius:4,background:"rgba(31,191,159,.08)",color:"var(--teal)",border:"1px solid rgba(31,191,159,.15)"}}>{METHODOLOGY_LABEL[project.methodology]??project.methodology}</span>}
+            {project.methodology && <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,padding:"2px 6px",borderRadius:4,background:"rgba(52,64,125,.08)",color:"var(--teal)",border:"1px solid rgba(52,64,125,.15)"}}>{METHODOLOGY_LABEL[project.methodology]??project.methodology}</span>}
             {project.industry && <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,padding:"2px 6px",borderRadius:4,background:"var(--lc-faint)",color:"var(--lc-text-3)",border:"1px solid var(--lc-border)"}}>{project.industry}</span>}
           </div>
         </div>
@@ -1108,7 +1163,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
             const sc=STATUS_COLOR[a.status]??STATUS_COLOR.draft;
             return (
               <div key={a.id} onClick={()=>{setViewingArtifact(a);setActiveWs(null);setShowRTM(false);}}
-                style={{padding:"8px 9px",borderRadius:8,border:"1px solid transparent",cursor:"pointer",marginBottom:3,transition:"background .15s,border-color .15s",background:viewingArtifact?.id===a.id?"rgba(31,191,159,.06)":"none"}}
+                style={{padding:"8px 9px",borderRadius:8,border:"1px solid transparent",cursor:"pointer",marginBottom:3,transition:"background .15s,border-color .15s",background:viewingArtifact?.id===a.id?"rgba(52,64,125,.06)":"none"}}
                 onMouseEnter={e=>{if(viewingArtifact?.id!==a.id){(e.currentTarget as HTMLDivElement).style.background="var(--lc-faint)";(e.currentTarget as HTMLDivElement).style.borderColor="var(--lc-border)";}}}
                 onMouseLeave={e=>{if(viewingArtifact?.id!==a.id){(e.currentTarget as HTMLDivElement).style.background="none";(e.currentTarget as HTMLDivElement).style.borderColor="transparent";}}}
               >
@@ -1125,7 +1180,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
 
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
             <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:700,color:"var(--lc-text-4)",letterSpacing:".1em",textTransform:"uppercase"}}>
-              Decisions {decisions.length>0&&<span style={{color:"#60a5fa"}}>({decisions.length})</span>}
+              Decisions {decisions.length>0&&<span style={{color:"#3b72ac"}}>({decisions.length})</span>}
             </div>
             <button onClick={()=>setDecisionModal({open:true})}
               style={{display:"flex",alignItems:"center",gap:2,fontSize:10.5,color:"var(--lc-text-3)",background:"none",border:"1px solid var(--lc-border)",borderRadius:5,padding:"2px 7px",cursor:"pointer"}}
@@ -1153,7 +1208,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
           <div style={{height:1,background:"var(--lc-border)",margin:"12px 0 10px"}}/>
 
           <button onClick={()=>{setShowRTM(true);setViewingArtifact(null);setActiveWs(null);}}
-            style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"8px 9px",borderRadius:8,background:showRTM?"rgba(31,191,159,.06)":"none",border:"1px solid var(--lc-border)",color:showRTM?"var(--teal)":"var(--lc-text-2)",fontSize:11.5,fontWeight:600,cursor:"pointer",textAlign:"left" as const}}>
+            style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"8px 9px",borderRadius:8,background:showRTM?"rgba(52,64,125,.06)":"none",border:"1px solid var(--lc-border)",color:showRTM?"var(--teal)":"var(--lc-text-2)",fontSize:11.5,fontWeight:600,cursor:"pointer",textAlign:"left" as const}}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 17H7a2 2 0 01-2-2V5a2 2 0 012-2h6l4 4v8a2 2 0 01-2 2h-2M9 12h6M9 16h3"/></svg>
             Traceability (RTM)
           </button>
@@ -1202,7 +1257,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
 
       <style>{`
         .msg-group:hover .msg-actions { display: flex !important; }
-        @keyframes pulse-dot { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(31,191,159,.22);}50%{opacity:.7;box-shadow:0 0 0 6px transparent;} }
+        @keyframes pulse-dot { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,64,125,.22);}50%{opacity:.7;box-shadow:0 0 0 6px transparent;} }
         @keyframes typing-dot { 0%,80%,100%{transform:scale(.6);opacity:.3;}40%{transform:scale(1);opacity:1;} }
       `}</style>
     </div>
