@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 import DocumentViewer from "@/components/DocumentViewer";
 import { buildRTM } from "@/lib/rtm";
-import { computeAttention, type AttentionItem } from "@/lib/projects/attention";
+import { computeAttention, extractItemIds, type AttentionItem } from "@/lib/projects/attention";
 import ProjectHome from "./ProjectHome";
+import ImportArtifact from "./ImportArtifact";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Organization { name: string; country?: string; industry?: string; }
@@ -94,6 +95,20 @@ const WS_STATUS_COLOR: Record<WsStatus, string> = { available:"var(--lc-text-4)"
 function wsStatusInfo(artifactType: string, artifacts: { type: string; status: string }[]): { label: string; color: string } {
   const status = getWsStatus(artifactType, artifacts);
   return { label: WS_STATUS_LABEL[status], color: WS_STATUS_COLOR[status] };
+}
+
+// Customer-facing provenance — never implies TheBAPortal witnessed an
+// approval it didn't. "imported" (Replace, or a fresh first import) is
+// wholly external, so its approved state reads as externally asserted.
+// "mixed" (Add) is only ever approved by the BA's own action inside the
+// tool on the combined document, so it keeps the normal "Approved" label
+// and only the tag notes that part of the content came from outside.
+function provenanceInfo(a: { status: string; reasoning_context?: Record<string, unknown> | null }): { tag: string | null; statusLabel: string } {
+  const origin = a.reasoning_context?.origin as string | undefined;
+  const defaultLabel = a.status.replace(/_/g, " ");
+  if (origin === "imported") return { tag: "External source", statusLabel: a.status === "approved" ? "Externally approved" : defaultLabel };
+  if (origin === "mixed") return { tag: "Includes external source", statusLabel: defaultLabel };
+  return { tag: null, statusLabel: defaultLabel };
 }
 
 // timeZone must be pinned explicitly — this renders on the server (Vercel,
@@ -329,15 +344,58 @@ function AddDecisionModal({projectId,onSaved,onClose,prefill}:{projectId:string;
 }
 
 // ── Artifact viewer ────────────────────────────────────────────────────────────
-function ArtifactViewer({artifact,projectId,onStatusChange,onClose}:{artifact:Artifact;projectId:string;onStatusChange:(id:string,s:string)=>void;onClose:()=>void}) {
+function ArtifactViewer({artifact,projectId,onStatusChange,onClose,onRevised}:{artifact:Artifact;projectId:string;onStatusChange:(id:string,s:string)=>void;onClose:()=>void;onRevised:(a:Artifact)=>void}) {
   const sc = STATUS_COLOR[artifact.status] ?? STATUS_COLOR.draft;
+  const prov = provenanceInfo(artifact);
+  const [draftText,setDraftText] = useState(artifact.content);
+  const [savingEdit,setSavingEdit] = useState(false);
+  const [revising,setRevising] = useState(false);
+  useEffect(()=>{ setDraftText(artifact.content); }, [artifact.id, artifact.content]);
+
   async function changeStatus(s:string) {
     const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({artifactId:artifact.id,status:s})});
     if (res.ok) onStatusChange(artifact.id,s);
   }
+
+  // Editing a draft updates this same row in place — normal autosave
+  // behaviour, unavailable once the row has ever been approved (the API
+  // enforces this independent of what the UI offers).
+  async function saveDraftEdit() {
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        type:artifact.type, title:artifact.title, content:draftText,
+        reasoning_context:artifact.reasoning_context??{}, status:"draft",
+        source_artifact_ids:artifact.source_artifact_ids??[],
+      })});
+      if (res.ok) { const {artifact:a} = await res.json(); onRevised(a); }
+    } finally { setSavingEdit(false); }
+  }
+
+  // Revise never edits this row. It copies the approved content into a fresh
+  // draft (a new version, since no draft exists to update in place while
+  // this one stays approved) and switches the view to that new draft for
+  // editing. The approved row underneath is untouched — still current, still
+  // authoritative, until the new draft is itself approved.
+  async function revise() {
+    setRevising(true);
+    try {
+      const {was_approved: _drop, ...carriedContext} = (artifact.reasoning_context ?? {}) as Record<string, unknown>;
+      void _drop;
+      const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        type:artifact.type, title:artifact.title, content:artifact.content,
+        reasoning_context:carriedContext, status:"draft",
+        source_artifact_ids:artifact.source_artifact_ids??[],
+      })});
+      if (res.ok) { const {artifact:a} = await res.json(); onRevised(a); }
+    } finally { setRevising(false); }
+  }
+
+  const editable = artifact.status === "draft";
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
-      <header style={{padding:"16px 24px",borderBottom:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
+      <header style={{padding:"16px 24px",borderBottom:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:14,flexShrink:0,flexWrap:"wrap",rowGap:8}}>
         <button onClick={onClose} style={{display:"flex",alignItems:"center",gap:5,fontSize:13,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0}}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Back
         </button>
@@ -345,19 +403,34 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose}:{artifact:Ar
         <span style={{fontFamily:"var(--font-display)",fontSize:14,fontWeight:700,color:"var(--lc-text-1)",flex:1}}>
           {ARTIFACT_TYPE_LABEL[artifact.type]??artifact.type} · v{artifact.version}
         </span>
-        <span style={{fontFamily:"var(--font-mono)",fontSize:10,padding:"3px 8px",borderRadius:6,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`}}>{artifact.status.replace("_"," ")}</span>
+        {prov.tag && (
+          <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,padding:"2px 7px",borderRadius:5,background:"var(--lc-faint)",color:"var(--lc-text-3)",border:"1px solid var(--lc-border)"}}>{prov.tag}</span>
+        )}
+        <span style={{fontFamily:"var(--font-mono)",fontSize:10,padding:"3px 8px",borderRadius:6,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`}}>{prov.statusLabel}</span>
       </header>
       <div style={{flex:1,overflowY:"auto",padding:"24px"}}>
-        <div style={{background:"var(--lc-surface)",border:"1px solid rgba(52,64,125,.1)",borderRadius:"var(--radius)",padding:"22px 24px",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,var(--teal),transparent)"}}/>
-          {renderMd(artifact.content)}
-        </div>
+        {editable ? (
+          <textarea value={draftText} onChange={e=>setDraftText(e.target.value)}
+            style={{width:"100%",minHeight:360,boxSizing:"border-box",background:"var(--lc-surface)",border:"1px solid var(--lc-border)",borderRadius:"var(--radius)",padding:"18px 20px",fontSize:13.5,lineHeight:1.65,color:"var(--lc-text-1)",fontFamily:"inherit",resize:"vertical"}}/>
+        ) : (
+          <div style={{background:"var(--lc-surface)",border:"1px solid rgba(52,64,125,.1)",borderRadius:"var(--radius)",padding:"22px 24px",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,var(--teal),transparent)"}}/>
+            {renderMd(artifact.content)}
+          </div>
+        )}
       </div>
       {/* Approving is a workflow action, not a display filter — it gets its
           own primary button, sized and coloured for what it actually is.
           Other status moves stay available as small text actions, clearly
-          secondary to Approve. */}
+          secondary to Approve. Once approved, this row is a closed historical
+          milestone: no action here ever edits it again — Revise starts a new
+          version instead. */}
       <div style={{padding:"12px 24px",borderTop:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",flexShrink:0}}>
+        {editable && (
+          <button onClick={saveDraftEdit} disabled={savingEdit||draftText===artifact.content} style={{padding:"7px 14px",borderRadius:8,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-2)",fontSize:12.5,fontWeight:600,cursor:savingEdit||draftText===artifact.content?"default":"pointer",opacity:savingEdit||draftText===artifact.content?.6:1}}>
+            {savingEdit?"Saving…":"Save changes"}
+          </button>
+        )}
         {(artifact.status==="draft"||artifact.status==="in_review") && (
           <button onClick={()=>changeStatus("approved")} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"var(--lc-green)",color:"#f5f1e7",fontSize:12.5,fontWeight:700,cursor:"pointer"}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -367,15 +440,23 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose}:{artifact:Ar
         {artifact.status==="approved" && (
           <span style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-green-bg)",border:"1px solid var(--lc-green-border)",color:"var(--lc-green)",fontSize:12.5,fontWeight:700}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Approved
+            {prov.statusLabel}
           </span>
         )}
         <div style={{display:"flex",alignItems:"center",gap:4}}>
-          {artifact.status!=="in_review" && artifact.status!=="approved" && (
-            <button onClick={()=>changeStatus("in_review")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Move to review</button>
-          )}
-          {artifact.status!=="draft" && (
-            <button onClick={()=>changeStatus("draft")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Back to draft</button>
+          {artifact.status==="approved" ? (
+            <button onClick={revise} disabled={revising} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--teal)",fontSize:11.5,fontWeight:700,cursor:revising?"default":"pointer"}}>
+              {revising?"Starting revision…":"Revise"}
+            </button>
+          ) : (
+            <>
+              {artifact.status!=="in_review" && (
+                <button onClick={()=>changeStatus("in_review")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Move to review</button>
+              )}
+              {artifact.status!=="draft" && (
+                <button onClick={()=>changeStatus("draft")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Back to draft</button>
+              )}
+            </>
           )}
           {artifact.status!=="archived" && (
             <button onClick={()=>changeStatus("archived")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Archive</button>
@@ -515,6 +596,8 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
   const [contextFindingIds, setContextFindingIds] = useState<string[]>([]);
   const [contextSessionIds, setContextSessionIds] = useState<string[]>([]);
   const [showFindings, setShowFindings] = useState(false);
+  const [importTarget, setImportTarget] = useState<string|null>(null);
+  const [scopeIds, setScopeIds]         = useState<string[]>([]);
   const endRef      = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -529,6 +612,15 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
   // Edge Cases. Every downstream use of "findings" in this component should read
   // from this filtered list, never the full project findings array.
   const relevantFindings = findings.filter(f => (ws.baIntelligenceCategories as readonly string[]).includes(f.category));
+
+  // Testing's declared scope. Recognisable ids (FR-001 etc.) pulled from
+  // whatever approved upstream artifacts exist — imported or native, no
+  // distinction — so the BA can say which ones this round is testing
+  // against. Nothing here is ever assumed to be in scope; scopeIds starts
+  // empty and only grows from an explicit checkbox.
+  const scopeCandidateIds = ws.id === "testing"
+    ? [...new Set(artifacts.filter(a => (ws.contextTypes as readonly string[]).includes(a.type) && a.status === "approved").flatMap(a => extractItemIds(a.content)))]
+    : [];
 
   // Load saved conversation
   useEffect(() => {
@@ -681,7 +773,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
     try {
       const res = await fetch(`/api/projects/${project.id}/artifacts`,{
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({type:ws.artifactType,title:ARTIFACT_TYPE_LABEL[ws.artifactType]??ws.label,content:finalContent,reasoning_context:{tool:ws.id,methodology:project.methodology,saved_at:new Date().toISOString(),...((ws.baIntelligenceCategories as readonly string[]).length>0?{context_finding_ids:findingIds,context_session_ids:sessionIds}:{})},status:"draft",source_artifact_ids:sourceIds}),
+        body: JSON.stringify({type:ws.artifactType,title:ARTIFACT_TYPE_LABEL[ws.artifactType]??ws.label,content:finalContent,reasoning_context:{tool:ws.id,methodology:project.methodology,saved_at:new Date().toISOString(),...((ws.baIntelligenceCategories as readonly string[]).length>0?{context_finding_ids:findingIds,context_session_ids:sessionIds}:{}),...(scopeIds.length>0?{scope_ids:scopeIds}:{})},status:"draft",source_artifact_ids:sourceIds}),
       });
       const data = await res.json();
       if (res.ok) {
@@ -859,8 +951,37 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
                 : project.name}
             </div>
             {missingContext.length > 0 && (
-              <div style={{padding:"9px 12px",background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.22)",borderRadius:9,fontSize:12,color:"var(--lc-amber)",marginBottom:14,lineHeight:1.6}}>
+              <div style={{padding:"9px 12px",background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.22)",borderRadius:9,fontSize:12,color:"var(--lc-amber)",marginBottom:10,lineHeight:1.6}}>
                 <strong>No approved {missingContext.map(t=>CONTEXT_TYPE_LABEL[t]??t).join(" or ")} yet.</strong> This workstream normally builds on it — you can continue anyway, or go approve it first for a stronger result.
+              </div>
+            )}
+            {/* Bring existing work in — never a prerequisite, always available
+                alongside "start without it". Buttons come straight from this
+                workstream's own contextTypes, no separate config needed. */}
+            {(ws.contextTypes as readonly string[]).length > 0 && (
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+                {(ws.contextTypes as readonly string[]).filter(t=>t!=="decision_lab_output").map(t=>(
+                  <button key={t} onClick={()=>setImportTarget(t)}
+                    style={{padding:"6px 12px",borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>
+                    + Add existing {(CONTEXT_TYPE_LABEL[t]??t).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            )}
+            {ws.id==="testing" && scopeCandidateIds.length > 0 && (
+              <div style={{padding:"10px 12px",background:"var(--lc-surface)",border:"1px solid var(--lc-border)",borderRadius:9,marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--lc-text-3)",marginBottom:8}}>Which of these are you testing this round?</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {scopeCandidateIds.map(id=>{
+                    const on = scopeIds.includes(id);
+                    return (
+                      <button key={id} onClick={()=>setScopeIds(prev=>on?prev.filter(x=>x!==id):[...prev,id])}
+                        style={{padding:"3px 9px",borderRadius:5,border:`1px solid ${on?"rgba(52,64,125,.3)":"var(--lc-border)"}`,background:on?"var(--lc-teal-bg)":"none",color:on?"var(--teal)":"var(--lc-text-4)",fontSize:11,fontFamily:"var(--font-mono)",fontWeight:600,cursor:"pointer"}}>
+                        {id}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {relevantFindings.length > 0 && (
@@ -1043,6 +1164,17 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
           </div>
         </div>
       </div>
+
+      {importTarget && (
+        <ImportArtifact
+          projectId={project.id}
+          targetType={importTarget}
+          targetLabel={CONTEXT_TYPE_LABEL[importTarget] ?? importTarget}
+          existingArtifacts={artifacts}
+          onClose={()=>setImportTarget(null)}
+          onImported={(a)=>{onArtifactSaved(a as Artifact);setImportTarget(null);}}
+        />
+      )}
     </div>
   );
 }
@@ -1240,6 +1372,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
 
           {activeArtifacts.map(a=>{
             const sc=STATUS_COLOR[a.status]??STATUS_COLOR.draft;
+            const prov=provenanceInfo(a);
             return (
               <div key={a.id} onClick={()=>{setViewingArtifact(a);setActiveWs(null);setShowRTM(false);}}
                 style={{padding:"8px 9px",borderRadius:8,border:"1px solid transparent",cursor:"pointer",marginBottom:3,transition:"background .15s,border-color .15s",background:viewingArtifact?.id===a.id?"rgba(52,64,125,.06)":"none"}}
@@ -1248,9 +1381,12 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
               >
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                   <div style={{fontSize:12,fontWeight:600,color:"var(--lc-text-1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ARTIFACT_TYPE_LABEL[a.type]??a.type}</div>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,padding:"1px 5px",borderRadius:3,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`,flexShrink:0}}>{a.status}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,padding:"1px 5px",borderRadius:3,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`,flexShrink:0}}>{prov.statusLabel}</span>
                 </div>
-                <div style={{fontSize:10.5,color:"var(--lc-text-4)"}}>v{a.version} · {fmtDate(a.created_at)}</div>
+                <div style={{fontSize:10.5,color:"var(--lc-text-4)",display:"flex",alignItems:"center",gap:5}}>
+                  <span>v{a.version} · {fmtDate(a.created_at)}</span>
+                  {prov.tag && <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,padding:"1px 5px",borderRadius:3,background:"var(--lc-faint)",border:"1px solid var(--lc-border)"}}>{prov.tag}</span>}
+                </div>
               </div>
             );
           })}
@@ -1323,7 +1459,8 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
           ) : showRTM ? (
             <RTMPanel artifacts={artifacts} onClose={()=>setShowRTM(false)} onGoToRequirements={()=>{setShowRTM(false);setActiveWs(WORKSTREAMS.find(w=>w.id==="requirements")??null);}}/>
           ) : viewingArtifact ? (
-            <ArtifactViewer artifact={viewingArtifact} projectId={project.id} onStatusChange={handleStatusChange} onClose={()=>setViewingArtifact(null)}/>
+            <ArtifactViewer artifact={viewingArtifact} projectId={project.id} onStatusChange={handleStatusChange} onClose={()=>setViewingArtifact(null)}
+              onRevised={(a)=>{handleArtifactSaved(a);setViewingArtifact(a);}}/>
           ) : activeWs ? (
             <WorkstreamSession
               ws={activeWs} project={project} artifacts={artifacts} findings={findings}

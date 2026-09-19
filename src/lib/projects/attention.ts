@@ -9,13 +9,14 @@
 // treats an empty/unstarted work area as a problem — that is "missing
 // context," handled locally inside the work area, not here.
 //
-// V1 rule set is deliberately narrow. Two rules below are fully deterministic
-// from data that exists today. Coverage-gap detection ("this requirement has
-// no test case") is intentionally NOT implemented yet — it requires a
-// declared testing scope/baseline, which does not exist in the product yet
-// (see the "Bring existing work into the project" capability, designed
-// separately). Building it against "every approved requirement" would
-// violate the scope-aware principle this file exists to enforce.
+// V1 rule set is deliberately narrow, all three fully deterministic from data
+// that exists today. Coverage-gap detection ("this requirement has no test
+// case") only evaluates ids the BA explicitly declared in scope for a given
+// Testing artifact (reasoning_context.scope_ids) — never every approved
+// Requirement that merely exists in the project. That is the scope-aware
+// principle this file exists to enforce, not a placeholder for a future rule.
+
+import { extractItemIds, parseTestCaseCoverage } from "@/lib/rtm";
 
 export type AttentionCategory = "coverage_gap" | "stale_work" | "unresolved_issue";
 export type AttentionSeverity = "material" | "noncritical";
@@ -33,7 +34,9 @@ interface AttentionArtifact {
   id: string;
   type: string;
   status: string;
+  content?: string;
   source_artifact_ids?: string[] | null;
+  reasoning_context?: { scope_ids?: string[] } | null;
 }
 
 interface AttentionFinding {
@@ -94,5 +97,33 @@ export function computeAttention(
     });
   }
 
+  // Coverage gaps — only ever evaluated against a BA-declared scope on an
+  // approved Testing artifact, never against every approved Requirement in
+  // the project. An id the BA never brought into scope for this round is not
+  // a gap, it simply was not expected here.
+  const scopedTestCases = artifacts.filter(
+    a => a.type === "test_case" && a.status === "approved" && (a.reasoning_context?.scope_ids?.length ?? 0) > 0
+  );
+  for (const tc of scopedTestCases) {
+    const scopeIds = tc.reasoning_context!.scope_ids!;
+    const covered = new Set(parseTestCaseCoverage(tc.content ?? "").flatMap(row => row.covers));
+    const gaps = scopeIds.filter(id => !covered.has(id));
+    if (gaps.length > 0) {
+      items.push({
+        id: `coverage-gap-${tc.id}`,
+        category: "coverage_gap",
+        categoryLabel: "Coverage gaps",
+        text: `${gaps.length} item${gaps.length === 1 ? "" : "s"} in this testing round's declared scope ${gaps.length === 1 ? "has" : "have"} no linked test case: ${gaps.join(", ")}.`,
+        severity: "material",
+        actionLabel: "Review coverage",
+      });
+    }
+  }
+
   return items;
 }
+
+// Re-exported so callers that only need id extraction (e.g. the scope
+// checklist in the import flow) don't need to import from rtm.ts directly
+// for what is conceptually attention/scope machinery.
+export { extractItemIds };
