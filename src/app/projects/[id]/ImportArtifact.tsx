@@ -79,7 +79,7 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, exi
     <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.4)", padding: 20 }} onClick={onClose}>
       <div style={{ width: "100%", maxWidth: 620, maxHeight: "85vh", overflowY: "auto", background: "var(--lc-surface)", borderRadius: "var(--radius-lg)", border: "1px solid var(--lc-border)", padding: "24px 26px" }} onClick={e => e.stopPropagation()}>
         <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "var(--lc-text-1)", marginBottom: 4 }}>
-          Add existing {targetLabel.toLowerCase()}
+          Bring existing {targetLabel.toLowerCase()}
         </div>
         <p style={{ fontSize: 12.5, color: "var(--lc-text-3)", lineHeight: 1.6, marginBottom: 16 }}>
           Paste what already exists for this project. It becomes a normal, connected artifact — IDs like FR-014 are picked up automatically.
@@ -102,15 +102,17 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, exi
 
         {currentApproved && asApproved && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--lc-text-4)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>
-              An approved {targetLabel.toLowerCase()} artifact already exists
+            <div style={{ fontSize: 12.5, color: "var(--lc-text-3)", lineHeight: 1.55, marginBottom: 8 }}>
+              There is already an approved baseline for {targetLabel.toLowerCase()}. Choose how this should be brought in.
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setMode("add")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid ${mode === "add" ? "rgba(52,64,125,.3)" : "var(--lc-border)"}`, background: mode === "add" ? "var(--lc-teal-bg)" : "none", color: mode === "add" ? "var(--teal)" : "var(--lc-text-3)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                Add to current baseline
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              <button onClick={() => setMode("replace")} style={{ textAlign: "left", padding: "10px 13px", borderRadius: 9, border: `1px solid ${mode === "replace" ? "rgba(168,63,50,.3)" : "var(--lc-border)"}`, background: mode === "replace" ? "var(--lc-red-bg)" : "none", cursor: "pointer", fontFamily: "inherit" }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: mode === "replace" ? "var(--lc-red)" : "var(--lc-text-2)", marginBottom: 2 }}>Replace current baseline</div>
+                <div style={{ fontSize: 11.5, color: "var(--lc-text-4)", lineHeight: 1.5 }}>The current approved version is superseded by this one.</div>
               </button>
-              <button onClick={() => setMode("replace")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid ${mode === "replace" ? "rgba(168,63,50,.3)" : "var(--lc-border)"}`, background: mode === "replace" ? "var(--lc-red-bg)" : "none", color: mode === "replace" ? "var(--lc-red)" : "var(--lc-text-3)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                Replace current baseline
+              <button onClick={() => setMode("add")} style={{ textAlign: "left", padding: "10px 13px", borderRadius: 9, border: `1px solid ${mode === "add" ? "rgba(52,64,125,.3)" : "var(--lc-border)"}`, background: mode === "add" ? "var(--lc-teal-bg)" : "none", cursor: "pointer", fontFamily: "inherit" }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: mode === "add" ? "var(--teal)" : "var(--lc-text-2)", marginBottom: 2 }}>Add to current baseline</div>
+                <div style={{ fontSize: 11.5, color: "var(--lc-text-4)", lineHeight: 1.5 }}>This is added alongside what is already approved.</div>
               </button>
             </div>
           </div>
@@ -125,8 +127,10 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, exi
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--lc-border)", background: "none", color: "var(--lc-text-3)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button onClick={submit} disabled={!canSubmit} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "var(--teal)", color: "#f5f1e7", fontSize: 12.5, fontWeight: 700, cursor: canSubmit ? "pointer" : "default", opacity: canSubmit ? 1 : .5 }}>
-            {saving ? "Adding…" : "Add"}
+          <button onClick={submit} disabled={!canSubmit} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: mode === "replace" && currentApproved && asApproved ? "var(--lc-red)" : "var(--teal)", color: "#f5f1e7", fontSize: 12.5, fontWeight: 700, cursor: canSubmit ? "pointer" : "default", opacity: canSubmit ? 1 : .5 }}>
+            {mode === "replace" && currentApproved && asApproved
+              ? (saving ? "Replacing…" : "Replace")
+              : (saving ? "Adding…" : "Add")}
           </button>
         </div>
       </div>

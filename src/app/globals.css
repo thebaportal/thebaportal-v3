@@ -534,4 +534,51 @@
       display: none !important;
     }
   }
+
+  /* Project nav bar (All projects / project name / Home-Work-Decisions-
+     Intelligence) — below 480px there isn't room for the breadcrumb and all
+     four tabs on one line, and that combined row was overflowing with no way
+     to reach the hidden tabs. The breadcrumb and the tabs split onto their
+     own rows instead: the breadcrumb alone always fits at this width, and the
+     tabs then get the full row to themselves, with tighter tab padding so all
+     four sit on one line, unabbreviated, without wrapping. A horizontal
+     scroll fallback stays on the tabs row (with an edge fade so a cut-off tab
+     is visibly not the end of the list) for labels or text-zoom levels this
+     math doesn't cover — see the active-tab scrollIntoView in
+     ProjectWorkspaceClient.
+  ───────────────────────────────── */
+  @media (max-width: 480px) {
+    .project-nav-bar {
+      flex-direction: column;
+      align-items: stretch;
+      height: auto;
+      padding: 8px 14px 0;
+      gap: 6px;
+    }
+    .project-nav-crumb {
+      padding-bottom: 2px;
+    }
+    .project-tabs-row {
+      gap: 3px;
+      margin: 0 -14px;
+      padding: 0 14px 9px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .project-tabs-row::-webkit-scrollbar {
+      display: none;
+    }
+    .project-tabs-row button {
+      padding: 6px 9px !important;
+      font-size: 12px !important;
+    }
+    /* Only faded when JS has measured a real overflow (.is-scrollable) —
+       an unconditional fade would look exactly like the clipped-text bug
+       this is fixing, on the (expected) common case where all four tabs
+       already fit without any scrolling. */
+    .project-tabs-row.is-scrollable {
+      mask-image: linear-gradient(to right, black calc(100% - 22px), transparent);
+      -webkit-mask-image: linear-gradient(to right, black calc(100% - 22px), transparent);
+    }
+  }
 }

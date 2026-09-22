@@ -60,14 +60,17 @@ interface Props {
 // Workstream colours — one coherent muted-earth-and-slate family (Folio),
 // not seven unrelated saturated hues. Kept per-workstream because it aids
 // orientation across 7 tools; none collide with a status colour.
+// bringLabel: customer-facing phrasing for bringing existing work of this
+// workstream's OWN type into the project — always available at the door,
+// distinct from the "Add existing {type}" cross-type context imports below.
 const WORKSTREAMS = [
-  { id: "problem-analysis",    label: "Problem Analysis",    question: "What is happening and why?",      color: "#52658a", endpoint: "/api/workspace/analyze",       artifactType: "problem_analysis",    suggestedAfter: [],                           contextTypes: [],                                                     methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "stakeholder-analysis",label: "Stakeholder Analysis",question: "Who influences success?",          color: "#8a7440", endpoint: "/api/workspace/stakeholders",  artifactType: "stakeholder_analysis", suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "requirements",        label: "Requirements",        question: "What must change?",                color: "#6b8452", endpoint: "/api/workspace/requirements",  artifactType: "requirements",         suggestedAfter: ["problem_analysis","stakeholder_analysis"], contextTypes: ["problem_analysis","stakeholder_analysis","decision_lab_output"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["requirement","business_rule","unresolved_question","contradiction","edge_case"] as string[], baFindingsNoun: "validated finding" },
-  { id: "process-analysis",    label: "Process Analysis",    question: "How does work flow today?",        color: "#6e7c8c", endpoint: "/api/workspace/process",       artifactType: "process_map",          suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["business_rule","edge_case"] as string[], baFindingsNoun: "process-relevant finding" },
-  { id: "user-stories",        label: "User Stories",        question: "What does the team build?",        color: "#74628f", endpoint: "/api/workspace/user-stories",  artifactType: "user_stories",         suggestedAfter: ["requirements"],             contextTypes: ["requirements"],                                       methodologies: ["agile","safe","hybrid"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "business-case",       label: "Business Case",       question: "Why does this justify investment?",color: "#9c6b4a", endpoint: "/api/workspace/documents",     artifactType: "brd",                  suggestedAfter: ["problem_analysis","requirements"], contextTypes: ["problem_analysis","stakeholder_analysis","requirements"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "" },
-  { id: "testing",             label: "Testing",             question: "How do we know it works?",         color: "#8c5850", endpoint: "/api/workspace/testing",       artifactType: "test_case",            suggestedAfter: ["requirements","user_stories"], contextTypes: ["requirements","user_stories"],                        methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["edge_case"] as string[], baFindingsNoun: "validated edge case" },
+  { id: "problem-analysis",    label: "Problem Analysis",    question: "What is happening and why?",      color: "#52658a", endpoint: "/api/workspace/analyze",       artifactType: "problem_analysis",    suggestedAfter: [],                           contextTypes: [],                                                     methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing problem analysis" },
+  { id: "stakeholder-analysis",label: "Stakeholder Analysis",question: "Who influences success?",          color: "#8a7440", endpoint: "/api/workspace/stakeholders",  artifactType: "stakeholder_analysis", suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing stakeholder work" },
+  { id: "requirements",        label: "Requirements",        question: "What must change?",                color: "#6b8452", endpoint: "/api/workspace/requirements",  artifactType: "requirements",         suggestedAfter: ["problem_analysis","stakeholder_analysis"], contextTypes: ["problem_analysis","stakeholder_analysis","decision_lab_output"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["requirement","business_rule","unresolved_question","contradiction","edge_case"] as string[], baFindingsNoun: "validated finding", bringLabel: "Bring existing requirements" },
+  { id: "process-analysis",    label: "Process Analysis",    question: "How does work flow today?",        color: "#6e7c8c", endpoint: "/api/workspace/process",       artifactType: "process_map",          suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["business_rule","edge_case"] as string[], baFindingsNoun: "process-relevant finding", bringLabel: "Bring existing process analysis" },
+  { id: "user-stories",        label: "User Stories",        question: "What does the team build?",        color: "#74628f", endpoint: "/api/workspace/user-stories",  artifactType: "user_stories",         suggestedAfter: ["requirements"],             contextTypes: ["requirements"],                                       methodologies: ["agile","safe","hybrid"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing user stories" },
+  { id: "business-case",       label: "Business Case",       question: "Why does this justify investment?",color: "#9c6b4a", endpoint: "/api/workspace/documents",     artifactType: "brd",                  suggestedAfter: ["problem_analysis","requirements"], contextTypes: ["problem_analysis","stakeholder_analysis","requirements"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing business case" },
+  { id: "testing",             label: "Testing",             question: "How do we know it works?",         color: "#8c5850", endpoint: "/api/workspace/testing",       artifactType: "test_case",            suggestedAfter: ["requirements","user_stories"], contextTypes: ["requirements","user_stories"],                        methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["edge_case"] as string[], baFindingsNoun: "validated edge case", bringLabel: "Bring existing testing work" },
 ] as const;
 
 type WorkstreamId = typeof WORKSTREAMS[number]["id"];
@@ -90,7 +93,7 @@ const STATUS_COLOR: Record<string, { bg:string; text:string; border:string }> = 
   archived:  { bg:"rgba(156,148,128,.07)",text:"#9c9480", border:"rgba(156,148,128,.12)" },
 };
 const DECISION_STATUS_COLOR: Record<string, string> = { open:"#3b72ac", accepted:"#2e7a4e", deferred:"#b5741f", rejected:"#a83f32" };
-const WS_STATUS_LABEL: Record<WsStatus, string> = { available:"Available", draft:"Draft", in_review:"In Review", approved:"Approved" };
+const WS_STATUS_LABEL: Record<WsStatus, string> = { available:"Not started", draft:"Draft", in_review:"In Review", approved:"Approved" };
 const WS_STATUS_COLOR: Record<WsStatus, string> = { available:"var(--lc-text-4)", draft:"#b5741f", in_review:"#3b72ac", approved:"#2e7a4e" };
 function wsStatusInfo(artifactType: string, artifacts: { type: string; status: string }[]): { label: string; color: string } {
   const status = getWsStatus(artifactType, artifacts);
@@ -259,9 +262,16 @@ function parseMdTable(lines: string[]): { headers: string[]; rows: string[][] } 
   const parse = (l: string) => l.split("|").map(c => c.trim().replace(/\*\*/g, "")).filter((_,ix,a) => ix > 0 && ix < a.length - 1);
   return { headers: parse(dataLines[0]), rows: dataLines.slice(1).map(parse) };
 }
+// Handles **bold** first, then *italic* within whatever plain text is left —
+// the model's output uses both, and either one left unparsed shows up as
+// literal asterisks in the rendered product.
+function MdItalic({ t }: { t: string }) {
+  const parts = t.split(/\*([^*]+)\*/);
+  return <>{parts.map((p,i) => i%2===1 ? <em key={i}>{p}</em> : p)}</>;
+}
 function MdBold({ t }: { t: string }) {
   const parts = t.split(/\*\*([^*]+)\*\*/);
-  return <>{parts.map((p,i) => i%2===1 ? <strong key={i} style={{fontWeight:700,color:"var(--lc-text-1)"}}>{p}</strong> : <span key={i}>{p}</span>)}</>;
+  return <>{parts.map((p,i) => i%2===1 ? <strong key={i} style={{fontWeight:700,color:"var(--lc-text-1)"}}>{p}</strong> : <span key={i}><MdItalic t={p}/></span>)}</>;
 }
 function renderMd(text: string, accent = "#34407d"): React.ReactNode[] {
   const lines = text.split("\n");
@@ -404,7 +414,7 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose,onRevised}:{a
           {ARTIFACT_TYPE_LABEL[artifact.type]??artifact.type} · v{artifact.version}
         </span>
         {prov.tag && (
-          <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,padding:"2px 7px",borderRadius:5,background:"var(--lc-faint)",color:"var(--lc-text-3)",border:"1px solid var(--lc-border)"}}>{prov.tag}</span>
+          <span style={{fontSize:11.5,color:"var(--lc-text-4)",fontStyle:"italic",flexShrink:0}}>{prov.tag}</span>
         )}
         <span style={{fontFamily:"var(--font-mono)",fontSize:10,padding:"3px 8px",borderRadius:6,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`}}>{prov.statusLabel}</span>
       </header>
@@ -438,17 +448,23 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose,onRevised}:{a
           </button>
         )}
         {artifact.status==="approved" && (
-          <span style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-green-bg)",border:"1px solid var(--lc-green-border)",color:"var(--lc-green)",fontSize:12.5,fontWeight:700}}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            {prov.statusLabel}
-          </span>
+          <>
+            <span style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-green-bg)",border:"1px solid var(--lc-green-border)",color:"var(--lc-green)",fontSize:12.5,fontWeight:700}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {prov.statusLabel}
+            </span>
+            {/* Revise reads as its own action, not a housekeeping link next to
+                Archive — it creates a new version rather than editing this one,
+                and needs the same visual weight as Approve to say so. */}
+            <button onClick={revise} disabled={revising} title="Starts a new draft version to edit — this approved version is unchanged"
+              style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:"1px solid rgba(52,64,125,.3)",background:"var(--lc-teal-bg)",color:"var(--teal)",fontSize:12.5,fontWeight:700,cursor:revising?"default":"pointer"}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7M8 6.5h4a4 4 0 014 4"/></svg>
+              {revising?"Starting new version…":"Revise → new version"}
+            </button>
+          </>
         )}
         <div style={{display:"flex",alignItems:"center",gap:4}}>
-          {artifact.status==="approved" ? (
-            <button onClick={revise} disabled={revising} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--teal)",fontSize:11.5,fontWeight:700,cursor:revising?"default":"pointer"}}>
-              {revising?"Starting revision…":"Revise"}
-            </button>
-          ) : (
+          {artifact.status!=="approved" && (
             <>
               {artifact.status!=="in_review" && (
                 <button onClick={()=>changeStatus("in_review")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Move to review</button>
@@ -902,20 +918,29 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       {/* Header */}
-      <header className="ws-header" style={{padding:"14px 22px",borderBottom:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",rowGap:8,flexShrink:0}}>
+      <header className="ws-header" style={{padding:"12px 20px",borderBottom:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",rowGap:8,flexShrink:0}}>
         <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:5,fontSize:13,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Workstreams
         </button>
         <div className="ws-header-divider" style={{width:1,height:14,background:"var(--lc-border)"}}/>
         <div style={{display:"flex",alignItems:"center",gap:7}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:ws.color,animation:"pulse-dot 1.8s ease-in-out infinite",flexShrink:0}}/>
+          <div style={{width:7,height:7,borderRadius:"50%",background:ws.color,flexShrink:0}}/>
           <span style={{fontFamily:"var(--font-display)",fontSize:14,fontWeight:700,color:"var(--lc-text-1)"}}>{ws.label}</span>
           <span className="ws-question-sub" style={{fontSize:12,color:"var(--lc-text-4)"}}>— {ws.question}</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"rgba(52,64,125,.07)",border:"1px solid rgba(52,64,125,.15)",borderRadius:6,fontSize:11,color:"var(--teal)",fontFamily:"var(--font-mono)",flexShrink:0}}>
-          <div style={{width:5,height:5,borderRadius:"50%",background:"var(--teal)",flexShrink:0}}/>
-          Context active
-        </div>
+        {/* Context status stays quiet — a plain word, not a coloured pill —
+            unless there's something the BA actually needs to know: expected
+            upstream context that isn't approved yet. */}
+        {(ws.contextTypes as readonly string[]).length > 0 && (
+          missingContext.length > 0 ? (
+            <span style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.25)",borderRadius:6,fontSize:11,color:"var(--lc-amber)",fontFamily:"var(--font-mono)",flexShrink:0}}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Missing context
+            </span>
+          ) : (
+            <span style={{fontSize:11,color:"var(--lc-text-4)",fontFamily:"var(--font-mono)",flexShrink:0}}>Context loaded</span>
+          )
+        )}
         {relevantFindings.length > 0 && (
           <button onClick={()=>setShowFindings(true)}
             style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:6,fontSize:11,color:"var(--teal)",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
@@ -956,27 +981,45 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
               </div>
             )}
             {/* Bring existing work in — never a prerequisite, always available
-                alongside "start without it". Buttons come straight from this
-                workstream's own contextTypes, no separate config needed. */}
-            {(ws.contextTypes as readonly string[]).length > 0 && (
-              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
-                {(ws.contextTypes as readonly string[]).filter(t=>t!=="decision_lab_output").map(t=>(
-                  <button key={t} onClick={()=>setImportTarget(t)}
-                    style={{padding:"6px 12px",borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>
-                    + Add existing {(CONTEXT_TYPE_LABEL[t]??t).toLowerCase()}
-                  </button>
-                ))}
-              </div>
-            )}
+                alongside "start without it". Every workstream can bring in
+                existing work of its own type (the primary door); workstreams
+                that build on other types can additionally pull those in,
+                where genuinely useful, as a secondary action. */}
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+              <button onClick={()=>setImportTarget(ws.artifactType)}
+                style={{padding:"6px 13px",borderRadius:7,border:`1px solid ${ws.color}35`,background:`${ws.color}0f`,color:ws.color,fontSize:11.5,fontWeight:700,cursor:"pointer"}}>
+                {ws.bringLabel}
+              </button>
+              {(ws.contextTypes as readonly string[]).filter(t=>t!=="decision_lab_output").map(t=>(
+                <button key={t} onClick={()=>setImportTarget(t)}
+                  style={{padding:"6px 12px",borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>
+                  Add existing {(CONTEXT_TYPE_LABEL[t]??t).toLowerCase()}
+                </button>
+              ))}
+            </div>
             {ws.id==="testing" && scopeCandidateIds.length > 0 && (
               <div style={{padding:"10px 12px",background:"var(--lc-surface)",border:"1px solid var(--lc-border)",borderRadius:9,marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:700,color:"var(--lc-text-3)",marginBottom:8}}>Which of these are you testing this round?</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:8}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"var(--lc-text-3)"}}>Which requirements are you testing this round?</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:10.5,color:scopeIds.length?"var(--teal)":"var(--lc-text-4)"}}>
+                      {scopeIds.length} of {scopeCandidateIds.length} selected
+                    </span>
+                    <button onClick={()=>setScopeIds(scopeIds.length ? [] : scopeCandidateIds)}
+                      style={{background:"none",border:"none",color:"var(--teal)",fontSize:10.5,fontWeight:700,cursor:"pointer",padding:0}}>
+                      {scopeIds.length ? "Clear" : "Select all"}
+                    </button>
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:5,maxHeight:160,overflowY:"auto",paddingRight:2}}>
                   {scopeCandidateIds.map(id=>{
                     const on = scopeIds.includes(id);
                     return (
                       <button key={id} onClick={()=>setScopeIds(prev=>on?prev.filter(x=>x!==id):[...prev,id])}
-                        style={{padding:"3px 9px",borderRadius:5,border:`1px solid ${on?"rgba(52,64,125,.3)":"var(--lc-border)"}`,background:on?"var(--lc-teal-bg)":"none",color:on?"var(--teal)":"var(--lc-text-4)",fontSize:11,fontFamily:"var(--font-mono)",fontWeight:600,cursor:"pointer"}}>
+                        style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:6,border:`1px solid ${on?"rgba(52,64,125,.3)":"var(--lc-border)"}`,background:on?"var(--lc-teal-bg)":"none",color:on?"var(--teal)":"var(--lc-text-4)",fontSize:11,fontFamily:"var(--font-mono)",fontWeight:600,cursor:"pointer"}}>
+                        <span style={{width:10,height:10,borderRadius:3,border:`1.5px solid ${on?"var(--teal)":"var(--lc-text-5)"}`,background:on?"var(--teal)":"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#f5f1e7" strokeWidth="4" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </span>
                         {id}
                       </button>
                     );
@@ -1169,7 +1212,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
         <ImportArtifact
           projectId={project.id}
           targetType={importTarget}
-          targetLabel={CONTEXT_TYPE_LABEL[importTarget] ?? importTarget}
+          targetLabel={ARTIFACT_TYPE_LABEL[importTarget] ?? CONTEXT_TYPE_LABEL[importTarget] ?? importTarget}
           existingArtifacts={artifacts}
           onClose={()=>setImportTarget(null)}
           onImported={(a)=>{onArtifactSaved(a as Artifact);setImportTarget(null);}}
@@ -1245,6 +1288,26 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
   const [panelOpen, setPanelOpen]           = useState(true);
   const [showRTM, setShowRTM]               = useState(false);
 
+  // Keeps the active project-nav tab visible on the narrow strip below
+  // ~480px, in case the four tabs ever need their scroll fallback (long
+  // labels, larger text-zoom) rather than fitting on their compact single row.
+  const tabsRowRef = useRef<HTMLDivElement>(null);
+  const activeTabRef = useRef<HTMLButtonElement>(null);
+  const [tabsOverflowing, setTabsOverflowing] = useState(false);
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeTab]);
+  useEffect(() => {
+    const el = tabsRowRef.current;
+    if (!el) return;
+    const check = () => setTabsOverflowing(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    window.addEventListener("resize", check);
+    return () => { ro.disconnect(); window.removeEventListener("resize", check); };
+  }, []);
+
   function goToWorkstream(wsId: WorkstreamId) {
     const ws = WORKSTREAMS.find(w => w.id === wsId);
     if (!ws) return;
@@ -1298,25 +1361,36 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
       <div className="app-shell-main" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         {/* Project nav — Home / Work / Decisions / Intelligence. Decisions and
             Intelligence are project-scoped destinations (Decision Lab and BA
-            Intelligence), reached from here rather than global app nav. */}
-        <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:2,padding:"0 20px",height:52,borderBottom:"1px solid var(--lc-border)",background:"var(--lc-surface)",overflowX:"auto"}}>
-          <button onClick={()=>router.push("/projects")}
-            style={{display:"flex",alignItems:"center",gap:4,fontSize:11.5,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0,marginRight:14,flexShrink:0}}
-            onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> All projects
-          </button>
-          <span style={{fontSize:13,fontWeight:700,color:"var(--lc-text-1)",marginRight:18,flexShrink:0,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project.name}</span>
-          {TABS.map(t=>{
-            const active = t.id===activeTab;
-            return (
-              <button key={t.id} onClick={t.onClick}
-                style={{padding:"7px 12px",borderRadius:8,fontSize:12.5,fontWeight:active?700:600,color:active?"var(--teal)":"var(--lc-text-2)",background:active?"rgba(52,64,125,.07)":"none",border:"1px solid transparent",cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}
-                onMouseEnter={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-1)";}}
-                onMouseLeave={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-2)";}}>
-                {t.label}
-              </button>
-            );
-          })}
+            Intelligence), reached from here rather than global app nav.
+            Below ~480px the breadcrumb and the four tabs split onto their own
+            rows (project-nav-bar CSS) so the tabs get the full row width —
+            at that width the breadcrumb alone is short enough to never need
+            it, while cramming both onto one row is what caused tabs to run
+            off-screen with no visible way to reach them. The tabs row keeps
+            horizontal scroll plus an edge fade as a safety net (long labels,
+            larger text-zoom), and the active tab is scrolled into view. */}
+        <div className="project-nav-bar" style={{flexShrink:0,display:"flex",alignItems:"center",gap:2,padding:"0 20px",height:52,borderBottom:"1px solid var(--lc-border)",background:"var(--lc-surface)"}}>
+          <div className="project-nav-crumb" style={{display:"flex",alignItems:"center",flexShrink:0,minWidth:0}}>
+            <button onClick={()=>router.push("/projects")}
+              style={{display:"flex",alignItems:"center",gap:4,fontSize:11.5,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0,marginRight:14,flexShrink:0}}
+              onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> All projects
+            </button>
+            <span style={{fontSize:13,fontWeight:700,color:"var(--lc-text-1)",marginRight:18,flexShrink:0,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project.name}</span>
+          </div>
+          <div className={`project-tabs-row${tabsOverflowing ? " is-scrollable" : ""}`} ref={tabsRowRef} style={{display:"flex",alignItems:"center",gap:2,overflowX:"auto"}}>
+            {TABS.map(t=>{
+              const active = t.id===activeTab;
+              return (
+                <button key={t.id} onClick={t.onClick} ref={active ? activeTabRef : null}
+                  style={{padding:"7px 12px",borderRadius:8,fontSize:12.5,fontWeight:active?700:600,color:active?"var(--teal)":"var(--lc-text-2)",background:active?"rgba(52,64,125,.07)":"none",border:"1px solid transparent",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",fontFamily:"inherit"}}
+                  onMouseEnter={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-1)";}}
+                  onMouseLeave={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-2)";}}>
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
@@ -1331,14 +1405,17 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
       )}
 
       {/* Project panel */}
+      {/* Background is intentionally quieter than the main work area (--lc-faint,
+          not --lc-surface) — the panel is reference material alongside the
+          BA's current work, not a second equally-weighted pane. */}
       {activeTab==="work" && <aside style={isMobile ? {
           position:"fixed",top:56,left:0,bottom:0,zIndex:240,
           width:panelOpen?"85vw":0,maxWidth:320,
           borderRight:panelOpen?"1px solid var(--lc-border)":"none",
           display:"flex",flexDirection:"column",overflow:"hidden",
-          background:"var(--lc-surface)",transition:"width 220ms ease",
+          background:"var(--lc-faint)",transition:"width 220ms ease",
           boxShadow:panelOpen?"10px 0 28px rgba(0,0,0,.3)":"none",
-        } : {width:panelOpen?260:0,flexShrink:0,borderRight:panelOpen?"1px solid var(--lc-border)":"none",display:"flex",flexDirection:"column",overflow:"hidden",background:"var(--lc-surface)",transition:"width 240ms ease"}}>
+        } : {width:panelOpen?260:0,flexShrink:0,borderRight:panelOpen?"1px solid var(--lc-border)":"none",display:"flex",flexDirection:"column",overflow:"hidden",background:"var(--lc-faint)",transition:"width 240ms ease"}}>
 
         {/* Context — the panel now begins with workstream context itself;
             project identity and "All projects" navigation live in the shared
@@ -1383,9 +1460,8 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
                   <div style={{fontSize:12,fontWeight:600,color:"var(--lc-text-1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ARTIFACT_TYPE_LABEL[a.type]??a.type}</div>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,padding:"1px 5px",borderRadius:3,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`,flexShrink:0}}>{prov.statusLabel}</span>
                 </div>
-                <div style={{fontSize:10.5,color:"var(--lc-text-4)",display:"flex",alignItems:"center",gap:5}}>
-                  <span>v{a.version} · {fmtDate(a.created_at)}</span>
-                  {prov.tag && <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,padding:"1px 5px",borderRadius:3,background:"var(--lc-faint)",border:"1px solid var(--lc-border)"}}>{prov.tag}</span>}
+                <div style={{fontSize:10.5,color:"var(--lc-text-4)"}}>
+                  v{a.version} · {fmtDate(a.created_at)}{prov.tag ? ` · ${prov.tag.toLowerCase()}` : ""}
                 </div>
               </div>
             );

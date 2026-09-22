@@ -30,7 +30,14 @@ function extractSections(content: string): { id: string; label: string }[] {
     });
 }
 
-// ── Inline bold parser ────────────────────────────────────────────────────────
+// ── Inline bold + italic parser ─────────────────────────────────────────────
+// **bold** is split out first, then whatever plain text remains is checked
+// for *italic* — otherwise a stray *emphasis* from the model shows up as
+// literal asterisks in the rendered document.
+function InlineItalic({ text }: { text: string }) {
+  const parts = text.split(/\*([^*]+)\*/);
+  return <>{parts.map((part, i) => i % 2 === 1 ? <em key={i}>{part}</em> : part)}</>;
+}
 function InlineText({ text }: { text: string }) {
   const parts = text.split(/\*\*([^*]+)\*\*/);
   return (
@@ -38,7 +45,7 @@ function InlineText({ text }: { text: string }) {
       {parts.map((part, i) =>
         i % 2 === 1
           ? <strong key={i} style={{ fontWeight: 700, color: "var(--lc-text-1)" }}>{part}</strong>
-          : <span key={i}>{part}</span>
+          : <span key={i}><InlineItalic text={part} /></span>
       )}
     </>
   );

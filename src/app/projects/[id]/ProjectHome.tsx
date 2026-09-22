@@ -52,6 +52,7 @@ function PhStyles() {
       .ph-link-btn { background: none; border: none; color: var(--teal); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
       .ph-secondary-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
       .ph-compact { margin-bottom: 0; padding: 16px 18px; }
+      .ph-hero-compact { padding: 12px 16px; }
       .ph-work-row { display: flex; align-items: center; gap: 9px; width: 100%; padding: 6px 2px; background: none; border: none; cursor: pointer; text-align: left; border-radius: 6px; }
       .ph-work-row:hover { background: var(--lc-faint); }
       .ph-door-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -168,15 +169,16 @@ export default function ProjectHome({
   };
 
   const ContinueWorking = () => resumableWs ? (
-    <div className="ph-card ph-hero">
-      <div className="ph-eyebrow">Continue Working</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+    <div className="ph-card ph-hero ph-hero-compact">
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: resumableWs.color, flexShrink: 0 }} />
-        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--lc-text-1)" }}>{resumableWs.label}</div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--lc-text-4)" }}>{resumable!.status === "in_review" ? "In Review" : "Draft"}</span>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
+          <span className="ph-eyebrow" style={{ margin: 0 }}>Continue Working</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--lc-text-1)" }}>{resumableWs.label}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--lc-text-4)" }}>{resumable!.status === "in_review" ? "In Review" : "Draft"}</span>
+        </div>
+        <button onClick={() => onSelectWs(resumableWs.id)} className="ph-primary-btn" style={{ flexShrink: 0 }}>Resume →</button>
       </div>
-      <div style={{ fontSize: 13, color: "var(--lc-text-3)", marginBottom: 14 }}>{resumableWs.question}</div>
-      <button onClick={() => onSelectWs(resumableWs.id)} className="ph-primary-btn">Resume →</button>
     </div>
   ) : null;
 
@@ -192,7 +194,7 @@ export default function ProjectHome({
       <ContinueWorking />
       {material.length === 0 && noncritical.length > 0 && <AttentionBlock items={noncritical} prominent={false} />}
 
-      <div className="ph-secondary-row">
+      <div className="ph-secondary-row" style={recentEvents.length === 0 ? { gridTemplateColumns: "1fr" } : undefined}>
         <div className="ph-card ph-compact">
           <div className="ph-eyebrow">Work Areas</div>
           {workstreams.map(ws => {
@@ -207,17 +209,17 @@ export default function ProjectHome({
           })}
         </div>
 
-        <div className="ph-card ph-compact">
-          <div className="ph-eyebrow">Recent Changes</div>
-          {recentEvents.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--lc-text-4)" }}>Nothing recorded yet.</div>
-          ) : recentEvents.map(ev => (
-            <div key={ev.id} style={{ padding: "5px 0" }}>
-              <div style={{ fontSize: 12.5, color: "var(--lc-text-2)" }}>{ev.text}</div>
-              <div style={{ fontSize: 10.5, color: "var(--lc-text-4)" }}>{ev.sub} · {fmtDateTime(ev.date)}</div>
-            </div>
-          ))}
-        </div>
+        {recentEvents.length > 0 && (
+          <div className="ph-card ph-compact">
+            <div className="ph-eyebrow">Recent Changes</div>
+            {recentEvents.map(ev => (
+              <div key={ev.id} style={{ padding: "5px 0" }}>
+                <div style={{ fontSize: 12.5, color: "var(--lc-text-2)" }}>{ev.text}</div>
+                <div style={{ fontSize: 10.5, color: "var(--lc-text-4)" }}>{ev.sub} · {fmtDateTime(ev.date)}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <PhStyles />
     </div>
