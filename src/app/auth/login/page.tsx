@@ -36,6 +36,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo  = searchParams.get("redirectTo") || "";
   const hint        = searchParams.get("hint");
+  const linkError   = searchParams.get("error");
 
   const signupHref = `/auth/signup${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`;
 
@@ -132,6 +133,17 @@ function LoginForm() {
       {hint === "existing" && (
         <div style={{ padding: "10px 13px", borderRadius: "9px", background: "var(--lc-teal-bg)", border: "1px solid var(--lc-teal-border)", fontSize: "13px", color: "var(--teal)" }}>
           Looks like you already have an account. Sign in below.
+        </div>
+      )}
+
+      {linkError === "link_invalid" && !magicMode && (
+        <div style={{ padding: "11px 14px", borderRadius: "9px", background: "var(--lc-red-bg)", border: "1px solid var(--lc-red-border)", fontSize: "13px", color: "var(--lc-red)", lineHeight: 1.55 }}>
+          That sign-in link is invalid or has expired.{" "}
+          <button type="button" onClick={() => setMagicMode(true)}
+            style={{ background: "none", border: "none", padding: 0, color: "var(--lc-red)", fontWeight: 700, textDecoration: "underline", cursor: "pointer", font: "inherit" }}>
+            Send a new one
+          </button>
+          {" "}or sign in with your password below.
         </div>
       )}
 
