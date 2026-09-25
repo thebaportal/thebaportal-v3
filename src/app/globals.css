@@ -512,16 +512,11 @@
     }
   }
 
-  /* New Project's two-column composition (task column + companion guidance
-     panel) collapses to a single column below ~900px — the panel moves
-     below the form instead of competing for width, per Folio's page-shell
-     rule that a task column is never alone, but also never squeezed. */
-  @media (max-width: 900px) {
-    .np-grid {
+  /* New Project — Organisation and Delivery approach share one row on
+     desktop, collapsing to a single column on tablet/mobile. */
+  @media (max-width: 700px) {
+    .np-row {
       grid-template-columns: 1fr !important;
-    }
-    .np-companion {
-      position: static !important;
     }
   }
 
@@ -547,6 +542,111 @@
      math doesn't cover — see the active-tab scrollIntoView in
      ProjectWorkspaceClient.
   ───────────────────────────────── */
+  /* Signup page — two columns (card + product positioning) above 900px;
+     below that they stack, card first, on one continuous canvas (no split
+     background). Plain classes + media queries, matching this file's
+     convention everywhere else, rather than Tailwind's responsive utilities
+     (not reliably applying in this build). */
+  @media (max-width: 900px) {
+    .signup-columns {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 40px !important;
+    }
+    .signup-card-col {
+      flex: none !important;
+    }
+    .signup-right-col {
+      padding-top: 0 !important;
+    }
+    /* The decorative shapes are sized for the "far right edge" of a wide
+       two-column desktop composition — once stacked to full width they
+       just overlap the benefit rows as a smudge, so they're desktop-only. */
+    .signup-decor {
+      display: none !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .signup-header {
+      padding: 18px 20px !important;
+    }
+    .signup-columns {
+      padding: 16px 20px 40px !important;
+      gap: 32px !important;
+    }
+    .signup-card-col > div {
+      padding: 26px 22px !important;
+    }
+  }
+
+  /* Login page — same two-column-above-900px / stacked-below convention as
+     signup, so the two pages behave identically at every width. */
+  @media (max-width: 900px) {
+    .login-columns {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 40px !important;
+    }
+    .login-card-col {
+      flex: none !important;
+    }
+    .login-right-col {
+      padding-top: 0 !important;
+    }
+    .login-decor {
+      display: none !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .login-header {
+      padding: 18px 20px !important;
+    }
+    .login-columns {
+      padding: 16px 20px 40px !important;
+      gap: 32px !important;
+    }
+    .login-card-col > div {
+      padding: 26px 22px !important;
+    }
+    .login-highlights {
+      flex-direction: column !important;
+      gap: 18px !important;
+    }
+    .login-highlights > div {
+      max-width: none !important;
+    }
+  }
+
+  /* Projects library — 3-col card grid on desktop, 2 on tablet, 1 on mobile.
+     Header stacks (search+button below the heading, search going full width)
+     once there isn't room for everything on one line. */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 1024px) {
+    .projects-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 640px) {
+    .projects-grid {
+      grid-template-columns: 1fr;
+    }
+    .projects-header {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    .projects-header-actions {
+      width: 100%;
+    }
+    .projects-header-actions input {
+      flex: 1;
+      width: auto !important;
+    }
+  }
+
   @media (max-width: 480px) {
     .project-nav-bar {
       flex-direction: column;

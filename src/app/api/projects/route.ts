@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   if (!orgId && org_name) {
     const { data: org, error: orgErr } = await db
       .from("organizations")
-      .insert({ user_id: user.id, name: org_name.trim(), country, industry, default_methodology: methodology ?? "agile" })
+      .insert({ user_id: user.id, name: org_name.trim(), country, industry, default_methodology: methodology || null })
       .select()
       .single();
     if (orgErr) return NextResponse.json({ error: orgErr.message }, { status: 500 });
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       user_id: user.id,
       name: name.trim(),
       problem_statement,
-      methodology: methodology ?? "agile",
+      methodology: methodology || null,
       industry,
       country,
       relevant_context,

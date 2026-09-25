@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { AttentionItem } from "@/lib/projects/attention";
+import ProjectContextDrawer from "./ProjectContextDrawer";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Artifact {
@@ -14,7 +16,8 @@ interface WorkstreamLite {
   id: string; label: string; question: string; color: string; artifactType: string;
 }
 interface Project {
-  name: string; problem_statement?: string; methodology?: string;
+  id: string; name: string; problem_statement?: string; methodology?: string;
+  organizations?: { name: string };
 }
 
 interface Props {
@@ -60,14 +63,16 @@ function PhStyles() {
       .ph-door:hover { border-color: rgba(52,64,125,.25); background: var(--lc-faint); }
       .ph-door-label { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--lc-text-1); margin-bottom: 4px; }
       .ph-door-question { font-size: 11.5px; color: var(--lc-text-4); line-height: 1.4; }
+      .ph-brief-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-      @media (max-width: 1100px) {
+      @media (max-width: 1300px) {
         .ph-door-grid { grid-template-columns: repeat(3, 1fr); }
       }
       @media (max-width: 900px) {
         .ph-secondary-row { grid-template-columns: 1fr; }
+        .ph-door-grid { grid-template-columns: repeat(2, 1fr); }
       }
-      @media (max-width: 640px) {
+      @media (max-width: 560px) {
         .ph-door-grid { grid-template-columns: 1fr; }
       }
     `}</style>
@@ -79,18 +84,40 @@ export default function ProjectHome({
   methodologyLabel, wsStatusLabel, onSelectWs, onOpenIntelligence,
 }: Props) {
   const hasAnyWork = artifacts.length > 0;
+  const [showDrawer, setShowDrawer] = useState(false);
+
+  const ProjectBrief = () => (
+    <div className="ph-card">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="ph-eyebrow" style={{ marginBottom: 6 }}>Project Brief</div>
+          {project.problem_statement ? (
+            <p className="ph-brief-text" style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.6, margin: 0 }}>
+              {project.problem_statement}
+            </p>
+          ) : (
+            <p style={{ fontSize: 13, color: "var(--lc-text-4)", lineHeight: 1.6, margin: 0 }}>
+              No context has been added yet.
+            </p>
+          )}
+        </div>
+        <button onClick={() => setShowDrawer(true)} className="ph-link-btn" style={{ flexShrink: 0, alignSelf: "flex-start" }}>Project context →</button>
+      </div>
+    </div>
+  );
 
   // ── Brand-new project ──────────────────────────────────────────────────────
   if (!hasAnyWork) {
     return (
       <div className="ph-wrap">
         <ProjectHeader project={project} methodologyLabel={methodologyLabel} />
-        <div style={{ maxWidth: 720 }}>
-          <p style={{ fontSize: 13, color: "var(--lc-text-3)", lineHeight: 1.65, marginBottom: 4 }}>
+        <ProjectBrief />
+        <div>
+          <p style={{ fontSize: 13, color: "var(--lc-text-3)", lineHeight: 1.65, marginBottom: 4, marginTop: 18 }}>
             <strong style={{ color: "var(--lc-text-1)", fontWeight: 700 }}>Where are you joining this project?</strong>
           </p>
-          <p style={{ fontSize: 13, color: "var(--lc-text-4)", lineHeight: 1.65, marginBottom: 22 }}>
-            Start with the work you need to do now. TheBAPortal will connect and strengthen the project as context develops.
+          <p style={{ fontSize: 13, color: "var(--lc-text-4)", lineHeight: 1.65, marginBottom: 16 }}>
+            Start with the work you need to do now.
           </p>
           <div className="ph-door-grid">
             {workstreams.map(ws => (
@@ -100,11 +127,9 @@ export default function ProjectHome({
               </button>
             ))}
           </div>
-          <p style={{ fontSize: 12, color: "var(--lc-text-4)", marginTop: 18 }}>
-            Starting from the beginning? Problem Analysis is often a useful place to start.
-          </p>
         </div>
         <PhStyles />
+        {showDrawer && <ProjectContextDrawer projectId={project.id} overview={project.problem_statement} onClose={() => setShowDrawer(false)} />}
       </div>
     );
   }
@@ -185,6 +210,7 @@ export default function ProjectHome({
   return (
     <div className="ph-wrap">
       <ProjectHeader project={project} methodologyLabel={methodologyLabel} />
+      <ProjectBrief />
 
       {attentionItems.length === 0 && checksRan && (
         <div className="ph-quiet-signal">✓ No current issues detected</div>
@@ -222,26 +248,30 @@ export default function ProjectHome({
         )}
       </div>
       <PhStyles />
+      {showDrawer && <ProjectContextDrawer projectId={project.id} overview={project.problem_statement} onClose={() => setShowDrawer(false)} />}
     </div>
   );
 }
 
 function ProjectHeader({ project, methodologyLabel }: { project: Project; methodologyLabel: Record<string, string> }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.02em", marginBottom: 4 }}>
+    <div style={{ marginBottom: 16 }}>
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.02em", marginBottom: 6 }}>
         {project.name}
       </h1>
-      {project.problem_statement && (
-        <p style={{ fontSize: 13, color: "var(--lc-text-3)", lineHeight: 1.6, maxWidth: 640, marginBottom: 6 }}>
-          {project.problem_statement}
-        </p>
-      )}
-      {project.methodology && (
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, padding: "2px 6px", borderRadius: 4, background: "rgba(52,64,125,.08)", color: "var(--teal)", border: "1px solid rgba(52,64,125,.15)" }}>
-          {methodologyLabel[project.methodology] ?? project.methodology}
-        </span>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {project.organizations?.name && (
+          <span style={{ fontSize: 12.5, color: "var(--lc-text-3)" }}>{project.organizations.name}</span>
+        )}
+        {project.organizations?.name && project.methodology && (
+          <span style={{ color: "var(--lc-text-5)" }}>·</span>
+        )}
+        {project.methodology && (
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, padding: "2px 6px", borderRadius: 4, background: "rgba(52,64,125,.08)", color: "var(--teal)", border: "1px solid rgba(52,64,125,.15)" }}>
+            {methodologyLabel[project.methodology] ?? project.methodology}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

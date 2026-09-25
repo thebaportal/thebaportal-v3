@@ -5,77 +5,65 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const PERKS = [
-  { icon: "📁", text: "Projects — one connected workspace for the whole BA lifecycle" },
-  { icon: "🧠", text: "Decision Lab — structured reasoning for real decisions" },
-  { icon: "📄", text: "Requirements, User Stories, Testing, and RTM in one place" },
-  { icon: "📋", text: "Free, downloadable templates for common BA deliverables" },
+// Exactly three benefits, matching the reference — do not add a fourth.
+const BENEFITS = [
+  {
+    title: "One workspace for the whole project",
+    text: "Keep context, artifacts, versions and decisions together.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+    ),
+  },
+  {
+    title: "Keep the work connected",
+    text: "Link requirements, user stories, testing and traceability as the project evolves.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7M8 6.5h4a4 4 0 0 1 4 4"/></svg>
+    ),
+  },
+  {
+    title: "Catch what slips through",
+    text: "Surface gaps, contradictions, stale work and unresolved issues when they matter.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+    ),
+  },
 ];
+
+function CheckDot({ met }: { met: boolean }) {
+  return (
+    <span style={{
+      width: "14px", height: "14px", borderRadius: "50%", flexShrink: 0,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      border: `1.5px solid ${met ? "var(--teal)" : "var(--lc-border)"}`,
+      background: met ? "var(--teal)" : "none", transition: "all 0.15s ease",
+    }}>
+      {met && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#f5f1e7" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+    </span>
+  );
+}
 
 function SignupForm() {
   const router      = useRouter();
   const searchParams = useSearchParams();
   const redirectTo  = searchParams.get("redirectTo") || "";
-  const loginHref   = `/auth/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`;
 
-  const [fullName,   setFullName]   = useState("");
-  const [nameError,  setNameError]  = useState("");
-  const [nameTouched,setNameTouched]= useState(false);
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
   const [error,      setError]      = useState("");
   const [loading,    setLoading]    = useState(false);
-  const [done,       setDone]       = useState(false);
   const [showPass,   setShowPass]   = useState(false);
-  const [strength,   setStrength]   = useState(0);
-  const [nf, setNf] = useState(false);
   const [ef, setEf] = useState(false);
   const [pf, setPf] = useState(false);
 
-  function toTitleCase(str: string) {
-    return str.trim().replace(/\s+/g, " ")
-      .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-  }
-
-  function validateName(val: string): string {
-    const trimmed = val.trim();
-    if (!trimmed) return "Please enter your full name";
-    if (/[^a-zA-Z\s]/.test(trimmed)) return "Name must contain letters and spaces only — no numbers or special characters";
-    const words = trimmed.split(/\s+/).filter(w => w.length > 0);
-    if (words.length < 2) return "Please enter both your first and last name";
-    if (words.some(w => w.length < 2)) return "Each name must be at least 2 letters";
-    return "";
-  }
-
-  function handleNameChange(val: string) {
-    setFullName(val);
-    if (nameTouched) setNameError(validateName(val));
-  }
-
-  function handleNameBlur() {
-    if (!fullName.trim()) return;
-    const cased = toTitleCase(fullName);
-    setFullName(cased);
-    setNameTouched(true);
-    setNameError(validateName(cased));
-  }
-
-  function checkStrength(val: string) {
-    let s = 0;
-    if (val.length >= 8) s++;
-    if (/[A-Z]/.test(val)) s++;
-    if (/[0-9]/.test(val)) s++;
-    if (/[^A-Za-z0-9]/.test(val)) s++;
-    setStrength(s);
-  }
-
-  const strengthColor = ["", "#ef4444", "#fb923c", "#eab308", "#2e7a4e"][strength];
-  const strengthLabel = ["", "Weak", "Fair", "Good", "Strong"][strength];
+  // Quiet visual guidance only — the actual accepted/rejected rule is
+  // unchanged (still just length >= 8, enforced client- and server-side).
+  const hasMinLength = password.length >= 8;
+  const hasLetterAndNumber = /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    const nameErr = validateName(fullName);
-    if (nameErr) { setNameError(nameErr); setNameTouched(true); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
 
     setLoading(true);
@@ -85,13 +73,12 @@ function SignupForm() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password, fullName: fullName.trim() }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       const json = await res.json();
 
       if (!res.ok) {
-        if (json.field === "name") { setNameError(json.error); setNameTouched(true); }
-        else if (json.field === "email") { setError(json.error); }
+        if (json.field === "email") setError(json.error);
         else setError(json.error || "Something went wrong. Please try again.");
         return;
       }
@@ -114,194 +101,175 @@ function SignupForm() {
 
   const inp = (focused: boolean, hasError = false): React.CSSProperties => ({
     width: "100%", boxSizing: "border-box",
-    height: "44px",
+    height: "46px",
     padding: "0 14px",
     borderRadius: "10px",
     border: hasError
-      ? "1px solid rgba(248,113,113,0.6)"
-      : `1px solid ${focused ? "rgba(52,64,125,0.45)" : "#27272a"}`,
-    background: hasError
-      ? "rgba(248,113,113,0.04)"
-      : focused ? "rgba(52,64,125,0.05)" : "rgba(15,15,20,0.8)",
-    color: "#f0f0f4", fontSize: "14px",
-    fontFamily: "'Open Sans', sans-serif",
+      ? "1px solid var(--lc-red-border)"
+      : `1px solid ${focused ? "var(--teal)" : "var(--lc-border)"}`,
+    background: hasError ? "var(--lc-red-bg)" : "var(--lc-faint)",
+    color: "var(--lc-text-1)", fontSize: "14px",
+    fontFamily: "var(--font-body)",
     outline: "none",
-    boxShadow: hasError
-      ? "0 0 0 3px rgba(248,113,113,0.07)"
-      : focused ? "0 0 0 3px rgba(52,64,125,0.07)" : "none",
-    transition: "all 0.18s ease",
+    boxShadow: focused && !hasError ? "0 0 0 3px var(--lc-teal-bg)" : "none",
+    transition: "all 0.15s ease",
   });
 
   const label: React.CSSProperties = {
     display: "block", fontSize: "11px", fontWeight: 700,
-    color: "#6a6a7a", textTransform: "uppercase", letterSpacing: "0.07em",
-    marginBottom: "5px", fontFamily: "'Inter', sans-serif",
+    color: "var(--lc-text-4)", textTransform: "uppercase", letterSpacing: "0.07em",
+    marginBottom: "6px", fontFamily: "var(--font-display)",
   };
 
-  if (done) {
-    return (
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: "52px", height: "52px", borderRadius: "50%", background: "rgba(52,64,125,0.1)", border: "1px solid rgba(52,64,125,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", margin: "0 auto 16px" }}>✓</div>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.03em", color: "#f0f0f4", margin: "0 0 8px" }}>Check your email.</h2>
-        <p style={{ fontSize: "13px", color: "#9090a0", lineHeight: 1.6, margin: "0 0 20px" }}>
-          Confirmation link sent to <strong style={{ color: "#f0f0f4" }}>{email}</strong>.
-        </p>
-        <Link href={loginHref} style={{ display: "inline-flex", alignItems: "center", padding: "11px 24px", borderRadius: "10px", background: "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: "'Inter', sans-serif" }}>
-          Go to sign in
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      {/* Heading */}
-      <div style={{ marginBottom: "4px" }}>
-        <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: "36px", fontWeight: 800, letterSpacing: "-0.04em", color: "#f0f0f4", margin: "0 0 6px" }}>
-          Start for free.
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "30px", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--lc-text-1)", margin: "0 0 8px", lineHeight: 1.15 }}>
+          Create your workspace.
         </h1>
-        <p style={{ fontSize: "13px", color: "#a1a1aa", margin: 0 }}>No credit card. Free to start.</p>
+        <p style={{ fontSize: "13.5px", color: "var(--lc-text-3)", margin: 0 }}>Free to start. No credit card.</p>
       </div>
 
-      <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {/* Full name */}
-        <div>
-          <label style={label}>Full Name</label>
-          <input type="text" value={fullName}
-            onChange={e => handleNameChange(e.target.value)}
-            onFocus={() => setNf(true)}
-            onBlur={handleNameBlur}
-            placeholder="Jane Smith" required
-            style={inp(nf, !!nameError)} />
-          {nameError && (
-            <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#f87171" }}>{nameError}</p>
-          )}
-        </div>
-
-        {/* Email */}
+      <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <div>
           <label style={label}>Email</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
             onFocus={() => setEf(true)} onBlur={() => setEf(false)}
-            placeholder="you@company.com" required style={inp(ef)} />
+            placeholder="you@example.com" required style={inp(ef)} />
         </div>
 
-        {/* Password */}
         <div>
           <label style={label}>Password</label>
           <div style={{ position: "relative" }}>
             <input type={showPass ? "text" : "password"} value={password}
-              onChange={e => { setPassword(e.target.value); checkStrength(e.target.value); }}
+              onChange={e => setPassword(e.target.value)}
               onFocus={() => setPf(true)} onBlur={() => setPf(false)}
-              placeholder="Min. 8 characters" required
-              style={{ ...inp(pf), padding: "0 46px 0 14px" }} />
+              placeholder="Create a password" required
+              style={{ ...inp(pf), padding: "0 52px 0 14px" }} />
             <button type="button"
               onMouseDown={e => { e.preventDefault(); setShowPass(s => !s); }}
-              style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#34407d", fontSize: "12px", fontWeight: 600, lineHeight: 1, fontFamily: "'Inter', sans-serif", padding: "4px 6px" }}>
+              style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--teal)", fontSize: "12px", fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)", padding: "4px 2px" }}>
               {showPass ? "Hide" : "Show"}
             </button>
           </div>
-          {password.length > 0 && (
-            <div style={{ marginTop: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ flex: 1, height: "2px", borderRadius: "99px", background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: "99px", background: strengthColor, width: `${(strength / 4) * 100}%`, transition: "all 0.3s ease" }} />
-              </div>
-              <span style={{ fontSize: "10px", color: strengthColor, fontWeight: 600, minWidth: "32px" }}>{strengthLabel}</span>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <CheckDot met={hasMinLength} />
+              <span style={{ fontSize: "12px", color: hasMinLength ? "var(--lc-text-2)" : "var(--lc-text-4)" }}>At least 8 characters</span>
             </div>
-          )}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <CheckDot met={hasLetterAndNumber} />
+              <span style={{ fontSize: "12px", color: hasLetterAndNumber ? "var(--lc-text-2)" : "var(--lc-text-4)" }}>One letter and one number</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <CheckDot met={hasSpecial} />
+              <span style={{ fontSize: "12px", color: hasSpecial ? "var(--lc-text-2)" : "var(--lc-text-4)" }}>One special character (e.g. ! @ # $)</span>
+            </div>
+          </div>
         </div>
 
         {error && (
-          <div style={{ padding: "11px 14px", borderRadius: "9px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.35)", fontSize: "13px", color: "#fca5a5", fontWeight: 500 }}>
+          <div style={{ padding: "11px 14px", borderRadius: "9px", background: "var(--lc-red-bg)", border: "1px solid var(--lc-red-border)", fontSize: "13px", color: "var(--lc-red)", fontWeight: 500 }}>
             {error}
           </div>
         )}
 
-        {/* Submit */}
         <button type="submit" disabled={loading}
-          style={{ width: "100%", padding: "13px", borderRadius: "10px", border: "none", background: loading ? "rgba(52,64,125,0.5)" : "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, fontFamily: "'Inter', sans-serif", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: loading ? "none" : "0 0 20px rgba(52,64,125,0.18)", transition: "all 0.18s ease" }}
-          onMouseEnter={e => { if (!loading) e.currentTarget.style.filter = "brightness(1.1)"; }}
+          style={{ width: "100%", padding: "14px", borderRadius: "10px", border: "none", background: loading ? "var(--teal-soft)" : "var(--teal)", color: "#f5f1e7", fontSize: "14.5px", fontWeight: 700, fontFamily: "var(--font-display)", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "filter 0.18s ease" }}
+          onMouseEnter={e => { if (!loading) e.currentTarget.style.filter = "brightness(1.08)"; }}
           onMouseLeave={e => { if (!loading) e.currentTarget.style.filter = "brightness(1)"; }}>
           {loading
             ? <><span style={{ width: "14px", height: "14px", borderRadius: "50%", border: "2px solid #f5f1e7", borderTopColor: "transparent", animation: "spin 0.8s linear infinite", display: "inline-block" }} />Creating account...</>
             : "Create my account"}
         </button>
 
-        {/* Terms */}
-        <p style={{ textAlign: "center", fontSize: "11px", color: "#3f3f46", margin: 0, lineHeight: 1.5 }}>
+        <p style={{ textAlign: "center", fontSize: "11.5px", color: "var(--lc-text-4)", margin: 0, lineHeight: 1.5 }}>
           By signing up you agree to our{" "}
-          <Link href="/terms" style={{ color: "#52525b", textDecoration: "underline" }}>Terms</Link>
+          <Link href="/terms" style={{ color: "var(--teal)", textDecoration: "none", fontWeight: 600 }}>Terms</Link>
           {" "}&amp;{" "}
-          <Link href="/privacy" style={{ color: "#52525b", textDecoration: "underline" }}>Privacy</Link>.
-        </p>
-
-        {/* Sign in */}
-        <p style={{ textAlign: "center", fontSize: "13px", color: "#52525b", margin: 0 }}>
-          Already have an account?{" "}
-          <Link href={loginHref} style={{ color: "#34407d", textDecoration: "none", fontWeight: 600 }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = "0.75")}
-            onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
-            Sign in
-          </Link>
+          <Link href="/privacy" style={{ color: "var(--teal)", textDecoration: "none", fontWeight: 600 }}>Privacy</Link>.
         </p>
       </form>
     </div>
   );
 }
 
+function HeaderSignIn() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "";
+  const loginHref = `/auth/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`;
+  return (
+    <span style={{ fontSize: "13px", color: "var(--lc-text-3)" }}>
+      Already have an account?{" "}
+      <Link href={loginHref} style={{ color: "var(--teal)", fontWeight: 700, textDecoration: "none" }}>Sign in</Link>
+    </span>
+  );
+}
+
+// Very subtle abstract shapes on the far right edge — decorative only, low
+// contrast, contained so they never cause horizontal scroll.
+function DecorativeShapes() {
+  return (
+    <div aria-hidden className="signup-decor" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+      <div style={{ position: "absolute", top: "-10%", right: "-14%", width: "320px", height: "320px", borderRadius: "50%", background: "radial-gradient(circle, rgba(52,64,125,0.06) 0%, transparent 70%)" }} />
+      <div style={{ position: "absolute", bottom: "0%", right: "-4%", width: "220px", height: "220px", borderRadius: "50%", background: "radial-gradient(circle, rgba(52,64,125,0.045) 0%, transparent 70%)" }} />
+    </div>
+  );
+}
+
 export default function SignupPage() {
   return (
-    <div style={{ height: "100vh", background: "#09090b", display: "flex", fontFamily: "'Open Sans', sans-serif", overflow: "hidden" }}>
-      {/* Background grid */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.03) 1px, transparent 1px)`, backgroundSize: "60px 60px", maskImage: "radial-gradient(ellipse 60% 80% at 70% 50%, black 20%, transparent 100%)" }} />
-
-      {/* Left panel — form */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 48px", position: "relative" }}>
-        {/* Logo */}
-        <div style={{ position: "absolute", top: "28px", left: "36px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-            <span style={{ fontSize: "16px", fontWeight: 700, color: "#f0f0f4", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-              The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
+    <div style={{ minHeight: "100vh", background: "var(--lc-bg)", fontFamily: "var(--font-body)" }}>
+      <Suspense fallback={null}>
+        <header className="signup-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 48px", maxWidth: "1280px", margin: "0 auto" }}>
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <span style={{ fontSize: "16px", fontWeight: 700, color: "var(--lc-text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
+              The<span style={{ color: "var(--teal)" }}>BA</span>Portal
             </span>
           </Link>
-        </div>
+          <HeaderSignIn />
+        </header>
+      </Suspense>
 
-        <div style={{ width: "100%", maxWidth: "370px", padding: "36px", borderRadius: "16px", border: "1px solid rgba(39,39,42,0.6)", background: "rgba(24,24,27,0.7)", backdropFilter: "blur(12px)" }}>
-          <Suspense fallback={<div style={{ color: "#505060", fontSize: "13px", textAlign: "center" }}>Loading...</div>}>
-            <SignupForm />
-          </Suspense>
-        </div>
-      </div>
-
-      {/* Right panel — perks */}
-      <div className="hidden lg:flex" style={{ flex: "0 0 42%", flexDirection: "column", justifyContent: "center", padding: "36px 48px", borderLeft: "1px solid rgba(255,255,255,0.05)", position: "relative", overflow: "hidden", background: "linear-gradient(200deg, rgba(52,64,125,0.04) 0%, transparent 50%)" }}>
-        {/* Grid overlay */}
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.07) 1px, transparent 1px)`, backgroundSize: "40px 40px", maskImage: "radial-gradient(ellipse 80% 80% at 70% 50%, black 10%, transparent 80%)" }} />
-        {/* Glow — reduced intensity */}
-        <div style={{ position: "absolute", bottom: "25%", right: "5%", width: "300px", height: "300px", background: "radial-gradient(ellipse, rgba(52,64,125,0.06) 0%, transparent 65%)", filter: "blur(70px)", pointerEvents: "none" }} />
-
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#34407d", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Inter', sans-serif", marginBottom: "12px" }}>What you get</div>
-
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "20px", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.25, color: "#d4d4d8", margin: "0 0 20px" }}>
-            Describe your problem.<br />Walk away with your deliverables.
-          </h2>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
-            {PERKS.map((p, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: "rgba(52,64,125,0.08)", border: "1px solid rgba(52,64,125,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
-                  {p.icon}
-                </div>
-                <p style={{ fontSize: "13px", color: "#9090a0", lineHeight: 1.5, margin: 0 }}>{p.text}</p>
-              </div>
-            ))}
+      <div className="signup-columns" style={{ display: "flex", alignItems: "flex-start", gap: "64px", maxWidth: "1280px", margin: "0 auto", padding: "24px 48px 64px", position: "relative" }}>
+        {/* Left — signup card */}
+        <div className="signup-card-col" style={{ flex: "0 0 520px", position: "relative", zIndex: 1 }}>
+          <div style={{ width: "100%", padding: "40px", borderRadius: "var(--radius-lg)", border: "1px solid var(--lc-border)", background: "var(--lc-surface)", boxShadow: "var(--lc-shadow-md)" }}>
+            <Suspense fallback={<div style={{ color: "var(--lc-text-4)", fontSize: "13px", textAlign: "center" }}>Loading...</div>}>
+              <SignupForm />
+            </Suspense>
           </div>
+        </div>
 
-          <div style={{ padding: "14px 16px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <p style={{ fontSize: "12px", color: "#a1a1aa", lineHeight: 1.6, margin: 0 }}>
-              Paste your meeting notes in, and walk away with a BRD, a stakeholder map, and a requirements matrix — usually in minutes, not hours.
+        {/* Right — product positioning */}
+        <div className="signup-right-col" style={{ flex: 1, position: "relative", paddingTop: "20px", minWidth: 0 }}>
+          <DecorativeShapes />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "var(--font-display)", marginBottom: "14px" }}>
+              Built for real BA work
+            </div>
+
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.25, color: "var(--lc-text-1)", margin: "0 0 14px" }}>
+              Start from the beginning. Pick up midway. Keep the work connected.
+            </h2>
+            <p style={{ fontSize: "14px", color: "var(--lc-text-3)", lineHeight: 1.65, margin: "0 0 32px", maxWidth: "440px" }}>
+              Begin with the business context, or jump into requirements, process analysis, user stories, testing, or wherever the project needs you.
             </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+              {BENEFITS.map((b, i) => (
+                <div key={i} style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+                  <div style={{ width: "34px", height: "34px", borderRadius: "9px", background: "var(--lc-teal-bg)", color: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {b.icon}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--lc-text-1)", marginBottom: "2px" }}>{b.title}</div>
+                    <p style={{ fontSize: "12.5px", color: "var(--lc-text-3)", lineHeight: 1.55, margin: 0, maxWidth: "400px" }}>{b.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

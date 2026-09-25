@@ -51,8 +51,16 @@ export async function POST(req: Request) {
   try {
     const { email, password, fullName } = await req.json();
 
-    const nameErr = validateFullName(String(fullName ?? ""));
-    if (nameErr) return NextResponse.json({ error: nameErr, field: "name" }, { status: 400 });
+    // Full name is no longer collected at signup — it's optional here too, so
+    // any caller that does send one (or a future one) still gets validated,
+    // but its absence never blocks account creation. profiles.full_name has
+    // no NOT NULL constraint and handle_new_user() reads it via ->>'full_name',
+    // which is just NULL when the key is absent — see supabase/sync_profile_names.sql.
+    const trimmedName = String(fullName ?? "").trim();
+    if (trimmedName) {
+      const nameErr = validateFullName(trimmedName);
+      if (nameErr) return NextResponse.json({ error: nameErr, field: "name" }, { status: 400 });
+    }
     if (!email || !email.includes("@")) return NextResponse.json({ error: "Please enter a valid email address", field: "email" }, { status: 400 });
     if (!password || String(password).length < 8) return NextResponse.json({ error: "Password must be at least 8 characters", field: "password" }, { status: 400 });
 
@@ -60,7 +68,7 @@ export async function POST(req: Request) {
       email: email.toLowerCase().trim(),
       password: String(password),
       email_confirm: true,
-      user_metadata: { full_name: toTitleCase(String(fullName)) },
+      ...(trimmedName ? { user_metadata: { full_name: toTitleCase(trimmedName) } } : {}),
     });
 
     if (status === 422 || (data.msg && String(data.msg).toLowerCase().includes("already"))) {

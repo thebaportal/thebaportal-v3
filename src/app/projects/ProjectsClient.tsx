@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 
@@ -25,28 +25,67 @@ interface Props {
   organizations: Organization[];
 }
 
-const METHODOLOGY_LABEL: Record<string, string> = {
-  agile: "Agile",
-  waterfall: "Waterfall",
-  hybrid: "Hybrid",
-  safe: "SAFe",
-  babok: "Structured Analysis",
-};
-
-const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  active:    { bg: "rgba(46,122,78,.09)",  text: "#2e7a4e", border: "rgba(46,122,78,.22)" },
-  completed: { bg: "rgba(82,101,138,.09)", text: "#52658a", border: "rgba(82,101,138,.22)" },
-  on_hold:   { bg: "rgba(181,116,31,.09)", text: "#b5741f", border: "rgba(181,116,31,.22)" },
-  archived:  { bg: "rgba(122,115,96,.1)",  text: "#7a7360", border: "rgba(122,115,96,.2)" },
-};
-
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
-export default function ProjectsClient({ user, profile, projects, organizations }: Props) {
+// A project card is a destination, not a status readout — name, a one-line
+// sense of what it's about, when it last moved, and a way in. Everything
+// else (methodology, status, artifact counts) lives inside the project
+// itself once you open it.
+function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={onOpen}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex", flexDirection: "column", gap: 10,
+        minHeight: 168, padding: "22px 24px",
+        background: "var(--lc-surface)",
+        border: `1px solid ${hovered ? "var(--lc-teal-border)" : "var(--lc-border)"}`,
+        borderRadius: "var(--radius-lg)",
+        boxShadow: hovered ? "var(--lc-shadow-md)" : "none",
+        cursor: "pointer",
+        transition: "border-color .15s ease, box-shadow .15s ease",
+      }}
+    >
+      <h2 style={{
+        fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700,
+        color: "var(--lc-text-1)", letterSpacing: "-0.01em", margin: 0,
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>
+        {project.name}
+      </h2>
+
+      <p style={{
+        fontSize: 13, color: "var(--lc-text-3)", lineHeight: 1.55, margin: 0,
+        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as never,
+        overflow: "hidden", flex: 1,
+      }}>
+        {project.problem_statement || "No description yet."}
+      </p>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+        <span style={{ fontSize: 11.5, color: "var(--lc-text-4)" }}>
+          Updated {fmtDate(project.updated_at)}
+        </span>
+        <span style={{
+          display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700,
+          color: "var(--teal)", flexShrink: 0,
+        }}>
+          Open <span style={{ transition: "transform .15s ease", transform: hovered ? "translateX(2px)" : "none", display: "inline-block" }}>→</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function ProjectsClient({ user, profile, projects }: Props) {
   const router = useRouter();
   const [upgradeBanner, setUpgradeBanner] = useState(false);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -66,12 +105,20 @@ export default function ProjectsClient({ user, profile, projects, organizations 
       .catch(() => {});
   }, []);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter(p =>
+      p.name.toLowerCase().includes(q) || (p.problem_statement ?? "").toLowerCase().includes(q)
+    );
+  }, [projects, query]);
+
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--lc-bg)" }}>
       <AppSidebar activeHref="/projects" profile={profile} user={user} />
 
       <main className="app-shell-main" style={{ flex: 1, overflowY: "auto" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 32px" }}>
+        <div style={{ maxWidth: 1160, margin: "0 auto", padding: "40px 32px" }}>
 
           {upgradeBanner && (
             <div style={{ marginBottom: 24, padding: "14px 20px", background: "var(--lc-green-bg)", border: "1px solid var(--lc-green-border)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -81,26 +128,40 @@ export default function ProjectsClient({ user, profile, projects, organizations 
           )}
 
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 40 }}>
-            <div>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.03em", marginBottom: 6 }}>
-                My Projects
-              </h1>
-              <p style={{ fontSize: 14, color: "var(--lc-text-3)", lineHeight: 1.6 }}>
-                {projects.length > 0
-                  ? `${projects.length} project${projects.length !== 1 ? "s" : ""} across ${organizations.length} organisation${organizations.length !== 1 ? "s" : ""}`
-                  : "Your work lives here. Create your first project to get started."}
-              </p>
-            </div>
-            <button
-              onClick={() => router.push("/projects/new")}
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 20px", background: "var(--teal)", border: "none", borderRadius: 10, fontSize: 13.5, fontWeight: 700, color: "#f5f1e7", cursor: "pointer", flexShrink: 0, transition: "opacity .15s" }}
-              onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              New project
-            </button>
+          <div className="projects-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 32 }}>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.03em", margin: 0, flexShrink: 0 }}>
+              My Projects
+            </h1>
+
+            {projects.length > 0 && (
+              <div className="projects-header-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ position: "relative" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lc-text-4)" strokeWidth="2.5" strokeLinecap="round" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                    <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
+                  </svg>
+                  <input
+                    value={query} onChange={e => setQuery(e.target.value)}
+                    placeholder="Search projects"
+                    style={{
+                      width: 220, boxSizing: "border-box", height: 38, padding: "0 14px 0 34px",
+                      borderRadius: 9, border: "1px solid var(--lc-border)", background: "var(--lc-faint)",
+                      color: "var(--lc-text-1)", fontSize: 13.5, fontFamily: "var(--font-body)", outline: "none",
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = "var(--teal)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--lc-teal-bg)"; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = "var(--lc-border)"; e.currentTarget.style.boxShadow = "none"; }}
+                  />
+                </div>
+                <button
+                  onClick={() => router.push("/projects/new")}
+                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", background: "var(--teal)", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 700, color: "#f5f1e7", cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", transition: "opacity .15s" }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+                  onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  New project
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Empty state */}
@@ -124,54 +185,19 @@ export default function ProjectsClient({ user, profile, projects, organizations 
             </div>
           )}
 
-          {/* Projects list — compact rows, not a card gallery */}
+          {/* Project cards */}
           {projects.length > 0 && (
-            <div style={{ background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-              {projects.map((project, i) => {
-                const sc = STATUS_COLORS[project.status] ?? STATUS_COLORS.active;
-                const artifactCount = project.artifacts?.length ?? 0;
-                const approvedCount = project.artifacts?.filter(a => a.status === "approved").length ?? 0;
-
-                return (
-                  <div
-                    key={project.id}
-                    onClick={() => router.push(`/projects/${project.id}`)}
-                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 18px", cursor: "pointer", borderTop: i === 0 ? "none" : "1px solid var(--lc-border-soft)", transition: "background .15s" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--lc-faint)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 3, flexWrap: "wrap" }}>
-                        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "var(--lc-text-1)", letterSpacing: "-0.01em", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {project.name}
-                        </h2>
-                        {project.methodology && (
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--lc-text-4)" }}>
-                            {METHODOLOGY_LABEL[project.methodology] ?? project.methodology}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: "var(--lc-text-3)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        {project.organizations?.name && <span>{project.organizations.name}</span>}
-                        {artifactCount > 0 && (
-                          <>
-                            <span style={{ color: "var(--lc-text-5)" }}>·</span>
-                            <span>{artifactCount} artifact{artifactCount !== 1 ? "s" : ""}{approvedCount > 0 && <span style={{ color: "var(--lc-green)" }}> · {approvedCount} approved</span>}</span>
-                          </>
-                        )}
-                        <span style={{ color: "var(--lc-text-5)" }}>·</span>
-                        <span>Updated {fmtDate(project.updated_at)}</span>
-                      </div>
-                    </div>
-
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 600, padding: "3px 9px", borderRadius: 6, background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, textTransform: "uppercase", letterSpacing: ".06em", flexShrink: 0 }}>
-                      {project.status.replace("_", " ")}
-                    </span>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lc-text-4)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
-                  </div>
-                );
-              })}
-            </div>
+            filtered.length > 0 ? (
+              <div className="projects-grid">
+                {filtered.map(project => (
+                  <ProjectCard key={project.id} project={project} onOpen={() => router.push(`/projects/${project.id}`)} />
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "48px 32px", color: "var(--lc-text-4)", fontSize: 14 }}>
+                No projects match &ldquo;{query}&rdquo;.
+              </div>
+            )
           )}
         </div>
       </main>

@@ -5,8 +5,31 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { siteUrl } from "@/lib/siteUrl";
-import { getPostAuthRedirect } from "@/lib/postAuthRedirect";
 
+// Exactly three compact highlights, matching the reference — do not add a fourth.
+const HIGHLIGHTS = [
+  {
+    title: "Your projects", text: "Access and continue your work.",
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>,
+  },
+  {
+    title: "See what changed", text: "Stay aligned with the latest updates.",
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7M8 6.5h4a4 4 0 0 1 4 4"/></svg>,
+  },
+  {
+    title: "Keep moving", text: "Turn decisions into progress.",
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg>,
+  },
+];
+
+function DecorativeShapes() {
+  return (
+    <div aria-hidden className="login-decor" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+      <div style={{ position: "absolute", top: "-10%", right: "-14%", width: "320px", height: "320px", borderRadius: "50%", background: "radial-gradient(circle, rgba(52,64,125,0.06) 0%, transparent 70%)" }} />
+      <div style={{ position: "absolute", bottom: "0%", right: "-4%", width: "220px", height: "220px", borderRadius: "50%", background: "radial-gradient(circle, rgba(52,64,125,0.045) 0%, transparent 70%)" }} />
+    </div>
+  );
+}
 
 function LoginForm() {
   const router      = useRouter();
@@ -24,6 +47,8 @@ function LoginForm() {
   const [magicMode,    setMagicMode]    = useState(false);
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicSent,    setMagicSent]    = useState(false);
+  const [ef, setEf] = useState(false);
+  const [pf, setPf] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -68,32 +93,34 @@ function LoginForm() {
 
   const inp = (focused: boolean): React.CSSProperties => ({
     width: "100%", boxSizing: "border-box",
-    padding: "12px 14px",
+    height: "46px",
+    padding: "0 14px",
     borderRadius: "10px",
-    border: `1px solid ${focused ? "rgba(52,64,125,0.45)" : "rgba(255,255,255,0.09)"}`,
-    background: focused ? "rgba(52,64,125,0.05)" : "rgba(15,15,20,0.8)",
-    color: "#f0f0f4", fontSize: "14px",
-    fontFamily: "'Open Sans', sans-serif",
+    border: `1px solid ${focused ? "var(--teal)" : "var(--lc-border)"}`,
+    background: "var(--lc-faint)",
+    color: "var(--lc-text-1)", fontSize: "14px",
+    fontFamily: "var(--font-body)",
     outline: "none",
-    boxShadow: focused ? "0 0 0 3px rgba(52,64,125,0.07)" : "none",
-    transition: "all 0.18s ease",
+    boxShadow: focused ? "0 0 0 3px var(--lc-teal-bg)" : "none",
+    transition: "all 0.15s ease",
   });
 
-  const [ef, setEf] = useState(false);
-  const [pf, setPf] = useState(false);
+  const label: React.CSSProperties = {
+    fontSize: "11px", fontWeight: 700, color: "var(--lc-text-4)",
+    textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "var(--font-display)",
+  };
 
   if (magicSent) {
     return (
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "32px", marginBottom: "12px" }}>✉️</div>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "18px", fontWeight: 800, color: "#f0f0f4", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "20px", fontWeight: 800, color: "var(--lc-text-1)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
           Check your inbox
         </h2>
-        <p style={{ fontSize: "13px", color: "#9090a0", lineHeight: 1.6, margin: "0 0 16px" }}>
-          We sent a link to <strong style={{ color: "#f0f0f4" }}>{email}</strong>. Click it to sign in.
+        <p style={{ fontSize: "13px", color: "var(--lc-text-3)", lineHeight: 1.6, margin: "0 0 16px" }}>
+          We sent a link to <strong style={{ color: "var(--lc-text-1)" }}>{email}</strong>. Click it to sign in.
         </p>
         <button onClick={() => { setMagicSent(false); setMagicMode(false); }}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#34407d", fontSize: "13px", fontWeight: 600 }}>
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--teal)", fontSize: "13px", fontWeight: 700, fontFamily: "var(--font-display)" }}>
           Back to sign in
         </button>
       </div>
@@ -103,38 +130,31 @@ function LoginForm() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       {hint === "existing" && (
-        <div style={{ padding: "10px 13px", borderRadius: "9px", background: "rgba(52,64,125,0.07)", border: "1px solid rgba(52,64,125,0.2)", fontSize: "13px", color: "#34407d" }}>
+        <div style={{ padding: "10px 13px", borderRadius: "9px", background: "var(--lc-teal-bg)", border: "1px solid var(--lc-teal-border)", fontSize: "13px", color: "var(--teal)" }}>
           Looks like you already have an account. Sign in below.
         </div>
       )}
-      {/* Static heading */}
+
       <div>
-        <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: "32px", fontWeight: 800, letterSpacing: "-0.04em", color: "#f0f0f4", margin: 0 }}>
-          Sign in
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "30px", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--lc-text-1)", margin: "0 0 8px", lineHeight: 1.15 }}>
+          Welcome back.
         </h1>
+        <p style={{ fontSize: "13.5px", color: "var(--lc-text-3)", margin: 0 }}>Sign in to continue working on your projects.</p>
       </div>
 
       {!magicMode ? (
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* Email */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "11px", fontWeight: 700, color: "#6a6a7a", textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "'Inter', sans-serif" }}>
-              Email
-            </label>
+          <div>
+            <label style={{ ...label, display: "block", marginBottom: "6px" }}>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
               onFocus={() => setEf(true)} onBlur={() => setEf(false)}
-              placeholder="you@company.com" required style={inp(ef)} />
+              placeholder="you@example.com" required style={inp(ef)} />
           </div>
 
-          {/* Password */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <label style={{ fontSize: "11px", fontWeight: 700, color: "#6a6a7a", textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "'Inter', sans-serif" }}>
-                Password
-              </label>
-              <Link href="/forgot-password" style={{ fontSize: "12px", color: "#505060", textDecoration: "none" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "#34407d")}
-                onMouseLeave={e => (e.currentTarget.style.color = "#505060")}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <label style={label}>Password</label>
+              <Link href="/forgot-password" style={{ fontSize: "12px", color: "var(--teal)", fontWeight: 600, textDecoration: "none" }}>
                 Forgot?
               </Link>
             </div>
@@ -142,43 +162,40 @@ function LoginForm() {
               <input type={showPassword ? "text" : "password"} value={password}
                 onChange={e => setPassword(e.target.value)}
                 onFocus={() => setPf(true)} onBlur={() => setPf(false)}
-                placeholder="••••••••" required
-                style={{ ...inp(pf), paddingRight: "46px" }} />
+                placeholder="Enter your password" required
+                style={{ ...inp(pf), padding: "0 52px 0 14px" }} />
               <button type="button" onClick={() => setShowPassword(s => !s)} tabIndex={-1}
-                style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: showPassword ? "#34407d" : "#6a6a7a", fontSize: "12px", fontWeight: 600, lineHeight: 1, fontFamily: "'Inter', sans-serif" }}>
+                style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--teal)", fontSize: "12px", fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)", padding: "4px 2px" }}>
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
           </div>
 
           {error && (
-            <div style={{ padding: "12px 14px", borderRadius: "9px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)", fontSize: "13px", color: "#fca5a5", fontWeight: 600 }}>
+            <div style={{ padding: "11px 14px", borderRadius: "9px", background: "var(--lc-red-bg)", border: "1px solid var(--lc-red-border)", fontSize: "13px", color: "var(--lc-red)", fontWeight: 500 }}>
               {error}
             </div>
           )}
 
-          {/* Sign in */}
           <button type="submit" disabled={loading}
-            style={{ width: "100%", padding: "13px", borderRadius: "10px", border: "none", background: loading ? "rgba(52,64,125,0.5)" : "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, fontFamily: "'Inter', sans-serif", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: loading ? "none" : "0 0 20px rgba(52,64,125,0.18)", transition: "all 0.18s ease" }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "#46549a"; }}
-            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = "#34407d"; }}>
+            style={{ width: "100%", padding: "14px", borderRadius: "10px", border: "none", background: loading ? "var(--teal-soft)" : "var(--teal)", color: "#f5f1e7", fontSize: "14.5px", fontWeight: 700, fontFamily: "var(--font-display)", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "filter 0.18s ease" }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.filter = "brightness(1.08)"; }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.filter = "brightness(1)"; }}>
             {loading
               ? <><span style={{ width: "14px", height: "14px", borderRadius: "50%", border: "2px solid #f5f1e7", borderTopColor: "transparent", animation: "spin 0.8s linear infinite", display: "inline-block" }} />Signing in...</>
               : "Sign in"}
           </button>
 
-          {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
-            <span style={{ fontSize: "11px", color: "#333342" }}>or</span>
-            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+            <div style={{ flex: 1, height: "1px", background: "var(--lc-border)" }} />
+            <span style={{ fontSize: "11px", color: "var(--lc-text-4)" }}>or</span>
+            <div style={{ flex: 1, height: "1px", background: "var(--lc-border)" }} />
           </div>
 
-          {/* Magic link */}
           <button type="button" onClick={() => { setMagicMode(true); setError(""); }}
-            style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: "#9090a0", fontSize: "13px", fontWeight: 600, fontFamily: "'Inter', sans-serif", cursor: "pointer", transition: "all 0.18s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(52,64,125,0.25)"; e.currentTarget.style.color = "#f0f0f4"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#9090a0"; }}>
+            style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: "1px solid var(--lc-border)", background: "none", color: "var(--lc-text-2)", fontSize: "13.5px", fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--teal-border)"; e.currentTarget.style.color = "var(--teal)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--lc-border)"; e.currentTarget.style.color = "var(--lc-text-2)"; }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <rect x="2" y="4" width="20" height="16" rx="2" />
               <path d="m2 7 10 7 10-7" />
@@ -186,43 +203,35 @@ function LoginForm() {
             Send me a magic link instead
           </button>
 
-          {/* Create account */}
-          <p style={{ margin: 0, textAlign: "center", fontSize: "13px", color: "#505060" }}>
+          <p style={{ margin: 0, textAlign: "center", fontSize: "13px", color: "var(--lc-text-4)" }}>
             No account?{" "}
-            <Link href={signupHref}
-              style={{ color: "#34407d", textDecoration: "none", fontWeight: 600, transition: "opacity 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = "0.75")}
-              onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+            <Link href={signupHref} style={{ color: "var(--teal)", textDecoration: "none", fontWeight: 700 }}>
               Create one
             </Link>
           </p>
         </form>
       ) : (
-        <>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "11px", fontWeight: 700, color: "#6a6a7a", textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "'Inter', sans-serif" }}>
-              Email
-            </label>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div>
+            <label style={{ ...label, display: "block", marginBottom: "6px" }}>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
               onFocus={() => setEf(true)} onBlur={() => setEf(false)}
-              autoFocus placeholder="you@company.com" style={inp(ef)} />
+              autoFocus placeholder="you@example.com" style={inp(ef)} />
           </div>
           {error && (
-            <div style={{ padding: "11px 14px", borderRadius: "9px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.35)", fontSize: "13px", color: "#fca5a5", fontWeight: 500 }}>
+            <div style={{ padding: "11px 14px", borderRadius: "9px", background: "var(--lc-red-bg)", border: "1px solid var(--lc-red-border)", fontSize: "13px", color: "var(--lc-red)", fontWeight: 500 }}>
               {error}
             </div>
           )}
           <button type="button" onClick={handleMagicLink} disabled={magicLoading}
-            style={{ width: "100%", padding: "13px", borderRadius: "10px", border: "none", background: magicLoading ? "rgba(52,64,125,0.5)" : "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, fontFamily: "'Inter', sans-serif", cursor: magicLoading ? "not-allowed" : "pointer" }}>
+            style={{ width: "100%", padding: "14px", borderRadius: "10px", border: "none", background: magicLoading ? "var(--teal-soft)" : "var(--teal)", color: "#f5f1e7", fontSize: "14.5px", fontWeight: 700, fontFamily: "var(--font-display)", cursor: magicLoading ? "not-allowed" : "pointer" }}>
             {magicLoading ? "Sending..." : "Send magic link"}
           </button>
           <button type="button" onClick={() => { setMagicMode(false); setError(""); }}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#505060", fontSize: "13px", textAlign: "center" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#9090a0")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#505060")}>
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--lc-text-3)", fontSize: "13px", textAlign: "center", fontFamily: "var(--font-body)" }}>
             Back to password sign in
           </button>
-        </>
+        </div>
       )}
     </div>
   );
@@ -230,54 +239,57 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div style={{ height: "100vh", background: "#09090b", display: "flex", fontFamily: "'Open Sans', sans-serif", overflow: "hidden" }}>
-      {/* Background grid */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.03) 1px, transparent 1px)`, backgroundSize: "60px 60px", maskImage: "radial-gradient(ellipse 60% 80% at 30% 50%, black 20%, transparent 100%)" }} />
-
-      {/* Left panel */}
-      <div className="hidden lg:flex" style={{ flex: "0 0 44%", flexDirection: "column", justifyContent: "space-between", padding: "36px 40px", borderRight: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden", background: "linear-gradient(160deg, rgba(52,64,125,0.04) 0%, transparent 50%)" }}>
-        {/* Grid overlay */}
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.07) 1px, transparent 1px)`, backgroundSize: "40px 40px", maskImage: "radial-gradient(ellipse 80% 80% at 30% 40%, black 10%, transparent 80%)" }} />
-        {/* Glow behind quote */}
-        <div style={{ position: "absolute", top: "35%", left: "-5%", width: "340px", height: "340px", background: "radial-gradient(ellipse, rgba(52,64,125,0.13) 0%, transparent 65%)", filter: "blur(55px)", pointerEvents: "none" }} />
-        {/* Ambient glow */}
-        <div style={{ position: "absolute", top: "25%", left: "10%", width: "420px", height: "420px", background: "radial-gradient(ellipse, rgba(52,64,125,0.06) 0%, transparent 70%)", filter: "blur(70px)", pointerEvents: "none" }} />
-
-        <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", position: "relative", zIndex: 1 }}>
-          <span style={{ fontSize: "17px", fontWeight: 700, color: "#f0f0f4", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-            The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
+    <div style={{ minHeight: "100vh", background: "var(--lc-bg)", fontFamily: "var(--font-body)" }}>
+      <header className="login-header" style={{ display: "flex", alignItems: "center", padding: "24px 48px", maxWidth: "1280px", margin: "0 auto" }}>
+        <Link href="/" style={{ textDecoration: "none" }}>
+          <span style={{ fontSize: "16px", fontWeight: 700, color: "var(--lc-text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
+            The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </span>
         </Link>
+      </header>
 
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <p style={{ fontSize: "19px", fontWeight: 700, color: "#f0f0f4", lineHeight: 1.45, margin: 0, fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-            The work never gets easier.<br />The tools should.
-          </p>
+      <div className="login-columns" style={{ display: "flex", alignItems: "flex-start", gap: "64px", maxWidth: "1280px", margin: "0 auto", padding: "24px 48px 64px", position: "relative" }}>
+        {/* Left — sign-in card */}
+        <div className="login-card-col" style={{ flex: "0 0 500px", position: "relative", zIndex: 1 }}>
+          <div style={{ width: "100%", padding: "40px", borderRadius: "var(--radius-lg)", border: "1px solid var(--lc-border)", background: "var(--lc-surface)", boxShadow: "var(--lc-shadow-md)" }}>
+            <Suspense fallback={<div style={{ color: "var(--lc-text-4)", fontSize: "13px", textAlign: "center" }}>Loading...</div>}>
+              <LoginForm />
+            </Suspense>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: "28px", position: "relative", zIndex: 1 }}>
-          {[{ val: "7", label: "BA workstreams" }, { val: "5", label: "Decision Lab modes" }, { val: "1", label: "Connected project" }].map(s => (
-            <div key={s.label}>
-              <div style={{ fontSize: "20px", fontWeight: 800, color: "#34407d", letterSpacing: "-0.03em", fontFamily: "'Inter', sans-serif" }}>{s.val}</div>
-              <div style={{ fontSize: "11px", color: "#505060", marginTop: "2px" }}>{s.label}</div>
+        {/* Right — calm return-user message */}
+        <div className="login-right-col" style={{ flex: 1, position: "relative", paddingTop: "20px", minWidth: 0 }}>
+          <DecorativeShapes />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--teal)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "var(--font-display)", marginBottom: "14px" }}>
+              Real work. Real progress.
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Right panel */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 48px", position: "relative" }}>
-        <div className="lg:hidden" style={{ position: "absolute", top: "20px", left: "20px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-            <span style={{ fontSize: "14px", fontWeight: 700, color: "#f0f0f4", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-              The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
-            </span>
-          </Link>
-        </div>
-        <div style={{ width: "100%", maxWidth: "360px", padding: "32px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", backdropFilter: "blur(12px)" }}>
-          <Suspense fallback={<div style={{ color: "#505060", fontSize: "13px", textAlign: "center" }}>Loading...</div>}>
-            <LoginForm />
-          </Suspense>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "30px", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.2, color: "var(--lc-text-1)", margin: "0 0 14px" }}>
+              Pick up where you left off.
+            </h2>
+            <p style={{ fontSize: "14px", color: "var(--lc-text-3)", lineHeight: 1.65, margin: "0 0 32px", maxWidth: "440px" }}>
+              Your projects, approved context, decisions, requirements and testing stay connected as the work evolves.
+            </p>
+
+            <div className="login-highlights" style={{ display: "flex", gap: "28px" }}>
+              {HIGHLIGHTS.map((h, i) => (
+                <div key={i} style={{ maxWidth: "160px" }}>
+                  <div style={{ width: "34px", height: "34px", borderRadius: "9px", background: "var(--lc-teal-bg)", color: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "10px" }}>
+                    {h.icon}
+                  </div>
+                  <div style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--lc-text-1)", marginBottom: "3px" }}>{h.title}</div>
+                  <p style={{ fontSize: "12px", color: "var(--lc-text-3)", lineHeight: 1.5, margin: 0 }}>{h.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ height: "1px", background: "var(--lc-border)", margin: "28px 0 16px", maxWidth: "440px" }} />
+            <div style={{ fontSize: "10.5px", fontWeight: 700, color: "var(--lc-text-5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "var(--font-display)" }}>
+              Same context. A clearer path forward.
+            </div>
+          </div>
         </div>
       </div>
 
