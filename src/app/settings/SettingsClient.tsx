@@ -278,8 +278,13 @@ function PasswordResetButton({ email }: { email: string }) {
     try {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
+      // Must match forgot-password's redirectTo exactly — both recovery entry
+      // points need to land on the same-form after verification. The old
+      // `?type=recovery` here was never actually read by anything: /auth/callback
+      // reads `type` from the verification request itself (which the email
+      // template constructs), not from this redirectTo string.
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${siteUrl()}/auth/callback?type=recovery`,
+        redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent("/reset-password")}`,
       });
       if (error) {
         console.error("[Settings] resetPasswordForEmail failed:", error.message);

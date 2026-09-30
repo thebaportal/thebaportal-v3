@@ -30,16 +30,22 @@ function ResetPasswordForm() {
 
   const inp = (focused: boolean): React.CSSProperties => ({
     width: "100%", boxSizing: "border-box",
-    padding: "12px 14px",
+    height: "46px",
+    padding: "0 14px",
     borderRadius: "10px",
-    border: `1px solid ${focused ? "rgba(52,64,125,0.45)" : "rgba(255,255,255,0.09)"}`,
-    background: focused ? "rgba(52,64,125,0.05)" : "rgba(15,15,20,0.8)",
-    color: "#f0f0f4", fontSize: "14px",
-    fontFamily: "'Open Sans', sans-serif",
+    border: `1px solid ${focused ? "var(--teal)" : "var(--lc-border)"}`,
+    background: "var(--lc-faint)",
+    color: "var(--lc-text-1)", fontSize: "14px",
+    fontFamily: "var(--font-body)",
     outline: "none",
-    boxShadow: focused ? "0 0 0 3px rgba(52,64,125,0.07)" : "none",
-    transition: "all 0.18s ease",
+    boxShadow: focused ? "0 0 0 3px var(--lc-teal-bg)" : "none",
+    transition: "all 0.15s ease",
   });
+
+  const label: React.CSSProperties = {
+    fontSize: "11px", fontWeight: 700, color: "var(--lc-text-4)",
+    textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "var(--font-display)",
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,19 +72,19 @@ function ResetPasswordForm() {
   }
 
   if (checking) {
-    return <div style={{ color: "#505060", fontSize: "13px", textAlign: "center" }}>Loading...</div>;
+    return <div style={{ color: "var(--lc-text-4)", fontSize: "13px", textAlign: "center" }}>Loading...</div>;
   }
 
   if (!hasSession) {
     return (
       <div style={{ textAlign: "center" }}>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "18px", fontWeight: 800, color: "#f0f0f4", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "20px", fontWeight: 800, color: "var(--lc-text-1)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
           Link expired or invalid
         </h2>
-        <p style={{ fontSize: "13px", color: "#9090a0", lineHeight: 1.6, margin: "0 0 16px" }}>
+        <p style={{ fontSize: "13px", color: "var(--lc-text-3)", lineHeight: 1.6, margin: "0 0 16px" }}>
           This password reset link is no longer valid. Request a new one to continue.
         </p>
-        <Link href="/forgot-password" style={{ color: "#34407d", textDecoration: "none", fontSize: "13px", fontWeight: 600 }}>
+        <Link href="/forgot-password" style={{ color: "var(--teal)", textDecoration: "none", fontSize: "13px", fontWeight: 700, fontFamily: "var(--font-display)" }}>
           Request a new link
         </Link>
       </div>
@@ -88,11 +94,10 @@ function ResetPasswordForm() {
   if (done) {
     return (
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "32px", marginBottom: "12px" }}>✅</div>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: "18px", fontWeight: 800, color: "#f0f0f4", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "20px", fontWeight: 800, color: "var(--lc-green)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
           Password updated
         </h2>
-        <p style={{ fontSize: "13px", color: "#9090a0", lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: "13px", color: "var(--lc-text-3)", lineHeight: 1.6, margin: 0 }}>
           Taking you to your projects...
         </p>
       </div>
@@ -102,52 +107,48 @@ function ResetPasswordForm() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div>
-        <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: "28px", fontWeight: 800, letterSpacing: "-0.04em", color: "#f0f0f4", margin: "0 0 8px" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--lc-text-1)", margin: "0 0 8px", lineHeight: 1.15 }}>
           Set a new password
         </h1>
-        <p style={{ fontSize: "13px", color: "#9090a0", margin: 0, lineHeight: 1.5 }}>
+        <p style={{ fontSize: "13.5px", color: "var(--lc-text-3)", margin: 0, lineHeight: 1.5 }}>
           Choose a new password for your account.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "11px", fontWeight: 700, color: "#6a6a7a", textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "'Inter', sans-serif" }}>
-            New password
-          </label>
+        <div>
+          <label style={{ ...label, display: "block", marginBottom: "6px" }}>New password</label>
           <div style={{ position: "relative" }}>
             <input type={showPassword ? "text" : "password"} value={password}
               onChange={e => setPassword(e.target.value)}
               onFocus={() => setPf(true)} onBlur={() => setPf(false)}
-              placeholder="••••••••" required
-              style={{ ...inp(pf), paddingRight: "46px" }} />
+              placeholder="Min. 8 characters" required
+              style={{ ...inp(pf), padding: "0 52px 0 14px" }} />
             <button type="button" onClick={() => setShowPassword(s => !s)} tabIndex={-1}
-              style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: showPassword ? "#34407d" : "#6a6a7a", fontSize: "12px", fontWeight: 600, lineHeight: 1, fontFamily: "'Inter', sans-serif" }}>
+              style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--teal)", fontSize: "12px", fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)", padding: "4px 2px" }}>
               {showPassword ? "Hide" : "Show"}
             </button>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "11px", fontWeight: 700, color: "#6a6a7a", textTransform: "uppercase", letterSpacing: "0.07em", fontFamily: "'Inter', sans-serif" }}>
-            Confirm password
-          </label>
+        <div>
+          <label style={{ ...label, display: "block", marginBottom: "6px" }}>Confirm password</label>
           <input type={showPassword ? "text" : "password"} value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)}
             onFocus={() => setCf(true)} onBlur={() => setCf(false)}
-            placeholder="••••••••" required style={inp(cf)} />
+            placeholder="Re-enter password" required style={inp(cf)} />
         </div>
 
         {error && (
-          <div style={{ padding: "12px 14px", borderRadius: "9px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)", fontSize: "13px", color: "#fca5a5", fontWeight: 600 }}>
+          <div style={{ padding: "11px 14px", borderRadius: "9px", background: "var(--lc-red-bg)", border: "1px solid var(--lc-red-border)", fontSize: "13px", color: "var(--lc-red)", fontWeight: 500 }}>
             {error}
           </div>
         )}
 
         <button type="submit" disabled={loading}
-          style={{ width: "100%", padding: "13px", borderRadius: "10px", border: "none", background: loading ? "rgba(52,64,125,0.5)" : "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, fontFamily: "'Inter', sans-serif", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: loading ? "none" : "0 0 20px rgba(52,64,125,0.18)", transition: "all 0.18s ease" }}
-          onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "#46549a"; }}
-          onMouseLeave={e => { if (!loading) e.currentTarget.style.background = "#34407d"; }}>
+          style={{ width: "100%", padding: "14px", borderRadius: "10px", border: "none", background: loading ? "var(--teal-soft)" : "var(--teal)", color: "#f5f1e7", fontSize: "14.5px", fontWeight: 700, fontFamily: "var(--font-display)", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "filter 0.18s ease" }}
+          onMouseEnter={e => { if (!loading) e.currentTarget.style.filter = "brightness(1.08)"; }}
+          onMouseLeave={e => { if (!loading) e.currentTarget.style.filter = "brightness(1)"; }}>
           {loading
             ? <><span style={{ width: "14px", height: "14px", borderRadius: "50%", border: "2px solid #f5f1e7", borderTopColor: "transparent", animation: "spin 0.8s linear infinite", display: "inline-block" }} />Updating...</>
             : "Update password"}
@@ -159,50 +160,18 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div style={{ height: "100vh", background: "#09090b", display: "flex", fontFamily: "'Open Sans', sans-serif", overflow: "hidden" }}>
-      {/* Background grid */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.03) 1px, transparent 1px)`, backgroundSize: "60px 60px", maskImage: "radial-gradient(ellipse 60% 80% at 30% 50%, black 20%, transparent 100%)" }} />
-
-      {/* Left panel */}
-      <div className="hidden lg:flex" style={{ flex: "0 0 44%", flexDirection: "column", justifyContent: "space-between", padding: "36px 40px", borderRight: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden", background: "linear-gradient(160deg, rgba(52,64,125,0.04) 0%, transparent 50%)" }}>
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: `linear-gradient(rgba(52,64,125,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(52,64,125,0.07) 1px, transparent 1px)`, backgroundSize: "40px 40px", maskImage: "radial-gradient(ellipse 80% 80% at 30% 40%, black 10%, transparent 80%)" }} />
-        <div style={{ position: "absolute", top: "35%", left: "-5%", width: "340px", height: "340px", background: "radial-gradient(ellipse, rgba(52,64,125,0.13) 0%, transparent 65%)", filter: "blur(55px)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "25%", left: "10%", width: "420px", height: "420px", background: "radial-gradient(ellipse, rgba(52,64,125,0.06) 0%, transparent 70%)", filter: "blur(70px)", pointerEvents: "none" }} />
-
-        <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", position: "relative", zIndex: 1 }}>
-          <span style={{ fontSize: "17px", fontWeight: 700, color: "#f0f0f4", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-            The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
+    <div style={{ minHeight: "100vh", background: "var(--lc-bg)", fontFamily: "var(--font-body)" }}>
+      <header style={{ display: "flex", alignItems: "center", padding: "24px 48px", maxWidth: "1280px", margin: "0 auto" }}>
+        <Link href="/" style={{ textDecoration: "none" }}>
+          <span style={{ fontSize: "16px", fontWeight: 700, color: "var(--lc-text-1)", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
+            The<span style={{ color: "var(--teal)" }}>BA</span>Portal
           </span>
         </Link>
+      </header>
 
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ fontSize: "36px", color: "#34407d", lineHeight: 1, marginBottom: "16px", opacity: 0.5, fontFamily: "'Inter', sans-serif" }}>&ldquo;</div>
-          <blockquote style={{ fontSize: "19px", fontWeight: 700, color: "#f0f0f4", lineHeight: 1.45, margin: "0 0 18px", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-            The work never gets easier.<br />The tools should.
-          </blockquote>
-        </div>
-
-        <div style={{ display: "flex", gap: "28px", position: "relative", zIndex: 1 }}>
-          {[{ val: "7", label: "BA workstreams" }, { val: "5", label: "Decision Lab modes" }, { val: "1", label: "Connected project" }].map(s => (
-            <div key={s.label}>
-              <div style={{ fontSize: "20px", fontWeight: 800, color: "#34407d", letterSpacing: "-0.03em", fontFamily: "'Inter', sans-serif" }}>{s.val}</div>
-              <div style={{ fontSize: "11px", color: "#505060", marginTop: "2px" }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Right panel */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 48px", position: "relative" }}>
-        <div className="lg:hidden" style={{ position: "absolute", top: "20px", left: "20px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-            <span style={{ fontSize: "14px", fontWeight: 700, color: "#f0f0f4", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.02em" }}>
-              The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
-            </span>
-          </Link>
-        </div>
-        <div style={{ width: "100%", maxWidth: "360px", padding: "32px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", backdropFilter: "blur(12px)" }}>
-          <Suspense fallback={<div style={{ color: "#505060", fontSize: "13px", textAlign: "center" }}>Loading...</div>}>
+      <div style={{ display: "flex", justifyContent: "center", padding: "40px 24px 64px" }}>
+        <div style={{ width: "100%", maxWidth: "420px", padding: "40px", borderRadius: "var(--radius-lg)", border: "1px solid var(--lc-border)", background: "var(--lc-surface)", boxShadow: "var(--lc-shadow-md)" }}>
+          <Suspense fallback={<div style={{ color: "var(--lc-text-4)", fontSize: "13px", textAlign: "center" }}>Loading...</div>}>
             <ResetPasswordForm />
           </Suspense>
         </div>
