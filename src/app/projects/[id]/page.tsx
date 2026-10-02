@@ -14,7 +14,7 @@ function admin() {
   );
 }
 
-export default async function ProjectPage({ params }: { params: { id: string } }) {
+export default async function ProjectPage({ params, searchParams }: { params: { id: string }; searchParams: { tab?: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
@@ -42,6 +42,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       initialDecisions={(decisionsRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialDecisions"]}
       initialFindings={findings as Parameters<typeof ProjectWorkspaceClient>[0]["initialFindings"]}
       initialReviewFindings={(reviewFindingsRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialReviewFindings"]}
+      initialTab={searchParams.tab === "work" ? "work" : "home"}
     />
   );
 }

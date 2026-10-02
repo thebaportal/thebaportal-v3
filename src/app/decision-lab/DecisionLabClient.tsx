@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
+import ProjectNavBar from "@/components/ProjectNavBar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -870,7 +870,6 @@ function buildDecisionArtifactContent(situation: string, results: Partial<Record
 }
 
 export default function DecisionLabClient({ user, initialProjectId }: Props) {
-  const router = useRouter();
   const [situation, setSituation] = useState("");
   const [activeMode, setActiveMode] = useState<Mode | null>(null);
   const [results, setResults] = useState<Partial<Record<Mode, ModeResult>>>({});
@@ -889,6 +888,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
   const mainRef = useRef<HTMLElement>(null);
   const situationRef = useRef("");
 
+  const selectedProject = projects.find(p => p.id === selectedProjectId) ?? null;
   const situationLocked = Object.keys(results).length > 0;
   const completedModes = new Set<Mode>(Object.keys(results) as Mode[]);
 
@@ -1047,21 +1047,19 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#F8F7F4" }}>
-      <AppSidebar activeHref="/decision-lab" profile={null} user={user} />
+      <AppSidebar activeHref={selectedProject ? "/projects" : "/decision-lab"} profile={null} user={user} />
+
+      <div className="app-shell-main" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+      {/* Inside a project, Decision Lab sits in the project shell — the shared
+          project tab bar replaces the old one-off "Back to project" link. */}
+      {selectedProject && <ProjectNavBar projectId={selectedProject.id} projectName={selectedProject.name} active="decisions" />}
 
       <main ref={mainRef} style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: "40px 40px 60px", maxWidth: 960, margin: "0 auto" }}>
 
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
+          <div className="dl-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
             <div>
-              {selectedProjectId && (
-                <button onClick={() => router.push(`/projects/${selectedProjectId}`)}
-                  style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#64748B", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 10 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                  Back to project
-                </button>
-              )}
               <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "#1C1C2E", letterSpacing: "-0.02em", margin: "0 0 6px" }}>
                 Decision Lab
               </h1>
@@ -1069,7 +1067,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
                 Enter your situation once. Analyze it five different ways.
               </p>
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div className="dl-header-actions" style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <ProjectPicker projects={projects} selectedId={selectedProjectId} onSelect={id => { setSelectedProjectId(id); setSaveStatus("idle"); }} />
               {Object.keys(results).length > 0 && selectedProjectId && (
                 <button
@@ -1150,6 +1148,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
 
         </div>
       </main>
+      </div>
 
       <DecisionLog
         sessions={sessions}

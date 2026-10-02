@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { parseContextBlocks } from "@/lib/projects/contextText";
 
 interface ContextNote {
   id: string;
@@ -43,6 +44,18 @@ export default function ProjectContextDrawer({ projectId, overview, onClose }: P
       .catch(() => { if (!cancelled) setLoadError(true); });
     return () => { cancelled = true; };
   }, [projectId]);
+
+  useEffect(() => {
+    // Escape while typing a note only leaves the textarea, so an unsaved
+    // draft is never lost to a stray keypress; a second Escape closes.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (e.target instanceof HTMLTextAreaElement) { e.target.blur(); return; }
+      onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function handleSave() {
     const text = draft.trim();
@@ -92,7 +105,15 @@ export default function ProjectContextDrawer({ projectId, overview, onClose }: P
               Project overview
             </div>
             {overview ? (
-              <p style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>{overview}</p>
+              <div>
+                {parseContextBlocks(overview).map((block, i) => block.type === "list" ? (
+                  <ul key={i} style={{ margin: "0 0 10px", paddingLeft: 18, listStyle: "disc" }}>
+                    {block.items.map((item, j) => <li key={j} style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.65, marginBottom: 4 }}>{item}</li>)}
+                  </ul>
+                ) : (
+                  <p key={i} style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.65, margin: "0 0 10px" }}>{block.text}</p>
+                ))}
+              </div>
             ) : (
               <p style={{ fontSize: 13, color: "var(--lc-text-4)", lineHeight: 1.6, margin: 0 }}>No project context was entered when this project was created.</p>
             )}

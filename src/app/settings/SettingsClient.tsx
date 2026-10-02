@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { siteUrl } from "@/lib/siteUrl";
+import { getInitials } from "@/lib/initials";
 import AppSidebar from "@/components/AppSidebar";
 
 interface Props {
@@ -53,7 +54,7 @@ export default function SettingsClient({ userId, email, fullName, isPro, subscri
   const [saveError, setSaveError]     = useState("");
   const [signingOut, setSigningOut]   = useState(false);
 
-  const initials = (name || email).slice(0, 2).toUpperCase();
+  const initials = getInitials(name, email);
   const sidebarProfile = { full_name: fullName || null, subscription_tier: isPro ? "pro" : null };
   const sidebarUser = { email };
 

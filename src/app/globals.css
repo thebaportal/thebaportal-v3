@@ -510,6 +510,16 @@
       padding: 24px 18px !important;
       gap: 28px !important;
     }
+
+    /* Decision Lab header — title and actions can't share one row on a
+       phone; without wrapping, Decision Log was pushed off-screen. */
+    .dl-header {
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .dl-header-actions {
+      flex-wrap: wrap;
+    }
   }
 
   /* New Project — Organisation and Delivery approach share one row on

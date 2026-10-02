@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import AppSidebar from "@/components/AppSidebar";
+import ProjectNavBar from "@/components/ProjectNavBar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Category = "requirement" | "business_rule" | "unresolved_question" | "contradiction" | "edge_case";
@@ -293,6 +294,7 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
   const [projects] = useState<ProjectOption[]>(initialProjects);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const selectedProject = projects.find(p => p.id === selectedProjectId) ?? null;
 
   const [session, setSession] = useState<FullSession | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -491,7 +493,12 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--lc-bg)" }}>
-      <AppSidebar activeHref="/ba-intelligence" profile={profile} user={user} />
+      <AppSidebar activeHref={selectedProject ? "/projects" : "/ba-intelligence"} profile={profile} user={user} />
+
+      <div className="app-shell-main" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+      {/* Inside a project, BA Intelligence sits in the project shell — the
+          shared project tab bar replaces the old one-off "Back to project" link. */}
+      {hydrated && selectedProject && <ProjectNavBar projectId={selectedProject.id} projectName={selectedProject.name} active="intelligence" />}
 
       <main style={{ flex: 1, overflowY: "auto" }}>
         {!hydrated ? null : !selectedProjectId ? (
@@ -513,10 +520,6 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
                   <button onClick={changeProject} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--teal)", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit" }}>
                     Switch project
                   </button>
-                  {" · "}
-                  <Link href={`/projects/${selectedProjectId}`} style={{ color: "var(--teal)", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>
-                    Back to project
-                  </Link>
                 </div>
               </div>
 
@@ -666,6 +669,7 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
           </div>
         )}
       </main>
+      </div>
 
       <SessionHistoryPanel
         visible={historyOpen}

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
+import ProjectNavBar from "@/components/ProjectNavBar";
 import DocumentViewer from "@/components/DocumentViewer";
 import { buildRTM } from "@/lib/rtm";
 import { computeAttention, extractItemIds, type AttentionItem } from "@/lib/projects/attention";
@@ -48,6 +49,7 @@ interface Props {
   initialDecisions: Decision[];
   initialFindings: Finding[];
   initialReviewFindings: ReviewFinding[];
+  initialTab?: "home"|"work";
 }
 
 // ── Workstream definitions ─────────────────────────────────────────────────────
@@ -1275,9 +1277,9 @@ function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; arti
 }
 
 // ── Main export ────────────────────────────────────────────────────────────────
-export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings,initialReviewFindings}:Props) {
+export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings,initialReviewFindings,initialTab="home"}:Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab]           = useState<"home"|"work">("home");
+  const [activeTab, setActiveTab]           = useState<"home"|"work">(initialTab);
   const [activeWs, setActiveWs]             = useState<Workstream|null>(null);
   const [viewingArtifact, setViewingArtifact] = useState<Artifact|null>(null);
   const [artifacts, setArtifacts]           = useState<Artifact[]>(initialArtifacts);
@@ -1287,26 +1289,6 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
   const [decisionModal, setDecisionModal]   = useState<{open:boolean;prefill?:string}>({open:false});
   const [panelOpen, setPanelOpen]           = useState(true);
   const [showRTM, setShowRTM]               = useState(false);
-
-  // Keeps the active project-nav tab visible on the narrow strip below
-  // ~480px, in case the four tabs ever need their scroll fallback (long
-  // labels, larger text-zoom) rather than fitting on their compact single row.
-  const tabsRowRef = useRef<HTMLDivElement>(null);
-  const activeTabRef = useRef<HTMLButtonElement>(null);
-  const [tabsOverflowing, setTabsOverflowing] = useState(false);
-  useEffect(() => {
-    activeTabRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [activeTab]);
-  useEffect(() => {
-    const el = tabsRowRef.current;
-    if (!el) return;
-    const check = () => setTabsOverflowing(el.scrollWidth > el.clientWidth + 1);
-    check();
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    window.addEventListener("resize", check);
-    return () => { ro.disconnect(); window.removeEventListener("resize", check); };
-  }, []);
 
   function goToWorkstream(wsId: WorkstreamId) {
     const ws = WORKSTREAMS.find(w => w.id === wsId);
@@ -1347,52 +1329,13 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
 
   const activeArtifacts = artifacts.filter(a=>a.status!=="superseded"&&a.status!=="archived");
 
-  const TABS: {id:"home"|"work"|"decisions"|"intelligence"; label:string; onClick:()=>void}[] = [
-    {id:"home", label:"Home", onClick:()=>setActiveTab("home")},
-    {id:"work", label:"Work", onClick:()=>setActiveTab("work")},
-    {id:"decisions", label:"Decisions", onClick:()=>router.push(`/decision-lab?project=${project.id}`)},
-    {id:"intelligence", label:"Intelligence", onClick:()=>router.push(`/ba-intelligence?project=${project.id}`)},
-  ];
-
   return (
     <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--lc-bg)"}}>
       <AppSidebar activeHref="/projects" profile={profile} user={user}/>
 
       <div className="app-shell-main" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        {/* Project nav — Home / Work / Decisions / Intelligence. Decisions and
-            Intelligence are project-scoped destinations (Decision Lab and BA
-            Intelligence), reached from here rather than global app nav.
-            Below ~480px the breadcrumb and the four tabs split onto their own
-            rows (project-nav-bar CSS) so the tabs get the full row width —
-            at that width the breadcrumb alone is short enough to never need
-            it, while cramming both onto one row is what caused tabs to run
-            off-screen with no visible way to reach them. The tabs row keeps
-            horizontal scroll plus an edge fade as a safety net (long labels,
-            larger text-zoom), and the active tab is scrolled into view. */}
-        <div className="project-nav-bar" style={{flexShrink:0,display:"flex",alignItems:"center",gap:2,padding:"0 20px",height:52,borderBottom:"1px solid var(--lc-border)",background:"var(--lc-surface)"}}>
-          <div className="project-nav-crumb" style={{display:"flex",alignItems:"center",flexShrink:0,minWidth:0}}>
-            <button onClick={()=>router.push("/projects")}
-              style={{display:"flex",alignItems:"center",gap:4,fontSize:11.5,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0,marginRight:14,flexShrink:0}}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> All projects
-            </button>
-            <span style={{fontSize:13,fontWeight:700,color:"var(--lc-text-1)",marginRight:18,flexShrink:0,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project.name}</span>
-          </div>
-          <div className={`project-tabs-row${tabsOverflowing ? " is-scrollable" : ""}`} ref={tabsRowRef} style={{display:"flex",alignItems:"center",gap:2,overflowX:"auto"}}>
-            {TABS.map(t=>{
-              const active = t.id===activeTab;
-              return (
-                <button key={t.id} onClick={t.onClick} ref={active ? activeTabRef : null}
-                  style={{padding:"7px 12px",borderRadius:8,fontSize:12.5,fontWeight:active?700:600,color:active?"var(--teal)":"var(--lc-text-2)",background:active?"rgba(52,64,125,.07)":"none",border:"1px solid transparent",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap",fontFamily:"inherit"}}
-                  onMouseEnter={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-1)";}}
-                  onMouseLeave={e=>{if(!active)e.currentTarget.style.color="var(--lc-text-2)";}}>
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+        <ProjectNavBar projectId={project.id} projectName={project.name} active={activeTab}
+          onHome={()=>setActiveTab("home")} onWork={()=>setActiveTab("work")}/>
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
 
       {/* On mobile the project panel is an off-canvas drawer (below the 56px

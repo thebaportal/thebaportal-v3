@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { getInitials } from "@/lib/initials";
 import {
   Settings, LogOut, User, ChevronLeft, ChevronRight, Menu, X,
   FileText, Folders,
@@ -41,7 +42,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
 
   const isPro = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";
   const fullName = profile?.full_name || null;
-  const initials = (fullName?.[0] || user.email?.[0] || "?").toUpperCase();
+  const initials = getInitials(fullName, user.email);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);

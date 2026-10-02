@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AttentionItem } from "@/lib/projects/attention";
+import { normalizeContextText } from "@/lib/projects/contextText";
 import ProjectContextDrawer from "./ProjectContextDrawer";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -92,8 +93,8 @@ export default function ProjectHome({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="ph-eyebrow" style={{ marginBottom: 6 }}>Project Brief</div>
           {project.problem_statement ? (
-            <p className="ph-brief-text" style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.6, margin: 0 }}>
-              {project.problem_statement}
+            <p className="ph-brief-text" style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-line" }}>
+              {normalizeContextText(project.problem_statement)}
             </p>
           ) : (
             <p style={{ fontSize: 13, color: "var(--lc-text-4)", lineHeight: 1.6, margin: 0 }}>
