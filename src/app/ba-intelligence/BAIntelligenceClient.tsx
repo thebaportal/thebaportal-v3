@@ -225,7 +225,7 @@ function FindingCard({
             onChange={e => onEditDraftChange(e.target.value)}
             autoFocus
             rows={3}
-            style={{ width: "100%", fontSize: 14, color: "var(--lc-text-1)", lineHeight: 1.6, fontFamily: "inherit", border: "1px solid var(--lc-teal-border)", borderRadius: 8, padding: "10px 12px", resize: "vertical", boxSizing: "border-box" }}
+            style={{ width: "100%", fontSize: 14, color: "var(--lc-text-1)", lineHeight: 1.6, fontFamily: "inherit", background: "var(--lc-faint)", border: "1px solid var(--lc-teal-border)", borderRadius: 8, padding: "10px 12px", resize: "vertical", boxSizing: "border-box" }}
           />
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <button onClick={onSaveEdit} style={{ fontSize: 12.5, fontWeight: 700, color: "#f5f1e7", background: "var(--teal)", border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Save</button>
@@ -261,7 +261,7 @@ function FindingCard({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={onAccept} style={{ fontSize: 12.5, fontWeight: 700, color: "#f5f1e7", background: "var(--teal)", border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Accept</button>
           <button onClick={onStartEdit} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--lc-text-2)", background: "none", border: "1px solid var(--lc-border)", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Edit</button>
-          <button onClick={onReject} style={{ fontSize: 12.5, fontWeight: 600, color: "#f87171", background: "none", border: "1px solid rgba(248,113,113,.25)", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Reject</button>
+          <button onClick={onReject} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--lc-red)", background: "none", border: "1px solid var(--lc-red-border)", borderRadius: 7, padding: "7px 14px", cursor: "pointer" }}>Reject</button>
 
           {hasOriginal && (
             <button onClick={onToggleOriginal} style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 600, color: "var(--lc-text-4)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
@@ -556,7 +556,7 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
                     <select
                       value={sourceLabel}
                       onChange={e => setSourceLabel(e.target.value)}
-                      style={{ fontSize: 13.5, fontWeight: 600, color: "var(--lc-text-1)", background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: 8, padding: "9px 12px", cursor: "pointer", fontFamily: "inherit" }}
+                      style={{ fontSize: 13.5, fontWeight: 600, color: "var(--lc-text-1)", background: "var(--lc-faint)", border: "1px solid var(--lc-border)", borderRadius: 8, padding: "9px 12px", cursor: "pointer", fontFamily: "inherit" }}
                     >
                       {SOURCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
@@ -567,7 +567,7 @@ export default function BAIntelligenceClient({ user, profile, initialProjects, i
                     onChange={e => setInputText(e.target.value)}
                     placeholder="Paste stakeholder notes, workshop output, interview notes, or a transcript."
                     rows={14}
-                    style={{ width: "100%", fontSize: 14.5, lineHeight: 1.65, color: "var(--lc-text-1)", background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: "var(--radius)", padding: "16px 18px", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+                    style={{ width: "100%", fontSize: 14.5, lineHeight: 1.65, color: "var(--lc-text-1)", background: "var(--lc-faint)", border: "1px solid var(--lc-border)", borderRadius: "var(--radius)", padding: "16px 18px", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
                   />
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>

@@ -32,6 +32,12 @@
     --teal-border:  rgba(52,64,125,0.45);
     --teal-glow:    rgba(52,64,125,0.14);
 
+    /* The same indigo, lifted for use ON the ink sidebar — #34407d on #16140f is
+       ~1.7:1 and unreadable; this is ~6.6:1 (matches the homepage hero accent). */
+    --teal-on-dark:        #8d97d9;
+    --teal-on-dark-soft:   rgba(141,151,217,0.12);
+    --teal-on-dark-border: rgba(141,151,217,0.28);
+
     /* Text scale — on dark */
     --text-1:       #f0ead9;
     --text-2:       #c4bca6;
@@ -519,6 +525,12 @@
     }
     .dl-header-actions {
       flex-wrap: wrap;
+    }
+
+    /* Decision Log panel starts below the fixed 56px mobile app bar, which
+       otherwise covers the panel header and its close button. */
+    .dl-log-overlay {
+      top: 56px !important;
     }
   }
 

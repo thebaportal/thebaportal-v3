@@ -43,35 +43,35 @@ const MODES: { id: Mode; label: string; shortLabel: string; description: string;
     label: "Compare Options",
     shortLabel: "Compare",
     description: "Evaluate alternatives against the factors that matter.",
-    color: "#2563eb",
+    color: "#3b72ac",
   },
   {
     id: "assess-risks",
     label: "Assess Risks",
     shortLabel: "Risks",
     description: "Identify risks, impact, likelihood, and possible mitigations.",
-    color: "#d97706",
+    color: "#b5741f",
   },
   {
     id: "challenge-assumptions",
     label: "Challenge Assumptions",
     shortLabel: "Assumptions",
     description: "Test assumptions and identify what may have been overlooked.",
-    color: "#7c3aed",
+    color: "#74628f",
   },
   {
     id: "analyze-stakeholders",
     label: "Stakeholder Analysis",
     shortLabel: "Stakeholders",
     description: "Examine stakeholder influence, impact, priorities, and potential conflicts.",
-    color: "#0e7d72",
+    color: "#52658a",
   },
   {
     id: "recommend-direction",
     label: "Recommend Direction",
     shortLabel: "Recommend",
     description: "Analyze the situation and recommend the strongest course of action.",
-    color: "#059669",
+    color: "#2e7a4e",
   },
 ];
 
@@ -114,18 +114,18 @@ function renderMarkdown(text: string): React.ReactNode[] {
   while (i < lines.length) {
     const line = lines[i];
     if (line.startsWith("# ")) {
-      nodes.push(<h2 key={i} style={{ fontSize: 20, fontWeight: 800, color: "#1C1C2E", letterSpacing: "-0.02em", margin: "0 0 20px", fontFamily: "var(--font-display)" }}>{line.slice(2)}</h2>);
+      nodes.push(<h2 key={i} style={{ fontSize: 20, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.02em", margin: "0 0 20px", fontFamily: "var(--font-display)" }}>{line.slice(2)}</h2>);
     } else if (line.startsWith("## ")) {
       nodes.push(<h3 key={i} style={{ fontSize: 14, fontWeight: 700, color: "#34407d", letterSpacing: "0.02em", textTransform: "uppercase" as const, margin: "28px 0 10px", paddingBottom: 6, borderBottom: "1px solid rgba(52,64,125,0.15)", fontFamily: "var(--font-mono)" }}>{line.slice(3)}</h3>);
     } else if (line.startsWith("### ")) {
-      nodes.push(<h4 key={i} style={{ fontSize: 14, fontWeight: 700, color: "#1C1C2E", margin: "18px 0 6px" }}>{line.slice(4)}</h4>);
+      nodes.push(<h4 key={i} style={{ fontSize: 14, fontWeight: 700, color: "var(--lc-text-1)", margin: "18px 0 6px" }}>{line.slice(4)}</h4>);
     } else if (line.startsWith("**") && line.endsWith("**") && line.length > 4 && !line.slice(2, -2).includes("**")) {
-      nodes.push(<div key={i} style={{ fontWeight: 700, color: "#1C1C2E", fontSize: 13.5, margin: "8px 0 4px" }}>{line.replace(/\*\*/g, "")}</div>);
+      nodes.push(<div key={i} style={{ fontWeight: 700, color: "var(--lc-text-1)", fontSize: 13.5, margin: "8px 0 4px" }}>{line.replace(/\*\*/g, "")}</div>);
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       nodes.push(
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 6 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#34407d", flexShrink: 0, marginTop: 8 }} />
-          <span style={{ fontSize: 14, color: "#374151", lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+          <span style={{ fontSize: 14, color: "var(--lc-text-2)", lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
         </div>
       );
     } else if (/^\d+\.\s/.test(line)) {
@@ -134,7 +134,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
       nodes.push(
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
           <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(52,64,125,0.1)", border: "1px solid rgba(52,64,125,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#34407d", flexShrink: 0, marginTop: 1 }}>{num}</div>
-          <span style={{ fontSize: 14, color: "#374151", lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: content.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+          <span style={{ fontSize: 14, color: "var(--lc-text-2)", lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: content.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
         </div>
       );
     } else if (line.startsWith("|")) {
@@ -150,12 +150,12 @@ function renderMarkdown(text: string): React.ReactNode[] {
           <div key={i} style={{ overflowX: "auto", margin: "12px 0 20px" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr>{headers.map((h, hi) => <th key={hi} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "#6B7280", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" as const, borderBottom: "2px solid #E5E7EB", whiteSpace: "nowrap", background: "#F9FAFB" }}>{h}</th>)}</tr>
+                <tr>{headers.map((h, hi) => <th key={hi} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "var(--lc-text-3)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" as const, borderBottom: "2px solid var(--lc-border)", whiteSpace: "nowrap", background: "var(--lc-bg)" }}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {rows.map((row, ri) => (
-                  <tr key={ri} style={{ background: ri % 2 === 0 ? "#fff" : "#F9FAFB" }}>
-                    {row.map((cell, ci) => <td key={ci} style={{ padding: "10px 14px", color: "#374151", borderBottom: "1px solid #E5E7EB", lineHeight: 1.5, verticalAlign: "top" }} dangerouslySetInnerHTML={{ __html: cell.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />)}
+                  <tr key={ri} style={{ background: ri % 2 === 0 ? "var(--lc-surface)" : "var(--lc-bg)" }}>
+                    {row.map((cell, ci) => <td key={ci} style={{ padding: "10px 14px", color: "var(--lc-text-2)", borderBottom: "1px solid var(--lc-border)", lineHeight: 1.5, verticalAlign: "top" }} dangerouslySetInnerHTML={{ __html: cell.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />)}
                   </tr>
                 ))}
               </tbody>
@@ -165,11 +165,11 @@ function renderMarkdown(text: string): React.ReactNode[] {
         continue;
       }
     } else if (line.trim() === "---") {
-      nodes.push(<hr key={i} style={{ border: "none", borderTop: "1px solid #E5E7EB", margin: "20px 0" }} />);
+      nodes.push(<hr key={i} style={{ border: "none", borderTop: "1px solid var(--lc-border)", margin: "20px 0" }} />);
     } else if (line.trim() === "") {
       nodes.push(<div key={i} style={{ height: 6 }} />);
     } else if (line.trim()) {
-      nodes.push(<p key={i} style={{ fontSize: 14, color: "#374151", lineHeight: 1.75, margin: "0 0 8px" }} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />);
+      nodes.push(<p key={i} style={{ fontSize: 14, color: "var(--lc-text-2)", lineHeight: 1.75, margin: "0 0 8px" }} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />);
     }
     i++;
   }
@@ -191,16 +191,16 @@ function ModeCard({ mode, isActive, isComplete, isLoading, isRunning, onRun }: {
   const borderColor = isActive
     ? "#34407d"
     : hovered
-    ? "#CBD5E1"
-    : "#E5E7EB";
+    ? "var(--lc-text-5)"
+    : "var(--lc-border)";
 
   const bg = isActive
     ? "rgba(52,64,125,0.05)"
     : hovered
-    ? "#FAFAFA"
-    : "#fff";
+    ? "var(--lc-bg)"
+    : "var(--lc-surface)";
 
-  const labelColor = isActive ? "#34407d" : "#1C1C2E";
+  const labelColor = isActive ? "#34407d" : "var(--lc-text-1)";
   const shadow = hovered && !isActive ? "0 2px 8px rgba(0,0,0,0.07)" : isActive ? "0 2px 8px rgba(52,64,125,0.12)" : "none";
   const transform = hovered && !isActive ? "translateY(-1px)" : "none";
 
@@ -237,7 +237,7 @@ function ModeCard({ mode, isActive, isComplete, isLoading, isRunning, onRun }: {
           {isLoading ? "Analyzing..." : mode.label}
         </span>
       </div>
-      <p style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.55, margin: 0, fontWeight: 400 }}>
+      <p style={{ fontSize: 12, color: "var(--lc-text-3)", lineHeight: 1.55, margin: 0, fontWeight: 400 }}>
         {mode.description}
       </p>
     </button>
@@ -263,18 +263,18 @@ function InputPanel({ situation, onChange, onRun, loading, activeMode, completed
   return (
     <div>
       {/* Situation input card */}
-      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E5E7EB", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+      <div style={{ background: "var(--lc-surface)", borderRadius: 16, border: "1px solid var(--lc-border)", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <div style={{ padding: "20px 24px" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.07em", textTransform: "uppercase" as const, fontFamily: "var(--font-mono)", marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--lc-text-4)", letterSpacing: "0.07em", textTransform: "uppercase" as const, fontFamily: "var(--font-mono)", marginBottom: 10 }}>
             What are you working through?
           </div>
           {situationLocked && !expanded ? (
             <button
               onClick={() => setExpanded(true)}
-              style={{ width: "100%", textAlign: "left", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10, padding: "12px 16px", fontSize: 14, color: "#374151", cursor: "pointer", lineHeight: 1.5 }}
+              style={{ width: "100%", textAlign: "left", background: "var(--lc-bg)", border: "1px solid var(--lc-border)", borderRadius: 10, padding: "12px 16px", fontSize: 14, color: "var(--lc-text-2)", cursor: "pointer", lineHeight: 1.5 }}
             >
               {situation.length > 120 ? situation.slice(0, 117) + "..." : situation}
-              <span style={{ fontSize: 12, color: "#9CA3AF", marginLeft: 8 }}>Edit</span>
+              <span style={{ fontSize: 12, color: "var(--lc-text-4)", marginLeft: 8 }}>Edit</span>
             </button>
           ) : (
             <textarea
@@ -282,9 +282,9 @@ function InputPanel({ situation, onChange, onRun, loading, activeMode, completed
               onChange={e => onChange(e.target.value)}
               placeholder="Describe the decision, problem, or situation. Include any context that matters."
               rows={situationLocked ? 4 : 6}
-              style={{ width: "100%", border: "1px solid #E5E7EB", borderRadius: 10, padding: "14px 16px", fontSize: 14, color: "#1C1C2E", lineHeight: 1.7, resize: "vertical", outline: "none", fontFamily: "inherit", background: "#FAFAFA", boxSizing: "border-box", transition: "border-color 180ms ease" }}
+              style={{ width: "100%", border: "1px solid var(--lc-border)", borderRadius: 10, padding: "14px 16px", fontSize: 14, color: "var(--lc-text-1)", lineHeight: 1.7, resize: "vertical", outline: "none", fontFamily: "inherit", background: "var(--lc-faint)", boxSizing: "border-box", transition: "border-color 180ms ease" }}
               onFocus={e => e.currentTarget.style.borderColor = "#34407d"}
-              onBlur={e => e.currentTarget.style.borderColor = "#E5E7EB"}
+              onBlur={e => e.currentTarget.style.borderColor = "var(--lc-border)"}
             />
           )}
         </div>
@@ -299,8 +299,8 @@ function InputPanel({ situation, onChange, onRun, loading, activeMode, completed
         pointerEvents: hasContent ? "auto" : "none",
       }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#1C1C2E", marginBottom: 3 }}>Choose an analysis approach</div>
-          <div style={{ fontSize: 12, color: "#9CA3AF" }}>Select the approach you want Decision Lab to use.</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--lc-text-1)", marginBottom: 3 }}>Choose an analysis approach</div>
+          <div style={{ fontSize: 12, color: "var(--lc-text-4)" }}>Select the approach you want Decision Lab to use.</div>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
           {MODES.map(m => (
@@ -346,13 +346,13 @@ function CopyButton({ content, generatedAt }: { content: string; generatedAt: nu
   }
 
   return (
-    <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "var(--font-mono)" }}>
+    <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--lc-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <span style={{ fontSize: 11, color: "var(--lc-text-4)", fontFamily: "var(--font-mono)" }}>
         Generated {timeAgo(generatedAt)}
       </span>
       <button
         onClick={handleCopy}
-        style={{ fontSize: 12, fontWeight: 600, color: copied ? "#34407d" : "#6B7280", background: copied ? "rgba(52,64,125,0.06)" : "none", border: `1px solid ${copied ? "rgba(52,64,125,0.3)" : "#E5E7EB"}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+        style={{ fontSize: 12, fontWeight: 600, color: copied ? "#34407d" : "var(--lc-text-3)", background: copied ? "rgba(52,64,125,0.06)" : "none", border: `1px solid ${copied ? "rgba(52,64,125,0.3)" : "var(--lc-border)"}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
       >
         {copied ? "Copied" : "Copy"}
       </button>
@@ -388,8 +388,8 @@ function Level2Action({ name, onAdd }: { name: string; onAdd: (n: string) => voi
   }
 
   return (
-    <div style={{ marginTop: 20, padding: "14px 18px", background: "#F8F7F4", borderRadius: 10, border: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-      <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
+    <div style={{ marginTop: 20, padding: "14px 18px", background: "var(--lc-bg)", borderRadius: 10, border: "1px solid var(--lc-border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+      <span style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.5 }}>
         Add <strong>{name}</strong> and compare again?
       </span>
       <button
@@ -397,14 +397,14 @@ function Level2Action({ name, onAdd }: { name: string; onAdd: (n: string) => voi
         disabled={added}
         style={{
           flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "7px 16px", borderRadius: 7,
-          border: added ? "1px solid rgba(52,64,125,0.3)" : "1px solid #CBD5E1",
-          background: added ? "rgba(52,64,125,0.06)" : "#fff",
-          color: added ? "#34407d" : "#374151",
+          border: added ? "1px solid rgba(52,64,125,0.3)" : "1px solid var(--lc-border)",
+          background: added ? "rgba(52,64,125,0.06)" : "var(--lc-surface)",
+          color: added ? "#34407d" : "var(--lc-text-2)",
           cursor: added ? "default" : "pointer",
           fontFamily: "inherit", transition: "all 0.15s",
         }}
         onMouseEnter={e => { if (!added) { e.currentTarget.style.borderColor = "#34407d"; e.currentTarget.style.color = "#34407d"; } }}
-        onMouseLeave={e => { if (!added) { e.currentTarget.style.borderColor = "#CBD5E1"; e.currentTarget.style.color = "#374151"; } }}
+        onMouseLeave={e => { if (!added) { e.currentTarget.style.borderColor = "var(--lc-text-5)"; e.currentTarget.style.color = "var(--lc-text-2)"; } }}
       >
         {added ? "Added" : "Add to situation"}
       </button>
@@ -460,25 +460,25 @@ function SuggestionsPanel({ situation, onAdd }: {
 
   if (alternatives !== null) {
     return (
-      <div style={{ marginTop: 20, padding: "20px 24px", background: "#F8F7F4", borderRadius: 12, border: "1px solid #E5E7EB" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.06em", textTransform: "uppercase" as const, fontFamily: "var(--font-mono)", marginBottom: 14 }}>
+      <div style={{ marginTop: 20, padding: "20px 24px", background: "var(--lc-bg)", borderRadius: 12, border: "1px solid var(--lc-border)" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--lc-text-4)", letterSpacing: "0.06em", textTransform: "uppercase" as const, fontFamily: "var(--font-mono)", marginBottom: 14 }}>
           Alternatives to consider
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {alternatives.map((alt, i) => (
-            <div key={i} style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <div key={i} style={{ background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1C1C2E", marginBottom: 4 }}>{alt.name}</div>
-                <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.55 }}>{alt.rationale}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--lc-text-1)", marginBottom: 4 }}>{alt.name}</div>
+                <div style={{ fontSize: 13, color: "var(--lc-text-3)", lineHeight: 1.55 }}>{alt.rationale}</div>
               </div>
               <button
                 onClick={() => handleAdd(alt.name)}
                 disabled={added.has(alt.name)}
                 style={{
                   flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-                  border: added.has(alt.name) ? "1px solid rgba(52,64,125,0.3)" : "1px solid #E5E7EB",
-                  background: added.has(alt.name) ? "rgba(52,64,125,0.06)" : "#fff",
-                  color: added.has(alt.name) ? "#34407d" : "#374151",
+                  border: added.has(alt.name) ? "1px solid rgba(52,64,125,0.3)" : "1px solid var(--lc-border)",
+                  background: added.has(alt.name) ? "rgba(52,64,125,0.06)" : "var(--lc-surface)",
+                  color: added.has(alt.name) ? "#34407d" : "var(--lc-text-2)",
                   cursor: added.has(alt.name) ? "default" : "pointer",
                   fontFamily: "inherit", transition: "all 0.15s",
                 }}
@@ -488,7 +488,7 @@ function SuggestionsPanel({ situation, onAdd }: {
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 12, color: "#9CA3AF", margin: "14px 0 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: 12, color: "var(--lc-text-4)", margin: "14px 0 0", lineHeight: 1.5 }}>
           To include any of these in a comparison, add them to your situation and run Compare Options again.
         </p>
       </div>
@@ -497,19 +497,19 @@ function SuggestionsPanel({ situation, onAdd }: {
 
   return (
     <div style={{ marginTop: 16 }}>
-      {error && <p style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>{error}</p>}
+      {error && <p style={{ fontSize: 13, color: "var(--lc-red)", margin: "0 0 10px" }}>{error}</p>}
       <button
         onClick={suggest}
         disabled={loading}
         style={{
           fontSize: 13, fontWeight: 600, padding: "9px 18px", borderRadius: 8,
-          border: "1px solid #CBD5E1", background: "#fff", color: "#374151",
+          border: "1px solid var(--lc-border)", background: "var(--lc-surface)", color: "var(--lc-text-2)",
           cursor: loading ? "default" : "pointer", fontFamily: "inherit",
           display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s",
           opacity: loading ? 0.7 : 1,
         }}
         onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "#34407d"; e.currentTarget.style.color = "#34407d"; } }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "#CBD5E1"; e.currentTarget.style.color = "#374151"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--lc-text-5)"; e.currentTarget.style.color = "var(--lc-text-2)"; }}
       >
         {loading && (
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0" /></svg>
@@ -546,11 +546,11 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
   const hasAnyTab = completedModes.length > 0 || (activeMode !== null) || hasSituation;
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E5E7EB", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginTop: 16 }}>
+    <div style={{ background: "var(--lc-surface)", borderRadius: 16, border: "1px solid var(--lc-border)", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginTop: 16 }}>
 
       {/* Tab bar — always shown when there's a situation */}
       {hasAnyTab && (
-        <div style={{ borderBottom: "1px solid #E5E7EB", display: "flex", overflowX: "auto", flexShrink: 0 }}>
+        <div style={{ borderBottom: "1px solid var(--lc-border)", display: "flex", overflowX: "auto", flexShrink: 0 }}>
           {MODES.map(m => {
             const isComplete = !!results[m.id];
             const isActive = !explorerActive && activeMode === m.id;
@@ -563,7 +563,7 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
                   padding: "12px 18px", fontSize: 13, fontWeight: 600,
                   cursor: "pointer", background: "none", border: "none",
                   borderBottom: isActive ? `2px solid ${m.color}` : "2px solid transparent",
-                  color: isActive ? m.color : "#6B7280",
+                  color: isActive ? m.color : "var(--lc-text-3)",
                   whiteSpace: "nowrap" as const,
                   fontFamily: "inherit",
                   transition: "all 0.15s",
@@ -580,15 +580,15 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
           {hasSituation && (
             <>
               {completedModes.length > 0 && (
-                <div style={{ width: 1, background: "#E5E7EB", margin: "8px 4px", flexShrink: 0 }} />
+                <div style={{ width: 1, background: "var(--lc-border)", margin: "8px 4px", flexShrink: 0 }} />
               )}
               <button
                 onClick={onExplorerClick}
                 style={{
                   padding: "12px 18px", fontSize: 13, fontWeight: 600,
                   cursor: "pointer", background: "none", border: "none",
-                  borderBottom: explorerActive ? "2px solid #6366f1" : "2px solid transparent",
-                  color: explorerActive ? "#6366f1" : "#6B7280",
+                  borderBottom: explorerActive ? "2px solid var(--teal)" : "2px solid transparent",
+                  color: explorerActive ? "var(--teal)" : "var(--lc-text-3)",
                   whiteSpace: "nowrap" as const,
                   fontFamily: "inherit",
                   transition: "all 0.15s",
@@ -610,14 +610,14 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
       {!explorerActive && loading && !currentResult && (
         <div style={{ padding: "48px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
           <div style={{ width: 40, height: 40, border: `3px solid ${activeConfig?.color ?? "#34407d"}20`, borderTop: `3px solid ${activeConfig?.color ?? "#34407d"}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-          <p style={{ fontSize: 14, color: "#6B7280", margin: 0 }}>Running {activeConfig?.label ?? "analysis"}...</p>
+          <p style={{ fontSize: 14, color: "var(--lc-text-3)", margin: 0 }}>Running {activeConfig?.label ?? "analysis"}...</p>
         </div>
       )}
 
       {/* Re-run prompt — shown after a suggested option is added */}
       {!explorerActive && !activeMode && !loading && completedModes.length > 0 && (
-        <div style={{ padding: "20px 28px", borderBottom: "1px solid #F3F4F6", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-          <p style={{ fontSize: 13, color: "#6B7280", margin: 0, lineHeight: 1.5 }}>
+        <div style={{ padding: "20px 28px", borderBottom: "1px solid var(--lc-border-soft)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <p style={{ fontSize: 13, color: "var(--lc-text-3)", margin: 0, lineHeight: 1.5 }}>
             Your situation has been updated. Run Compare Options again to include the new alternative.
           </p>
           <button
@@ -632,7 +632,7 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
       {/* Empty state — situation entered but no mode run yet and not on Explorer */}
       {!explorerActive && !activeMode && !loading && completedModes.length === 0 && hasSituation && (
         <div style={{ padding: "40px 32px", textAlign: "center" }}>
-          <p style={{ fontSize: 14, color: "#9CA3AF", margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: "var(--lc-text-4)", margin: 0, lineHeight: 1.6 }}>
             Choose an analysis approach above, or open Decision Explorer to ask a question.
           </p>
         </div>
@@ -641,7 +641,7 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
       {/* Gate message */}
       {!explorerActive && showGate && !loading && (
         <div style={{ padding: "28px 32px" }}>
-          <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{currentResult.content}</p>
+          <p style={{ fontSize: 14, color: "var(--lc-text-2)", lineHeight: 1.7, margin: 0 }}>{currentResult.content}</p>
           {showSuggestButton && (
             <SuggestionsPanel situation={situation} onAdd={onAddToSituation} />
           )}
@@ -710,8 +710,8 @@ function DecisionExplorerPanel({ situation }: { situation: string }) {
       {/* Empty state header */}
       {history.length === 0 && (
         <div style={{ padding: "28px 32px 20px" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#1C1C2E", marginBottom: 4 }}>Decision Explorer</div>
-          <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--lc-text-1)", marginBottom: 4 }}>Decision Explorer</div>
+          <div style={{ fontSize: 13, color: "var(--lc-text-3)", lineHeight: 1.6 }}>
             Ask a question, test a scenario, run the numbers, or challenge the analysis.
           </div>
         </div>
@@ -721,12 +721,12 @@ function DecisionExplorerPanel({ situation }: { situation: string }) {
       {history.length > 0 && (
         <div style={{ padding: "0 32px", maxHeight: 560, overflowY: "auto" }}>
           {history.map((entry, i) => (
-            <div key={i} style={{ borderBottom: i < history.length - 1 ? "1px solid #F3F4F6" : "none", padding: "24px 0" }}>
+            <div key={i} style={{ borderBottom: i < history.length - 1 ? "1px solid var(--lc-border-soft)" : "none", padding: "24px 0" }}>
               <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#1C1C2E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--lc-text-1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                   <span style={{ fontSize: 9, fontWeight: 700, color: "#fff" }}>Q</span>
                 </div>
-                <p style={{ fontSize: 14, color: "#1C1C2E", fontWeight: 600, margin: 0, lineHeight: 1.55, paddingTop: 2 }}>{entry.question}</p>
+                <p style={{ fontSize: 14, color: "var(--lc-text-1)", fontWeight: 600, margin: 0, lineHeight: 1.55, paddingTop: 2 }}>{entry.question}</p>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(52,64,125,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
@@ -743,8 +743,8 @@ function DecisionExplorerPanel({ situation }: { situation: string }) {
       )}
 
       {/* Input */}
-      <div style={{ padding: history.length > 0 ? "16px 32px 24px" : "4px 32px 24px", borderTop: history.length > 0 ? "1px solid #F3F4F6" : "none" }}>
-        {error && <p style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>{error}</p>}
+      <div style={{ padding: history.length > 0 ? "16px 32px 24px" : "4px 32px 24px", borderTop: history.length > 0 ? "1px solid var(--lc-border-soft)" : "none" }}>
+        {error && <p style={{ fontSize: 13, color: "var(--lc-red)", margin: "0 0 10px" }}>{error}</p>}
         <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
           <textarea
             ref={inputRef}
@@ -755,34 +755,34 @@ function DecisionExplorerPanel({ situation }: { situation: string }) {
             rows={2}
             disabled={loading}
             style={{
-              flex: 1, border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 14px",
-              fontSize: 14, color: "#1C1C2E", lineHeight: 1.6, resize: "none",
-              outline: "none", fontFamily: "inherit", background: loading ? "#F9FAFB" : "#FAFAFA",
+              flex: 1, border: "1px solid var(--lc-border)", borderRadius: 10, padding: "10px 14px",
+              fontSize: 14, color: "var(--lc-text-1)", lineHeight: 1.6, resize: "none",
+              outline: "none", fontFamily: "inherit", background: loading ? "var(--lc-bg)" : "var(--lc-faint)",
               boxSizing: "border-box" as const, transition: "border-color 180ms ease",
               opacity: loading ? 0.6 : 1,
             }}
             onFocus={e => e.currentTarget.style.borderColor = "#34407d"}
-            onBlur={e => e.currentTarget.style.borderColor = "#E5E7EB"}
+            onBlur={e => e.currentTarget.style.borderColor = "var(--lc-border)"}
           />
           <button
             onClick={handleAsk}
             disabled={!question.trim() || loading}
             style={{
               flexShrink: 0, width: 38, height: 38, borderRadius: 10,
-              border: "none", background: (!question.trim() || loading) ? "#E5E7EB" : "#34407d",
+              border: "none", background: (!question.trim() || loading) ? "var(--lc-border)" : "#34407d",
               cursor: (!question.trim() || loading) ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               transition: "background 150ms ease",
             }}
           >
             {loading ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lc-text-3)" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0" /></svg>
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={!question.trim() ? "#9CA3AF" : "#fff"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={!question.trim() ? "var(--lc-text-4)" : "#fff"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             )}
           </button>
         </div>
-        <p style={{ fontSize: 11, color: "#C4C9D4", margin: "8px 0 0", fontFamily: "var(--font-mono)" }}>
+        <p style={{ fontSize: 11, color: "var(--lc-text-5)", margin: "8px 0 0", fontFamily: "var(--font-mono)" }}>
           Enter to send · Shift+Enter for new line
         </p>
       </div>
@@ -800,15 +800,15 @@ function DecisionLog({ sessions, onOpen, onClose, visible }: {
 }) {
   if (!visible) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }} onClick={onClose}>
-      <div style={{ marginLeft: "auto", width: 360, background: "#fff", height: "100%", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#1C1C2E" }}>Decision Log</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9CA3AF", lineHeight: 1 }}>×</button>
+    <div className="dl-log-overlay" style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }} onClick={onClose}>
+      <div style={{ marginLeft: "auto", width: 360, background: "var(--lc-surface)", height: "100%", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--lc-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--lc-text-1)" }}>Decision Log</div>
+          <button onClick={onClose} aria-label="Close Decision Log" style={{ width: 32, height: 32, marginRight: -8, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--lc-text-4)", lineHeight: 1 }}>×</button>
         </div>
         {sessions.length === 0 ? (
           <div style={{ padding: "40px 24px", textAlign: "center" }}>
-            <p style={{ fontSize: 14, color: "#9CA3AF", lineHeight: 1.6, margin: 0 }}>No previous decisions yet. Run your first analysis to see it here.</p>
+            <p style={{ fontSize: 14, color: "var(--lc-text-4)", lineHeight: 1.6, margin: 0 }}>No previous decisions yet. Run your first analysis to see it here.</p>
           </div>
         ) : (
           <div style={{ padding: "12px 0" }}>
@@ -818,13 +818,13 @@ function DecisionLog({ sessions, onOpen, onClose, visible }: {
                 <button
                   key={s.id}
                   onClick={() => { onOpen(s); onClose(); }}
-                  style={{ width: "100%", textAlign: "left", padding: "14px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: "1px solid #F3F4F6" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"}
+                  style={{ width: "100%", textAlign: "left", padding: "14px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: "1px solid var(--lc-border-soft)" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--lc-bg)"}
                   onMouseLeave={e => e.currentTarget.style.background = "none"}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1C1C2E", marginBottom: 4, lineHeight: 1.4 }}>{s.title}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--lc-text-1)", marginBottom: 4, lineHeight: 1.4 }}>{s.title}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
-                    <span style={{ fontSize: 11, color: "#9CA3AF" }}>{timeAgo(s.createdAt)}</span>
+                    <span style={{ fontSize: 11, color: "var(--lc-text-4)" }}>{timeAgo(s.createdAt)}</span>
                     {completed.map(m => (
                       <span key={m.id} style={{ fontSize: 10, fontWeight: 700, color: m.color, background: `${m.color}10`, border: `1px solid ${m.color}30`, borderRadius: 4, padding: "1px 6px" }}>{m.shortLabel}</span>
                     ))}
@@ -850,7 +850,7 @@ function ProjectPicker({ projects, selectedId, onSelect }: {
     <select
       value={selectedId ?? ""}
       onChange={e => onSelect(e.target.value || null)}
-      style={{ fontSize: 13, fontWeight: 600, color: "#1C1C2E", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontFamily: "inherit" }}
+      style={{ fontSize: 13, fontWeight: 600, color: "var(--lc-text-1)", background: "var(--lc-faint)", border: "1px solid var(--lc-border)", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontFamily: "inherit" }}
     >
       <option value="">No project</option>
       {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1046,7 +1046,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#F8F7F4" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--lc-bg)" }}>
       <AppSidebar activeHref={selectedProject ? "/projects" : "/decision-lab"} profile={null} user={user} />
 
       <div className="app-shell-main" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
@@ -1060,10 +1060,10 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
           {/* Header */}
           <div className="dl-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
             <div>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "#1C1C2E", letterSpacing: "-0.02em", margin: "0 0 6px" }}>
+              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.02em", margin: "0 0 6px" }}>
                 Decision Lab
               </h1>
-              <p style={{ fontSize: 14, color: "#64748B", margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: 14, color: "var(--lc-text-3)", margin: 0, lineHeight: 1.5 }}>
                 Enter your situation once. Analyze it five different ways.
               </p>
             </div>
@@ -1081,16 +1081,16 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
               {(situation.trim().length > 0 || Object.keys(results).length > 0) && (
                 <button
                   onClick={startNew}
-                  style={{ fontSize: 13, fontWeight: 600, color: "#6B7280", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#CBD5E1"; e.currentTarget.style.color = "#374151"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#6B7280"; }}
+                  style={{ fontSize: 13, fontWeight: 600, color: "var(--lc-text-3)", background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--lc-text-5)"; e.currentTarget.style.color = "var(--lc-text-2)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--lc-border)"; e.currentTarget.style.color = "var(--lc-text-3)"; }}
                 >
                   Clear
                 </button>
               )}
               <button
                 onClick={() => setLogOpen(true)}
-                style={{ fontSize: 13, fontWeight: 600, color: "#1C1C2E", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}
+                style={{ fontSize: 13, fontWeight: 600, color: "var(--lc-text-1)", background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Decision Log
@@ -1103,9 +1103,9 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
 
           {/* Stale warning */}
           {staleWarning && (
-            <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-              <span style={{ fontSize: 13, color: "#92400E" }}>You have changed your situation. Previous analyses may no longer reflect the updated information.</span>
-              <button onClick={() => { setResults({}); setActiveMode(null); setStaleWarning(false); }} style={{ fontSize: 12, fontWeight: 700, color: "#92400E", background: "none", border: "1px solid #FED7AA", borderRadius: 6, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" as const, fontFamily: "inherit" }}>
+            <div style={{ background: "var(--lc-amber-bg)", border: "1px solid rgba(181,116,31,0.3)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+              <span style={{ fontSize: 13, color: "var(--lc-amber)" }}>You have changed your situation. Previous analyses may no longer reflect the updated information.</span>
+              <button onClick={() => { setResults({}); setActiveMode(null); setStaleWarning(false); }} style={{ fontSize: 12, fontWeight: 700, color: "var(--lc-amber)", background: "none", border: "1px solid rgba(181,116,31,0.3)", borderRadius: 6, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" as const, fontFamily: "inherit" }}>
                 Clear old results
               </button>
             </div>
@@ -1113,7 +1113,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
 
           {/* Error */}
           {error && (
-            <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 14, color: "#dc2626" }}>
+            <div style={{ background: "var(--lc-red-bg)", border: "1px solid var(--lc-red-border)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 14, color: "var(--lc-red)" }}>
               {error}
             </div>
           )}

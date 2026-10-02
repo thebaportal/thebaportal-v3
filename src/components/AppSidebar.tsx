@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getInitials } from "@/lib/initials";
 import {
-  Settings, LogOut, User, ChevronLeft, ChevronRight, Menu, X,
+  Settings, LogOut, User, ChevronLeft, ChevronRight, Menu, X, ArrowUpRight,
   FileText, Folders,
 } from "lucide-react";
 
@@ -101,9 +101,9 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
           padding: isCollapsed ? "11px 0" : "9px 12px",
           borderRadius: 10,
           marginBottom: 2,
-          background: active ? "var(--teal-soft)" : "transparent",
-          border: active ? "1px solid var(--teal-border)" : "1px solid transparent",
-          color: active ? "var(--teal)" : "var(--text-2)",
+          background: active ? "var(--teal-on-dark-soft)" : "transparent",
+          border: active ? "1px solid var(--teal-on-dark-border)" : "1px solid transparent",
+          color: active ? "var(--teal-on-dark)" : "var(--text-2)",
           fontSize: 13,
           fontWeight: active ? 600 : 500,
           fontFamily: "'Inter','Open Sans',sans-serif",
@@ -154,24 +154,27 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
   const SidebarBody = ({ isCollapsed }: { isCollapsed: boolean }) => (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
 
-      {/* Header */}
+      {/* Header — collapsed (64px) has no room for the mark and the toggle side
+          by side, so they stack instead of overlapping. */}
       <div style={{
         height: 60,
         display: "flex",
+        flexDirection: isCollapsed ? "column" : "row",
         alignItems: "center",
-        padding: isCollapsed ? "0 16px" : "0 12px 0 16px",
+        justifyContent: isCollapsed ? "center" : "flex-start",
+        padding: isCollapsed ? 0 : "0 12px 0 16px",
         borderBottom: "1px solid var(--border)",
         flexShrink: 0,
-        gap: 10,
+        gap: isCollapsed ? 3 : 10,
       }}>
         <div
           onClick={() => router.push("/")}
-          style={{ display: "flex", alignItems: "center", cursor: "pointer", flex: 1, minWidth: 0 }}
+          style={{ display: "flex", alignItems: "center", cursor: "pointer", flex: isCollapsed ? "none" : 1, minWidth: 0, lineHeight: 1 }}
         >
           {isCollapsed ? (
             <span style={{
               fontFamily: "'Inter','Open Sans',sans-serif",
-              fontWeight: 800, fontSize: 15, color: "var(--teal)", letterSpacing: "-0.02em",
+              fontWeight: 800, fontSize: 15, color: "var(--teal-on-dark)", letterSpacing: "-0.02em",
             }}>
               BA
             </span>
@@ -182,7 +185,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
               color: "var(--text-1)", letterSpacing: "-0.03em",
               whiteSpace: "nowrap", overflow: "hidden",
             }}>
-              The<span style={{ color: "var(--teal)" }}>BA</span>Portal
+              The<span style={{ color: "var(--teal-on-dark)" }}>BA</span>Portal
             </span>
           )}
         </div>
@@ -192,7 +195,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
             onClick={toggleDesktop}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             style={{
-              flexShrink: 0, width: 24, height: 24, borderRadius: 6,
+              flexShrink: 0, width: isCollapsed ? 22 : 24, height: isCollapsed ? 20 : 24, borderRadius: 6,
               background: "transparent", border: "1px solid var(--border)",
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", color: "var(--text-3)", transition: "background 0.12s, color 0.12s",
@@ -227,9 +230,9 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
             gap: isCollapsed ? 0 : 10,
             padding: isCollapsed ? "11px 0" : "9px 12px",
             borderRadius: 10,
-            background: activeHref === "/settings" ? "var(--teal-soft)" : "transparent",
-            border: activeHref === "/settings" ? "1px solid var(--teal-border)" : "1px solid transparent",
-            color: activeHref === "/settings" ? "var(--teal)" : "var(--text-2)",
+            background: activeHref === "/settings" ? "var(--teal-on-dark-soft)" : "transparent",
+            border: activeHref === "/settings" ? "1px solid var(--teal-on-dark-border)" : "1px solid transparent",
+            color: activeHref === "/settings" ? "var(--teal-on-dark)" : "var(--text-2)",
             fontSize: 13, fontWeight: 500,
             fontFamily: "'Inter','Open Sans',sans-serif",
             cursor: "pointer",
@@ -246,36 +249,40 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
 
       {/* User menu */}
       <div ref={menuRef} style={{ borderTop: "1px solid var(--border)", padding: 8, position: "relative" }}>
+        {/* Folio light popover — same surface/border/shadow tokens as the
+            rest of the authenticated app's overlays, not a separate dark card. */}
+        {/* Collapsed (64px) rail: the aside clips overflow, so the menu opens
+            beside the rail (fixed) instead of being cut to the rail's width. */}
         {menuOpen && (
           <div style={{
-            position: "absolute",
-            bottom: "calc(100% + 6px)",
-            left: 8, right: 8,
-            background: "#1a1a22",
-            border: "1px solid rgba(255,255,255,0.1)",
+            ...(isCollapsed
+              ? { position: "fixed" as const, left: desktopWidth + 8, bottom: 12, width: 232 }
+              : { position: "absolute" as const, bottom: "calc(100% + 6px)", left: 8, right: 8 }),
+            background: "var(--lc-surface)",
+            border: "1px solid var(--lc-border)",
             borderRadius: 14,
             overflow: "hidden",
-            boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+            boxShadow: "var(--lc-shadow-lg)",
             zIndex: 50,
             minWidth: 160,
           }}>
             {/* Identity */}
-            <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>
+            <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--lc-border-soft)" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--lc-text-1)", fontFamily: "'Inter','Open Sans',sans-serif" }}>
                 {fullName || "Business Analyst"}
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, wordBreak: "break-all" }}>
+              <div style={{ fontSize: 11, color: "var(--lc-text-4)", marginTop: 2, wordBreak: "break-all" }}>
                 {user.email}
               </div>
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 marginTop: 8, padding: "3px 8px", borderRadius: 6,
-                background: isPro ? "rgba(31,191,159,0.12)" : "rgba(255,255,255,0.05)",
-                border: isPro ? "1px solid rgba(31,191,159,0.2)" : "1px solid rgba(255,255,255,0.08)",
+                background: isPro ? "var(--lc-teal-bg)" : "var(--lc-bg)",
+                border: isPro ? "1px solid var(--lc-teal-border)" : "1px solid var(--lc-border)",
                 fontSize: 11, fontWeight: 600,
-                color: isPro ? "var(--teal)" : "var(--text-3)",
+                color: isPro ? "var(--lc-teal)" : "var(--lc-text-3)",
               }}>
-                {isPro ? "⚡ Pro Member" : "Free Plan"}
+                {isPro ? "Pro Member" : "Free Plan"}
               </div>
             </div>
 
@@ -288,8 +295,8 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
                 <button
                   key={it.label}
                   onClick={() => { setMenuOpen(false); router.push(it.href); }}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "none", border: "none", cursor: "pointer", color: "var(--text-2)", fontSize: 13, fontWeight: 500, fontFamily: "'Inter','Open Sans',sans-serif", textAlign: "left" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "none", border: "none", cursor: "pointer", color: "var(--lc-text-2)", fontSize: 13, fontWeight: 500, fontFamily: "'Inter','Open Sans',sans-serif", textAlign: "left" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--lc-bg)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "none")}
                 >
                   {it.icon}{it.label}
@@ -298,22 +305,23 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
               {!isPro && (
                 <button
                   onClick={() => { setMenuOpen(false); router.push("/pricing"); }}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "none", border: "none", cursor: "pointer", color: "var(--teal)", fontSize: 13, fontWeight: 500, fontFamily: "'Inter','Open Sans',sans-serif", textAlign: "left" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(31,191,159,0.08)")}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "none", border: "none", cursor: "pointer", color: "var(--lc-teal)", fontSize: 13, fontWeight: 600, fontFamily: "'Inter','Open Sans',sans-serif", textAlign: "left" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--lc-teal-bg)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "none")}
                 >
-                  <span style={{ fontSize: 13 }}>⚡</span> Upgrade to Pro
+                  <ArrowUpRight size={14} /> Upgrade to Pro
                 </button>
               )}
             </div>
 
-            <div style={{ padding: 6, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            {/* Sign out — quiet by default; only takes the Folio red on hover. */}
+            <div style={{ padding: 6, borderTop: "1px solid var(--lc-border-soft)" }}>
               <button
                 onClick={() => { setMenuOpen(false); signOut(); }}
                 disabled={signingOut}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "none", border: "none", cursor: signingOut ? "not-allowed" : "pointer", color: "#f87171", fontSize: 13, fontWeight: 600, fontFamily: "'Inter','Open Sans',sans-serif", opacity: signingOut ? 0.5 : 1 }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.08)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "none", border: "none", cursor: signingOut ? "not-allowed" : "pointer", color: "var(--lc-text-3)", fontSize: 13, fontWeight: 500, fontFamily: "'Inter','Open Sans',sans-serif", opacity: signingOut ? 0.5 : 1 }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--lc-red-bg)"; e.currentTarget.style.color = "var(--lc-red)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "var(--lc-text-3)"; }}
               >
                 <LogOut size={14} />
                 {signingOut ? "Signing out…" : "Sign Out"}
@@ -343,9 +351,9 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
         >
           <div style={{
             width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-            background: "var(--teal-soft)", border: "1px solid var(--teal-border)",
+            background: "var(--teal-on-dark-soft)", border: "1px solid var(--teal-on-dark-border)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontWeight: 700, color: "var(--teal)",
+            fontSize: 12, fontWeight: 700, color: "var(--teal-on-dark)",
             fontFamily: "'Inter','Open Sans',sans-serif",
           }}>
             {initials}
@@ -412,7 +420,7 @@ export default function AppSidebar({ activeHref, profile, user }: AppSidebarProp
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.01em" }}>
-              The<span style={{ color: "var(--teal)" }}>BA</span>Portal
+              The<span style={{ color: "var(--teal-on-dark)" }}>BA</span>Portal
             </span>
           </div>
 

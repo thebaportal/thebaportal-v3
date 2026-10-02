@@ -32,7 +32,7 @@ const TEMPLATES = [
     pages: "6–10 pages",
     standard: "For technical & delivery teams",
     sections: ["Purpose", "System Overview", "User Types", "Functional Requirements", "Non-Functional Requirements", "Business Rules", "Integration Requirements", "Data Requirements", "Open Issues"],
-    color: "#38bdf8",
+    color: "#3b72ac",
   },
   {
     id: "usecases",
@@ -44,43 +44,43 @@ const TEMPLATES = [
     pages: "4–8 pages",
     standard: "For detailed functional specs",
     sections: ["System Overview", "Actor Definitions", "Use Case Summary", "Detailed Use Cases", "Alternative Flows", "Exception Flows"],
-    color: "#a78bfa",
+    color: "#74628f",
   },
   {
     id: "stakeholder-register",
     category: "Stakeholders",
-    categoryColor: "#facc15",
+    categoryColor: "#8a7440",
     label: "Stakeholder Register",
     short: "RACI",
     desc: "Stakeholder register with influence/interest grid, RACI matrix, engagement strategy, and communication plan template.",
     pages: "3–5 pages",
     standard: "For stakeholder planning",
     sections: ["Stakeholder List", "Influence / Interest Grid", "RACI Matrix", "Engagement Strategy", "Communication Plan"],
-    color: "#facc15",
+    color: "#8a7440",
   },
   {
     id: "business-case",
     category: "Strategy",
-    categoryColor: "#fb923c",
+    categoryColor: "#9c6b4a",
     label: "Business Case",
     short: "Biz Case",
     desc: "Executive-ready business case covering problem statement, options analysis, cost-benefit, risk assessment, and recommendation.",
     pages: "5–8 pages",
     standard: "For investment approval",
     sections: ["Executive Summary", "Problem Statement", "Options Analysis", "Cost-Benefit Analysis", "Risk Assessment", "Recommendation", "Implementation Roadmap"],
-    color: "#fb923c",
+    color: "#9c6b4a",
   },
   {
     id: "process-map",
     category: "Process",
-    categoryColor: "#34d399",
+    categoryColor: "#6e7c8c",
     label: "Process Analysis Template",
     short: "Process",
     desc: "Current state and future state process analysis with swim lane diagram guide, pain point register, and improvement recommendations.",
     pages: "4–6 pages",
     standard: "For current vs future state mapping",
     sections: ["Process Overview", "Current State", "Pain Points & Bottlenecks", "Root Cause Analysis", "Future State", "Recommendations", "Metrics"],
-    color: "#34d399",
+    color: "#6e7c8c",
   },
   {
     id: "traceability-matrix",
@@ -92,19 +92,19 @@ const TEMPLATES = [
     pages: "2–4 pages",
     standard: "For requirements coverage tracking",
     sections: ["Business Requirements", "Functional Requirements", "Test Cases", "User Stories", "Status Tracking"],
-    color: "#f87171",
+    color: "#8c5850",
   },
   {
     id: "user-story-backlog",
     category: "Agile",
-    categoryColor: "#a78bfa",
+    categoryColor: "#74628f",
     label: "User Story Backlog Template",
     short: "Backlog",
     desc: "Prioritised backlog template with epics, user stories in INVEST format, acceptance criteria, and story point columns.",
     pages: "2–3 pages",
     standard: "For sprint planning",
     sections: ["Epic Summary", "User Stories", "Acceptance Criteria", "Priority", "Story Points", "Sprint Assignment"],
-    color: "#a78bfa",
+    color: "#74628f",
   },
 ];
 
@@ -198,10 +198,12 @@ function TemplateCard({ template }: { template: typeof TEMPLATES[0] }) {
         <p style={{ fontSize: 13, color: "var(--lc-text-3)", lineHeight: 1.65, marginBottom: 14 }}>{template.desc}</p>
 
         {/* Meta */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-          {[{ label: template.pages, icon: "📄" }, { label: template.standard, icon: "📋" }].map(m => (
-            <span key={m.label} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--lc-text-4)" }}>
-              {m.icon} {m.label}
+        {/* One line on every card — a long audience label truncates (full text
+            on hover) rather than wrapping some cards onto two rows. */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 16, minWidth: 0 }}>
+          {[{ label: template.pages, icon: "📄" }, { label: template.standard, icon: "📋" }].map((m, i) => (
+            <span key={m.label} title={m.label} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--lc-text-4)", whiteSpace: "nowrap", flexShrink: i === 0 ? 0 : 1, minWidth: 0 }}>
+              {m.icon} <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{m.label}</span>
             </span>
           ))}
         </div>
@@ -282,7 +284,7 @@ export default function TemplateStudioClient({ profile, user }: Props) {
                 <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
               </svg>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…"
-                style={{ width: "100%", background: "var(--lc-surface)", border: "1px solid var(--lc-border)", borderRadius: 10, padding: "9px 12px 9px 34px", fontSize: 13, color: "var(--lc-text-1)", outline: "none", fontFamily: "var(--font-body)", transition: "border-color .2s" }}
+                style={{ width: "100%", background: "var(--lc-faint)", border: "1px solid var(--lc-border)", borderRadius: 10, padding: "9px 12px 9px 34px", fontSize: 13, color: "var(--lc-text-1)", outline: "none", fontFamily: "var(--font-body)", transition: "border-color .2s" }}
                 onFocus={e => (e.target.style.borderColor = "var(--lc-teal-border)")}
                 onBlur={e => (e.target.style.borderColor = "var(--lc-border)")}
               />
@@ -290,7 +292,7 @@ export default function TemplateStudioClient({ profile, user }: Props) {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {CATEGORIES.map(cat => (
                 <button key={cat} onClick={() => setActiveCategory(cat)}
-                  style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "all .15s", background: activeCategory === cat ? "var(--teal)" : "var(--lc-surface)", borderColor: activeCategory === cat ? "var(--teal)" : "var(--lc-border)", color: activeCategory === cat ? "#041a13" : "var(--lc-text-3)" }}
+                  style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "all .15s", background: activeCategory === cat ? "var(--teal)" : "var(--lc-surface)", borderColor: activeCategory === cat ? "var(--teal)" : "var(--lc-border)", color: activeCategory === cat ? "#f5f1e7" : "var(--lc-text-3)" }}
                 >
                   {cat}
                 </button>
@@ -304,11 +306,11 @@ export default function TemplateStudioClient({ profile, user }: Props) {
               { val: TEMPLATES.length, label: "Templates" },
               { val: "Free", label: "All templates" },
               { val: "Word", label: "Compatible format" },
-            ].map(s => (
+            ].map((s, i, all) => (
               <div key={s.label} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "var(--teal)" }}>{s.val}</span>
                 <span style={{ fontSize: 12, color: "var(--lc-text-4)" }}>{s.label}</span>
-                <span style={{ color: "var(--lc-text-4)", fontSize: 12, marginLeft: 8 }}>·</span>
+                {i < all.length - 1 && <span style={{ color: "var(--lc-text-4)", fontSize: 12, marginLeft: 8 }}>·</span>}
               </div>
             ))}
           </div>
@@ -325,13 +327,13 @@ export default function TemplateStudioClient({ profile, user }: Props) {
           )}
 
           {/* Coming soon banner */}
-          <div style={{ marginTop: 32, padding: "20px 24px", background: "rgba(167,139,250,.04)", border: "1px solid rgba(167,139,250,.14)", borderRadius: 14, display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#a78bfa", flexShrink: 0 }} />
+          <div style={{ marginTop: 32, padding: "20px 24px", background: "rgba(52,64,125,.04)", border: "1px solid var(--lc-teal-border)", borderRadius: 14, display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--teal)", flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--lc-text-1)", marginBottom: 3 }}>Organisation templates coming to Pro</div>
               <div style={{ fontSize: 12.5, color: "var(--lc-text-3)" }}>Customise any template to your organisation's format, save it, and reuse it every time you generate a document.</div>
             </div>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 5, background: "rgba(167,139,250,.1)", color: "#a78bfa", border: "1px solid rgba(167,139,250,.2)", flexShrink: 0 }}>COMING SOON</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 5, background: "var(--lc-teal-bg)", color: "var(--teal)", border: "1px solid var(--lc-teal-border)", flexShrink: 0 }}>COMING SOON</span>
           </div>
         </div>
       </main>
