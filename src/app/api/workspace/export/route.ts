@@ -51,6 +51,35 @@ function extractProjectName(content: string, fallback: string): string {
   return fallback;
 }
 
+interface ExportMeta { projectName: string; organization?: string; artifactLabel: string; status: string; version?: number; updatedAt?: string; }
+
+function parseMeta(raw: unknown): ExportMeta | null {
+  if (!raw || typeof raw !== "object") return null;
+  const m = raw as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 200) : undefined);
+  const projectName = str(m.projectName), artifactLabel = str(m.artifactLabel), status = str(m.status);
+  if (!projectName || !artifactLabel || !status) return null;
+  return {
+    projectName, artifactLabel, status,
+    organization: str(m.organization),
+    version: typeof m.version === "number" && m.version > 0 ? Math.floor(m.version) : undefined,
+    updatedAt: str(m.updatedAt),
+  };
+}
+
+// Same header rows as the client exports (src/lib/exportDoc.ts metaRows):
+// empty organisation/version omitted, never any internal ids.
+function metaRows(m: ExportMeta): [string, string][] {
+  const rows: [string, string][] = [["Project", m.projectName]];
+  if (m.organization) rows.push(["Organisation", m.organization]);
+  rows.push(["Artifact", m.artifactLabel], ["Status", m.status]);
+  if (m.version) rows.push(["Version", `v${m.version}`]);
+  if (m.updatedAt && !isNaN(Date.parse(m.updatedAt))) {
+    rows.push(["Updated", new Date(m.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })]);
+  }
+  return rows;
+}
+
 export async function POST(request: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -58,11 +87,17 @@ export async function POST(request: Request) {
   if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   try {
-    const { content, title, format, type, projectId } = await request.json();
+    const { content, title, format, type, projectId, filename, meta } = await request.json();
     if (!content || !title) return NextResponse.json({ error: "Content and title required" }, { status: 400 });
 
     const dateStr = currentDateStr();
-    const projectName = extractProjectName(content, title);
+    // Callers that pass `meta` (the artifact toolbars) get the real project
+    // identity in the document; older callers keep the content-derived name.
+    const exportMeta = parseMeta(meta);
+    const projectName = exportMeta?.projectName ?? extractProjectName(content, title);
+    // Client-built name ([project]_[artifact]_v[n]_[date].ext); re-sanitised here
+    // so nothing unsafe reaches the Content-Disposition header.
+    const requestedName = typeof filename === "string" ? filename.replace(/[^A-Za-z0-9._-]+/g, "-").slice(0, 150) : "";
 
     // ── XLSX export ──────────────────────────────────────────────────────────
     if (format === "xlsx") {
@@ -93,7 +128,7 @@ export async function POST(request: Request) {
       return new Response(buffer as unknown as BodyInit, {
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="${safeFilename}-${type.replace(/_/g, "-")}.xlsx"`,
+          "Content-Disposition": `attachment; filename="${requestedName || `${safeFilename}-${type.replace(/_/g, "-")}.xlsx`}"`,
         },
       });
     }
@@ -147,16 +182,41 @@ export async function POST(request: Request) {
         TabStopType,
       } = await import("docx");
 
+      // Emphasis comes only from the saved content: **bold** → bold, *italic* →
+      // italic (same rules as the in-app document view and the PDF/Copy path).
+      // Bold/plain is decided by position in the split *before* empty pieces
+      // are dropped — dropping first shifted the parity whenever a line began
+      // with **…**, which inverted the emphasis; and single *…* is no longer
+      // turned into bold.
       function inlineRuns(text: string, defaultSize = 22, defaultColor?: string, forceBold = false): InstanceType<typeof TextRun>[] {
-        const clean = text.replace(/\*/g, "**").replace(/\*{4}/g, "**");
-        const parts = clean.split(/\*\*([^*]+)\*\*/);
-        return parts.filter(p => p !== "").map((part, i) =>
-          new TextRun({ text: part, bold: forceBold || i % 2 === 1, size: defaultSize, color: defaultColor })
-        );
+        const runs: InstanceType<typeof TextRun>[] = [];
+        text.split(/\*\*([^*]+)\*\*/).forEach((part, i) => {
+          if (!part) return;
+          if (i % 2 === 1) { runs.push(new TextRun({ text: part, bold: true, size: defaultSize, color: defaultColor })); return; }
+          part.split(/\*([^*]+)\*/).forEach((p, j) => {
+            if (p) runs.push(new TextRun({ text: p, bold: forceBold, italics: j % 2 === 1, size: defaultSize, color: defaultColor }));
+          });
+        });
+        return runs;
       }
 
-      // ── Page header ──────────────────────────────────────────────────────
-      const pageHeader = new Header({
+      // ── Page header / footer ─────────────────────────────────────────────
+      // With project metadata: quiet project-identifying header and footer in
+      // the Folio indigo. Without it: the original header/footer, unchanged.
+      const pageHeader = exportMeta ? new Header({
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({ text: `${exportMeta.projectName}  •  ${exportMeta.artifactLabel}`, size: 16, color: "7A7360" }),
+              new TextRun({ text: "\t", size: 16 }),
+              new TextRun({ text: [exportMeta.status, exportMeta.version ? `v${exportMeta.version}` : ""].filter(Boolean).join("  ·  "), size: 16, color: "7A7360" }),
+            ],
+            tabStops: [{ type: TabStopType.RIGHT, position: 9000 }],
+            border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: "D6CCAF" } },
+            spacing: { after: 120 },
+          }),
+        ],
+      }) : new Header({
         children: [
           new Paragraph({
             children: [
@@ -173,8 +233,23 @@ export async function POST(request: Request) {
         ],
       });
 
-      // ── Page footer ──────────────────────────────────────────────────────
-      const pageFooter = new Footer({
+      const pageFooter = exportMeta ? new Footer({
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({ text: `The BA Portal  •  ${exportMeta.projectName}  •  ${exportMeta.artifactLabel}`, size: 14, color: "7A7360" }),
+              new TextRun({ text: "\t", size: 14 }),
+              new TextRun({ text: "Page ", size: 14, color: "7A7360" }),
+              new TextRun({ children: [PageNumber.CURRENT], size: 14, color: "7A7360" }),
+              new TextRun({ text: " of ", size: 14, color: "7A7360" }),
+              new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 14, color: "7A7360" }),
+            ],
+            tabStops: [{ type: TabStopType.RIGHT, position: 9000 }],
+            border: { top: { style: BorderStyle.SINGLE, size: 2, color: "D6CCAF" } },
+            spacing: { before: 120 },
+          }),
+        ],
+      }) : new Footer({
         children: [
           new Paragraph({
             children: [
@@ -194,8 +269,35 @@ export async function POST(request: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const children: any[] = [];
 
-      // Title block
-      children.push(
+      // Title block — with metadata: artifact title + project metadata table;
+      // without: the original content-derived title block.
+      if (exportMeta) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: exportMeta.artifactLabel, bold: true, size: 44, color: "1D1A14" })],
+          spacing: { before: 120, after: 160 },
+        }));
+        children.push(new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          },
+          rows: metaRows(exportMeta).map(([k, v]) => new TableRow({
+            children: [
+              new TableCell({ width: { size: 1900, type: WidthType.DXA }, margins: { top: 30, bottom: 30, left: 0, right: 120 },
+                children: [new Paragraph({ children: [new TextRun({ text: k, bold: true, size: 19, color: "5B5546" })] })] }),
+              new TableCell({ width: { size: 7100, type: WidthType.DXA }, margins: { top: 30, bottom: 30, left: 0, right: 0 },
+                children: [new Paragraph({ children: [new TextRun({ text: v, size: 19, color: "1D1A14" })] })] }),
+            ],
+          })),
+        }));
+        children.push(new Paragraph({
+          text: "",
+          spacing: { before: 160, after: 360 },
+          border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: "34407D" } },
+        }));
+      } else children.push(
         new Paragraph({
           children: [new TextRun({ text: projectName, bold: true, size: 52, color: "1A1A2E" })],
           spacing: { before: 240, after: 200 },
@@ -213,6 +315,7 @@ export async function POST(request: Request) {
 
       const lines = content.split("\n");
       let i = 0;
+      let numberedListInstance = 0;
 
       while (i < lines.length) {
         const line = lines[i];
@@ -297,9 +400,16 @@ export async function POST(request: Request) {
         }
 
         if (/^\d+\.\s/.test(t)) {
+          // Each separate numbered list restarts at 1 (its own numbering
+          // instance) — previously every list in the document shared one
+          // counter, so e.g. Assumptions started at 6 after an earlier list.
+          // Blank lines between numbered items don't end the list.
+          let prev = i - 1;
+          while (prev >= 0 && !lines[prev].trim()) prev--;
+          if (prev < 0 || !/^\d+\.\s/.test(lines[prev].trim())) numberedListInstance++;
           children.push(new Paragraph({
             children: inlineRuns(t.replace(/^\d+\.\s/, ""), 20),
-            numbering: { reference: "default-numbering", level: 0 },
+            numbering: { reference: "default-numbering", level: 0, instance: numberedListInstance },
             spacing: { after: 80 },
           }));
           i++; continue;
@@ -354,7 +464,7 @@ export async function POST(request: Request) {
       return new Response(buffer as unknown as BodyInit, {
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "Content-Disposition": `attachment; filename="${safeFilename}.docx"`,
+          "Content-Disposition": `attachment; filename="${requestedName || `${safeFilename}.docx`}"`,
         },
       });
     }

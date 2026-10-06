@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { fmtLongDate, type ExportMeta } from "@/lib/exportDoc";
 
 interface Props {
   content: string;
@@ -10,6 +11,10 @@ interface Props {
   onDownload?: (fmt: "docx" | "txt" | "xlsx") => void;
   downloadFormats?: readonly ("docx" | "txt" | "xlsx")[];
   onCopy?: () => void;
+  // Toolbar slot (Copy + Export ▾); when given it replaces the legacy buttons.
+  actions?: React.ReactNode;
+  // Saved-version identity shown in the document header instead of today's date.
+  meta?: ExportMeta;
 }
 
 // ── Parse markdown tables into data ──────────────────────────────────────────
@@ -52,7 +57,7 @@ function InlineText({ text }: { text: string }) {
 }
 
 // ── Main document renderer ────────────────────────────────────────────────────
-export default function DocumentViewer({ content, title, accentColor = "#34407d", onBack, onDownload, downloadFormats = ["docx", "txt"], onCopy }: Props) {
+export default function DocumentViewer({ content, title, accentColor = "#34407d", onBack, onDownload, downloadFormats = ["docx", "txt"], onCopy, actions, meta }: Props) {
   const sections = extractSections(content);
   const [activeSection, setActiveSection] = useState<string>("");
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -256,7 +261,7 @@ export default function DocumentViewer({ content, title, accentColor = "#34407d"
         </button>
         <div style={{ width: 1, height: 16, background: "var(--lc-border)" }} />
         <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "var(--lc-text-1)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {actions ?? <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {onCopy && (
             <button onClick={onCopy} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 7, background: "none", border: "1px solid var(--lc-border)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--lc-text-3)", transition: "color .15s, border-color .15s" }}
               onMouseEnter={e => { e.currentTarget.style.color = "var(--lc-text-2)"; e.currentTarget.style.borderColor = "rgba(0,0,0,.14)"; }}
@@ -278,7 +283,7 @@ export default function DocumentViewer({ content, title, accentColor = "#34407d"
               ))}
             </>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Section nav */}
@@ -300,13 +305,15 @@ export default function DocumentViewer({ content, title, accentColor = "#34407d"
           {/* Document header */}
           <div style={{ marginBottom: 36, paddingBottom: 24, borderBottom: `3px solid ${accentColor}` }}>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: accentColor, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 10 }}>
-              BA Intelligence Engine
+              {meta ? meta.projectName : "BA Intelligence Engine"}
             </div>
             <h1 style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 800, color: "var(--lc-text-1)", letterSpacing: "-0.03em", margin: "0 0 10px", lineHeight: 1.2 }}>
               {title}
             </h1>
             <div style={{ fontSize: 13, color: "var(--lc-text-3)" }}>
-              {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+              {meta
+                ? [meta.organization, meta.status, meta.version ? `v${meta.version}` : null, meta.updatedAt ? `Updated ${fmtLongDate(meta.updatedAt)}` : null].filter(Boolean).join(" · ")
+                : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
             </div>
           </div>
 
