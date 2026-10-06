@@ -13,7 +13,27 @@ An ordered, reproducible definition of TheBAPortal's app schema, in two parts.
 | `0007_profiles.sql` | Baseline (**known-insecure as written**) | Already represented |
 | `0008_handle_new_user.sql` | Baseline | Already represented |
 | `0009_activate_pro_subscription.sql` | Baseline (**known-insecure as written**) | Already represented |
-| `0010_security_hardening.sql` | Security fix | **PENDING REVIEW — not applied** |
+| `0010_security_hardening.sql` | Security fix | **Applied 2026-10-06** |
+
+## Production history
+
+- **Baseline:** production already represents the state of `0001`–`0009`.
+  Their SQL was never executed against production.
+- **Validated before 0010:** on 2026-10-06 a read-only catalog snapshot of
+  production matched the captured baseline exactly, with 0 differences across
+  194 objects.
+- **First applied migration:** `0010_security_hardening.sql` is the first
+  migration from this ordered baseline actually applied to production. It was
+  applied on 2026-10-06 at 22:08 UTC, exactly as committed in `d365c3e`, in a
+  single transaction.
+- **Verified after 0010:**
+  - `checks/0010_security_hardening_verify.sql` returned 21/21 `ok`;
+  - production's schema matches the hardened state validated on the test
+    project, with 0 differences;
+  - live smoke checks passed.
+- **Bookkeeping:** there is no Supabase CLI migration-history table in
+  production. Applied migrations are recorded here only. If the CLI is
+  adopted later, bootstrap or repair its history deliberately at that time.
 
 ## Baseline: 0001–0009
 
