@@ -9,12 +9,16 @@ import { buildRTM } from "@/lib/rtm";
 import { computeAttention, extractItemIds, type AttentionItem } from "@/lib/projects/attention";
 import ProjectHome from "./ProjectHome";
 import ImportArtifact from "./ImportArtifact";
+import ProjectContextDrawer from "./ProjectContextDrawer";
+import ExportMenu from "@/components/ExportMenu";
+import { copyArtifact, type ExportMeta } from "@/lib/exportDoc";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Organization { name: string; country?: string; industry?: string; }
 interface Project {
   id: string; name: string; problem_statement?: string; methodology?: string;
   industry?: string; country?: string; relevant_context?: string; status: string;
+  created_at?: string; updated_at?: string;
   organizations?: Organization;
 }
 interface Artifact {
@@ -27,6 +31,8 @@ interface Decision {
   decision_date?: string; status: string; impact_notes?: string; created_at: string;
 }
 interface Message { role: "user" | "assistant"; content: string; truncated?: boolean; }
+// A Project Context note ("Add context") — BA-supplied source material.
+export interface ProjectNote { id: string; source_label: string | null; source_text: string; created_at: string; }
 
 // Sent as an ephemeral user turn (never persisted/shown as its own chat bubble,
 // same convention as the context block in buildContext) when the BA clicks
@@ -50,6 +56,7 @@ interface Props {
   initialFindings: Finding[];
   initialReviewFindings: ReviewFinding[];
   initialTab?: "home"|"work";
+  initialNotes?: ProjectNote[];
 }
 
 // ── Workstream definitions ─────────────────────────────────────────────────────
@@ -63,8 +70,8 @@ interface Props {
 // not seven unrelated saturated hues. Kept per-workstream because it aids
 // orientation across 7 tools; none collide with a status colour.
 // bringLabel: customer-facing phrasing for bringing existing work of this
-// workstream's OWN type into the project — always available at the door,
-// distinct from the "Add existing {type}" cross-type context imports below.
+// workstream's OWN type into the project — the start state's one quiet door,
+// for work produced outside TheBAPortal (work already inside it is used automatically).
 const WORKSTREAMS = [
   { id: "problem-analysis",    label: "Problem Analysis",    question: "What is happening and why?",      color: "#52658a", endpoint: "/api/workspace/analyze",       artifactType: "problem_analysis",    suggestedAfter: [],                           contextTypes: [],                                                     methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing problem analysis" },
   { id: "stakeholder-analysis",label: "Stakeholder Analysis",question: "Who influences success?",          color: "#8a7440", endpoint: "/api/workspace/stakeholders",  artifactType: "stakeholder_analysis", suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing stakeholder work" },
@@ -77,6 +84,42 @@ const WORKSTREAMS = [
 
 type WorkstreamId = typeof WORKSTREAMS[number]["id"];
 type Workstream = typeof WORKSTREAMS[number];
+
+// Simplified start state per work area: project context (and any relevant
+// approved upstream work) is used automatically, so the start is just a quiet
+// "Using …" line, one door for work done outside TheBAPortal, and the composer
+// with example prompts. A prompt only fills the composer — it never starts a
+// different generation path. The BA may start in any work area.
+const START_COPY: Record<WorkstreamId, { placeholder: string; prompts: string[] }> = {
+  "problem-analysis": {
+    placeholder: "Describe the problem, paste notes or evidence, ask a question, or tell TheBAPortal what you need...",
+    prompts: ["Clarify the core business problem", "Identify root causes", "Define scope and constraints", "Identify assumptions and open questions"],
+  },
+  "stakeholder-analysis": {
+    placeholder: "Describe the stakeholders, paste notes, ask a question, or tell TheBAPortal what you need...",
+    prompts: ["Identify key stakeholders", "Assess stakeholder influence and interest", "Create a stakeholder matrix", "Plan stakeholder engagement"],
+  },
+  "requirements": {
+    placeholder: "Describe what must change, paste notes or existing requirements, ask a question, or tell TheBAPortal what you need...",
+    prompts: ["Identify business requirements", "Elicit functional and non-functional requirements", "Identify business rules", "Draft acceptance criteria"],
+  },
+  "process-analysis": {
+    placeholder: "Describe how the work flows today, paste process notes, ask a question, or tell TheBAPortal what you need...",
+    prompts: ["Map the current-state process", "Identify process gaps and bottlenecks", "Design a future-state process", "Identify process rules and exceptions"],
+  },
+  "user-stories": {
+    placeholder: "Describe a feature or need, paste requirements, ask a question, or tell TheBAPortal what you need...",
+    prompts: ["Draft user stories from requirements", "Break a feature into user stories", "Improve acceptance criteria", "Identify missing or edge-case stories"],
+  },
+  "business-case": {
+    placeholder: "Describe the investment decision, paste figures or evidence, ask a question, or tell TheBAPortal what you need...",
+    prompts: ["Clarify the business need and expected value", "Compare solution options", "Identify costs, benefits and risks", "Draft a recommendation"],
+  },
+  "testing": {
+    placeholder: "Describe what needs testing, paste requirements or scenarios, ask a question, or tell TheBAPortal what you need...",
+    prompts: ["Create test scenarios from selected requirements", "Draft test cases", "Identify coverage gaps", "Prepare UAT scenarios"],
+  },
+};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const METHODOLOGY_LABEL: Record<string, string> = { agile:"Agile", waterfall:"Waterfall", hybrid:"Hybrid", safe:"SAFe", babok:"Structured Analysis" };
@@ -94,7 +137,6 @@ const STATUS_COLOR: Record<string, { bg:string; text:string; border:string }> = 
   superseded:{ bg:"rgba(122,115,96,.08)", text:"#7a7360", border:"rgba(122,115,96,.15)" },
   archived:  { bg:"rgba(156,148,128,.07)",text:"#9c9480", border:"rgba(156,148,128,.12)" },
 };
-const DECISION_STATUS_COLOR: Record<string, string> = { open:"#3b72ac", accepted:"#2e7a4e", deferred:"#b5741f", rejected:"#a83f32" };
 const WS_STATUS_LABEL: Record<WsStatus, string> = { available:"Not started", draft:"Draft", in_review:"In Review", approved:"Approved" };
 const WS_STATUS_COLOR: Record<WsStatus, string> = { available:"var(--lc-text-4)", draft:"#b5741f", in_review:"#3b72ac", approved:"#2e7a4e" };
 function wsStatusInfo(artifactType: string, artifacts: { type: string; status: string }[]): { label: string; color: string } {
@@ -116,6 +158,44 @@ function provenanceInfo(a: { status: string; reasoning_context?: Record<string, 
   return { tag: null, statusLabel: defaultLabel };
 }
 
+// Export header for a saved artifact version — status/version/date always come
+// from the saved row itself, so every export matches what is being viewed.
+export interface ExportContext { projectName: string; organization?: string | null }
+// ── Artifact lifecycle (shared by the Work page and ArtifactViewer) ───────────
+// Normal BA lifecycle is just Draft → Approved (→ Revise into a new Draft).
+// Approving goes through the one existing server path (PATCH), which stamps
+// the version as approved and supersedes the previous approved version of
+// that type — that approved version is what downstream work areas use.
+async function setArtifactStatus(projectId: string, artifactId: string, status: string): Promise<boolean> {
+  const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({artifactId,status})});
+  return res.ok;
+}
+// Revise never edits the approved row. It copies the approved content into a
+// fresh draft (a new version); the approved version stays the trusted project
+// version until the new draft is itself approved.
+async function reviseArtifact(projectId: string, artifact: Artifact): Promise<Artifact | null> {
+  const {was_approved: _drop, ...carriedContext} = (artifact.reasoning_context ?? {}) as Record<string, unknown>;
+  void _drop;
+  const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    type:artifact.type, title:artifact.title, content:artifact.content,
+    reasoning_context:carriedContext, status:"draft",
+    source_artifact_ids:artifact.source_artifact_ids??[],
+  })});
+  if (!res.ok) return null;
+  const {artifact:a} = await res.json();
+  return a as Artifact;
+}
+
+function artifactExportMeta(a: Artifact, ctx: ExportContext): ExportMeta {
+  const s = provenanceInfo(a).statusLabel;
+  return {
+    projectName: ctx.projectName, organization: ctx.organization ?? null,
+    artifactLabel: ARTIFACT_TYPE_LABEL[a.type] ?? CONTEXT_TYPE_LABEL[a.type] ?? a.type,
+    status: s.charAt(0).toUpperCase() + s.slice(1),
+    version: a.version, updatedAt: a.updated_at ?? a.created_at,
+  };
+}
+
 // timeZone must be pinned explicitly — this renders on the server (Vercel,
 // UTC) and then hydrates on the client (the visitor's own browser timezone).
 // Without a fixed zone, toLocaleDateString resolves to each runtime's local
@@ -125,30 +205,9 @@ function provenanceInfo(a: { status: string; reasoning_context?: Record<string, 
 function fmtDate(iso:string){ return new Date(iso).toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"}); }
 
 // Artifact types with a meaningful structured workbook. Everything else only
-// ever offers DOCX/TXT — a free-text analysis has no rows and columns to give.
+// ever offers Word/PDF/Print — a free-text analysis has no rows and columns to give.
 const XLSX_TYPES = new Set(["requirements", "user_stories", "test_case"]);
 
-// Reuses the existing generic markdown export route already proven out in the
-// standalone /workspace tool — no new export infrastructure needed.
-async function downloadOutput(content: string, title: string, format: "txt" | "docx" | "xlsx", type?: string, projectId?: string) {
-  try {
-    const res = await fetch("/api/workspace/export", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, title, format, ...(type ? { type } : {}), ...(projectId ? { projectId } : {}) }),
-    });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `${title.toLowerCase().replace(/\s+/g, "-")}.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch { /* fail silently */ }
-}
 
 // ── Workstream status logic ────────────────────────────────────────────────────
 type WsStatus = "available" | "draft" | "in_review" | "approved";
@@ -212,7 +271,7 @@ const FINDING_CATEGORY_GUIDANCE: Record<string, string> = {
   edge_case: "use for completeness and acceptance thinking, do not turn into a standalone requirement by itself",
 };
 
-function buildContext(ws: Workstream, project: Project, artifacts: Artifact[], findings: Finding[]): { text: string; sourceIds: string[]; findingIds: string[]; sessionIds: string[] } {
+function buildContext(ws: Workstream, project: Project, notes: ProjectNote[], artifacts: Artifact[], findings: Finding[]): { text: string; sourceIds: string[]; findingIds: string[]; sessionIds: string[] } {
   const lines = ["[ESTABLISHED PROJECT CONTEXT]"];
   lines.push(`Project: ${project.name}`);
   if (project.problem_statement) lines.push(`Problem Statement: ${project.problem_statement}`);
@@ -220,6 +279,18 @@ function buildContext(ws: Workstream, project: Project, artifacts: Artifact[], f
   if (project.industry) lines.push(`Industry: ${project.industry}`);
   if (project.country) lines.push(`Country: ${project.country}`);
   if (project.relevant_context) lines.push(`Additional Context: ${project.relevant_context}`);
+
+  // Project Context notes — part of the project's accumulated context, but
+  // BA-supplied source material only: never an approved artifact, accepted
+  // requirement, business rule or decision. The label says so to the model.
+  if (notes.length > 0) {
+    lines.push("\n[BA-SUPPLIED PROJECT NOTES]");
+    lines.push("Notes the Business Analyst added to the project, oldest first. They are unvalidated source material — use them as context, but do not treat any note as an approved artifact, accepted requirement, business rule or decision merely because it was supplied.");
+    for (const n of notes) {
+      const date = new Date(n.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+      lines.push(`\n- ${date} · ${n.source_label || "Project note"}:\n${n.source_text}`);
+    }
+  }
 
   const sourceIds: string[] = [];
   for (const type of ws.contextTypes as readonly string[]) {
@@ -356,7 +427,9 @@ function AddDecisionModal({projectId,onSaved,onClose,prefill}:{projectId:string;
 }
 
 // ── Artifact viewer ────────────────────────────────────────────────────────────
-function ArtifactViewer({artifact,projectId,onStatusChange,onClose,onRevised}:{artifact:Artifact;projectId:string;onStatusChange:(id:string,s:string)=>void;onClose:()=>void;onRevised:(a:Artifact)=>void}) {
+// Exported so Decision Lab can manage its own saved outputs with the exact
+// same lifecycle (edit draft / approve / revise / archive) — reused, not copied.
+export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,onClose,onRevised}:{artifact:Artifact;projectId:string;exportContext?:ExportContext;onStatusChange:(id:string,s:string)=>void;onClose:()=>void;onRevised:(a:Artifact)=>void}) {
   const sc = STATUS_COLOR[artifact.status] ?? STATUS_COLOR.draft;
   const prov = provenanceInfo(artifact);
   const [draftText,setDraftText] = useState(artifact.content);
@@ -365,8 +438,7 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose,onRevised}:{a
   useEffect(()=>{ setDraftText(artifact.content); }, [artifact.id, artifact.content]);
 
   async function changeStatus(s:string) {
-    const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({artifactId:artifact.id,status:s})});
-    if (res.ok) onStatusChange(artifact.id,s);
+    if (await setArtifactStatus(projectId, artifact.id, s)) onStatusChange(artifact.id,s);
   }
 
   // Editing a draft updates this same row in place — normal autosave
@@ -392,14 +464,8 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose,onRevised}:{a
   async function revise() {
     setRevising(true);
     try {
-      const {was_approved: _drop, ...carriedContext} = (artifact.reasoning_context ?? {}) as Record<string, unknown>;
-      void _drop;
-      const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        type:artifact.type, title:artifact.title, content:artifact.content,
-        reasoning_context:carriedContext, status:"draft",
-        source_artifact_ids:artifact.source_artifact_ids??[],
-      })});
-      if (res.ok) { const {artifact:a} = await res.json(); onRevised(a); }
+      const a = await reviseArtifact(projectId, artifact);
+      if (a) onRevised(a);
     } finally { setRevising(false); }
   }
 
@@ -466,30 +532,27 @@ function ArtifactViewer({artifact,projectId,onStatusChange,onClose,onRevised}:{a
           </>
         )}
         <div style={{display:"flex",alignItems:"center",gap:4}}>
-          {artifact.status!=="approved" && (
-            <>
-              {artifact.status!=="in_review" && (
-                <button onClick={()=>changeStatus("in_review")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Move to review</button>
-              )}
-              {artifact.status!=="draft" && (
-                <button onClick={()=>changeStatus("draft")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Back to draft</button>
-              )}
-            </>
+          {/* Normal lifecycle is Draft → Approved; "In review" is no longer
+              offered. Older rows already in review can still go back to Draft
+              (or be approved above). Archive stays as a quiet history action. */}
+          {artifact.status==="in_review" && (
+            <button onClick={()=>changeStatus("draft")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Back to draft</button>
           )}
           {artifact.status!=="archived" && (
             <button onClick={()=>changeStatus("archived")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Archive</button>
           )}
         </div>
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-          {artifact.type !== "process_diagram" && ([...(["docx","txt"] as const), ...(XLSX_TYPES.has(artifact.type) ? (["xlsx"] as const) : [])]).map(fmt=>(
-            <button key={fmt} onClick={()=>downloadOutput(artifact.content, `${ARTIFACT_TYPE_LABEL[artifact.type]??artifact.type} v${artifact.version}`, fmt, artifact.type, projectId)}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"none",border:"1px solid var(--lc-border)",borderRadius:8,fontSize:12,color:"var(--lc-text-2)",cursor:"pointer"}}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> .{fmt}
+          {/* Exports always use the saved row (artifact.content), never unsaved
+              edits in the draft textarea — what's exported is this version. */}
+          {artifact.type !== "process_diagram" ? (
+            <ExportMenu content={artifact.content} meta={artifactExportMeta(artifact, exportContext ?? {projectName: "Project"})}
+              artifactType={artifact.type} projectId={projectId} xlsx={XLSX_TYPES.has(artifact.type)} placement="up"/>
+          ) : (
+            <button style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"none",border:"1px solid var(--lc-border)",borderRadius:8,fontSize:12,color:"var(--lc-text-2)",cursor:"pointer"}} onClick={()=>navigator.clipboard?.writeText(artifact.content)}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy
             </button>
-          ))}
-          <button style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"none",border:"1px solid var(--lc-border)",borderRadius:8,fontSize:12,color:"var(--lc-text-2)",cursor:"pointer"}} onClick={()=>navigator.clipboard?.writeText(artifact.content)}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy
-          </button>
+          )}
         </div>
       </div>
     </div>
@@ -596,10 +659,66 @@ function BAIntelligenceFindingsPanel({findings, onClose}: {findings: Finding[]; 
 }
 
 // ── Workstream session ─────────────────────────────────────────────────────────
-function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifactSaved, onDecisionLog, panelOpen, onTogglePanel}: {
-  ws: Workstream; project: Project; artifacts: Artifact[]; findings: Finding[];
-  onBack: ()=>void; onArtifactSaved:(a:Artifact)=>void; onDecisionLog:(prefill?:string)=>void;
-  panelOpen: boolean; onTogglePanel: ()=>void;
+// ── Work page local nav row ─────────────────────────────────────────────────────
+// Compact row under the project tabs: where you are on the left, Project
+// context (the only permanent action) on the right.
+function WorkNavRow({children, onOpenContext}: {children: React.ReactNode; onOpenContext: ()=>void}) {
+  return (
+    <div className="work-nav-row" style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:"0 32px",minHeight:44,borderBottom:"1px solid var(--lc-border-soft)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>{children}</div>
+      <button onClick={onOpenContext}
+        style={{flexShrink:0,display:"flex",alignItems:"center",gap:6,background:"none",border:"none",padding:"6px 0",cursor:"pointer",fontSize:12.5,fontWeight:600,color:"var(--teal)",fontFamily:"inherit"}}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        Project context
+      </button>
+    </div>
+  );
+}
+
+// Switches between the seven existing work areas — a plain menu, not a catalogue.
+function WorkstreamSwitcher({current, onSwitch}: {current: Workstream; onSwitch: (ws: Workstream)=>void}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+  return (
+    <div ref={ref} style={{position:"relative",minWidth:0}}>
+      <button onClick={()=>setOpen(v=>!v)} aria-haspopup="menu" aria-expanded={open}
+        style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",padding:"6px 2px",cursor:"pointer",fontSize:12.5,fontWeight:600,color:"var(--lc-text-2)",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+        {current.label}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      {open && (
+        <div role="menu" style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:60,minWidth:220,background:"var(--lc-surface)",border:"1px solid var(--lc-border)",borderRadius:12,boxShadow:"var(--lc-shadow-md)",padding:6}}>
+          {WORKSTREAMS.map(w => {
+            const isCurrent = w.id === current.id;
+            return (
+              <button key={w.id} role="menuitem" onClick={()=>{setOpen(false); if (!isCurrent) onSwitch(w);}}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:8,background:isCurrent?"var(--lc-bg)":"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:isCurrent?700:500,color:"var(--lc-text-1)",textAlign:"left",fontFamily:"inherit"}}
+                onMouseEnter={e=>{if(!isCurrent)e.currentTarget.style.background="var(--lc-bg)";}}
+                onMouseLeave={e=>{if(!isCurrent)e.currentTarget.style.background="none";}}>
+                <span style={{width:7,height:7,borderRadius:"50%",background:w.color,flexShrink:0}}/>
+                <span style={{flex:1}}>{w.label}</span>
+                {isCurrent && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onSwitchWs, onArtifactSaved, onStatusChange, onDecisionLog, onOpenContext, onOpenArtifact, onOpenRTM}: {
+  ws: Workstream; project: Project; notes: ProjectNote[]; artifacts: Artifact[]; findings: Finding[];
+  onBack: ()=>void; onSwitchWs:(ws:Workstream)=>void; onArtifactSaved:(a:Artifact)=>void; onStatusChange:(id:string,status:string)=>void; onDecisionLog:(prefill?:string)=>void;
+  onOpenContext: ()=>void; onOpenArtifact:(a:Artifact)=>void; onOpenRTM: ()=>void;
 }) {
   const [messages, setMessages]   = useState<Message[]>([]);
   const [input, setInput]         = useState("");
@@ -616,20 +735,39 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
   const [showFindings, setShowFindings] = useState(false);
   const [importTarget, setImportTarget] = useState<string|null>(null);
   const [scopeIds, setScopeIds]         = useState<string[]>([]);
+  const [lifecycleBusy, setLifecycleBusy] = useState<"approve"|"revise"|null>(null);
+  const [lifecycleError, setLifecycleError] = useState("");
   const endRef      = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Upstream artifact types this workstream normally builds on that have no
-  // approved version yet — surfaced so a user knows why output may be generic.
-  const missingContext = (ws.contextTypes as readonly string[]).filter(
-    t => !artifacts.some(a => a.type === t && a.status === "approved")
-  );
 
   // This workstream only ever sees the BA Intelligence categories it declares —
   // e.g. Requirements gets all five, Process Analysis only Business Rules and
   // Edge Cases. Every downstream use of "findings" in this component should read
   // from this filtered list, never the full project findings array.
   const relevantFindings = findings.filter(f => (ws.baIntelligenceCategories as readonly string[]).includes(f.category));
+
+  // This work area's saved artifact(s), newest version first — usually one;
+  // two while an approved version and its newer revision draft coexist.
+  // Each opens in the existing ArtifactViewer (edit / approve / revise / archive).
+  const savedVersions = artifacts
+    .filter(a => a.type === ws.artifactType && a.status !== "superseded" && a.status !== "archived")
+    .sort((x, y) => y.version - x.version);
+
+  // Simplified start (see START_COPY). "Using …" names exactly what
+  // buildContext will send: project context (overview, project notes) plus the
+  // approved upstream artifacts this area builds on — same selection rule.
+  const startCopy = START_COPY[ws.id];
+  const usedUpstream = (ws.contextTypes as readonly string[]).flatMap(t => {
+    const approved = artifacts.filter(a => a.type === t && a.status === "approved");
+    if (!approved.length) return [];
+    const label = CONTEXT_TYPE_LABEL[t] ?? t;
+    return [MULTI_INSTANCE_TYPES.includes(t) ? (approved.length > 1 ? `${label} (${approved.length})` : label) : `${label} v${approved[0].version}`];
+  });
+  const isBlankStart = messages.length === 0 && savedVersions.length === 0;
+  // Blank start uses the wide, centred layout: context strip, white composer
+  // surface, four prompts in a 2×2 grid.
+  const centredStart = isBlankStart;
+  const contextInUse = ["Project context", ...usedUpstream];
 
   // Testing's declared scope. Recognisable ids (FR-001 etc.) pulled from
   // whatever approved upstream artifacts exist — imported or native, no
@@ -663,6 +801,13 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
   }, [ws.id, ws.artifactType, project.id]);
 
   useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages, loading]);
+  // The start composer grows with its content (typed, pasted or a prompt fill).
+  useEffect(() => {
+    const t = textareaRef.current;
+    if (!t || !t.dataset.autogrow) return;
+    t.style.height = "auto";
+    t.style.height = `${Math.min(t.scrollHeight, 360)}px`;
+  }, [input]);
   useEffect(() => { if (!loadingHistory) textareaRef.current?.focus(); }, [loadingHistory]);
 
   async function persistConversation(msgs: Message[], artifactId?: string) {
@@ -693,7 +838,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
     // (displayMessages / messages) never carries the context block; only the
     // ephemeral apiMessages payload for this one call does, attached to the
     // current turn only, so exactly one context block is ever in flight.
-    const ctx = buildContext(ws, project, artifacts, relevantFindings);
+    const ctx = buildContext(ws, project, notes, artifacts, relevantFindings);
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
@@ -825,7 +970,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
     setHasAnalysis(false);
     setSaveStatus("idle");
 
-    const ctx = buildContext(ws, project, artifacts, relevantFindings);
+    const ctx = buildContext(ws, project, notes, artifacts, relevantFindings);
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
@@ -861,7 +1006,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
     setSaveStatus("idle");
     setLoading(true);
 
-    const ctx = buildContext(ws, project, artifacts, relevantFindings);
+    const ctx = buildContext(ws, project, notes, artifacts, relevantFindings);
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
@@ -903,156 +1048,199 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
     return <BAIntelligenceFindingsPanel findings={relevantFindings} onClose={()=>setShowFindings(false)}/>;
   }
 
-  if (viewMode === "document" && analysisContent) {
+  // Document view, Copy and every export use the saved version of this work
+  // area (its own content, status, version and date) once it is saved — so an
+  // export is always a real, identifiable artifact version, never a re-render
+  // of the conversation. Before anything is saved, the analysis is shown and
+  // exported as-is, labelled "Not saved".
+  // The current saved version: the one this session's analysis was saved as,
+  // or — with no conversation (e.g. work brought in from outside) — the latest
+  // saved version itself.
+  const savedCurrent = (saveStatus === "saved" || messages.length === 0) ? savedVersions[0] : undefined;
+  const exportContext: ExportContext = { projectName: project.name, organization: project.organizations?.name ?? null };
+  const docContent = savedCurrent?.content ?? analysisContent;
+  const docMeta: ExportMeta = savedCurrent
+    ? artifactExportMeta(savedCurrent, exportContext)
+    : { ...exportContext, artifactLabel: ARTIFACT_TYPE_LABEL[ws.artifactType] ?? ws.label, status: "Not saved" };
+
+  if (viewMode === "document" && (analysisContent || savedCurrent)) {
     return (
       <DocumentViewer
-        content={analysisContent}
-        title={ws.label}
+        content={docContent}
+        title={docMeta.artifactLabel}
         accentColor={ws.color}
         onBack={() => setViewMode("chat")}
-        onCopy={() => navigator.clipboard?.writeText(analysisContent)}
-        onDownload={(fmt) => downloadOutput(analysisContent, ws.label, fmt, ws.artifactType, project.id)}
-        downloadFormats={XLSX_TYPES.has(ws.artifactType) ? ["docx","txt","xlsx"] : ["docx","txt"]}
+        meta={docMeta}
+        actions={<ExportMenu content={docContent} meta={docMeta} artifactType={ws.artifactType} projectId={project.id} xlsx={XLSX_TYPES.has(ws.artifactType)}/>}
       />
     );
   }
 
+  // Draft → Approved on the Work page itself, through the shared lifecycle
+  // helpers (same server path as the saved-version viewer).
+  const isApproved = savedCurrent?.status === "approved";
+  async function approveCurrent() {
+    if (!savedCurrent || lifecycleBusy) return;
+    setLifecycleBusy("approve"); setLifecycleError("");
+    try {
+      if (await setArtifactStatus(project.id, savedCurrent.id, "approved")) onStatusChange(savedCurrent.id, "approved");
+      else setLifecycleError("Couldn't approve — please try again.");
+    } catch { setLifecycleError("Couldn't approve — please try again."); }
+    finally { setLifecycleBusy(null); }
+  }
+  async function reviseCurrent() {
+    if (!savedCurrent || lifecycleBusy) return;
+    setLifecycleBusy("revise"); setLifecycleError("");
+    try {
+      const a = await reviseArtifact(project.id, savedCurrent);
+      if (a) onArtifactSaved(a); else setLifecycleError("Couldn't start a new version — please try again.");
+    } catch { setLifecycleError("Couldn't start a new version — please try again."); }
+    finally { setLifecycleBusy(null); }
+  }
+
+  // Testing's declared scope — which approved requirements this round tests.
+  // Kept on the start state: it decides what the test work is scoped to.
+  const scopePicker = ws.id === "testing" && scopeCandidateIds.length > 0 ? (
+    <div style={{padding:"10px 12px",background:"var(--lc-surface)",border:"1px solid var(--lc-border)",borderRadius:9,marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:8}}>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--lc-text-3)"}}>Which requirements are you testing this round?</div>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:10.5,color:scopeIds.length?"var(--teal)":"var(--lc-text-4)"}}>
+            {scopeIds.length} of {scopeCandidateIds.length} selected
+          </span>
+          <button onClick={()=>setScopeIds(scopeIds.length ? [] : scopeCandidateIds)}
+            style={{background:"none",border:"none",color:"var(--teal)",fontSize:10.5,fontWeight:700,cursor:"pointer",padding:0}}>
+            {scopeIds.length ? "Clear" : "Select all"}
+          </button>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:5,maxHeight:160,overflowY:"auto",paddingRight:2}}>
+        {scopeCandidateIds.map(id=>{
+          const on = scopeIds.includes(id);
+          return (
+            <button key={id} onClick={()=>setScopeIds(prev=>on?prev.filter(x=>x!==id):[...prev,id])}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:6,border:`1px solid ${on?"rgba(52,64,125,.3)":"var(--lc-border)"}`,background:on?"var(--lc-teal-bg)":"none",color:on?"var(--teal)":"var(--lc-text-4)",fontSize:11,fontFamily:"var(--font-mono)",fontWeight:600,cursor:"pointer"}}>
+              <span style={{width:10,height:10,borderRadius:3,border:`1.5px solid ${on?"var(--teal)":"var(--lc-text-5)"}`,background:on?"var(--teal)":"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#f5f1e7" strokeWidth="4" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </span>
+              {id}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+  // The composer — the same send/persist flow wherever it renders. "main" is
+  // the blank-start version: the primary element of the page.
+  const composerBox = (main: boolean, bare = false) => (
+    <div style={bare ? {} : {background:main?"var(--lc-surface)":"transparent",border:"1px solid var(--lc-border)",borderRadius:main?14:12,boxShadow:main?"var(--lc-shadow-sm)":"none",overflow:"hidden",transition:"border-color .2s, background .2s"}}
+            onFocusCapture={bare ? undefined : e=>{e.currentTarget.style.borderColor=`${ws.color}55`;e.currentTarget.style.background="var(--lc-surface)";}}
+            onBlurCapture={bare ? undefined : e=>{e.currentTarget.style.borderColor="var(--lc-border)";if(!main)e.currentTarget.style.background="transparent";}}
+          >
+            <textarea ref={textareaRef} value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+              placeholder={hasAnalysis
+                ? "Add new context, a stakeholder update, a risk, or any new information..."
+                : messages.length===0
+                  ? startCopy.placeholder
+                  : "Continue the conversation..."}
+              rows={bare?3:main?4:2}
+              data-autogrow={bare ? "1" : undefined}
+              style={{width:"100%",background:"none",border:"none",outline:"none",padding:bare?"2px 0 10px":main?"14px 16px 6px":"11px 14px 4px",fontSize:bare?15:main?14.5:13.5,color:"var(--lc-text-1)",lineHeight:1.6,resize:"none",fontFamily:"var(--font-body)",...(bare?{maxHeight:360,overflowY:"auto"}:{})}}
+            />
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:bare?"10px 0 0":"4px 8px 8px 14px",...(bare?{borderTop:"1px solid var(--lc-border-soft)"}:{})}}>
+              <span style={{fontSize:11,color:"var(--lc-text-5)"}}>
+                {hasAnalysis ? "Conversation stays open — keep adding context" : "Enter to send · Shift+Enter for new line"}
+              </span>
+              <button onClick={send} disabled={!input.trim()||loading}
+                style={{display:"flex",alignItems:"center",gap:5,padding:"6px 14px",borderRadius:7,background:input.trim()&&!loading?ws.color:"transparent",border:input.trim()&&!loading?"none":"1px solid var(--lc-border)",cursor:input.trim()&&!loading?"pointer":"not-allowed",fontSize:12.5,fontWeight:700,color:input.trim()&&!loading?"#f5f1e7":"var(--lc-text-4)",transition:"all .2s",flexShrink:0}}>
+                {loading?"Thinking...":"Send"}
+              </button>
+            </div>
+          </div>
+  );
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
-      {/* Header */}
-      <header className="ws-header" style={{padding:"12px 20px",borderBottom:"1px solid var(--lc-border)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",rowGap:8,flexShrink:0}}>
-        <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:5,fontSize:13,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:0}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-2)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Workstreams
+      {/* Local nav — ← Workstreams › current area (switcher); Project context on the right. */}
+      <WorkNavRow onOpenContext={onOpenContext}>
+        <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:5,fontSize:12.5,color:"var(--lc-text-3)",background:"none",border:"none",cursor:"pointer",padding:"6px 0",fontFamily:"inherit",whiteSpace:"nowrap"}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Workstreams
         </button>
-        <div className="ws-header-divider" style={{width:1,height:14,background:"var(--lc-border)"}}/>
-        <div style={{display:"flex",alignItems:"center",gap:7}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:ws.color,flexShrink:0}}/>
-          <span style={{fontFamily:"var(--font-display)",fontSize:14,fontWeight:700,color:"var(--lc-text-1)"}}>{ws.label}</span>
-          <span className="ws-question-sub" style={{fontSize:12,color:"var(--lc-text-4)"}}>— {ws.question}</span>
-        </div>
-        {/* Context status stays quiet — a plain word, not a coloured pill —
-            unless there's something the BA actually needs to know: expected
-            upstream context that isn't approved yet. */}
-        {(ws.contextTypes as readonly string[]).length > 0 && (
-          missingContext.length > 0 ? (
-            <span style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.25)",borderRadius:6,fontSize:11,color:"var(--lc-amber)",fontFamily:"var(--font-mono)",flexShrink:0}}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              Missing context
-            </span>
-          ) : (
-            <span style={{fontSize:11,color:"var(--lc-text-4)",fontFamily:"var(--font-mono)",flexShrink:0}}>Context loaded</span>
-          )
-        )}
-        {relevantFindings.length > 0 && (
-          <button onClick={()=>setShowFindings(true)}
-            style={{display:"flex",alignItems:"center",gap:5,padding:"3px 9px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:6,fontSize:11,color:"var(--teal)",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
-            <div style={{width:5,height:5,borderRadius:"50%",background:"var(--teal)"}}/>
-            BA Intelligence ({relevantFindings.length})
-          </button>
-        )}
-        <button onClick={onTogglePanel} title={panelOpen ? "Hide project panel" : "Show project panel"}
-          style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,background:"none",border:"1px solid var(--lc-border)",cursor:"pointer",fontSize:11,fontWeight:600,color:"var(--lc-text-3)",transition:"color .15s,border-color .15s"}}
-          onMouseEnter={e=>{e.currentTarget.style.color="var(--lc-text-2)";e.currentTarget.style.borderColor="rgba(0,0,0,.12)";}}
-          onMouseLeave={e=>{e.currentTarget.style.color="var(--lc-text-3)";e.currentTarget.style.borderColor="var(--lc-border)";}}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            {panelOpen
-              ? <><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></>
-              : <><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><path d="M14 9l3 3-3 3"/></>
-            }
-          </svg>
-          {panelOpen ? "Hide panel" : "Show panel"}
-        </button>
-      </header>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--lc-text-5)" strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
+        <WorkstreamSwitcher current={ws} onSwitch={onSwitchWs}/>
+      </WorkNavRow>
 
       {/* Messages */}
-      <div style={{flex:1,overflowY:"auto",padding:"20px 22px"}}>
-        {messages.length === 0 && (
-          <div style={{maxWidth:560,margin:"0 auto"}}>
-            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:14}}>
-              <div style={{width:28,height:28,borderRadius:8,background:`${ws.color}14`,border:`1px solid ${ws.color}28`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"var(--font-mono)",fontSize:10,fontWeight:800,color:ws.color}}>BA</div>
-              <h2 style={{fontFamily:"var(--font-display)",fontSize:17,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.02em",margin:0}}>{ws.label}</h2>
-            </div>
-            <div style={{padding:"9px 12px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:9,fontSize:12,color:"var(--teal)",marginBottom:missingContext.length?8:14,lineHeight:1.6}}>
-              <strong>Context loaded:</strong> {project.problem_statement
-                ? `"${project.problem_statement.slice(0,100)}${project.problem_statement.length>100?"...":""}"`
-                : project.name}
-            </div>
-            {missingContext.length > 0 && (
-              <div style={{padding:"9px 12px",background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.22)",borderRadius:9,fontSize:12,color:"var(--lc-amber)",marginBottom:10,lineHeight:1.6}}>
-                <strong>No approved {missingContext.map(t=>CONTEXT_TYPE_LABEL[t]??t).join(" or ")} yet.</strong> This workstream normally builds on it — you can continue anyway, or go approve it first for a stronger result.
-              </div>
-            )}
-            {/* Bring existing work in — never a prerequisite, always available
-                alongside "start without it". Every workstream can bring in
-                existing work of its own type (the primary door); workstreams
-                that build on other types can additionally pull those in,
-                where genuinely useful, as a secondary action. */}
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
-              <button onClick={()=>setImportTarget(ws.artifactType)}
-                style={{padding:"6px 13px",borderRadius:7,border:`1px solid ${ws.color}35`,background:`${ws.color}0f`,color:ws.color,fontSize:11.5,fontWeight:700,cursor:"pointer"}}>
-                {ws.bringLabel}
+      <div style={{flex:1,overflowY:"auto",padding:"0 32px 24px"}} className="ws-canvas">
+        {/* Current work area — the strongest text on the page; the guiding
+            question and saved-artifact metadata are quiet supporting lines. */}
+        <div style={{padding:"26px 0 18px",...(centredStart?{maxWidth:1000,margin:"0 auto",padding:"34px 0 20px"}:{})}}>
+          <h1 style={{fontFamily:"var(--font-display)",fontSize:26,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.02em",lineHeight:1.2,margin:0}}>{ws.label}</h1>
+          <p style={{fontSize:14,color:"var(--lc-text-3)",lineHeight:1.5,margin:"4px 0 0"}}>{ws.question}</p>
+          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"6px 18px",marginTop:12,fontSize:12,color:"var(--lc-text-4)"}}>
+            {savedVersions.map(a => {
+              const prov = provenanceInfo(a);
+              return (
+                <span key={a.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                  <span>{prov.statusLabel.charAt(0).toUpperCase() + prov.statusLabel.slice(1)} · v{a.version} · Updated {fmtDate(a.updated_at ?? a.created_at)}{prov.tag ? ` · ${prov.tag.toLowerCase()}` : ""}</span>
+                  <button onClick={()=>onOpenArtifact(a)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--teal)",fontFamily:"inherit",whiteSpace:"nowrap"}}>Open saved version →</button>
+                </span>
+              );
+            })}
+            {/* What this area uses automatically — quiet and informational,
+                never a warning. */}
+            <span className="ws-context-strip" aria-label={`Context in use: ${contextInUse.join(", ")}`}>
+              <span className="ws-context-label">Context in use</span>
+              {contextInUse.map(c => <span key={c} className="ws-context-item">{c}</span>)}
+            </span>
+            {relevantFindings.length > 0 && (
+              <button onClick={()=>setShowFindings(true)}
+                style={{display:"flex",alignItems:"center",gap:5,padding:"2px 8px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:6,fontSize:11,color:"var(--teal)",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:"var(--teal)"}}/>
+                BA Intelligence ({relevantFindings.length})
               </button>
-              {(ws.contextTypes as readonly string[]).filter(t=>t!=="decision_lab_output").map(t=>(
-                <button key={t} onClick={()=>setImportTarget(t)}
-                  style={{padding:"6px 12px",borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>
-                  Add existing {(CONTEXT_TYPE_LABEL[t]??t).toLowerCase()}
+            )}
+            {/* RTM is contextual to Requirements and Testing only — not a
+                project-wide control on every work area. */}
+            {(ws.id === "requirements" || ws.id === "testing") && (
+              <button onClick={onOpenRTM} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--teal)",fontFamily:"inherit",whiteSpace:"nowrap"}}>Traceability (RTM) →</button>
+            )}
+            {/* Work produced outside TheBAPortal only — never in-app work. */}
+            {centredStart && (
+              <button onClick={()=>setImportTarget(ws.artifactType)} className="ws-bring-btn">+ {ws.bringLabel}</button>
+            )}
+          </div>
+        </div>
+        {/* Simplified start: one door for work done outside TheBAPortal, then
+            the composer as the main element with example prompts. Project
+            context and approved upstream work are used automatically. */}
+        {centredStart && (
+          <div style={{maxWidth:1000,margin:"0 auto"}}>
+            {scopePicker && <div style={{marginBottom:18}}>{scopePicker}</div>}
+            <div className="ws-start-surface">
+              <h2 style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:700,color:"var(--lc-text-1)",letterSpacing:"-0.01em",margin:"0 0 10px"}}>What would you like to work through?</h2>
+              {composerBox(true, true)}
+            </div>
+            <div className="ws-prompt-grid">
+              {startCopy.prompts.map(pr => (
+                <button key={pr} className="ws-prompt" onClick={()=>{setInput(pr);textareaRef.current?.focus();}}>
+                  <span>{pr}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
                 </button>
               ))}
             </div>
-            {ws.id==="testing" && scopeCandidateIds.length > 0 && (
-              <div style={{padding:"10px 12px",background:"var(--lc-surface)",border:"1px solid var(--lc-border)",borderRadius:9,marginBottom:14}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:8}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"var(--lc-text-3)"}}>Which requirements are you testing this round?</div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:10.5,color:scopeIds.length?"var(--teal)":"var(--lc-text-4)"}}>
-                      {scopeIds.length} of {scopeCandidateIds.length} selected
-                    </span>
-                    <button onClick={()=>setScopeIds(scopeIds.length ? [] : scopeCandidateIds)}
-                      style={{background:"none",border:"none",color:"var(--teal)",fontSize:10.5,fontWeight:700,cursor:"pointer",padding:0}}>
-                      {scopeIds.length ? "Clear" : "Select all"}
-                    </button>
-                  </div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:5,maxHeight:160,overflowY:"auto",paddingRight:2}}>
-                  {scopeCandidateIds.map(id=>{
-                    const on = scopeIds.includes(id);
-                    return (
-                      <button key={id} onClick={()=>setScopeIds(prev=>on?prev.filter(x=>x!==id):[...prev,id])}
-                        style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:6,border:`1px solid ${on?"rgba(52,64,125,.3)":"var(--lc-border)"}`,background:on?"var(--lc-teal-bg)":"none",color:on?"var(--teal)":"var(--lc-text-4)",fontSize:11,fontFamily:"var(--font-mono)",fontWeight:600,cursor:"pointer"}}>
-                        <span style={{width:10,height:10,borderRadius:3,border:`1.5px solid ${on?"var(--teal)":"var(--lc-text-5)"}`,background:on?"var(--teal)":"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#f5f1e7" strokeWidth="4" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                        </span>
-                        {id}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            {relevantFindings.length > 0 && (
-              <div style={{padding:"9px 12px",background:"var(--lc-teal-bg)",border:"1px solid var(--lc-teal-border)",borderRadius:9,fontSize:12,color:"var(--teal)",marginBottom:14,lineHeight:1.6,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-                <span><strong>BA Intelligence:</strong> {relevantFindings.length} {ws.baFindingsNoun}{relevantFindings.length===1?"":"s"} available.</span>
-                <button onClick={()=>setShowFindings(true)} style={{fontSize:11.5,fontWeight:700,color:"var(--teal)",background:"none",border:"none",cursor:"pointer",padding:0,flexShrink:0}}>View</button>
-              </div>
-            )}
-            {/* Suggested starting points — a running start instead of a bare
-                box waiting for the user to think of what to type. */}
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
-              {missingContext.length===0 && (
-                <button onClick={()=>{setInput(`Draft the ${ws.label} using the approved project context.`);textareaRef.current?.focus();}}
-                  style={{padding:"7px 13px",borderRadius:8,border:`1px solid ${ws.color}35`,background:`${ws.color}0f`,color:ws.color,fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                  Draft from approved context
-                </button>
-              )}
-              <button onClick={()=>textareaRef.current?.focus()}
-                style={{padding:"7px 13px",borderRadius:8,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                Start from scratch
-              </button>
-            </div>
-            <p style={{fontSize:12.5,color:"var(--lc-text-4)",lineHeight:1.6,margin:0}}>Your project context is active — describe what you need and this workstream will use it automatically.</p>
           </div>
         )}
-
+        {/* Saved work but no conversation (e.g. brought in from outside):
+            show the saved version rather than a blank start. */}
+        {messages.length === 0 && savedVersions.length > 0 && scopePicker && <div style={{maxWidth:860,marginBottom:16}}>{scopePicker}</div>}
+        {messages.length === 0 && savedVersions.length > 0 && (
+          <div className="ws-output" style={{background:"var(--lc-surface)",border:"1px solid var(--lc-border-soft)",boxShadow:"var(--lc-shadow-sm)",borderRadius:"var(--radius)",padding:"28px 36px",marginBottom:16}}>
+            {renderMd(savedVersions[0].content, ws.color)}
+          </div>
+        )}
         {messages.map((msg,i) => {
           const isUser = msg.role === "user";
           const isStructured = !isUser && isAnalysisDone(ws.id, msg.content) && !msg.truncated;
@@ -1113,7 +1301,7 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
 
           if (isStructured) return (
             <div key={i} style={{marginBottom:16}}>
-              <div style={{background:"var(--lc-surface)",border:`1px solid ${ws.color}18`,borderRadius:"var(--radius)",padding:"24px 28px",position:"relative",overflow:"hidden"}}>
+              <div className="ws-output" style={{background:"var(--lc-surface)",border:"1px solid var(--lc-border-soft)",boxShadow:"var(--lc-shadow-sm)",borderRadius:"var(--radius)",padding:"28px 36px",position:"relative",overflow:"hidden"}}>
                 <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${ws.color},transparent)`}}/>
                 {renderMd(msg.content, ws.color)}
               </div>
@@ -1141,74 +1329,78 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
         <div ref={endRef}/>
       </div>
 
-      {/* Clear end state */}
-      {hasAnalysis && (
-        <div style={{padding:"12px 22px",borderTop:"1px solid rgba(0,0,0,.06)",background:"rgba(52,64,125,.03)",flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lc-green)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span style={{fontFamily:"var(--font-display)",fontSize:13,fontWeight:700,color:"var(--lc-text-1)"}}>Analysis complete</span>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-            <button onClick={()=>setViewMode("document")}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"7px 14px",borderRadius:8,background:ws.color,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:700,color:"#f5f1e7"}}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              View as document
-            </button>
+      {/* Completion + lifecycle — "Analysis complete" means the AI finished;
+          Draft / Approved is the BA's decision about this version. Status reads
+          as status, not buttons. Primary: Approve this version (Draft) or
+          Revise (Approved) · Secondary: View as document, Log decision · Quiet: Copy. */}
+      {(hasAnalysis || savedCurrent) && (
+        <div className="ws-actions" style={{padding:"10px 32px",borderTop:"1px solid var(--lc-border-soft)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px 16px",flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"6px 16px",flexWrap:"wrap",fontSize:12.5}}>
+            {hasAnalysis && (
+              <span style={{display:"flex",alignItems:"center",gap:6,fontWeight:700,color:"var(--lc-text-1)"}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lc-green)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Analysis complete
+              </span>
+            )}
             {saveStatus === "saving" && (
-              <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-faint)",border:"1px solid var(--lc-border)",fontSize:12.5,color:"var(--lc-text-3)"}}>
+              <span style={{display:"flex",alignItems:"center",gap:6,color:"var(--lc-text-4)"}}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{animation:"spin 1s linear infinite"}}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg>
                 Saving...
-              </div>
+              </span>
             )}
-            {saveStatus === "saved" && (
-              <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"rgba(52,64,125,.08)",border:"1px solid rgba(52,64,125,.2)",fontSize:12.5,fontWeight:600,color:"var(--teal)"}}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Saved to project
-              </div>
-            )}
+            {saveStatus !== "saving" && savedCurrent && (isApproved ? (
+              <span style={{display:"flex",alignItems:"center",gap:5,fontWeight:700,color:"var(--lc-green)"}}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Approved · v{savedCurrent.version}
+              </span>
+            ) : (
+              <span style={{color:"var(--lc-text-3)"}}>Saved as Draft</span>
+            ))}
             {saveStatus === "error" && (
-              <button onClick={()=>saveArtifact()} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-red-bg)",border:"1px solid var(--lc-red-border)",fontSize:12.5,fontWeight:600,color:"var(--lc-red)",cursor:"pointer"}}>
+              <button onClick={()=>saveArtifact()} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:7,background:"var(--lc-red-bg)",border:"1px solid var(--lc-red-border)",fontSize:12,fontWeight:600,color:"var(--lc-red)",cursor:"pointer"}}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Save failed — retry
               </button>
             )}
-            <button onClick={()=>onDecisionLog()} style={{padding:"7px 12px",borderRadius:8,background:"none",border:"1px solid rgba(59,114,172,.25)",color:"#3b72ac",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-              Log decision
-            </button>
-            <button onClick={()=>navigator.clipboard?.writeText(analysisContent)} style={{padding:"7px 12px",borderRadius:8,background:"none",border:"1px solid var(--lc-border)",color:"var(--lc-text-3)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+            {lifecycleError && <span role="alert" style={{color:"var(--lc-red)"}}>{lifecycleError}</span>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <button onClick={()=>copyArtifact(docContent, docMeta)} title="Copy the whole artifact with formatting" style={{padding:"7px 10px",borderRadius:8,background:"none",border:"none",color:"var(--lc-text-3)",fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}
+              onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
               Copy
             </button>
+            <button onClick={()=>onDecisionLog()} style={{padding:"7px 14px",borderRadius:8,background:"var(--lc-surface)",border:"1px solid var(--lc-border)",color:"var(--lc-text-2)",fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+              Log decision
+            </button>
+            <button onClick={()=>setViewMode("document")}
+              style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,background:"var(--lc-surface)",border:"1px solid var(--lc-border)",cursor:"pointer",fontSize:12.5,fontWeight:600,color:"var(--lc-text-2)",fontFamily:"inherit"}}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              View as document
+            </button>
+            {savedCurrent && saveStatus !== "saving" && (isApproved ? (
+              <button onClick={reviseCurrent} disabled={!!lifecycleBusy} title="Starts a new Draft version — this approved version stays the trusted project version until the new one is approved"
+                style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,background:"var(--lc-teal-bg)",border:"1px solid rgba(52,64,125,.3)",cursor:lifecycleBusy?"default":"pointer",fontSize:12.5,fontWeight:700,color:"var(--teal)",fontFamily:"inherit",opacity:lifecycleBusy?.6:1}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7M8 6.5h4a4 4 0 014 4"/></svg>
+                {lifecycleBusy === "revise" ? "Starting new version…" : "Revise"}
+              </button>
+            ) : (
+              <button onClick={approveCurrent} disabled={!!lifecycleBusy}
+                style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,background:"var(--lc-green)",border:"none",cursor:lifecycleBusy?"default":"pointer",fontSize:12.5,fontWeight:700,color:"#f5f1e7",fontFamily:"inherit",opacity:lifecycleBusy?.6:1}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                {lifecycleBusy === "approve" ? "Approving…" : "Approve this version"}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Input — always open */}
-      <div style={{padding:"12px 22px 18px",borderTop:"1px solid var(--lc-border)",flexShrink:0}}>
-        <div style={{background:"var(--lc-faint)",border:"1px solid var(--lc-border)",borderRadius:"var(--radius)",overflow:"hidden",transition:"border-color .2s"}}
-          onFocusCapture={e=>e.currentTarget.style.borderColor=`${ws.color}45`}
-          onBlurCapture={e=>e.currentTarget.style.borderColor="var(--lc-border)"}
-        >
-          <textarea ref={textareaRef} value={input} onChange={e=>setInput(e.target.value)}
-            onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
-            placeholder={hasAnalysis
-              ? "Add new context, a stakeholder update, a risk, or any new information..."
-              : messages.length===0
-                ? "Describe what you need — project context is already loaded."
-                : "Continue the conversation..."}
-            rows={3}
-            style={{width:"100%",background:"none",border:"none",outline:"none",padding:"13px 15px",fontSize:13.5,color:"var(--lc-text-1)",lineHeight:1.65,resize:"none",fontFamily:"var(--font-body)"}}
-          />
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 11px",borderTop:"1px solid rgba(0,0,0,.04)"}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--lc-text-4)"}}>
-              {hasAnalysis ? "Conversation stays open — keep adding context" : "Enter to send · Shift+Enter for new line"}
-            </span>
-            <button onClick={send} disabled={!input.trim()||loading}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"6px 14px",borderRadius:7,background:input.trim()&&!loading?ws.color:`${ws.color}20`,border:"none",cursor:input.trim()&&!loading?"pointer":"not-allowed",fontSize:12.5,fontWeight:700,color:input.trim()&&!loading?"#f5f1e7":"var(--lc-text-4)",transition:"all .2s"}}>
-              {loading?"Thinking...":"Send"}
-            </button>
-          </div>
-        </div>
+      {/* Input — always open, deliberately lighter than the work output above.
+          On a blank simplified start the composer sits in the page instead. */}
+      {!isBlankStart && (
+      <div style={{padding:"10px 32px 16px",flexShrink:0}} className="ws-composer">
+        {composerBox(false)}
       </div>
+      )}
 
       {importTarget && (
         <ImportArtifact
@@ -1225,13 +1417,17 @@ function WorkstreamSession({ws, project, artifacts, findings, onBack, onArtifact
 }
 
 // ── Workstreams hub ────────────────────────────────────────────────────────────
-function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; artifacts:Artifact[]; onSelectWs:(ws:Workstream)=>void}) {
+function WorkstreamsHub({project, artifacts, onSelectWs, onOpenContext}: {project:Project; artifacts:Artifact[]; onSelectWs:(ws:Workstream)=>void; onOpenContext:()=>void}) {
   const recommended = getRecommended(artifacts, project.methodology);
   const methodology = project.methodology ?? "agile";
 
   return (
-    <div style={{padding:"28px 24px",overflowY:"auto",height:"100%"}}>
-      <h2 style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.02em",marginBottom:4}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
+    <WorkNavRow onOpenContext={onOpenContext}>
+      <span style={{fontSize:12.5,fontWeight:600,color:"var(--lc-text-2)"}}>Workstreams</span>
+    </WorkNavRow>
+    <div className="ws-canvas" style={{padding:"26px 32px",overflowY:"auto",flex:1}}>
+      <h2 style={{fontFamily:"var(--font-display)",fontSize:26,fontWeight:800,color:"var(--lc-text-1)",letterSpacing:"-0.02em",marginBottom:4}}>
         Workstreams
       </h2>
       <p style={{fontSize:13,color:"var(--lc-text-3)",lineHeight:1.6,marginBottom:24}}>
@@ -1273,11 +1469,12 @@ function WorkstreamsHub({project, artifacts, onSelectWs}: {project:Project; arti
         Workstreams are independent — open them in any order. The system tracks what is complete and suggests what makes sense next.
       </div>
     </div>
+    </div>
   );
 }
 
 // ── Main export ────────────────────────────────────────────────────────────────
-export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings,initialReviewFindings,initialTab="home"}:Props) {
+export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings,initialReviewFindings,initialTab="home",initialNotes=[]}:Props) {
   const router = useRouter();
   const [activeTab, setActiveTab]           = useState<"home"|"work">(initialTab);
   const [activeWs, setActiveWs]             = useState<Workstream|null>(null);
@@ -1285,11 +1482,18 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
   const [artifacts, setArtifacts]           = useState<Artifact[]>(initialArtifacts);
   const [decisions, setDecisions]           = useState<Decision[]>(initialDecisions);
   const findings = initialFindings;
+  // Project Context notes — every workstream receives these automatically;
+  // a note added in the drawer is available to the next generation at once.
+  const [notes, setNotes]                   = useState<ProjectNote[]>(initialNotes);
   const attentionItems: AttentionItem[]     = computeAttention(artifacts, initialReviewFindings);
   const [decisionModal, setDecisionModal]   = useState<{open:boolean;prefill?:string}>({open:false});
-  const [panelOpen, setPanelOpen]           = useState(true);
   const [showRTM, setShowRTM]               = useState(false);
+  const [showContext, setShowContext]       = useState(false);
 
+  // The Work page has no permanent side panel: supporting material opens on
+  // demand — Project Context as the shared drawer, a saved artifact in the
+  // existing ArtifactViewer, RTM from Requirements/Testing only. Opening any
+  // of those keeps activeWs, so closing returns to the same work area.
   function goToWorkstream(wsId: WorkstreamId) {
     const ws = WORKSTREAMS.find(w => w.id === wsId);
     if (!ws) return;
@@ -1297,24 +1501,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
     setActiveWs(ws);
     setViewingArtifact(null);
     setShowRTM(false);
-    setPanelOpen(false);
   }
-
-  // Below 768px the project panel (context/artifacts/decisions) can't sit
-  // permanently beside the working area — there isn't room for three columns
-  // (app nav, panel, workstream) side by side. It reuses the same panelOpen
-  // state but renders as an off-canvas drawer instead of a static column —
-  // matching AppSidebar's own mobile pattern — defaulting closed so mobile
-  // opens on exactly one primary view (the workstream/document).
-  const [isMobile, setIsMobile]             = useState(false);
-  useEffect(() => {
-    const mobile = window.innerWidth < 768;
-    setIsMobile(mobile);
-    if (mobile) setPanelOpen(false);
-    const check = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   const handleArtifactSaved = useCallback((a:Artifact) => {
     setArtifacts(prev=>[a,...prev.filter(x=>x.id!==a.id)]);
@@ -1323,11 +1510,19 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
     setDecisions(prev=>[d,...prev]);
   },[]);
   function handleStatusChange(id:string,status:string) {
-    setArtifacts(prev=>prev.map(a=>a.id===id?{...a,status}:a));
+    // Mirror the server: approving a version supersedes the previously
+    // approved version of the same type (except multi-instance types), so the
+    // page never shows two "current" approved versions until a reload.
+    setArtifacts(prev=>{
+      const target = prev.find(a=>a.id===id);
+      return prev.map(a=>{
+        if (a.id===id) return {...a,status};
+        if (status==="approved" && target && a.type===target.type && a.status==="approved" && !MULTI_INSTANCE_TYPES.includes(a.type)) return {...a,status:"superseded"};
+        return a;
+      });
+    });
     setViewingArtifact(prev=>prev?.id===id?{...prev,status}:prev);
   }
-
-  const activeArtifacts = artifacts.filter(a=>a.status!=="superseded"&&a.status!=="archived");
 
   return (
     <div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--lc-bg)"}}>
@@ -1338,130 +1533,9 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
           onHome={()=>setActiveTab("home")} onWork={()=>setActiveTab("work")}/>
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
 
-      {/* On mobile the project panel is an off-canvas drawer (below the 56px
-          AppSidebar header bar), not a permanent column — closing it over
-          the backdrop taps through to dismiss, same pattern as AppSidebar's
-          own mobile nav. */}
-      {activeTab==="work" && isMobile && panelOpen && (
-        <div onClick={()=>setPanelOpen(false)}
-          style={{position:"fixed",top:56,left:0,right:0,bottom:0,zIndex:230,background:"rgba(0,0,0,.5)"}}/>
-      )}
-
-      {/* Project panel */}
-      {/* Background is intentionally quieter than the main work area (--lc-faint,
-          not --lc-surface) — the panel is reference material alongside the
-          BA's current work, not a second equally-weighted pane. */}
-      {activeTab==="work" && <aside style={isMobile ? {
-          position:"fixed",top:56,left:0,bottom:0,zIndex:240,
-          width:panelOpen?"85vw":0,maxWidth:320,
-          borderRight:panelOpen?"1px solid var(--lc-border)":"none",
-          display:"flex",flexDirection:"column",overflow:"hidden",
-          background:"var(--lc-faint)",transition:"width 220ms ease",
-          boxShadow:panelOpen?"10px 0 28px rgba(0,0,0,.3)":"none",
-        } : {width:panelOpen?260:0,flexShrink:0,borderRight:panelOpen?"1px solid var(--lc-border)":"none",display:"flex",flexDirection:"column",overflow:"hidden",background:"var(--lc-faint)",transition:"width 240ms ease"}}>
-
-        {/* Context — the panel now begins with workstream context itself;
-            project identity and "All projects" navigation live in the shared
-            project shell/top nav above, not repeated here. */}
-        <div style={{padding:"14px 14px 12px",borderBottom:"1px solid var(--lc-border)",flexShrink:0,position:"relative"}}>
-          {isMobile && (
-            <button onClick={()=>setPanelOpen(false)} aria-label="Close project panel"
-              style={{position:"absolute",top:10,right:10,width:26,height:26,borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-3)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          )}
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:700,color:"var(--lc-text-4)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Context</div>
-          {project.problem_statement && (
-            <div style={{fontSize:12,color:"var(--lc-text-2)",lineHeight:1.58,marginBottom:7,padding:"8px 10px",background:"rgba(52,64,125,.04)",border:"1px solid rgba(52,64,125,.1)",borderRadius:8,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical" as never}}>
-              {project.problem_statement}
-            </div>
-          )}
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {project.methodology && <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,padding:"2px 6px",borderRadius:4,background:"rgba(52,64,125,.08)",color:"var(--teal)",border:"1px solid rgba(52,64,125,.15)"}}>{METHODOLOGY_LABEL[project.methodology]??project.methodology}</span>}
-            {project.industry && <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,padding:"2px 6px",borderRadius:4,background:"var(--lc-faint)",color:"var(--lc-text-3)",border:"1px solid var(--lc-border)"}}>{project.industry}</span>}
-          </div>
-        </div>
-
-        {/* Artifacts + Decisions */}
-        <div style={{flex:1,overflowY:"auto",padding:"10px 14px 8px"}}>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:700,color:"var(--lc-text-4)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:7}}>
-            Artifacts {activeArtifacts.length>0&&<span style={{color:"var(--teal)"}}>({activeArtifacts.length})</span>}
-          </div>
-
-          {activeArtifacts.length===0 && <div style={{fontSize:11.5,color:"var(--lc-text-4)",lineHeight:1.6,paddingBottom:8}}>No artifacts yet. Open a workstream to start.</div>}
-
-          {activeArtifacts.map(a=>{
-            const sc=STATUS_COLOR[a.status]??STATUS_COLOR.draft;
-            const prov=provenanceInfo(a);
-            return (
-              <div key={a.id} onClick={()=>{setViewingArtifact(a);setActiveWs(null);setShowRTM(false);}}
-                style={{padding:"8px 9px",borderRadius:8,border:"1px solid transparent",cursor:"pointer",marginBottom:3,transition:"background .15s,border-color .15s",background:viewingArtifact?.id===a.id?"rgba(52,64,125,.06)":"none"}}
-                onMouseEnter={e=>{if(viewingArtifact?.id!==a.id){(e.currentTarget as HTMLDivElement).style.background="var(--lc-faint)";(e.currentTarget as HTMLDivElement).style.borderColor="var(--lc-border)";}}}
-                onMouseLeave={e=>{if(viewingArtifact?.id!==a.id){(e.currentTarget as HTMLDivElement).style.background="none";(e.currentTarget as HTMLDivElement).style.borderColor="transparent";}}}
-              >
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                  <div style={{fontSize:12,fontWeight:600,color:"var(--lc-text-1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ARTIFACT_TYPE_LABEL[a.type]??a.type}</div>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,padding:"1px 5px",borderRadius:3,background:sc.bg,color:sc.text,border:`1px solid ${sc.border}`,flexShrink:0}}>{prov.statusLabel}</span>
-                </div>
-                <div style={{fontSize:10.5,color:"var(--lc-text-4)"}}>
-                  v{a.version} · {fmtDate(a.created_at)}{prov.tag ? ` · ${prov.tag.toLowerCase()}` : ""}
-                </div>
-              </div>
-            );
-          })}
-
-          <div style={{height:1,background:"var(--lc-border)",margin:"12px 0 10px"}}/>
-
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:700,color:"var(--lc-text-4)",letterSpacing:".1em",textTransform:"uppercase"}}>
-              Decisions {decisions.length>0&&<span style={{color:"#3b72ac"}}>({decisions.length})</span>}
-            </div>
-            <button onClick={()=>setDecisionModal({open:true})}
-              style={{display:"flex",alignItems:"center",gap:2,fontSize:10.5,color:"var(--lc-text-3)",background:"none",border:"1px solid var(--lc-border)",borderRadius:5,padding:"2px 7px",cursor:"pointer"}}
-              onMouseEnter={e=>{e.currentTarget.style.color="var(--lc-text-2)";e.currentTarget.style.borderColor="rgba(0,0,0,.12)";}} onMouseLeave={e=>{e.currentTarget.style.color="var(--lc-text-3)";e.currentTarget.style.borderColor="var(--lc-border)";}}>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add
-            </button>
-          </div>
-
-          {decisions.length===0 && <div style={{fontSize:11.5,color:"var(--lc-text-4)",lineHeight:1.6,paddingBottom:10}}>Log decisions here so nothing gets forgotten.</div>}
-
-          {decisions.map(d=>{
-            const dc=DECISION_STATUS_COLOR[d.status]??"var(--lc-text-3)";
-            return (
-              <div key={d.id} style={{padding:"7px 9px",borderRadius:7,background:"var(--lc-faint)",border:"1px solid var(--lc-border)",marginBottom:5}}>
-                <div style={{fontSize:11.5,color:"var(--lc-text-1)",lineHeight:1.5,marginBottom:3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical" as never}}>{d.decision_text}</div>
-                <div style={{display:"flex",alignItems:"center",gap:7,fontSize:10.5}}>
-                  <span style={{color:dc,fontWeight:600,textTransform:"capitalize" as const}}>{d.status}</span>
-                  {d.made_by&&<span style={{color:"var(--lc-text-4)"}}>{d.made_by}</span>}
-                  <span style={{color:"var(--lc-text-4)",marginLeft:"auto"}}>{d.decision_date?fmtDate(d.decision_date):fmtDate(d.created_at)}</span>
-                </div>
-              </div>
-            );
-          })}
-
-          <div style={{height:1,background:"var(--lc-border)",margin:"12px 0 10px"}}/>
-
-          <button onClick={()=>{setShowRTM(true);setViewingArtifact(null);setActiveWs(null);}}
-            style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"8px 9px",borderRadius:8,background:showRTM?"rgba(52,64,125,.06)":"none",border:"1px solid var(--lc-border)",color:showRTM?"var(--teal)":"var(--lc-text-2)",fontSize:11.5,fontWeight:600,cursor:"pointer",textAlign:"left" as const}}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 17H7a2 2 0 01-2-2V5a2 2 0 012-2h6l4 4v8a2 2 0 01-2 2h-2M9 12h6M9 16h3"/></svg>
-            Traceability (RTM)
-          </button>
-
-        </div>
-      </aside>}
-
-      {/* Main area */}
-      <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        {activeTab==="work" && isMobile && (
-          <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderBottom:"1px solid var(--lc-border)",background:"var(--lc-surface)"}}>
-            <button onClick={()=>setPanelOpen(true)}
-              style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:7,border:"1px solid var(--lc-border)",background:"none",color:"var(--lc-text-2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-              Project
-            </button>
-            <div style={{fontSize:12.5,fontWeight:700,color:"var(--lc-text-1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{project.name}</div>
-          </div>
-        )}
+      {/* Main area — no permanent project panel; the work canvas takes the full
+          width after the app sidebar. */}
+      <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
         <div style={{flex:1,minHeight:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>
           {activeTab==="home" ? (
             <ProjectHome
@@ -1474,28 +1548,40 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
               wsStatusLabel={wsStatusInfo}
               onSelectWs={(wsId)=>goToWorkstream(wsId as WorkstreamId)}
               onOpenIntelligence={()=>router.push(`/ba-intelligence?project=${project.id}`)}
+              onNoteAdded={(n)=>setNotes(prev=>[...prev,n])}
             />
           ) : showRTM ? (
             <RTMPanel artifacts={artifacts} onClose={()=>setShowRTM(false)} onGoToRequirements={()=>{setShowRTM(false);setActiveWs(WORKSTREAMS.find(w=>w.id==="requirements")??null);}}/>
           ) : viewingArtifact ? (
-            <ArtifactViewer artifact={viewingArtifact} projectId={project.id} onStatusChange={handleStatusChange} onClose={()=>setViewingArtifact(null)}
+            <ArtifactViewer artifact={viewingArtifact} projectId={project.id} exportContext={{projectName:project.name, organization:project.organizations?.name ?? null}} onStatusChange={handleStatusChange} onClose={()=>setViewingArtifact(null)}
               onRevised={(a)=>{handleArtifactSaved(a);setViewingArtifact(a);}}/>
           ) : activeWs ? (
-            <WorkstreamSession
-              ws={activeWs} project={project} artifacts={artifacts} findings={findings}
-              onBack={()=>{setActiveWs(null);if(!isMobile)setPanelOpen(true);}}
+            // Keyed by work area so switching areas starts that area's session
+            // fresh (its own conversation, input, save state) — never carries
+            // the previous area's in-memory state across.
+            <WorkstreamSession key={activeWs.id}
+              ws={activeWs} project={project} notes={notes} artifacts={artifacts} findings={findings}
+              onBack={()=>setActiveWs(null)}
+              onSwitchWs={(ws)=>goToWorkstream(ws.id)}
               onArtifactSaved={handleArtifactSaved}
+              onStatusChange={handleStatusChange}
               onDecisionLog={(prefill)=>setDecisionModal({open:true,prefill})}
-              panelOpen={panelOpen}
-              onTogglePanel={()=>setPanelOpen(v=>!v)}
+              onOpenContext={()=>setShowContext(true)}
+              onOpenArtifact={(a)=>setViewingArtifact(a)}
+              onOpenRTM={()=>setShowRTM(true)}
             />
           ) : (
-            <WorkstreamsHub project={project} artifacts={artifacts} onSelectWs={(ws)=>{setActiveWs(ws);setViewingArtifact(null);setShowRTM(false);setPanelOpen(false);}}/>
+            <WorkstreamsHub project={project} artifacts={artifacts} onSelectWs={(ws)=>goToWorkstream(ws.id)} onOpenContext={()=>setShowContext(true)}/>
           )}
         </div>
       </main>
         </div>
       </div>
+
+      {showContext && (
+        <ProjectContextDrawer projectId={project.id} overview={project.problem_statement} onClose={()=>setShowContext(false)}
+          onNoteAdded={(n)=>setNotes(prev=>[...prev,n])}/>
+      )}
 
       {decisionModal.open && (
         <AddDecisionModal projectId={project.id} onSaved={handleDecisionSaved} onClose={()=>setDecisionModal({open:false})} prefill={decisionModal.prefill}/>

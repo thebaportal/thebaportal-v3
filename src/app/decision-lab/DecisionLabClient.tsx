@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import ProjectNavBar from "@/components/ProjectNavBar";
+import { ArtifactViewer } from "@/app/projects/[id]/ProjectWorkspaceClient";
+
+type SavedOutput = Parameters<typeof ArtifactViewer>[0]["artifact"];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,6 +79,12 @@ const MODES: { id: Mode; label: string; shortLabel: string; description: string;
 ];
 
 const STORAGE_KEY = "decision_lab_sessions_v1";
+
+// "in_review" → "In review"
+function statusLabel(s: string): string {
+  const t = s.replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -884,6 +893,11 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [contextSourceIds, setContextSourceIds] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // Decision Lab outputs saved to the selected project are managed here, where
+  // they're created — opened in the shared ArtifactViewer (edit draft /
+  // approve / revise / archive). Requirements only ever consumes approved ones.
+  const [savedOutputs, setSavedOutputs] = useState<SavedOutput[]>([]);
+  const [viewingOutput, setViewingOutput] = useState<SavedOutput | null>(null);
   const prevSituationRef = useRef("");
   const mainRef = useRef<HTMLElement>(null);
   const situationRef = useRef("");
@@ -1009,6 +1023,22 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
     setContextSourceIds([]);
   }
 
+  async function loadSavedOutputs(projectId: string) {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/artifacts`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setSavedOutputs((data.artifacts ?? []).filter((a: SavedOutput) =>
+        a.type === "decision_lab_output" && a.status !== "superseded" && a.status !== "archived"));
+    } catch { /* list stays as-is; nothing else depends on it */ }
+  }
+
+  useEffect(() => {
+    setViewingOutput(null);
+    setSavedOutputs([]);
+    if (selectedProjectId) loadSavedOutputs(selectedProjectId);
+  }, [selectedProjectId]);
+
   async function saveToProject() {
     if (!selectedProjectId || saveStatus === "saving") return;
     setSaveStatus("saving");
@@ -1026,6 +1056,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
         }),
       });
       setSaveStatus(res.ok ? "saved" : "error");
+      if (res.ok) loadSavedOutputs(selectedProjectId);
     } catch {
       setSaveStatus("error");
     }
@@ -1054,6 +1085,19 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
           project tab bar replaces the old one-off "Back to project" link. */}
       {selectedProject && <ProjectNavBar projectId={selectedProject.id} projectName={selectedProject.name} active="decisions" />}
 
+      {viewingOutput && selectedProjectId ? (
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <ArtifactViewer artifact={viewingOutput} projectId={selectedProjectId} exportContext={{ projectName: selectedProject?.name ?? "Project" }}
+            onClose={() => setViewingOutput(null)}
+            onStatusChange={(id, s) => {
+              setViewingOutput(prev => prev && prev.id === id ? { ...prev, status: s } : prev);
+              setSavedOutputs(prev => prev.map(a => a.id === id ? { ...a, status: s } : a)
+                .filter(a => a.status !== "superseded" && a.status !== "archived"));
+            }}
+            onRevised={(a) => { setViewingOutput(a); loadSavedOutputs(selectedProjectId); }}
+          />
+        </div>
+      ) : (
       <main ref={mainRef} style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: "40px 40px 60px", maxWidth: 960, margin: "0 auto" }}>
 
@@ -1100,6 +1144,22 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
               </button>
             </div>
           </div>
+
+          {/* Outputs already saved to this project — quiet lines, not a catalogue. */}
+          {selectedProjectId && savedOutputs.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, margin: "-12px 0 20px", fontSize: 12, color: "var(--lc-text-4)" }}>
+              {savedOutputs.map(a => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
+                    Saved analysis{a.title ? ` · ${a.title}` : ""} · {statusLabel(a.status)} · {new Date(a.updated_at ?? a.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}
+                  </span>
+                  <button onClick={() => setViewingOutput(a)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--teal)", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                    Open saved version →
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Stale warning */}
           {staleWarning && (
@@ -1148,6 +1208,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
 
         </div>
       </main>
+      )}
       </div>
 
       <DecisionLog

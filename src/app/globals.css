@@ -532,6 +532,72 @@
     .dl-log-overlay {
       top: 56px !important;
     }
+
+    /* Work page — tighter side gutters on phones so the work output keeps
+       the width. */
+    .work-nav-row, .ws-actions, .ws-composer {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+    .ws-canvas {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+    /* Long work-area names (e.g. Stakeholder Analysis) would otherwise run
+       into "Project context"; let it drop to its own line instead. */
+    .work-nav-row {
+      flex-wrap: wrap;
+      row-gap: 0;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+    .ws-output {
+      padding: 20px 18px !important;
+    }
+  }
+
+  /* Work area start — wide centred layout: quiet context strip, a white
+     composer surface as the main element, and four prompts in a 2x2 grid. */
+  .ws-context-strip {
+    display: inline-flex; align-items: center; flex-wrap: wrap;
+    border: 1px solid var(--lc-border-soft); border-radius: 8px;
+    font-size: 12px; color: var(--lc-text-3); line-height: 1.4;
+  }
+  .ws-context-strip > span { padding: 4px 10px; }
+  .ws-context-strip > span + span { border-left: 1px solid var(--lc-border-soft); }
+  .ws-context-label {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--lc-text-4);
+  }
+  .ws-bring-btn {
+    margin-left: auto; background: none; border: none; padding: 4px 0; cursor: pointer;
+    font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--lc-text-3);
+  }
+  .ws-bring-btn:hover, .ws-bring-btn:focus-visible { color: var(--teal); }
+  .ws-start-surface {
+    background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: 16px;
+    box-shadow: var(--lc-shadow-sm); padding: 22px 24px 14px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .ws-start-surface:focus-within {
+    border-color: rgba(52,64,125,.35);
+    box-shadow: 0 0 0 3px rgba(52,64,125,.08), var(--lc-shadow-sm);
+  }
+  .ws-prompt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+  .ws-prompt {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    text-align: left; padding: 12px 14px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--lc-border); background: transparent;
+    font-family: inherit; font-size: 13px; font-weight: 500; color: var(--lc-text-2);
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .ws-prompt svg { color: var(--lc-text-5); flex-shrink: 0; }
+  .ws-prompt:hover, .ws-prompt:focus-visible { background: var(--lc-surface); border-color: rgba(52,64,125,.3); color: var(--lc-text-1); outline: none; }
+  .ws-prompt:hover svg, .ws-prompt:focus-visible svg { color: var(--teal); }
+  @media (max-width: 767px) {
+    .ws-prompt-grid { grid-template-columns: 1fr; }
+    .ws-start-surface { padding: 16px 16px 12px; }
+    .ws-bring-btn { margin-left: 0; }
   }
 
   /* New Project — Organisation and Delivery approach share one row on
