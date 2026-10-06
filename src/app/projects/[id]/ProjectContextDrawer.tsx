@@ -15,6 +15,8 @@ interface Props {
   projectId: string;
   overview?: string;
   onClose: () => void;
+  // Lets the workspace hand a new note to every workstream without a reload.
+  onNoteAdded?: (note: { id: string; source_label: string; source_text: string; created_at: string }) => void;
 }
 
 function fmtDate(iso: string) {
@@ -29,7 +31,7 @@ function sourceTypeLabel(note: ContextNote): string {
   return note.source_label || "Stakeholder input";
 }
 
-export default function ProjectContextDrawer({ projectId, overview, onClose }: Props) {
+export default function ProjectContextDrawer({ projectId, overview, onClose, onNoteAdded }: Props) {
   const [notes, setNotes] = useState<ContextNote[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [draft, setDraft] = useState("");
@@ -76,6 +78,7 @@ export default function ProjectContextDrawer({ projectId, overview, onClose }: P
         ...(prev ?? []),
       ]);
       setDraft("");
+      onNoteAdded?.({ id: note.id, source_label: note.source_label, source_text: note.source_text, created_at: note.created_at });
     } catch {
       setSaveError("Could not save. Please try again.");
     } finally {
