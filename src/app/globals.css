@@ -148,11 +148,6 @@
     color: var(--text-2);
   }
 
-  ::selection {
-    background: rgba(31,191,159,0.18);
-    color: var(--text-1);
-  }
-
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
