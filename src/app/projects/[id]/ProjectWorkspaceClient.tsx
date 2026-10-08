@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 import ProjectNavBar from "@/components/ProjectNavBar";
 import DocumentViewer from "@/components/DocumentViewer";
 import { buildRTM } from "@/lib/rtm";
 import { computeAttention, extractItemIds, type AttentionItem } from "@/lib/projects/attention";
+import { buildWorkContext, testingScopeCandidates, CONTEXT_TYPE_LABEL, MULTI_INSTANCE_TYPES, FINDING_CATEGORY_META, type WorkAreaId } from "@/lib/projects/workContext";
 import ProjectHome from "./ProjectHome";
 import ImportArtifact from "./ImportArtifact";
 import ProjectContextDrawer from "./ProjectContextDrawer";
@@ -60,26 +61,23 @@ interface Props {
 }
 
 // ── Workstream definitions ─────────────────────────────────────────────────────
-// contextTypes: approved artifact types automatically pulled into this workstream's
-// context. Most workstreams only ever used problem_analysis (unchanged here).
-// Requirements is the first to pull from more than one source.
-// baIntelligenceCategories: which accepted BA Intelligence finding categories this
-// workstream directly consumes, per the Connected Context Strategy architecture
-// review — not every workstream gets every category, and most get none at all.
+// What each area draws from the project (approved artifacts, finding categories,
+// decisions, Testing scope) lives in one place: WORK_CONTEXT in
+// src/lib/projects/workContext.ts, which also produces the Context in use strip.
 // Workstream colours — one coherent muted-earth-and-slate family (Folio),
 // not seven unrelated saturated hues. Kept per-workstream because it aids
 // orientation across 7 tools; none collide with a status colour.
-// bringLabel: customer-facing phrasing for bringing existing work of this
-// workstream's OWN type into the project — the start state's one quiet door,
-// for work produced outside TheBAPortal (work already inside it is used automatically).
+// importLabel: importing this area's OWN type of work that was produced outside
+// TheBAPortal. Never for moving project information that is already inside it —
+// that flows automatically.
 const WORKSTREAMS = [
-  { id: "problem-analysis",    label: "Problem Analysis",    question: "What is happening and why?",      color: "#52658a", endpoint: "/api/workspace/analyze",       artifactType: "problem_analysis",    suggestedAfter: [],                           contextTypes: [],                                                     methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing problem analysis" },
-  { id: "stakeholder-analysis",label: "Stakeholder Analysis",question: "Who influences success?",          color: "#8a7440", endpoint: "/api/workspace/stakeholders",  artifactType: "stakeholder_analysis", suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing stakeholder work" },
-  { id: "requirements",        label: "Requirements",        question: "What must change?",                color: "#6b8452", endpoint: "/api/workspace/requirements",  artifactType: "requirements",         suggestedAfter: ["problem_analysis","stakeholder_analysis"], contextTypes: ["problem_analysis","stakeholder_analysis","decision_lab_output"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["requirement","business_rule","unresolved_question","contradiction","edge_case"] as string[], baFindingsNoun: "validated finding", bringLabel: "Bring existing requirements" },
-  { id: "process-analysis",    label: "Process Analysis",    question: "How does work flow today?",        color: "#6e7c8c", endpoint: "/api/workspace/process",       artifactType: "process_map",          suggestedAfter: ["problem_analysis"],         contextTypes: ["problem_analysis"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["business_rule","edge_case"] as string[], baFindingsNoun: "process-relevant finding", bringLabel: "Bring existing process analysis" },
-  { id: "user-stories",        label: "User Stories",        question: "What does the team build?",        color: "#74628f", endpoint: "/api/workspace/user-stories",  artifactType: "user_stories",         suggestedAfter: ["requirements"],             contextTypes: ["requirements"],                                       methodologies: ["agile","safe","hybrid"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing user stories" },
-  { id: "business-case",       label: "Business Case",       question: "Why does this justify investment?",color: "#9c6b4a", endpoint: "/api/workspace/documents",     artifactType: "brd",                  suggestedAfter: ["problem_analysis","requirements"], contextTypes: ["problem_analysis","stakeholder_analysis","requirements"],                                   methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: [] as string[], baFindingsNoun: "", bringLabel: "Bring existing business case" },
-  { id: "testing",             label: "Testing",             question: "How do we know it works?",         color: "#8c5850", endpoint: "/api/workspace/testing",       artifactType: "test_case",            suggestedAfter: ["requirements","user_stories"], contextTypes: ["requirements","user_stories"],                        methodologies: ["agile","waterfall","hybrid","safe","babok"], baIntelligenceCategories: ["edge_case"] as string[], baFindingsNoun: "validated edge case", bringLabel: "Bring existing testing work" },
+  { id: "problem-analysis",    label: "Problem Analysis",    question: "What is happening and why?",      color: "#52658a", endpoint: "/api/workspace/analyze",       artifactType: "problem_analysis",    suggestedAfter: [],                           methodologies: ["agile","waterfall","hybrid","safe","babok"], baFindingsNoun: "", importLabel: "Import external problem analysis" },
+  { id: "stakeholder-analysis",label: "Stakeholder Analysis",question: "Who influences success?",          color: "#8a7440", endpoint: "/api/workspace/stakeholders",  artifactType: "stakeholder_analysis", suggestedAfter: ["problem_analysis"],         methodologies: ["agile","waterfall","hybrid","safe","babok"], baFindingsNoun: "", importLabel: "Import external stakeholder analysis" },
+  { id: "requirements",        label: "Requirements",        question: "What must change?",                color: "#6b8452", endpoint: "/api/workspace/requirements",  artifactType: "requirements",         suggestedAfter: ["problem_analysis","stakeholder_analysis"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baFindingsNoun: "validated finding", importLabel: "Import external requirements" },
+  { id: "process-analysis",    label: "Process Analysis",    question: "How does work flow today?",        color: "#6e7c8c", endpoint: "/api/workspace/process",       artifactType: "process_map",          suggestedAfter: ["problem_analysis"],         methodologies: ["agile","waterfall","hybrid","safe","babok"], baFindingsNoun: "process-relevant finding", importLabel: "Import external process analysis" },
+  { id: "user-stories",        label: "User Stories",        question: "What does the team build?",        color: "#74628f", endpoint: "/api/workspace/user-stories",  artifactType: "user_stories",         suggestedAfter: ["requirements"],             methodologies: ["agile","safe","hybrid"], baFindingsNoun: "", importLabel: "Import external user stories" },
+  { id: "business-case",       label: "Business Case",       question: "Why does this justify investment?",color: "#9c6b4a", endpoint: "/api/workspace/documents",     artifactType: "brd",                  suggestedAfter: ["problem_analysis","requirements"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baFindingsNoun: "", importLabel: "Import external business case" },
+  { id: "testing",             label: "Testing",             question: "How do we know it works?",         color: "#8c5850", endpoint: "/api/workspace/testing",       artifactType: "test_case",            suggestedAfter: ["requirements","user_stories"], methodologies: ["agile","waterfall","hybrid","safe","babok"], baFindingsNoun: "validated edge case", importLabel: "Import external testing work" },
 ] as const;
 
 type WorkstreamId = typeof WORKSTREAMS[number]["id"];
@@ -238,91 +236,9 @@ function isAnalysisDone(wsId: WorkstreamId, text: string): boolean {
   return false;
 }
 
-// ── Project context builder ────────────────────────────────────────────────────
-// Only approved artifacts are pulled in automatically. Draft or in review work is
-// visible in the sidebar but never silently feeds another workstream's generation
-// until someone approves it. Most types are one evolving document per project, so
-// only the latest approved one is included. decision_lab_output is different — a
-// project can hold several distinct approved decisions at once, so all of them go in.
-const CONTEXT_TYPE_LABEL: Record<string, string> = {
-  problem_analysis: "Problem Analysis", stakeholder_analysis: "Stakeholder Analysis",
-  decision_lab_output: "Decision Lab Analysis", requirements: "Requirements",
-  user_stories: "User Stories",
-};
-const MULTI_INSTANCE_TYPES = ["decision_lab_output"];
-
-// BA Intelligence findings are a separate, distinctly-trusted context layer, not
-// another entry in contextTypes — a finding is a small, individually-validated
-// unit, not a document artifact, and its five categories carry different handling
-// rules the model must preserve. Label/color match BAIntelligenceClient's own
-// CATEGORY_META so the two surfaces read as the same product.
-const FINDING_CATEGORY_META: { id: string; label: string; color: string }[] = [
-  { id: "requirement",         label: "Potential Requirements", color: "var(--teal)" },
-  { id: "business_rule",       label: "Business Rules",         color: "#3b72ac" },
-  { id: "unresolved_question", label: "Unresolved Questions",   color: "#b5741f" },
-  { id: "contradiction",       label: "Contradictions",         color: "#a83f32" },
-  { id: "edge_case",           label: "Possible Edge Cases",    color: "#74628f" },
-];
-const FINDING_CATEGORY_GUIDANCE: Record<string, string> = {
-  requirement: "may inform requirement drafting, do not copy directly into a formal requirement",
-  business_rule: "treat as a constraint or governing logic on requirements, not a requirement itself",
-  unresolved_question: "do not infer or assume an answer, carry into Open Questions if relevant",
-  contradiction: "do not silently resolve, surface as an unresolved conflict in Open Questions if relevant",
-  edge_case: "use for completeness and acceptance thinking, do not turn into a standalone requirement by itself",
-};
-
-function buildContext(ws: Workstream, project: Project, notes: ProjectNote[], artifacts: Artifact[], findings: Finding[]): { text: string; sourceIds: string[]; findingIds: string[]; sessionIds: string[] } {
-  const lines = ["[ESTABLISHED PROJECT CONTEXT]"];
-  lines.push(`Project: ${project.name}`);
-  if (project.problem_statement) lines.push(`Problem Statement: ${project.problem_statement}`);
-  if (project.methodology) lines.push(`Methodology: ${METHODOLOGY_LABEL[project.methodology] ?? project.methodology}`);
-  if (project.industry) lines.push(`Industry: ${project.industry}`);
-  if (project.country) lines.push(`Country: ${project.country}`);
-  if (project.relevant_context) lines.push(`Additional Context: ${project.relevant_context}`);
-
-  // Project Context notes — part of the project's accumulated context, but
-  // BA-supplied source material only: never an approved artifact, accepted
-  // requirement, business rule or decision. The label says so to the model.
-  if (notes.length > 0) {
-    lines.push("\n[BA-SUPPLIED PROJECT NOTES]");
-    lines.push("Notes the Business Analyst added to the project, oldest first. They are unvalidated source material — use them as context, but do not treat any note as an approved artifact, accepted requirement, business rule or decision merely because it was supplied.");
-    for (const n of notes) {
-      const date = new Date(n.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-      lines.push(`\n- ${date} · ${n.source_label || "Project note"}:\n${n.source_text}`);
-    }
-  }
-
-  const sourceIds: string[] = [];
-  for (const type of ws.contextTypes as readonly string[]) {
-    const approved = artifacts.filter(a => a.type === type && a.status === "approved");
-    const included = MULTI_INSTANCE_TYPES.includes(type) ? approved : approved.slice(0, 1);
-    for (const a of included) {
-      const label = CONTEXT_TYPE_LABEL[type] ?? type;
-      lines.push(`\nApproved ${label}${a.title ? ` — ${a.title}` : ""}:\n${a.content}`);
-      sourceIds.push(a.id);
-    }
-  }
-
-  const findingIds: string[] = [];
-  const sessionIds: string[] = [];
-  if (findings.length > 0) {
-    lines.push("\n[VALIDATED BA INTELLIGENCE]");
-    lines.push("Findings below were reviewed and explicitly accepted by the Business Analyst from stakeholder input analysis. They are validated context, not formal requirements. Each category below has its own handling rule, stated in brackets.");
-    for (const meta of FINDING_CATEGORY_META) {
-      const items = findings.filter(f => f.category === meta.id);
-      if (!items.length) continue;
-      lines.push(`\n${meta.label} (${FINDING_CATEGORY_GUIDANCE[meta.id]}):`);
-      for (const f of items) {
-        lines.push(`- ${f.finding_text}`);
-        findingIds.push(f.id);
-        if (!sessionIds.includes(f.session_id)) sessionIds.push(f.session_id);
-      }
-    }
-  }
-
-  lines.push("\n[USER INPUT]");
-  return { text: lines.join("\n"), sourceIds, findingIds, sessionIds };
-}
+// ── Project context ────────────────────────────────────────────────────────────
+// Built by buildWorkContext (src/lib/projects/workContext.ts): one resolved pass
+// produces both the prompt context sent to the model and the Context in use strip.
 
 // ── RTM (Requirements Traceability Matrix) ─────────────────────────────────────
 // Shared with the Testing XLSX export — see src/lib/rtm.ts. Both callers must
@@ -715,8 +631,8 @@ function WorkstreamSwitcher({current, onSwitch}: {current: Workstream; onSwitch:
   );
 }
 
-function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onSwitchWs, onArtifactSaved, onStatusChange, onDecisionLog, onOpenContext, onOpenArtifact, onOpenRTM}: {
-  ws: Workstream; project: Project; notes: ProjectNote[]; artifacts: Artifact[]; findings: Finding[];
+function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, onBack, onSwitchWs, onArtifactSaved, onStatusChange, onDecisionLog, onOpenContext, onOpenArtifact, onOpenRTM}: {
+  ws: Workstream; project: Project; notes: ProjectNote[]; artifacts: Artifact[]; findings: Finding[]; decisions: Decision[];
   onBack: ()=>void; onSwitchWs:(ws:Workstream)=>void; onArtifactSaved:(a:Artifact)=>void; onStatusChange:(id:string,status:string)=>void; onDecisionLog:(prefill?:string)=>void;
   onOpenContext: ()=>void; onOpenArtifact:(a:Artifact)=>void; onOpenRTM: ()=>void;
 }) {
@@ -740,11 +656,18 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
   const endRef      = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // This workstream only ever sees the BA Intelligence categories it declares —
-  // e.g. Requirements gets all five, Process Analysis only Business Rules and
-  // Edge Cases. Every downstream use of "findings" in this component should read
-  // from this filtered list, never the full project findings array.
-  const relevantFindings = findings.filter(f => (ws.baIntelligenceCategories as readonly string[]).includes(f.category));
+  // The one resolved context for this area: the same object feeds the Context in
+  // use strip below and every generation request, so they cannot disagree.
+  // Testing's scope is part of it — only the requirements ticked in the picker
+  // reach the model, and an empty scope sends none.
+  const workCtx = useMemo(() => buildWorkContext({
+    area: ws.id as WorkAreaId, project, notes, artifacts, findings, decisions,
+    testingScopeIds: scopeIds,
+    methodologyLabel: m => METHODOLOGY_LABEL[m] ?? m,
+  }), [ws.id, project, notes, artifacts, findings, decisions, scopeIds]);
+  // Accepted findings relevant to this area only (also what the BA Intelligence
+  // panel lists) — never the full project findings array.
+  const relevantFindings = workCtx.findings;
 
   // This work area's saved artifact(s), newest version first — usually one;
   // two while an approved version and its newer revision draft coexist.
@@ -753,30 +676,17 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
     .filter(a => a.type === ws.artifactType && a.status !== "superseded" && a.status !== "archived")
     .sort((x, y) => y.version - x.version);
 
-  // Simplified start (see START_COPY). "Using …" names exactly what
-  // buildContext will send: project context (overview, project notes) plus the
-  // approved upstream artifacts this area builds on — same selection rule.
   const startCopy = START_COPY[ws.id];
-  const usedUpstream = (ws.contextTypes as readonly string[]).flatMap(t => {
-    const approved = artifacts.filter(a => a.type === t && a.status === "approved");
-    if (!approved.length) return [];
-    const label = CONTEXT_TYPE_LABEL[t] ?? t;
-    return [MULTI_INSTANCE_TYPES.includes(t) ? (approved.length > 1 ? `${label} (${approved.length})` : label) : `${label} v${approved[0].version}`];
-  });
   const isBlankStart = messages.length === 0 && savedVersions.length === 0;
   // Blank start uses the wide, centred layout: context strip, white composer
   // surface, four prompts in a 2×2 grid.
   const centredStart = isBlankStart;
-  const contextInUse = ["Project context", ...usedUpstream];
+  const contextInUse = workCtx.strip;
 
-  // Testing's declared scope. Recognisable ids (FR-001 etc.) pulled from
-  // whatever approved upstream artifacts exist — imported or native, no
-  // distinction — so the BA can say which ones this round is testing
-  // against. Nothing here is ever assumed to be in scope; scopeIds starts
-  // empty and only grows from an explicit checkbox.
-  const scopeCandidateIds = ws.id === "testing"
-    ? [...new Set(artifacts.filter(a => (ws.contextTypes as readonly string[]).includes(a.type) && a.status === "approved").flatMap(a => extractItemIds(a.content)))]
-    : [];
+  // Testing's declared scope: requirement ids (CAP/BR/FR/NFR) from the latest
+  // approved Requirements. Nothing is ever assumed to be in scope; scopeIds
+  // starts empty and only grows from an explicit checkbox.
+  const scopeCandidateIds = ws.id === "testing" ? testingScopeCandidates(artifacts) : [];
 
   // Load saved conversation
   useEffect(() => {
@@ -838,7 +748,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
     // (displayMessages / messages) never carries the context block; only the
     // ephemeral apiMessages payload for this one call does, attached to the
     // current turn only, so exactly one context block is ever in flight.
-    const ctx = buildContext(ws, project, notes, artifacts, relevantFindings);
+    const ctx = workCtx;  // the same resolved context the strip shows
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
@@ -936,7 +846,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
     try {
       const res = await fetch(`/api/projects/${project.id}/artifacts`,{
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({type:ws.artifactType,title:ARTIFACT_TYPE_LABEL[ws.artifactType]??ws.label,content:finalContent,reasoning_context:{tool:ws.id,methodology:project.methodology,saved_at:new Date().toISOString(),...((ws.baIntelligenceCategories as readonly string[]).length>0?{context_finding_ids:findingIds,context_session_ids:sessionIds}:{}),...(scopeIds.length>0?{scope_ids:scopeIds}:{})},status:"draft",source_artifact_ids:sourceIds}),
+        body: JSON.stringify({type:ws.artifactType,title:ARTIFACT_TYPE_LABEL[ws.artifactType]??ws.label,content:finalContent,reasoning_context:{tool:ws.id,methodology:project.methodology,saved_at:new Date().toISOString(),...(findingIds.length>0?{context_finding_ids:findingIds,context_session_ids:sessionIds}:{}),...(scopeIds.length>0?{scope_ids:scopeIds}:{})},status:"draft",source_artifact_ids:sourceIds}),
       });
       const data = await res.json();
       if (res.ok) {
@@ -970,7 +880,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
     setHasAnalysis(false);
     setSaveStatus("idle");
 
-    const ctx = buildContext(ws, project, notes, artifacts, relevantFindings);
+    const ctx = workCtx;  // the same resolved context the strip shows
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
@@ -1006,7 +916,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
     setSaveStatus("idle");
     setLoading(true);
 
-    const ctx = buildContext(ws, project, notes, artifacts, relevantFindings);
+    const ctx = workCtx;  // the same resolved context the strip shows
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
@@ -1209,7 +1119,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
             )}
             {/* Work produced outside TheBAPortal only — never in-app work. */}
             {centredStart && (
-              <button onClick={()=>setImportTarget(ws.artifactType)} className="ws-bring-btn">+ {ws.bringLabel}</button>
+              <button onClick={()=>setImportTarget(ws.artifactType)} className="ws-bring-btn">+ {ws.importLabel}</button>
             )}
           </div>
         </div>
@@ -1407,6 +1317,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, onBack, onS
           projectId={project.id}
           targetType={importTarget}
           targetLabel={ARTIFACT_TYPE_LABEL[importTarget] ?? CONTEXT_TYPE_LABEL[importTarget] ?? importTarget}
+          heading={importTarget === ws.artifactType ? ws.importLabel : undefined}
           existingArtifacts={artifacts}
           onClose={()=>setImportTarget(null)}
           onImported={(a)=>{onArtifactSaved(a as Artifact);setImportTarget(null);}}
@@ -1560,7 +1471,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
             // fresh (its own conversation, input, save state) — never carries
             // the previous area's in-memory state across.
             <WorkstreamSession key={activeWs.id}
-              ws={activeWs} project={project} notes={notes} artifacts={artifacts} findings={findings}
+              ws={activeWs} project={project} notes={notes} artifacts={artifacts} findings={findings} decisions={decisions}
               onBack={()=>setActiveWs(null)}
               onSwitchWs={(ws)=>goToWorkstream(ws.id)}
               onArtifactSaved={handleArtifactSaved}

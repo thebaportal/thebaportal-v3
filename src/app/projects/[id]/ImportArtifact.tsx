@@ -9,17 +9,18 @@ interface Props {
   projectId: string;
   targetType: string;
   targetLabel: string;
+  heading?: string;   // "Import external …" — the Work area's own import label
   existingArtifacts: ExistingArtifact[];
   onClose: () => void;
   onImported: (artifact: ExistingArtifact & { title?: string; version: number; created_at: string }) => void;
 }
 
-// The one and only entry point for "bring existing work into the project".
+// The one and only entry point for importing work produced OUTSIDE TheBAPortal.
 // Paste/manual text only — no file upload, no new artifact table. A plain
 // POST to the existing artifacts route with origin/import_mode noted in
 // reasoning_context is the entire backend footprint; everything below is
 // just deciding what content and provenance to send.
-export default function ImportArtifact({ projectId, targetType, targetLabel, existingArtifacts, onClose, onImported }: Props) {
+export default function ImportArtifact({ projectId, targetType, targetLabel, heading, existingArtifacts, onClose, onImported }: Props) {
   const currentApproved = existingArtifacts.find(a => a.type === targetType && a.status === "approved");
 
   const [text, setText] = useState("");
@@ -79,10 +80,10 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, exi
     <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.4)", padding: 20 }} onClick={onClose}>
       <div style={{ width: "100%", maxWidth: 620, maxHeight: "85vh", overflowY: "auto", background: "var(--lc-surface)", borderRadius: "var(--radius-lg)", border: "1px solid var(--lc-border)", padding: "24px 26px" }} onClick={e => e.stopPropagation()}>
         <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "var(--lc-text-1)", marginBottom: 4 }}>
-          Bring existing {targetLabel.toLowerCase()}
+          {heading ?? `Import external ${targetLabel.toLowerCase()}`}
         </div>
         <p style={{ fontSize: 12.5, color: "var(--lc-text-3)", lineHeight: 1.6, marginBottom: 16 }}>
-          Paste what already exists for this project. It becomes a normal, connected artifact — IDs like FR-014 are picked up automatically.
+          Paste work produced outside TheBAPortal. It becomes a normal, connected artifact — IDs like FR-014 are picked up automatically. Information already in this project does not need importing; it is used automatically.
         </p>
 
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste or type the content here…"
