@@ -145,10 +145,11 @@ export function extractLinkedStories(content: string, ids: string[]): { storyIds
 // ── Resolution ───────────────────────────────────────────────────────────────
 /** One resolved context part: the exact prompt block and the exact strip label, produced together. */
 export interface ContextPart {
-  kind: "project" | "notes" | "artifact" | "testing-scope" | "findings" | "decisions";
+  kind: "project" | "notes" | "current-approved" | "current-draft" | "artifact" | "testing-scope" | "findings" | "decisions";
   strip: string | null;          // label in "Context in use"; null = not shown separately
   prompt: string;                // block sent to the model
-  artifactIds?: string[];
+  artifactIds?: string[];       // upstream sources (lineage of what gets saved)
+  baselineIds?: string[];       // this area's own current version(s) — not upstream lineage
   findingIds?: string[];
   sessionIds?: string[];
   decisionIds?: string[];
@@ -163,6 +164,14 @@ export interface WorkContext<F extends CtxFinding = CtxFinding> {
   findings: F[];                 // the relevant accepted findings (for the BA Intelligence panel)
 }
 
+/** The artifact type each Work area produces. */
+export const AREA_ARTIFACT_TYPE: Record<WorkAreaId, string> = {
+  "problem-analysis": "problem_analysis", "stakeholder-analysis": "stakeholder_analysis", "requirements": "requirements",
+  "process-analysis": "process_map", "user-stories": "user_stories", "business-case": "brd", "testing": "test_case",
+};
+const INACTIVE = ["approved", "superseded", "archived"];
+const norm = (t: string) => t.replace(/s+/g, " ").trim();
+
 const latestApproved = (artifacts: CtxArtifact[], type: string) =>
   artifacts.filter(a => a.type === type && a.status === "approved").sort((a, b) => b.version - a.version)[0];
 
@@ -175,6 +184,8 @@ export function buildWorkContext<F extends CtxFinding>(input: {
   area: WorkAreaId; project: CtxProject; notes: CtxNote[]; artifacts: CtxArtifact[];
   findings: F[]; decisions: CtxDecision[]; testingScopeIds?: string[];
   methodologyLabel?: (m: string) => string;
+  /** The saved conversation that will be sent with this request (used only to avoid duplicating content). */
+  conversation?: { role: string; content: string }[];
 }): WorkContext<F> {
   const { area, project, notes, artifacts, findings, decisions } = input;
   const cfg = WORK_CONTEXT[area];
@@ -202,11 +213,16 @@ export function buildWorkContext<F extends CtxFinding>(input: {
     parts.push({ kind: "notes", strip: "Project notes", prompt: lines.join("\n") });
   }
 
+  // This area's own current state: its latest Approved version is the authoritative
+  // baseline; a newer Draft is working state for this area only (never sent elsewhere).
+  parts.push(...resolveCurrent(area, artifacts, input.conversation ?? []));
+  const used = new Set(parts.flatMap(x => x.baselineIds ?? []));
+
   // Approved artifacts — trusted evidence; drafts never included
   for (const type of cfg.artifactTypes) {
     const label = CONTEXT_TYPE_LABEL[type] ?? type;
     if (MULTI_INSTANCE_TYPES.includes(type)) {
-      const approved = artifacts.filter(a => a.type === type && a.status === "approved");
+      const approved = artifacts.filter(a => a.type === type && a.status === "approved" && !used.has(a.id));
       if (!approved.length) continue;
       parts.push({
         kind: "artifact", strip: approved.length > 1 ? `${label} (${approved.length})` : label,
@@ -215,7 +231,7 @@ export function buildWorkContext<F extends CtxFinding>(input: {
       });
     } else {
       const a = latestApproved(artifacts, type);
-      if (!a) continue;
+      if (!a || used.has(a.id)) continue;
       parts.push({ kind: "artifact", strip: `${label} v${a.version}`, prompt: `${artifactHeader(a, label)}\n${a.content}`, artifactIds: [a.id] });
     }
   }
@@ -271,6 +287,46 @@ export function buildWorkContext<F extends CtxFinding>(input: {
     sessionIds: [...new Set(parts.flatMap(x => x.sessionIds ?? []))],
     findings: relevant,
   };
+}
+
+/**
+ * The current area's own artifact. Content already present verbatim as an assistant
+ * message in the conversation being sent is referenced, not pasted again.
+ */
+function resolveCurrent(area: WorkAreaId, artifacts: CtxArtifact[], conversation: { role: string; content: string }[]): ContextPart[] {
+  const type = AREA_ARTIFACT_TYPE[area], label = CONTEXT_TYPE_LABEL[type] ?? type;
+  const inConversation = (a: CtxArtifact) => conversation.some(m => m.role === "assistant" && norm(m.content) === norm(a.content));
+  const approved = latestApproved(artifacts, type);
+  const draft = artifacts
+    .filter(a => a.type === type && !INACTIVE.includes(a.status) && (!approved || a.version > approved.version))
+    .sort((a, b) => b.version - a.version)[0];
+  const parts: ContextPart[] = [];
+  if (approved) {
+    const imported = approved.reasoning_context?.origin === "imported";
+    const head = `[CURRENT APPROVED ${label.toUpperCase()} — v${approved.version}]
+The approved current state of the ${label} this Business Analyst is working on now${imported ? " (imported from an external source; its approved status was asserted by the Business Analyst on import)" : ""}. It is the authoritative baseline for this work: build on it, keep what it establishes unless the Business Analyst asks for a change, and make any change explicit — never silently drop or contradict it.`;
+    parts.push({
+      kind: "current-approved", strip: `Current ${label} v${approved.version}`, baselineIds: [approved.id],
+      prompt: inConversation(approved)
+        ? `${head}
+Its content is identical to your earlier ${label} output in this conversation above; treat that output as this approved baseline.`
+        : `${head}
+${approved.content}`,
+    });
+  }
+  if (draft) {
+    const head = `[CURRENT DRAFT ${label.toUpperCase()} — v${draft.version}, NOT APPROVED]
+The Business Analyst's work in progress on this ${label}. Continue from it as the working state, but it is not approved${approved ? `: Approved v${approved.version} above remains the authoritative version until this draft is approved` : ""}.`;
+    parts.push({
+      kind: "current-draft", strip: `${label} draft v${draft.version} (working)`, baselineIds: [draft.id],
+      prompt: inConversation(draft)
+        ? `${head}
+Its content is identical to your latest ${label} output in this conversation above.`
+        : `${head}
+${draft.content}`,
+    });
+  }
+  return parts;
 }
 
 /** Testing scope: requirement ids offered by the picker (latest approved Requirements only). */

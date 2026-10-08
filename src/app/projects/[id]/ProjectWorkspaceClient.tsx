@@ -660,11 +660,15 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
   // use strip below and every generation request, so they cannot disagree.
   // Testing's scope is part of it — only the requirements ticked in the picker
   // reach the model, and an empty scope sends none.
-  const workCtx = useMemo(() => buildWorkContext({
+  // contextFor(history) resolves it for the exact conversation being sent, so this
+  // area's own approved/draft content is referenced rather than pasted twice when
+  // the conversation already contains it verbatim.
+  const contextFor = useCallback((history: Message[]) => buildWorkContext({
     area: ws.id as WorkAreaId, project, notes, artifacts, findings, decisions,
-    testingScopeIds: scopeIds,
+    testingScopeIds: scopeIds, conversation: history,
     methodologyLabel: m => METHODOLOGY_LABEL[m] ?? m,
   }), [ws.id, project, notes, artifacts, findings, decisions, scopeIds]);
+  const workCtx = useMemo(() => contextFor(messages), [contextFor, messages]);
   // Accepted findings relevant to this area only (also what the BA Intelligence
   // panel lists) — never the full project findings array.
   const relevantFindings = workCtx.findings;
@@ -880,7 +884,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     setHasAnalysis(false);
     setSaveStatus("idle");
 
-    const ctx = workCtx;  // the same resolved context the strip shows
+    const ctx = contextFor(truncated);  // same resolver, for the history actually sent
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
@@ -916,7 +920,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     setSaveStatus("idle");
     setLoading(true);
 
-    const ctx = workCtx;  // the same resolved context the strip shows
+    const ctx = contextFor(truncated.slice(0, idx));  // same resolver, for the history actually sent
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
