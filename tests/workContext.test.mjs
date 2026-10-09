@@ -226,3 +226,16 @@ test("no prerequisites: an empty project still gives every area a valid context"
     assert.ok(c.text.startsWith("[ESTABLISHED PROJECT CONTEXT]") && c.text.endsWith("[USER INPUT]"));
   }
 });
+
+test("Decision Lab: only the current approved version of each decision lineage reaches context", () => {
+  const dl = [
+    art("a1", "decision_lab_output", "approved", 1, "DECISION A V1", { title: "A", lineage_id: "a1" }),
+    art("a2", "decision_lab_output", "approved", 2, "DECISION A V2", { title: "A", lineage_id: "a1" }),
+    art("b1", "decision_lab_output", "approved", 1, "DECISION B V1", { title: "B", lineage_id: "b1" }),
+    art("a3", "decision_lab_output", "draft", 3, "DECISION A DRAFT", { title: "A", lineage_id: "a1" }),
+  ];
+  const c = buildWorkContext({ area: "requirements", project, notes: [], artifacts: dl, findings: [], decisions: [] });
+  assert.ok(c.strip.includes("Decision Lab Analysis (2)"));
+  assert.ok(c.text.includes("DECISION A V2") && c.text.includes("DECISION B V1"));
+  assert.ok(!c.text.includes("DECISION A V1") && !c.text.includes("DECISION A DRAFT"));
+});

@@ -14,6 +14,15 @@ An ordered, reproducible definition of TheBAPortal's app schema, in two parts.
 | `0008_handle_new_user.sql` | Baseline | Already represented |
 | `0009_activate_pro_subscription.sql` | Baseline (**known-insecure as written**) | Already represented |
 | `0010_security_hardening.sql` | Security fix | **Applied 2026-10-06** |
+| `0011_artifact_lifecycle_integrity.sql` | Lifecycle integrity | **PENDING REVIEW — validated on the test project, not applied to production** |
+
+`0011` enforces the artifact lifecycle in the database: one Approved version
+plus at most one working Draft per lineage, unique versions, read-only history,
+and atomic approve/revise/import functions (EXECUTE: service_role only).
+Decision Lab outputs get a per-decision `lineage_id`. Checks:
+`checks/0011_artifact_lifecycle_verify.sql`; rollback
+`checks/0011_artifact_lifecycle_rollback.sql` removes the enforcement but
+deliberately keeps `lineage_id` and its data.
 
 ## Production history
 

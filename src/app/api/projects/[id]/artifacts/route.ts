@@ -10,10 +10,35 @@ function admin() {
   );
 }
 
-// decision_lab_output is exempt from both "one current draft" and "supersede on
-// approve" — a project can hold several distinct, simultaneously-approved
-// decisions, so there is no single "the current version" for this type.
-const MULTI_INSTANCE_TYPES = ["decision_lab_output"];
+// Artifact lifecycle — enforced by the database (migration 0011), not just here:
+//   one authoritative Approved version + at most one working Draft + immutable
+//   history, per lineage. Normal Work artifacts: one lineage per (project, type).
+//   decision_lab_output: one lineage per decision (lineage_id).
+// Every change goes through an atomic, lineage-locked database function or a
+// guarded single-row update. The acting user is ALWAYS the authenticated session
+// user — never an id supplied by the browser — and the project must be theirs.
+const DECISION_LAB = "decision_lab_output";
+
+// Database errors → HTTP. Lifecycle refusals are 409 (a conflict with the
+// artifact's current state), never a silent overwrite.
+function dbError(error: { message?: string; code?: string }) {
+  const m = error.message ?? "";
+  if (/artifact_not_found/.test(m)) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const rule = m.match(/\b(artifact_[a-z_]+)/)?.[1];
+  if (rule || error.code === "23505" || error.code === "23514") return NextResponse.json({ error: rule ?? "lifecycle_conflict", message: m }, { status: 409 });
+  console.error("[api/projects/id/artifacts]", error);
+  return NextResponse.json({ error: "internal_error" }, { status: 500 });
+}
+
+async function sessionAndProject(projectId: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { fail: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  const db = admin();
+  const { data: project } = await db.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).maybeSingle();
+  if (!project) return { fail: NextResponse.json({ error: "not_found" }, { status: 404 }) };
+  return { user, db };
+}
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -32,180 +57,88 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json({ artifacts: data ?? [] });
 }
 
+// POST intents (body.intent / body.artifact_id / body.status):
+//   intent "revise" + source_id  → start the next Draft from the current Approved.
+//                                   Never touches an existing Draft: returns it instead.
+//   artifact_id                  → save edits to THAT exact Draft row only.
+//   status "approved" (import)   → supersede + insert, atomically.
+//   status "draft", Decision Lab → a new decision (new lineage, Draft v1).
+//   status "draft", other types  → Work autosave into the single working Draft.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const ctx = await sessionAndProject(params.id);
+  if (ctx.fail) return ctx.fail;
+  const { user, db } = ctx;
+  const body = await req.json();
+  const { intent, source_id, artifact_id, type, title, content, reasoning_context, status, source_artifact_ids } = body;
 
-  const { type, title, content, reasoning_context, status, source_artifact_ids } = await req.json();
+  if (intent === "revise") {
+    if (!source_id) return NextResponse.json({ error: "source_id required" }, { status: 400 });
+    const { data, error } = await db.rpc("artifact_revise", { p_project_id: params.id, p_user_id: user.id, p_source_id: source_id });
+    if (error) return dbError(error);
+    return NextResponse.json(data);   // { outcome: "created" | "existing_draft" | "not_latest", artifact }
+  }
+
+  if (artifact_id) {
+    if (typeof content !== "string" || !content) return NextResponse.json({ error: "content required" }, { status: 400 });
+    const patch: Record<string, unknown> = { content, updated_at: new Date().toISOString() };
+    if (title !== undefined) patch.title = title;
+    if (reasoning_context !== undefined) patch.reasoning_context = reasoning_context ?? {};
+    if (source_artifact_ids !== undefined) patch.source_artifact_ids = source_artifact_ids ?? [];
+    const { data, error } = await db.from("artifacts").update(patch)
+      .eq("id", artifact_id).eq("project_id", params.id).eq("user_id", user.id)
+      .in("status", ["draft", "in_review"])
+      .select().maybeSingle();
+    if (error) return dbError(error);
+    if (data) return NextResponse.json({ artifact: data });
+    const { data: exists } = await db.from("artifacts").select("id,status").eq("id", artifact_id).eq("project_id", params.id).eq("user_id", user.id).maybeSingle();
+    return exists
+      ? NextResponse.json({ error: "artifact_not_editable", message: `A ${exists.status} version cannot be edited` }, { status: 409 })
+      : NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
   if (!type || !content) return NextResponse.json({ error: "type and content are required" }, { status: 400 });
-
-  const db = admin();
-  const requestedStatus = status ?? "draft";
-
-  // Automatic draft saves must never touch an approved artifact. Superseding an
-  // approved version only happens as part of a deliberate approval — either the
-  // PATCH transition below, or a direct approved insert (import), handled after
-  // this block.
-  //
-  // While the save is still a draft, there is normally ONE current working draft
-  // per (project, type, user): update it in place instead of inserting a new
-  // version on every conversational turn. This keeps "formal version history"
-  // meaningful (each version number is a real, once-approved milestone) without
-  // an unbounded pile of never-superseded draft rows. decision_lab_output is
-  // exempt, matching its existing multi-instance behaviour.
-  //
-  // Once a row has ever been approved (reasoning_context.was_approved, set by
-  // PATCH/the approved-insert path below), it is permanently excluded from this
-  // lookup — even if later reverted to draft. Approval is a historical milestone;
-  // a row that has ever carried it must never again be treated as "the current
-  // draft to update in place". The next save on that artifact type always
-  // becomes a new version instead, so approved content, scope, and provenance
-  // can never be silently mutated after the fact, by any path, for any type.
-  if (!MULTI_INSTANCE_TYPES.includes(type) && requestedStatus === "draft") {
-    const { data: existingDraft } = await db
-      .from("artifacts")
-      .select("id, reasoning_context")
-      .eq("project_id", params.id)
-      .eq("user_id", user.id)
-      .eq("type", type)
-      .eq("status", "draft")
-      .order("version", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const eligibleForInPlaceUpdate = existingDraft && !(existingDraft.reasoning_context as Record<string, unknown> | null)?.was_approved;
-
-    if (eligibleForInPlaceUpdate) {
-      const { data, error } = await db
-        .from("artifacts")
-        .update({
-          title: title ?? type.replace(/_/g, " "),
-          content,
-          reasoning_context: reasoning_context ?? {},
-          source_artifact_ids: source_artifact_ids ?? [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingDraft!.id)
-        .eq("project_id", params.id)
-        .eq("user_id", user.id)
-        .select()
-        .single();
-
-      if (error) { console.error("[api/projects/id/artifacts]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
-      return NextResponse.json({ artifact: data });
-    }
+  const args = {
+    p_project_id: params.id, p_user_id: user.id, p_title: title ?? type.replace(/_/g, " "), p_content: content,
+    p_reasoning_context: reasoning_context ?? {}, p_source_artifact_ids: source_artifact_ids ?? [],
+  };
+  const requested = status ?? "draft";
+  if (requested === "approved") {
+    if (type === DECISION_LAB) return NextResponse.json({ error: "artifact_wrong_lineage", message: "Decision Lab outputs are approved from a draft" }, { status: 409 });
+    const { data, error } = await db.rpc("artifact_insert_approved", { ...args, p_type: type });
+    return error ? dbError(error) : NextResponse.json({ artifact: data });
   }
-
-  // No current draft eligible to update (first save since project start, first
-  // save since the previous version was approved/archived, or the only draft
-  // found has itself already been approved once and is now permanently locked)
-  // — insert a fresh version.
-  const { data: existing } = await db
-    .from("artifacts")
-    .select("version")
-    .eq("project_id", params.id)
-    .eq("user_id", user.id)
-    .eq("type", type)
-    .order("version", { ascending: false })
-    .limit(1);
-
-  const version = existing?.[0]?.version ? existing[0].version + 1 : 1;
-
-  // A direct approved insert (import: Replace or Add) is itself an approval —
-  // it must supersede the previous approved version of this type exactly like
-  // the PATCH transition does, so the product never holds two simultaneously
-  // "current" approved artifacts of the same type.
-  if (requestedStatus === "approved" && !MULTI_INSTANCE_TYPES.includes(type)) {
-    await db
-      .from("artifacts")
-      .update({ status: "superseded" })
-      .eq("project_id", params.id)
-      .eq("user_id", user.id)
-      .eq("type", type)
-      .eq("status", "approved");
-  }
-
-  const insertReasoningContext = { ...(reasoning_context ?? {}) };
-  if (requestedStatus === "approved") insertReasoningContext.was_approved = true;
-
-  const { data, error } = await db
-    .from("artifacts")
-    .insert({
-      project_id: params.id,
-      user_id: user.id,
-      type,
-      title: title ?? type.replace(/_/g, " "),
-      content,
-      reasoning_context: insertReasoningContext,
-      status: requestedStatus,
-      version,
-      source_artifact_ids: source_artifact_ids ?? [],
-    })
-    .select()
-    .single();
-
-  if (error) { console.error("[api/projects/id/artifacts]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
-  return NextResponse.json({ artifact: data });
+  if (requested !== "draft") return NextResponse.json({ error: "status must be draft or approved" }, { status: 400 });
+  const { data, error } = type === DECISION_LAB
+    ? await db.rpc("artifact_create_decision", args)
+    : await db.rpc("artifact_save_working_draft", { ...args, p_type: type });
+  return error ? dbError(error) : NextResponse.json({ artifact: data });
 }
 
+// PATCH { artifactId, status }:
+//   approved → atomic approval (supersedes only this lineage's previous Approved)
+//   archived → discard a working Draft (Approved and history cannot be archived)
+//   draft    → legacy "Back to draft", in_review rows only
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const ctx = await sessionAndProject(params.id);
+  if (ctx.fail) return ctx.fail;
+  const { user, db } = ctx;
   const { artifactId, status } = await req.json();
   if (!artifactId || !status) return NextResponse.json({ error: "artifactId and status required" }, { status: 400 });
 
-  const db = admin();
-
-  // Superseding a previously-approved artifact of the same type happens only
-  // here, as part of a deliberate approval action — never as a side effect of an
-  // automatic draft save (see POST above).
-  //
-  // Approving also permanently stamps reasoning_context.was_approved — this is
-  // the one-way flag the POST handler checks to keep this exact row from ever
-  // being treated as "the current draft to update in place" again, even if it
-  // is later reverted. Approval is a historical milestone: content, scope_ids,
-  // and provenance that existed at approval time must stay attached to this
-  // version forever. A later change always becomes a new version instead (see
-  // the "Revise" action), never an edit of this row.
-  const updatePayload: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-
   if (status === "approved") {
-    const { data: target } = await db
-      .from("artifacts")
-      .select("type, reasoning_context")
-      .eq("id", artifactId)
-      .eq("project_id", params.id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (target) {
-      updatePayload.reasoning_context = { ...(target.reasoning_context ?? {}), was_approved: true };
-
-      if (!MULTI_INSTANCE_TYPES.includes(target.type)) {
-        await db
-          .from("artifacts")
-          .update({ status: "superseded" })
-          .eq("project_id", params.id)
-          .eq("user_id", user.id)
-          .eq("type", target.type)
-          .eq("status", "approved")
-          .neq("id", artifactId);
-      }
-    }
+    const { data, error } = await db.rpc("artifact_approve", { p_project_id: params.id, p_user_id: user.id, p_artifact_id: artifactId });
+    return error ? dbError(error) : NextResponse.json({ artifact: data });
   }
-
-  const { data, error } = await db
-    .from("artifacts")
-    .update(updatePayload)
-    .eq("id", artifactId)
-    .eq("project_id", params.id)
-    .eq("user_id", user.id)
-    .select()
-    .single();
-
-  if (error) { console.error("[api/projects/id/artifacts]", error); return NextResponse.json({ error: "internal_error" }, { status: 500 }); }
-  return NextResponse.json({ artifact: data });
+  const from = status === "archived" ? ["draft", "in_review"] : status === "draft" ? ["in_review"] : null;
+  if (!from) return NextResponse.json({ error: "unsupported status change" }, { status: 400 });
+  const { data, error } = await db.from("artifacts")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", artifactId).eq("project_id", params.id).eq("user_id", user.id).in("status", from)
+    .select().maybeSingle();
+  if (error) return dbError(error);
+  if (data) return NextResponse.json({ artifact: data });
+  const { data: exists } = await db.from("artifacts").select("status").eq("id", artifactId).eq("project_id", params.id).eq("user_id", user.id).maybeSingle();
+  return exists
+    ? NextResponse.json({ error: "artifact_invalid_transition", message: `${exists.status} → ${status} is not allowed` }, { status: 409 })
+    : NextResponse.json({ error: "not_found" }, { status: 404 });
 }

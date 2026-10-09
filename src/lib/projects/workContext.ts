@@ -26,6 +26,7 @@ export interface CtxNote { id: string; source_label: string | null; source_text:
 export interface CtxArtifact {
   id: string; type: string; title?: string; content: string; status: string; version: number;
   reasoning_context?: Record<string, unknown> | null;
+  lineage_id?: string | null;   // Decision Lab decision lineage; null for normal Work artifacts
 }
 export interface CtxFinding { id: string; session_id: string; category: string; finding_text: string; }
 export interface CtxDecision {
@@ -222,7 +223,14 @@ export function buildWorkContext<F extends CtxFinding>(input: {
   for (const type of cfg.artifactTypes) {
     const label = CONTEXT_TYPE_LABEL[type] ?? type;
     if (MULTI_INSTANCE_TYPES.includes(type)) {
-      const approved = artifacts.filter(a => a.type === type && a.status === "approved" && !used.has(a.id));
+      // One current Approved version per decision lineage (the database enforces
+      // this too); never two versions of the same decision.
+      const latestPerLineage = new Map<string, CtxArtifact>();
+      for (const a of artifacts.filter(x => x.type === type && x.status === "approved" && !used.has(x.id))) {
+        const key = a.lineage_id ?? a.id, prev = latestPerLineage.get(key);
+        if (!prev || a.version > prev.version) latestPerLineage.set(key, a);
+      }
+      const approved = [...latestPerLineage.values()];
       if (!approved.length) continue;
       parts.push({
         kind: "artifact", strip: approved.length > 1 ? `${label} (${approved.length})` : label,

@@ -7,7 +7,7 @@ import ProjectNavBar from "@/components/ProjectNavBar";
 import DocumentViewer from "@/components/DocumentViewer";
 import { buildRTM } from "@/lib/rtm";
 import { computeAttention, extractItemIds, type AttentionItem } from "@/lib/projects/attention";
-import { buildWorkContext, testingScopeCandidates, CONTEXT_TYPE_LABEL, MULTI_INSTANCE_TYPES, FINDING_CATEGORY_META, type WorkAreaId } from "@/lib/projects/workContext";
+import { buildWorkContext, testingScopeCandidates, CONTEXT_TYPE_LABEL, FINDING_CATEGORY_META, type WorkAreaId } from "@/lib/projects/workContext";
 import ProjectHome from "./ProjectHome";
 import ImportArtifact from "./ImportArtifact";
 import ProjectContextDrawer from "./ProjectContextDrawer";
@@ -26,6 +26,7 @@ interface Artifact {
   id: string; type: string; title?: string; content: string;
   status: string; version: number; created_at: string; updated_at?: string;
   reasoning_context?: Record<string, unknown>; source_artifact_ids?: string[];
+  lineage_id?: string | null;   // Decision Lab decision lineage (null for normal Work artifacts)
 }
 interface Decision {
   id: string; decision_text: string; made_by?: string;
@@ -168,20 +169,16 @@ async function setArtifactStatus(projectId: string, artifactId: string, status: 
   const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({artifactId,status})});
   return res.ok;
 }
-// Revise never edits the approved row. It copies the approved content into a
-// fresh draft (a new version); the approved version stays the trusted project
-// version until the new draft is itself approved.
-async function reviseArtifact(projectId: string, artifact: Artifact): Promise<Artifact | null> {
-  const {was_approved: _drop, ...carriedContext} = (artifact.reasoning_context ?? {}) as Record<string, unknown>;
-  void _drop;
-  const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-    type:artifact.type, title:artifact.title, content:artifact.content,
-    reasoning_context:carriedContext, status:"draft",
-    source_artifact_ids:artifact.source_artifact_ids??[],
-  })});
+// Revise never edits the approved row and never overwrites an existing Draft.
+// The server (one atomic, lineage-locked step) either creates the next Draft
+// from the current Approved version, or — if a working Draft already exists —
+// returns that Draft untouched ("existing_draft"), or — if this version is no
+// longer the current Approved one — returns the current one ("not_latest").
+type ReviseOutcome = { outcome: "created" | "existing_draft" | "not_latest"; artifact: Artifact | null };
+async function reviseArtifact(projectId: string, artifact: Artifact): Promise<ReviseOutcome | null> {
+  const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({intent:"revise", source_id:artifact.id})});
   if (!res.ok) return null;
-  const {artifact:a} = await res.json();
-  return a as Artifact;
+  return await res.json() as ReviseOutcome;
 }
 
 function artifactExportMeta(a: Artifact, ctx: ExportContext): ExportMeta {
@@ -351,24 +348,25 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
   const [draftText,setDraftText] = useState(artifact.content);
   const [savingEdit,setSavingEdit] = useState(false);
   const [revising,setRevising] = useState(false);
-  useEffect(()=>{ setDraftText(artifact.content); }, [artifact.id, artifact.content]);
+  const [notice,setNotice] = useState<{text:string; open:Artifact}|null>(null);
+  const [saveError,setSaveError] = useState("");
+  useEffect(()=>{ setDraftText(artifact.content); setNotice(null); setSaveError(""); }, [artifact.id, artifact.content]);
 
   async function changeStatus(s:string) {
     if (await setArtifactStatus(projectId, artifact.id, s)) onStatusChange(artifact.id,s);
   }
 
-  // Editing a draft updates this same row in place — normal autosave
-  // behaviour, unavailable once the row has ever been approved (the API
-  // enforces this independent of what the UI offers).
+  // Editing a Draft updates exactly this row (by id) — never "whichever draft
+  // is latest". Approved and historical versions cannot be edited (enforced by
+  // the database as well as the API).
   async function saveDraftEdit() {
-    setSavingEdit(true);
+    setSavingEdit(true); setSaveError("");
     try {
       const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        type:artifact.type, title:artifact.title, content:draftText,
-        reasoning_context:artifact.reasoning_context??{}, status:"draft",
-        source_artifact_ids:artifact.source_artifact_ids??[],
+        artifact_id:artifact.id, content:draftText,
       })});
       if (res.ok) { const {artifact:a} = await res.json(); onRevised(a); }
+      else setSaveError("This version can no longer be edited.");
     } finally { setSavingEdit(false); }
   }
 
@@ -378,10 +376,13 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
   // editing. The approved row underneath is untouched — still current, still
   // authoritative, until the new draft is itself approved.
   async function revise() {
-    setRevising(true);
+    setRevising(true); setNotice(null);
     try {
-      const a = await reviseArtifact(projectId, artifact);
-      if (a) onRevised(a);
+      const r = await reviseArtifact(projectId, artifact);
+      if (!r?.artifact) return;
+      if (r.outcome === "created") onRevised(r.artifact);
+      else if (r.outcome === "existing_draft") setNotice({text:`A newer draft already exists · Open Draft v${r.artifact.version}`, open:r.artifact});
+      else setNotice({text:`A newer approved version exists · Open v${r.artifact.version}`, open:r.artifact});
     } finally { setRevising(false); }
   }
 
@@ -454,10 +455,19 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
           {artifact.status==="in_review" && (
             <button onClick={()=>changeStatus("draft")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Back to draft</button>
           )}
-          {artifact.status!=="archived" && (
+          {/* Archive discards a working Draft only. The current Approved version
+              stays authoritative until a newer version is approved; superseded
+              history is read-only. */}
+          {(artifact.status==="draft"||artifact.status==="in_review") && (
             <button onClick={()=>changeStatus("archived")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Archive</button>
           )}
         </div>
+        {notice && (
+          <button onClick={()=>onRevised(notice.open)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:12.5,fontWeight:600,color:"var(--teal)",fontFamily:"inherit"}}>
+            {notice.text} →
+          </button>
+        )}
+        {saveError && <span role="alert" style={{fontSize:12,color:"var(--lc-red)"}}>{saveError}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
           {/* Exports always use the saved row (artifact.content), never unsaved
               edits in the draft textarea — what's exported is this version. */}
@@ -1006,8 +1016,8 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     if (!savedCurrent || lifecycleBusy) return;
     setLifecycleBusy("revise"); setLifecycleError("");
     try {
-      const a = await reviseArtifact(project.id, savedCurrent);
-      if (a) onArtifactSaved(a); else setLifecycleError("Couldn't start a new version — please try again.");
+      const r = await reviseArtifact(project.id, savedCurrent);
+      if (r?.artifact) onArtifactSaved(r.artifact); else setLifecycleError("Couldn't start a new version — please try again.");
     } catch { setLifecycleError("Couldn't start a new version — please try again."); }
     finally { setLifecycleBusy(null); }
   }
@@ -1432,7 +1442,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
       const target = prev.find(a=>a.id===id);
       return prev.map(a=>{
         if (a.id===id) return {...a,status};
-        if (status==="approved" && target && a.type===target.type && a.status==="approved" && !MULTI_INSTANCE_TYPES.includes(a.type)) return {...a,status:"superseded"};
+        if (status==="approved" && target && a.type===target.type && (a.lineage_id??null)===(target.lineage_id??null) && a.status==="approved") return {...a,status:"superseded"};
         return a;
       });
     });

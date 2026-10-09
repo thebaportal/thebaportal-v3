@@ -1093,6 +1093,9 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
               setViewingOutput(prev => prev && prev.id === id ? { ...prev, status: s } : prev);
               setSavedOutputs(prev => prev.map(a => a.id === id ? { ...a, status: s } : a)
                 .filter(a => a.status !== "superseded" && a.status !== "archived"));
+              // Approving a revision supersedes that decision's previous Approved
+              // version server-side (same lineage only) — reload to reflect it.
+              if (s === "approved") loadSavedOutputs(selectedProjectId);
             }}
             onRevised={(a) => { setViewingOutput(a); loadSavedOutputs(selectedProjectId); }}
           />
