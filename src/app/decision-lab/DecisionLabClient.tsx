@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import ProjectNavBar from "@/components/ProjectNavBar";
 import { ArtifactViewer } from "@/app/projects/[id]/ProjectWorkspaceClient";
+import { mutateArtifact, CLIENT_OUTDATED_MESSAGE } from "@/lib/projects/artifactLifecycle";
 
 type SavedOutput = Parameters<typeof ArtifactViewer>[0]["artifact"];
 
@@ -892,7 +893,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [contextSourceIds, setContextSourceIds] = useState<string[]>([]);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "outdated">("idle");
   // Decision Lab outputs saved to the selected project are managed here, where
   // they're created — opened in the shared ArtifactViewer (edit draft /
   // approve / revise / archive). Requirements only ever consumes approved ones.
@@ -1043,20 +1044,14 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
     if (!selectedProjectId || saveStatus === "saving") return;
     setSaveStatus("saving");
     try {
-      const res = await fetch(`/api/projects/${selectedProjectId}/artifacts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "decision_lab_output",
-          title: sessionTitle(situation),
-          content: buildDecisionArtifactContent(situation, results),
-          reasoning_context: { tool: "decision-lab", modes: Object.keys(results), saved_at: new Date().toISOString() },
-          status: "draft",
-          source_artifact_ids: contextSourceIds,
-        }),
+      const r = await mutateArtifact(selectedProjectId, "create_decision", {
+        title: sessionTitle(situation),
+        content: buildDecisionArtifactContent(situation, results),
+        reasoning_context: { tool: "decision-lab", modes: Object.keys(results), saved_at: new Date().toISOString() },
+        source_artifact_ids: contextSourceIds,
       });
-      setSaveStatus(res.ok ? "saved" : "error");
-      if (res.ok) loadSavedOutputs(selectedProjectId);
+      setSaveStatus(r.ok ? "saved" : r.outdated ? "outdated" : "error");
+      if (r.ok) loadSavedOutputs(selectedProjectId);
     } catch {
       setSaveStatus("error");
     }
@@ -1122,7 +1117,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
                   disabled={saveStatus === "saving"}
                   style={{ fontSize: 13, fontWeight: 700, color: saveStatus === "saved" ? "#34407d" : "#fff", background: saveStatus === "saved" ? "rgba(52,64,125,0.08)" : "#34407d", border: saveStatus === "saved" ? "1px solid rgba(52,64,125,0.3)" : "none", borderRadius: 8, padding: "8px 16px", cursor: saveStatus === "saving" ? "default" : "pointer", fontFamily: "inherit" }}
                 >
-                  {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved to project" : saveStatus === "error" ? "Save failed, retry" : "Save to project"}
+                  {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved to project" : saveStatus === "error" ? "Save failed, retry" : saveStatus === "outdated" ? CLIENT_OUTDATED_MESSAGE : "Save to project"}
                 </button>
               )}
               {(situation.trim().length > 0 || Object.keys(results).length > 0) && (

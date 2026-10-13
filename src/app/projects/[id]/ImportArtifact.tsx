@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { extractItemIds } from "@/lib/projects/attention";
+import { mutateArtifact, mutationFailureText } from "@/lib/projects/artifactLifecycle";
 
 interface ExistingArtifact { id: string; type: string; status: string; content: string; reasoning_context?: Record<string, unknown> | null; source_artifact_ids?: string[] | null; }
 
@@ -55,21 +56,17 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, hea
         ...(isAdd ? { import_mode: "add" } : {}),
       };
 
-      const res = await fetch(`/api/projects/${projectId}/artifacts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: targetType,
-          title: targetLabel,
-          content,
-          reasoning_context,
-          status: asApproved ? "approved" : "draft",
-          source_artifact_ids: [],
-        }),
+      // Imported as Approved: supersede + insert atomically. Imported as Draft:
+      // becomes this Work area's single working Draft, exactly like an autosave.
+      const r = await mutateArtifact<{ artifact: Parameters<Props["onImported"]>[0] }>(projectId, asApproved ? "import_approved" : "autosave", {
+        type: targetType,
+        title: targetLabel,
+        content,
+        reasoning_context,
+        source_artifact_ids: [],
       });
-      const data = await res.json();
-      if (!res.ok) { setError("Could not save. Please try again."); setSaving(false); return; }
-      onImported(data.artifact);
+      if (!r.ok) { setError(mutationFailureText(r, "Could not save. Please try again.")); setSaving(false); return; }
+      onImported(r.data.artifact);
     } catch {
       setError("Could not save. Please try again.");
       setSaving(false);

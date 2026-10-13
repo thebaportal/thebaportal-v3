@@ -13,6 +13,7 @@ import ImportArtifact from "./ImportArtifact";
 import ProjectContextDrawer from "./ProjectContextDrawer";
 import ExportMenu from "@/components/ExportMenu";
 import { copyArtifact, type ExportMeta } from "@/lib/exportDoc";
+import { mutateArtifact, mutationFailureText, type ArtifactIntent, type ArtifactMutationResult } from "@/lib/projects/artifactLifecycle";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Organization { name: string; country?: string; industry?: string; }
@@ -165,9 +166,9 @@ export interface ExportContext { projectName: string; organization?: string | nu
 // Approving goes through the one existing server path (PATCH), which stamps
 // the version as approved and supersedes the previous approved version of
 // that type — that approved version is what downstream work areas use.
-async function setArtifactStatus(projectId: string, artifactId: string, status: string): Promise<boolean> {
-  const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({artifactId,status})});
-  return res.ok;
+const STATUS_INTENT: Record<string, ArtifactIntent> = { approved: "approve", archived: "archive", draft: "back_to_draft" };
+function setArtifactStatus(projectId: string, artifactId: string, status: string): Promise<ArtifactMutationResult<{artifact: Artifact}>> {
+  return mutateArtifact(projectId, STATUS_INTENT[status], { artifact_id: artifactId });
 }
 // Revise never edits the approved row and never overwrites an existing Draft.
 // The server (one atomic, lineage-locked step) either creates the next Draft
@@ -175,10 +176,8 @@ async function setArtifactStatus(projectId: string, artifactId: string, status: 
 // returns that Draft untouched ("existing_draft"), or — if this version is no
 // longer the current Approved one — returns the current one ("not_latest").
 type ReviseOutcome = { outcome: "created" | "existing_draft" | "not_latest"; artifact: Artifact | null };
-async function reviseArtifact(projectId: string, artifact: Artifact): Promise<ReviseOutcome | null> {
-  const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({intent:"revise", source_id:artifact.id})});
-  if (!res.ok) return null;
-  return await res.json() as ReviseOutcome;
+function reviseArtifact(projectId: string, artifact: Artifact): Promise<ArtifactMutationResult<ReviseOutcome>> {
+  return mutateArtifact(projectId, "revise", { source_id: artifact.id });
 }
 
 function artifactExportMeta(a: Artifact, ctx: ExportContext): ExportMeta {
@@ -353,7 +352,9 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
   useEffect(()=>{ setDraftText(artifact.content); setNotice(null); setSaveError(""); }, [artifact.id, artifact.content]);
 
   async function changeStatus(s:string) {
-    if (await setArtifactStatus(projectId, artifact.id, s)) onStatusChange(artifact.id,s);
+    setSaveError("");
+    const r = await setArtifactStatus(projectId, artifact.id, s);
+    if (r.ok) onStatusChange(artifact.id,s); else setSaveError(mutationFailureText(r, ""));
   }
 
   // Editing a Draft updates exactly this row (by id) — never "whichever draft
@@ -362,11 +363,9 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
   async function saveDraftEdit() {
     setSavingEdit(true); setSaveError("");
     try {
-      const res = await fetch(`/api/projects/${projectId}/artifacts`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        artifact_id:artifact.id, content:draftText,
-      })});
-      if (res.ok) { const {artifact:a} = await res.json(); onRevised(a); }
-      else setSaveError("This version can no longer be edited.");
+      const r = await mutateArtifact<{artifact: Artifact}>(projectId, "save_draft", { artifact_id:artifact.id, content:draftText });
+      if (r.ok) onRevised(r.data.artifact);
+      else setSaveError(mutationFailureText(r, "This version can no longer be edited."));
     } finally { setSavingEdit(false); }
   }
 
@@ -376,9 +375,11 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
   // editing. The approved row underneath is untouched — still current, still
   // authoritative, until the new draft is itself approved.
   async function revise() {
-    setRevising(true); setNotice(null);
+    setRevising(true); setNotice(null); setSaveError("");
     try {
-      const r = await reviseArtifact(projectId, artifact);
+      const res = await reviseArtifact(projectId, artifact);
+      if (!res.ok) { setSaveError(mutationFailureText(res, "")); return; }
+      const r = res.data;
       if (!r?.artifact) return;
       if (r.outcome === "created") onRevised(r.artifact);
       else if (r.outcome === "existing_draft") setNotice({text:`A newer draft already exists · Open Draft v${r.artifact.version}`, open:r.artifact});
@@ -858,17 +859,14 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     const findingIds = ctxOverride?.findingIds ?? contextFindingIds;
     const sessionIds = ctxOverride?.sessionIds ?? contextSessionIds;
     try {
-      const res = await fetch(`/api/projects/${project.id}/artifacts`,{
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({type:ws.artifactType,title:ARTIFACT_TYPE_LABEL[ws.artifactType]??ws.label,content:finalContent,reasoning_context:{tool:ws.id,methodology:project.methodology,saved_at:new Date().toISOString(),...(findingIds.length>0?{context_finding_ids:findingIds,context_session_ids:sessionIds}:{}),...(scopeIds.length>0?{scope_ids:scopeIds}:{})},status:"draft",source_artifact_ids:sourceIds}),
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const r = await mutateArtifact<{artifact: Artifact}>(project.id, "autosave", {type:ws.artifactType,title:ARTIFACT_TYPE_LABEL[ws.artifactType]??ws.label,content:finalContent,reasoning_context:{tool:ws.id,methodology:project.methodology,saved_at:new Date().toISOString(),...(findingIds.length>0?{context_finding_ids:findingIds,context_session_ids:sessionIds}:{}),...(scopeIds.length>0?{scope_ids:scopeIds}:{})},source_artifact_ids:sourceIds});
+      if (r.ok) {
         setSaveStatus("saved");
-        onArtifactSaved(data.artifact);
-        return data.artifact.id as string;
+        onArtifactSaved(r.data.artifact);
+        return r.data.artifact.id as string;
       } else {
         setSaveStatus("error");
+        if (r.outdated) setLifecycleError(mutationFailureText(r, ""));
         return undefined;
       }
     } catch {
@@ -1007,8 +1005,9 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     if (!savedCurrent || lifecycleBusy) return;
     setLifecycleBusy("approve"); setLifecycleError("");
     try {
-      if (await setArtifactStatus(project.id, savedCurrent.id, "approved")) onStatusChange(savedCurrent.id, "approved");
-      else setLifecycleError("Couldn't approve — please try again.");
+      const r = await setArtifactStatus(project.id, savedCurrent.id, "approved");
+      if (r.ok) onStatusChange(savedCurrent.id, "approved");
+      else setLifecycleError(mutationFailureText(r, "Couldn't approve — please try again."));
     } catch { setLifecycleError("Couldn't approve — please try again."); }
     finally { setLifecycleBusy(null); }
   }
@@ -1017,7 +1016,8 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     setLifecycleBusy("revise"); setLifecycleError("");
     try {
       const r = await reviseArtifact(project.id, savedCurrent);
-      if (r?.artifact) onArtifactSaved(r.artifact); else setLifecycleError("Couldn't start a new version — please try again.");
+      if (r.ok && r.data?.artifact) onArtifactSaved(r.data.artifact);
+      else setLifecycleError(r.ok ? "Couldn't start a new version — please try again." : mutationFailureText(r, "Couldn't start a new version — please try again."));
     } catch { setLifecycleError("Couldn't start a new version — please try again."); }
     finally { setLifecycleBusy(null); }
   }
