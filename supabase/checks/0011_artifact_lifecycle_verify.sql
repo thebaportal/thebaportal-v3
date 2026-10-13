@@ -4,6 +4,7 @@ with fns(sig) as (values
   ('public.artifact_save_working_draft(uuid,uuid,text,text,text,jsonb,uuid[])'),
   ('public.artifact_create_decision(uuid,uuid,text,text,jsonb,uuid[])'),
   ('public.artifact_insert_approved(uuid,uuid,text,text,text,jsonb,uuid[])'),
+  ('public.artifact_import_draft(uuid,uuid,text,text,text,jsonb,uuid[])'),
   ('public.artifact_lineage_lock(uuid,uuid,text,uuid)'))
 select 'lineage_id column exists' as check_name,
        exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'artifacts' and column_name = 'lineage_id') as ok
@@ -25,7 +26,7 @@ select 'insert + update guard triggers attached',
          and tgname in ('artifacts_insert_guard', 'artifacts_update_guard')) = 2
 union all
 select 'lifecycle functions exist with pinned search_path',
-       (select count(*) from fns f join pg_proc p on p.oid = to_regprocedure(f.sig) where p.proconfig @> array['search_path=""']) = 6
+       (select count(*) from fns f join pg_proc p on p.oid = to_regprocedure(f.sig) where p.proconfig @> array['search_path=""']) = 7
 union all
 select 'lifecycle functions: no EXECUTE for PUBLIC/anon/authenticated',
        not exists (select 1 from fns f, lateral (select to_regprocedure(f.sig) as o) x

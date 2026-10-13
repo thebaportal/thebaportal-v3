@@ -145,11 +145,11 @@ export default function ProjectHome({
 
   const recentEvents = [
     ...active
-      .filter(a => a.status === "approved" || a.status === "in_review" || a.status === "superseded")
+      .filter(a => a.status === "approved" || a.status === "superseded")
       .map(a => ({
         id: `art-${a.id}`,
         date: a.updated_at ?? a.created_at,
-        text: `${ARTIFACT_TYPE_LABEL[a.type] ?? a.type} → ${a.status === "in_review" ? "In Review" : a.status === "approved" ? "Approved" : "Superseded"}`,
+        text: `${ARTIFACT_TYPE_LABEL[a.type] ?? a.type} → ${a.status === "approved" ? "Approved" : "Superseded"}`,
         sub: `v${a.version}`,
       })),
     ...decisions.map(d => ({

@@ -21,7 +21,7 @@
 --      approval/import functions; Approved cannot be archived or reverted.
 --   4. Atomic lifecycle functions (one transaction each, serialised per lineage):
 --      artifact_approve, artifact_revise, artifact_save_working_draft,
---      artifact_create_decision, artifact_insert_approved.
+--      artifact_create_decision, artifact_insert_approved, artifact_import_draft.
 --      EXECUTE: service_role only (the server API derives the acting user from
 --      the authenticated session and passes it in; browsers cannot call these).
 --
@@ -272,6 +272,30 @@ begin
   return n;
 end $$;
 
+-- Import external work as a Draft (normal artifacts only). Creates the lineage's
+-- working Draft only when none exists. An existing working Draft is never
+-- modified, replaced or merged: it is returned untouched as "existing_draft".
+create or replace function public.artifact_import_draft(p_project_id uuid, p_user_id uuid, p_type text, p_title text,
+  p_content text, p_reasoning_context jsonb, p_source_artifact_ids uuid[])
+returns jsonb language plpgsql set search_path to '' as $$
+declare d public.artifacts; v int;
+begin
+  if p_type = 'decision_lab_output' then
+    raise exception 'artifact_wrong_lineage: Decision Lab outputs are created as a new decision' using errcode = 'P0001';
+  end if;
+  perform public.artifact_lineage_lock(p_project_id, p_user_id, p_type, null);
+  select * into d from public.artifacts
+   where project_id = p_project_id and user_id = p_user_id and type = p_type and lineage_id is null
+     and status in ('draft', 'in_review');
+  if found then return pg_catalog.jsonb_build_object('outcome', 'existing_draft', 'artifact', pg_catalog.to_jsonb(d)); end if;
+  select coalesce(max(version), 0) + 1 into v from public.artifacts
+   where project_id = p_project_id and user_id = p_user_id and type = p_type and lineage_id is null;
+  insert into public.artifacts (project_id, user_id, type, title, content, reasoning_context, status, version, source_artifact_ids)
+  values (p_project_id, p_user_id, p_type, p_title, p_content, coalesce(p_reasoning_context, '{}'::jsonb), 'draft', v, coalesce(p_source_artifact_ids, '{}'))
+  returning * into d;
+  return pg_catalog.jsonb_build_object('outcome', 'created', 'artifact', pg_catalog.to_jsonb(d));
+end $$;
+
 -- ── 5. EXECUTE: trusted server (service_role) only ───────────────────────────
 do $$
 declare f text;
@@ -283,6 +307,7 @@ begin
     'public.artifact_save_working_draft(uuid, uuid, text, text, text, jsonb, uuid[])',
     'public.artifact_create_decision(uuid, uuid, text, text, jsonb, uuid[])',
     'public.artifact_insert_approved(uuid, uuid, text, text, text, jsonb, uuid[])',
+    'public.artifact_import_draft(uuid, uuid, text, text, text, jsonb, uuid[])',
     'public.artifacts_insert_guard()', 'public.artifacts_update_guard()'] loop
     execute format('revoke all on function %s from public, anon, authenticated', f);
   end loop;
@@ -292,7 +317,8 @@ begin
     'public.artifact_revise(uuid, uuid, uuid)',
     'public.artifact_save_working_draft(uuid, uuid, text, text, text, jsonb, uuid[])',
     'public.artifact_create_decision(uuid, uuid, text, text, jsonb, uuid[])',
-    'public.artifact_insert_approved(uuid, uuid, text, text, text, jsonb, uuid[])'] loop
+    'public.artifact_insert_approved(uuid, uuid, text, text, text, jsonb, uuid[])',
+    'public.artifact_import_draft(uuid, uuid, text, text, text, jsonb, uuid[])'] loop
     execute format('grant execute on function %s to service_role', f);
   end loop;
 end $$;

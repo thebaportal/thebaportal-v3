@@ -92,6 +92,7 @@ function invalidInput(b: Body): string | null {
   switch (b.intent) {
     case "autosave":           // the Work area's single working Draft of a Work-area type
     case "import_approved":
+    case "import_draft":
       if (!WORK_ARTIFACT_TYPES.includes(b.type as string)) return "type must be a Work-area artifact type";
       if (b.artifact_id !== undefined || b.source_id !== undefined) return `${b.intent} does not target an existing row`;
       return isText(b.content) ? null : "content required";
@@ -104,7 +105,7 @@ function invalidInput(b: Body): string | null {
       return isText(b.content) ? null : "content required";
     case "revise":             // the Approved version being revised
       return isId(b.source_id) ? null : "source_id required";
-    case "approve": case "archive": case "back_to_draft":
+    case "approve": case "archive":
       return isId(b.artifact_id) ? null : "artifact_id required";
   }
   return "unknown intent";
@@ -116,6 +117,8 @@ function invalidInput(b: Body): string | null {
 //   revise           → start the next Draft from the current Approved (source_id).
 //                      Never touches an existing Draft: returns it instead.
 //   import_approved  → supersede + insert, atomically.
+//   import_draft     → create the working Draft only if none exists; an existing
+//                      working Draft is never touched (409 existing_draft + that Draft).
 //   create_decision  → a new Decision Lab decision (new lineage, Draft v1).
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const body = await readContract(req, ARTIFACT_POST_INTENTS);
@@ -143,7 +146,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (title !== undefined) patch.title = title;
     const { data, error } = await db.from("artifacts").update(patch)
       .eq("id", artifact_id!).eq("project_id", params.id).eq("user_id", user.id)
-      .in("status", ["draft", "in_review"])
+      .eq("status", "draft")
       .select().maybeSingle();
     if (error) return dbError(error);
     if (data) return NextResponse.json({ artifact: data });
@@ -157,6 +160,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     p_project_id: params.id, p_user_id: user.id, p_title: title ?? type.replace(/_/g, " "), p_content: content,
     p_reasoning_context: reasoning_context ?? {}, p_source_artifact_ids: source_artifact_ids ?? [],
   };
+  if (intent === "import_draft") {
+    const { data, error } = await db.rpc("artifact_import_draft", { ...args, p_type: type });
+    if (error) return dbError(error);
+    if (data.outcome === "existing_draft") return NextResponse.json({
+      error: "existing_draft", message: `A working Draft v${data.artifact.version} already exists`, artifact: data.artifact,
+    }, { status: 409 });
+    return NextResponse.json({ artifact: data.artifact });
+  }
   const { data, error } =
     intent === "import_approved" ? await db.rpc("artifact_insert_approved", { ...args, p_type: type })
     : intent === "create_decision" ? await db.rpc("artifact_create_decision", args)
@@ -167,7 +178,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 // PATCH intents (artifact_id):
 //   approve        → atomic approval (supersedes only this lineage's previous Approved)
 //   archive        → discard a working Draft (Approved and history cannot be archived)
-//   back_to_draft  → legacy "In Review" rows only
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const body = await readContract(req, ARTIFACT_PATCH_INTENTS);
   if (!body) return clientOutdated();
@@ -183,10 +193,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const { data, error } = await db.rpc("artifact_approve", { p_project_id: params.id, p_user_id: user.id, p_artifact_id: artifactId });
     return error ? dbError(error) : NextResponse.json({ artifact: data });
   }
-  const [status, from] = body.intent === "archive" ? ["archived", ["draft", "in_review"]] : ["draft", ["in_review"]];
+  const status = "archived";
   const { data, error } = await db.from("artifacts")
     .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", artifactId).eq("project_id", params.id).eq("user_id", user.id).in("status", from)
+    .eq("id", artifactId).eq("project_id", params.id).eq("user_id", user.id).eq("status", "draft")
     .select().maybeSingle();
   if (error) return dbError(error);
   if (data) return NextResponse.json({ artifact: data });

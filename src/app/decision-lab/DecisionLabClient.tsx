@@ -81,7 +81,7 @@ const MODES: { id: Mode; label: string; shortLabel: string; description: string;
 
 const STORAGE_KEY = "decision_lab_sessions_v1";
 
-// "in_review" → "In review"
+// "superseded" → "Superseded"
 function statusLabel(s: string): string {
   const t = s.replace(/_/g, " ");
   return t.charAt(0).toUpperCase() + t.slice(1);

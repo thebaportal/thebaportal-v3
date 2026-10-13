@@ -14,6 +14,7 @@ interface Props {
   existingArtifacts: ExistingArtifact[];
   onClose: () => void;
   onImported: (artifact: ExistingArtifact & { title?: string; version: number; created_at: string }) => void;
+  onOpenExisting: (artifact: ExistingArtifact & { title?: string; version: number; created_at: string }) => void;
 }
 
 // The one and only entry point for importing work produced OUTSIDE TheBAPortal.
@@ -21,7 +22,7 @@ interface Props {
 // POST to the existing artifacts route with origin/import_mode noted in
 // reasoning_context is the entire backend footprint; everything below is
 // just deciding what content and provenance to send.
-export default function ImportArtifact({ projectId, targetType, targetLabel, heading, existingArtifacts, onClose, onImported }: Props) {
+export default function ImportArtifact({ projectId, targetType, targetLabel, heading, existingArtifacts, onClose, onImported, onOpenExisting }: Props) {
   const currentApproved = existingArtifacts.find(a => a.type === targetType && a.status === "approved");
 
   const [text, setText] = useState("");
@@ -30,6 +31,9 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, hea
   const [mode, setMode] = useState<"replace" | "add">(currentApproved ? "add" : "replace");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Importing as Draft never touches an existing working Draft: the server
+  // returns that Draft instead, and the user can open it.
+  const [existingDraft, setExistingDraft] = useState<Parameters<Props["onImported"]>[0] | null>(null);
 
   const conflictIds = useMemo(() => {
     if (mode !== "add" || !currentApproved || !text.trim()) return [];
@@ -42,7 +46,7 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, hea
   async function submit() {
     if (!canSubmit) return;
     setSaving(true);
-    setError("");
+    setError(""); setExistingDraft(null);
     try {
       const isAdd = mode === "add" && currentApproved;
       const content = isAdd
@@ -57,14 +61,17 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, hea
       };
 
       // Imported as Approved: supersede + insert atomically. Imported as Draft:
-      // becomes this Work area's single working Draft, exactly like an autosave.
-      const r = await mutateArtifact<{ artifact: Parameters<Props["onImported"]>[0] }>(projectId, asApproved ? "import_approved" : "autosave", {
+      // becomes the working Draft only when none exists — never replaces one.
+      const r = await mutateArtifact<{ artifact: Parameters<Props["onImported"]>[0] }>(projectId, asApproved ? "import_approved" : "import_draft", {
         type: targetType,
         title: targetLabel,
         content,
         reasoning_context,
         source_artifact_ids: [],
       });
+      if (!r.ok && r.error === "existing_draft" && r.data?.artifact) {
+        setExistingDraft(r.data.artifact as Parameters<Props["onImported"]>[0]); setSaving(false); return;
+      }
       if (!r.ok) { setError(mutationFailureText(r, "Could not save. Please try again.")); setSaving(false); return; }
       onImported(r.data.artifact);
     } catch {
@@ -122,6 +129,11 @@ export default function ImportArtifact({ projectId, targetType, targetLabel, hea
           </div>
         )}
         {error && <div style={{ fontSize: 12.5, color: "var(--lc-red)", marginBottom: 12 }}>{error}</div>}
+        {existingDraft && (
+          <button onClick={() => onOpenExisting(existingDraft)} style={{ display: "block", background: "none", border: "none", padding: 0, marginBottom: 12, cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--teal)", fontFamily: "inherit", textAlign: "left" }}>
+            A working Draft v{existingDraft.version} already exists · Open Draft v{existingDraft.version} →
+          </button>
+        )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--lc-border)", background: "none", color: "var(--lc-text-3)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Cancel</button>

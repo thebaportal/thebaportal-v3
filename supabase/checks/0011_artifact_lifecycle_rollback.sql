@@ -21,6 +21,7 @@ begin
     'public.artifact_save_working_draft(uuid, uuid, text, text, text, jsonb, uuid[])',
     'public.artifact_create_decision(uuid, uuid, text, text, jsonb, uuid[])',
     'public.artifact_insert_approved(uuid, uuid, text, text, text, jsonb, uuid[])',
+    'public.artifact_import_draft(uuid, uuid, text, text, text, jsonb, uuid[])',
     'public.artifact_lineage_lock(uuid, uuid, text, uuid)'] loop
     execute format('drop function if exists %s', f);
   end loop;

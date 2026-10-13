@@ -132,13 +132,12 @@ const ARTIFACT_TYPE_LABEL: Record<string, string> = {
 // now indigo). Never reuse var(--teal) for a status; each gets its own token.
 const STATUS_COLOR: Record<string, { bg:string; text:string; border:string }> = {
   draft:     { bg:"rgba(181,116,31,.09)", text:"#b5741f", border:"rgba(181,116,31,.22)" },
-  in_review: { bg:"rgba(59,114,172,.09)", text:"#3b72ac", border:"rgba(59,114,172,.22)" },
   approved:  { bg:"rgba(46,122,78,.09)",  text:"#2e7a4e", border:"rgba(46,122,78,.22)" },
   superseded:{ bg:"rgba(122,115,96,.08)", text:"#7a7360", border:"rgba(122,115,96,.15)" },
   archived:  { bg:"rgba(156,148,128,.07)",text:"#9c9480", border:"rgba(156,148,128,.12)" },
 };
-const WS_STATUS_LABEL: Record<WsStatus, string> = { available:"Not started", draft:"Draft", in_review:"In Review", approved:"Approved" };
-const WS_STATUS_COLOR: Record<WsStatus, string> = { available:"var(--lc-text-4)", draft:"#b5741f", in_review:"#3b72ac", approved:"#2e7a4e" };
+const WS_STATUS_LABEL: Record<WsStatus, string> = { available:"Not started", draft:"Draft", approved:"Approved" };
+const WS_STATUS_COLOR: Record<WsStatus, string> = { available:"var(--lc-text-4)", draft:"#b5741f", approved:"#2e7a4e" };
 function wsStatusInfo(artifactType: string, artifacts: { type: string; status: string }[]): { label: string; color: string } {
   const status = getWsStatus(artifactType, artifacts);
   return { label: WS_STATUS_LABEL[status], color: WS_STATUS_COLOR[status] };
@@ -166,7 +165,7 @@ export interface ExportContext { projectName: string; organization?: string | nu
 // Approving goes through the one existing server path (PATCH), which stamps
 // the version as approved and supersedes the previous approved version of
 // that type — that approved version is what downstream work areas use.
-const STATUS_INTENT: Record<string, ArtifactIntent> = { approved: "approve", archived: "archive", draft: "back_to_draft" };
+const STATUS_INTENT: Record<string, ArtifactIntent> = { approved: "approve", archived: "archive" };
 function setArtifactStatus(projectId: string, artifactId: string, status: string): Promise<ArtifactMutationResult<{artifact: Artifact}>> {
   return mutateArtifact(projectId, STATUS_INTENT[status], { artifact_id: artifactId });
 }
@@ -204,13 +203,12 @@ const XLSX_TYPES = new Set(["requirements", "user_stories", "test_case"]);
 
 
 // ── Workstream status logic ────────────────────────────────────────────────────
-type WsStatus = "available" | "draft" | "in_review" | "approved";
+type WsStatus = "available" | "draft" | "approved";
 
 function getWsStatus(artifactType: string, artifacts: { type: string; status: string }[]): WsStatus {
   const active = artifacts.filter(a => a.type === artifactType && a.status !== "superseded" && a.status !== "archived");
   if (!active.length) return "available";
   if (active.some(a => a.status === "approved"))  return "approved";
-  if (active.some(a => a.status === "in_review")) return "in_review";
   return "draft";
 }
 
@@ -427,7 +425,7 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
             {savingEdit?"Saving…":"Save changes"}
           </button>
         )}
-        {(artifact.status==="draft"||artifact.status==="in_review") && (
+        {artifact.status==="draft" && (
           <button onClick={()=>changeStatus("approved")} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:"none",background:"var(--lc-green)",color:"#f5f1e7",fontSize:12.5,fontWeight:700,cursor:"pointer"}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             Approve
@@ -450,16 +448,10 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
           </>
         )}
         <div style={{display:"flex",alignItems:"center",gap:4}}>
-          {/* Normal lifecycle is Draft → Approved; "In review" is no longer
-              offered. Older rows already in review can still go back to Draft
-              (or be approved above). Archive stays as a quiet history action. */}
-          {artifact.status==="in_review" && (
-            <button onClick={()=>changeStatus("draft")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Back to draft</button>
-          )}
           {/* Archive discards a working Draft only. The current Approved version
               stays authoritative until a newer version is approved; superseded
               history is read-only. */}
-          {(artifact.status==="draft"||artifact.status==="in_review") && (
+          {artifact.status==="draft" && (
             <button onClick={()=>changeStatus("archived")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:"none",color:"var(--lc-text-3)",fontSize:11.5,fontWeight:600,cursor:"pointer"}}>Archive</button>
           )}
         </div>
@@ -1335,6 +1327,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
           existingArtifacts={artifacts}
           onClose={()=>setImportTarget(null)}
           onImported={(a)=>{onArtifactSaved(a as Artifact);setImportTarget(null);}}
+          onOpenExisting={(a)=>{setImportTarget(null);onOpenArtifact(a as Artifact);}}
         />
       )}
     </div>
