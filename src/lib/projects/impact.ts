@@ -57,7 +57,7 @@ const WORKING = ["draft", "in_review"];
 export const lineageKey = (a: Pick<ImpactArtifact, "type" | "lineage_id">) => `${a.type}:${a.lineage_id ?? ""}`;
 const ref = (a: ImpactArtifact): VersionRef => ({ id: a.id, version: a.version });
 const labelOf = (a: ImpactArtifact) => {
-  const base = CONTEXT_TYPE_LABEL[a.type] ?? a.type;
+  const base = a.type === "test_case" ? "Testing" : CONTEXT_TYPE_LABEL[a.type] ?? a.type;   // work-area name, as on Project Home
   return a.lineage_id && a.title && a.title !== base ? `${base} — ${a.title}` : base;
 };
 const squash = (s: string) => s.replace(/\s+/g, " ").trim();

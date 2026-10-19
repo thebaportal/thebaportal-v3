@@ -153,6 +153,7 @@ test("requirement comparison is unavailable (null) when neither version has stab
 
 test("Requirements changes carry item ids and which changed ids this work references", () => {
   const r = computeImpacts([...base(), a("tc1", "test_case", "approved", 1, "**TC-001** Covers: FR-003, FR-001", { source_artifact_ids: ["req2"] })]);
+  assert.equal(r.items[0].label, "Testing");                       // work-area name, matching Project Home
   const c = r.items[0].changes[0];
   assert.deepEqual(c.requirementItems, { added: ["FR-004"], removed: ["FR-002"], changed: ["FR-003"] });
   assert.deepEqual(c.referencedChanged, ["FR-003"]);
