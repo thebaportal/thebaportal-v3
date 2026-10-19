@@ -15,7 +15,7 @@ An ordered, reproducible definition of TheBAPortal's app schema, in two parts.
 | `0009_activate_pro_subscription.sql` | Baseline (**known-insecure as written**) | Already represented |
 | `0010_security_hardening.sql` | Security fix | **Applied 2026-10-06** |
 | `0011_artifact_lifecycle_integrity.sql` | Lifecycle integrity | **Applied 2026-10-19** |
-| `0012_impact_reviews.sql` | Impact review acknowledgements | **PENDING REVIEW — validated on the test project, not applied to production** |
+| `0012_impact_reviews.sql` | Impact review acknowledgements | **Applied 2026-10-19** |
 
 `0011` enforces the artifact lifecycle in the database: one Approved version
 plus at most one working Draft per lineage, unique versions, read-only history,
@@ -52,6 +52,12 @@ rollback `checks/0012_impact_reviews_rollback.sql` drops only that table.
   in a single transaction, about 15 seconds after the `a2ebce9` code went live.
   `checks/0011_artifact_lifecycle_verify.sql` returned 12/12 `ok`; read-only
   production smoke passed; application data unchanged.
+- **0012 applied 2026-10-19 at 20:27 UTC**, exactly as committed in `3b9cb7f`,
+  in a single transaction, before the `3b9cb7f` code was deployed (the code
+  before it never touches the new table). `checks/0012_impact_reviews_verify.sql`
+  returned 10/10 `ok`; `impact_reviews` was empty; the anon key was refused
+  (401); 0011 still verified 12/12; read-only production smoke passed;
+  application data unchanged.
 - **Bookkeeping:** there is no Supabase CLI migration-history table in
   production. Applied migrations are recorded here only. If the CLI is
   adopted later, bootstrap or repair its history deliberately at that time.
