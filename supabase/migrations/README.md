@@ -14,7 +14,8 @@ An ordered, reproducible definition of TheBAPortal's app schema, in two parts.
 | `0008_handle_new_user.sql` | Baseline | Already represented |
 | `0009_activate_pro_subscription.sql` | Baseline (**known-insecure as written**) | Already represented |
 | `0010_security_hardening.sql` | Security fix | **Applied 2026-10-06** |
-| `0011_artifact_lifecycle_integrity.sql` | Lifecycle integrity | **PENDING REVIEW — validated on the test project, not applied to production** |
+| `0011_artifact_lifecycle_integrity.sql` | Lifecycle integrity | **Applied 2026-10-19** |
+| `0012_impact_reviews.sql` | Impact review acknowledgements | **PENDING REVIEW — validated on the test project, not applied to production** |
 
 `0011` enforces the artifact lifecycle in the database: one Approved version
 plus at most one working Draft per lineage, unique versions, read-only history,
@@ -23,6 +24,13 @@ Decision Lab outputs get a per-decision `lineage_id`. Checks:
 `checks/0011_artifact_lifecycle_verify.sql`; rollback
 `checks/0011_artifact_lifecycle_rollback.sql` removes the enforcement but
 deliberately keeps `lineage_id` and its data.
+
+`0012` adds `impact_reviews`, an append-only record of "Mark reviewed — no
+change needed" for one exact possible impact (affected version, superseded
+source, current source). Impacts themselves are computed by the app and never
+stored. An insert guard re-checks ownership and that the change is current;
+clients have no access (server only). Checks: `checks/0012_impact_reviews_verify.sql`;
+rollback `checks/0012_impact_reviews_rollback.sql` drops only that table.
 
 ## Production history
 
@@ -40,6 +48,10 @@ deliberately keeps `lineage_id` and its data.
   - production's schema matches the hardened state validated on the test
     project, with 0 differences;
   - live smoke checks passed.
+- **0011 applied 2026-10-19 at 15:53 UTC**, exactly as committed in `a2ebce9`,
+  in a single transaction, about 15 seconds after the `a2ebce9` code went live.
+  `checks/0011_artifact_lifecycle_verify.sql` returned 12/12 `ok`; read-only
+  production smoke passed; application data unchanged.
 - **Bookkeeping:** there is no Supabase CLI migration-history table in
   production. Applied migrations are recorded here only. If the CLI is
   adopted later, bootstrap or repair its history deliberately at that time.

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import type { AttentionItem } from "@/lib/projects/attention";
+import type { ImpactReview, ImpactSummary } from "@/lib/projects/impact";
 import { normalizeContextText } from "@/lib/projects/contextText";
 import ProjectContextDrawer from "./ProjectContextDrawer";
+import ImpactPanel from "./ImpactPanel";
 
 // Project Home is for orientation and re-entry: which project, what was I
 // working on, where can I work next. It never recommends a work area or
@@ -31,6 +33,10 @@ interface Props {
   artifacts: Artifact[];
   decisions: Decision[];
   attentionItems: AttentionItem[];
+  impacts: ImpactSummary;
+  onOpenVersion: (artifactId: string) => void;
+  onRevise: (approvedId: string) => Promise<string | null>;
+  onImpactsReviewed: (reviews: ImpactReview[]) => void;
   workstreams: readonly WorkstreamLite[];
   methodologyLabel: Record<string, string>;
   wsStatusLabel: (artifactType: string, artifacts: Artifact[]) => { label: string; color: string };
@@ -126,11 +132,13 @@ function PhStyles() {
 }
 
 export default function ProjectHome({
-  project, artifacts, decisions, attentionItems, workstreams,
+  project, artifacts, decisions, attentionItems, impacts, workstreams,
   methodologyLabel, wsStatusLabel, onSelectWs, onOpenIntelligence, onNoteAdded,
+  onOpenVersion, onRevise, onImpactsReviewed,
 }: Props) {
   const hasAnyWork = artifacts.length > 0;
   const [showDrawer, setShowDrawer] = useState(false);
+  const [showImpacts, setShowImpacts] = useState(false);
 
   const material = attentionItems.filter(a => a.severity === "material");
   const noncritical = attentionItems.filter(a => a.severity === "noncritical");
@@ -181,7 +189,7 @@ export default function ProjectHome({
             {its.map(it => (
               <div key={it.id} style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "4px 14px", padding: "4px 0" }}>
                 <span style={{ fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.55 }}>{it.text}</span>
-                <button onClick={onOpenIntelligence} className="ph-link-btn">{it.actionLabel} →</button>
+                <button onClick={it.category === "possible_impact" ? () => setShowImpacts(true) : onOpenIntelligence} className="ph-link-btn">{it.actionLabel} →</button>
               </div>
             ))}
           </div>
@@ -227,6 +235,13 @@ export default function ProjectHome({
 
         {hasAnyWork && attentionItems.length === 0 && checksRan && (
           <div className="ph-quiet-signal">✓ No current issues detected</div>
+        )}
+        {/* Impact checks only cover work with recorded source connections — say so, never imply "no impact". */}
+        {hasAnyWork && impacts.unavailable.length > 0 && impacts.items.length === 0 && (
+          <div className="ph-quiet-signal" style={{ marginTop: -8 }}>
+            Connection information unavailable for {impacts.unavailable.length} work item{impacts.unavailable.length === 1 ? "" : "s"}, so changes elsewhere can&apos;t be checked for {impacts.unavailable.length === 1 ? "it" : "them"}.{" "}
+            <button onClick={() => setShowImpacts(true)} className="ph-link-btn">Details →</button>
+          </div>
         )}
         {material.length > 0 && <AttentionBlock items={material} prominent />}
 
@@ -286,6 +301,12 @@ export default function ProjectHome({
         )}
       </div>
       <PhStyles />
+      {showImpacts && (
+        <ImpactPanel projectId={project.id} impacts={impacts} onClose={() => setShowImpacts(false)}
+          onOpenVersion={id => { setShowImpacts(false); onOpenVersion(id); }}
+          onRevise={async id => { const err = await onRevise(id); if (!err) setShowImpacts(false); return err; }}
+          onReviewed={onImpactsReviewed} />
+      )}
       {showDrawer && <ProjectContextDrawer projectId={project.id} overview={project.problem_statement} onClose={() => setShowDrawer(false)} onNoteAdded={onNoteAdded} />}
     </div>
   );

@@ -9,16 +9,19 @@
 // treats an empty/unstarted work area as a problem — that is "missing
 // context," handled locally inside the work area, not here.
 //
-// V1 rule set is deliberately narrow, all three fully deterministic from data
-// that exists today. Coverage-gap detection ("this requirement has no test
+// The rule set is deliberately narrow and fully deterministic from data that
+// exists today. Possible impacts come from src/lib/projects/impact.ts (recorded
+// source versions only) and surface here as one item that opens their review.
+// Coverage-gap detection ("this requirement has no test
 // case") only evaluates ids the BA explicitly declared in scope for a given
 // Testing artifact (reasoning_context.scope_ids) — never every approved
 // Requirement that merely exists in the project. That is the scope-aware
 // principle this file exists to enforce, not a placeholder for a future rule.
 
 import { extractItemIds, parseTestCaseCoverage } from "@/lib/rtm";
+import type { ImpactSummary } from "@/lib/projects/impact";
 
-export type AttentionCategory = "coverage_gap" | "stale_work" | "unresolved_issue";
+export type AttentionCategory = "coverage_gap" | "possible_impact" | "unresolved_issue";
 export type AttentionSeverity = "material" | "noncritical";
 
 export interface AttentionItem {
@@ -35,7 +38,6 @@ interface AttentionArtifact {
   type: string;
   status: string;
   content?: string;
-  source_artifact_ids?: string[] | null;
   reasoning_context?: { scope_ids?: string[] } | null;
 }
 
@@ -44,43 +46,26 @@ interface AttentionFinding {
   review_status: string;
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  problem_analysis: "Problem Analysis",
-  stakeholder_analysis: "Stakeholder Analysis",
-  requirements: "Requirements",
-  process_map: "Process Analysis",
-  user_stories: "User Stories",
-  brd: "Business Case",
-  test_case: "Testing",
-};
-
 export function computeAttention(
   artifacts: AttentionArtifact[],
-  findings: AttentionFinding[]
+  findings: AttentionFinding[],
+  impacts?: ImpactSummary
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
-  const byId = new Map(artifacts.map(a => [a.id, a]));
 
-  // Potentially stale work — an active artifact was built from a source that
-  // has since been superseded (a newer version was approved) or archived.
-  // This is a real, deterministic relationship break: the artifacts table
-  // already marks the previous approved version "superseded" the moment a
-  // new one is approved (see the PATCH handler in the artifacts API).
-  for (const a of artifacts) {
-    if (a.status === "superseded" || a.status === "archived") continue;
-    const staleSource = (a.source_artifact_ids ?? [])
-      .map(id => byId.get(id))
-      .find(src => src && (src.status === "superseded" || src.status === "archived"));
-    if (staleSource) {
-      items.push({
-        id: `stale-${a.id}`,
-        category: "stale_work",
-        categoryLabel: "Potentially stale work",
-        text: `${TYPE_LABEL[a.type] ?? a.type} was built on a version of ${TYPE_LABEL[staleSource.type] ?? staleSource.type} that has since changed.`,
-        severity: "material",
-        actionLabel: "Review impact",
-      });
-    }
+  // Possible impacts — current work whose recorded source version has since been
+  // superseded by a newly Approved version. Counted per affected work lineage
+  // (an Approved version and its Draft are one item); reviewed in the impact panel.
+  const affected = impacts?.items.length ?? 0;
+  if (affected > 0) {
+    items.push({
+      id: "possible-impacts",
+      category: "possible_impact",
+      categoryLabel: "Possible impacts",
+      text: `${affected} project item${affected === 1 ? " may be" : "s may be"} affected`,
+      severity: "material",
+      actionLabel: "Review impacts",
+    });
   }
 
   // Unresolved issues — BA Intelligence findings still sitting as "proposed",

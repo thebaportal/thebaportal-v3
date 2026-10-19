@@ -20,7 +20,7 @@ export default async function ProjectPage({ params, searchParams }: { params: { 
   if (!user) redirect("/auth/login");
 
   const db = admin();
-  const [profileRes, projectRes, artifactsRes, decisionsRes, findings, reviewFindingsRes, notesRes] = await Promise.all([
+  const [profileRes, projectRes, artifactsRes, decisionsRes, findings, reviewFindingsRes, notesRes, impactReviewsRes] = await Promise.all([
     db.from("profiles").select("full_name, subscription_tier").eq("id", user.id).single(),
     db.from("projects").select("*, organizations(name, country, industry)").eq("id", params.id).eq("user_id", user.id).single(),
     db.from("artifacts").select("*").eq("project_id", params.id).eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -32,6 +32,8 @@ export default async function ProjectPage({ params, searchParams }: { params: { 
     // Project Context notes (Add context) — BA-supplied source material that
     // every workstream receives automatically, labelled as unvalidated notes.
     db.from("ba_intel_sessions").select("id, source_label, source_text, created_at").eq("project_id", params.id).eq("user_id", user.id).eq("status", "noted").order("created_at", { ascending: true }),
+    // "Mark reviewed — no change needed" acknowledgements for possible impacts (0012).
+    db.from("impact_reviews").select("artifact_id, superseded_source_id, new_source_id").eq("project_id", params.id).eq("user_id", user.id),
   ]);
 
   if (!projectRes.data) notFound();
@@ -46,6 +48,7 @@ export default async function ProjectPage({ params, searchParams }: { params: { 
       initialFindings={findings as Parameters<typeof ProjectWorkspaceClient>[0]["initialFindings"]}
       initialReviewFindings={(reviewFindingsRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialReviewFindings"]}
       initialNotes={(notesRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialNotes"]}
+      initialImpactReviews={(impactReviewsRes.data ?? []) as Parameters<typeof ProjectWorkspaceClient>[0]["initialImpactReviews"]}
       initialTab={searchParams.tab === "work" ? "work" : "home"}
     />
   );

@@ -7,6 +7,7 @@ import ProjectNavBar from "@/components/ProjectNavBar";
 import DocumentViewer from "@/components/DocumentViewer";
 import { buildRTM } from "@/lib/rtm";
 import { computeAttention, extractItemIds, type AttentionItem } from "@/lib/projects/attention";
+import { computeImpacts, type ImpactReview } from "@/lib/projects/impact";
 import { buildWorkContext, testingScopeCandidates, CONTEXT_TYPE_LABEL, FINDING_CATEGORY_META, type WorkAreaId } from "@/lib/projects/workContext";
 import ProjectHome from "./ProjectHome";
 import ImportArtifact from "./ImportArtifact";
@@ -60,6 +61,7 @@ interface Props {
   initialReviewFindings: ReviewFinding[];
   initialTab?: "home"|"work";
   initialNotes?: ProjectNote[];
+  initialImpactReviews?: ImpactReview[];
 }
 
 // ── Workstream definitions ─────────────────────────────────────────────────────
@@ -1392,7 +1394,7 @@ function WorkstreamsHub({project, artifacts, onSelectWs, onOpenContext}: {projec
 }
 
 // ── Main export ────────────────────────────────────────────────────────────────
-export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings,initialReviewFindings,initialTab="home",initialNotes=[]}:Props) {
+export default function ProjectWorkspaceClient({user,profile,project,initialArtifacts,initialDecisions,initialFindings,initialReviewFindings,initialTab="home",initialNotes=[],initialImpactReviews=[]}:Props) {
   const router = useRouter();
   const [activeTab, setActiveTab]           = useState<"home"|"work">(initialTab);
   const [activeWs, setActiveWs]             = useState<Workstream|null>(null);
@@ -1403,7 +1405,10 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
   // Project Context notes — every workstream receives these automatically;
   // a note added in the drawer is available to the next generation at once.
   const [notes, setNotes]                   = useState<ProjectNote[]>(initialNotes);
-  const attentionItems: AttentionItem[]     = computeAttention(artifacts, initialReviewFindings);
+  // Possible impacts: current work whose recorded source version was superseded (impact.ts).
+  const [impactReviews, setImpactReviews] = useState<ImpactReview[]>(initialImpactReviews);
+  const impacts = useMemo(() => computeImpacts(artifacts, impactReviews), [artifacts, impactReviews]);
+  const attentionItems: AttentionItem[]     = computeAttention(artifacts, initialReviewFindings, impacts);
   const [decisionModal, setDecisionModal]   = useState<{open:boolean;prefill?:string}>({open:false});
   const [showRTM, setShowRTM]               = useState(false);
   const [showContext, setShowContext]       = useState(false);
@@ -1427,6 +1432,26 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
   const handleDecisionSaved = useCallback((d:Decision) => {
     setDecisions(prev=>[d,...prev]);
   },[]);
+  // Impact panel actions. Opening a version shows it in the existing viewer (Work tab);
+  // Revise goes through the same atomic revise path as the viewer and never touches
+  // an existing Draft — if one exists, that Draft is opened instead.
+  function openVersion(id:string) {
+    const a = artifacts.find(x=>x.id===id);
+    if (!a) return;
+    setActiveTab("work"); setShowRTM(false); setViewingArtifact(a);
+  }
+  async function reviseFromImpact(approvedId:string): Promise<string|null> {
+    const source = artifacts.find(x=>x.id===approvedId);
+    if (!source) return "This version is no longer available. Reload the page.";
+    const r = await reviseArtifact(project.id, source);
+    if (!r.ok) return mutationFailureText(r, "Couldn’t create a new draft. Please try again.");
+    const next = r.data.artifact;
+    if (!next) return "This version is no longer the current approved one. Reload the page.";
+    handleArtifactSaved(next);
+    setActiveTab("work"); setShowRTM(false); setViewingArtifact(next);
+    return null;
+  }
+
   function handleStatusChange(id:string,status:string) {
     // Mirror the server: approving a version supersedes the previously
     // approved version of the same type (except multi-instance types), so the
@@ -1461,6 +1486,10 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
               artifacts={artifacts}
               decisions={decisions}
               attentionItems={attentionItems}
+              impacts={impacts}
+              onOpenVersion={openVersion}
+              onRevise={reviseFromImpact}
+              onImpactsReviewed={(rs)=>setImpactReviews(prev=>[...prev,...rs])}
               workstreams={WORKSTREAMS}
               methodologyLabel={METHODOLOGY_LABEL}
               wsStatusLabel={wsStatusInfo}
