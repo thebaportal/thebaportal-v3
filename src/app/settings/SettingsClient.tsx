@@ -363,7 +363,7 @@ function BillingPanel({ isPro, subscriptionStatus, periodEnd, hasPortal }: {
         <button onClick={handleUpgrade} disabled={loading} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: "var(--radius-sm)", background: "var(--teal)", color: "#f5f1e7", fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
           {loading ? "Redirecting…" : "Upgrade to Pro"}
         </button>
-        <div style={{ marginTop: 10, fontSize: 12, color: "var(--lc-text-3)" }}>$19/mo billed annually · Cancel anytime</div>
+        <div style={{ marginTop: 10, fontSize: 12, color: "var(--lc-text-3)" }}>CA$19/month or CA$180/year · Cancel anytime</div>
         {error && <div style={{ marginTop: 10, fontSize: 13, color: "var(--lc-red)" }}>{error}</div>}
       </div>
     );

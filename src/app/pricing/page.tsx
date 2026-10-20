@@ -29,8 +29,11 @@ function PricingInner() {
   const searchParams = useSearchParams();
   const returnJob   = searchParams.get("return_job");
 
-  const monthlyPrice = 29;
-  const annualPrice = 19;
+  // Launch pricing (CAD). Stripe price IDs come from the environment; these are display values only.
+  const monthlyPrice = 19;
+  const annualTotal = 180;
+  const annualPrice = annualTotal / 12;   // CA$15/month, billed annually
+  const annualSaving = monthlyPrice * 12 - annualTotal;   // CA$48
   const displayPrice = billing === "monthly" ? monthlyPrice : annualPrice;
 
   async function handleCheckout() {
@@ -145,7 +148,7 @@ function PricingInner() {
                 background: "var(--teal-soft)", color: "var(--teal)",
                 fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
               }}>
-                Save 34%
+                Save {Math.round((annualSaving / (monthlyPrice * 12)) * 100)}%
               </span>
             </button>
           </div>
@@ -175,7 +178,7 @@ function PricingInner() {
             <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>Free</h2>
             <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 20 }}>Perfect for getting started</p>
             <div style={{ marginBottom: 24 }}>
-              <span style={{ fontSize: 40, fontWeight: 800, color: "var(--text-1)" }}>$0</span>
+              <span style={{ fontSize: 40, fontWeight: 800, color: "var(--text-1)" }}>CA$0</span>
               <span style={{ fontSize: 13, color: "var(--text-3)", marginLeft: 6 }}>/ forever</span>
             </div>
 
@@ -245,14 +248,14 @@ function PricingInner() {
               <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 20 }}>For serious BA professionals</p>
 
               <div style={{ marginBottom: 4 }}>
-                <span style={{ fontSize: 40, fontWeight: 800, color: "var(--text-1)" }}>${displayPrice}</span>
+                <span style={{ fontSize: 40, fontWeight: 800, color: "var(--text-1)" }}>CA${displayPrice}</span>
                 <span style={{ fontSize: 13, color: "var(--text-2)", marginLeft: 6 }}>
                   / month{billing === "annual" ? " (billed annually)" : ""}
                 </span>
               </div>
               {billing === "annual" && (
                 <p style={{ fontSize: 12, color: "var(--teal-dim)", marginBottom: 4 }}>
-                  That&apos;s ${annualPrice * 12}/year — you save $120
+                  That&apos;s CA${annualTotal}/year — you save CA${annualSaving}
                 </p>
               )}
 
