@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { EVIDENCE_RULES } from "@/lib/projects/grounding";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   brd: `You are a Senior Business Analyst with 20+ years of experience writing Business Requirements Documents for banking, healthcare, technology, and government sectors. Every BRD you produce is BABOK-aligned, professional, and ready for stakeholder sign-off.
@@ -322,7 +323,7 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
-      system: systemPrompt.replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
+      system: (systemPrompt + EVIDENCE_RULES).replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
       messages: anthropicMessages,
     });
 

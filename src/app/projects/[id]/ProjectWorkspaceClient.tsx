@@ -8,6 +8,7 @@ import DocumentViewer from "@/components/DocumentViewer";
 import { buildRTM } from "@/lib/rtm";
 import { computeAttention, extractItemIds, type AttentionItem } from "@/lib/projects/attention";
 import { computeImpacts, type ImpactReview } from "@/lib/projects/impact";
+import { assessGrounding, evidenceStatement, type Grounding } from "@/lib/projects/grounding";
 import { buildWorkContext, testingScopeCandidates, CONTEXT_TYPE_LABEL, FINDING_CATEGORY_META, type WorkAreaId } from "@/lib/projects/workContext";
 import ProjectHome from "./ProjectHome";
 import ImportArtifact from "./ImportArtifact";
@@ -122,6 +123,23 @@ const START_COPY: Record<WorkstreamId, { placeholder: string; prompts: string[] 
     prompts: ["Create test scenarios from selected requirements", "Draft test cases", "Identify coverage gaps", "Prepare UAT scenarios"],
   },
 };
+// Example prompts are task labels, never project evidence (see lib/projects/grounding.ts).
+const ALL_PROMPTS = Object.values(START_COPY).flatMap(c => c.prompts);
+
+// A Work request either did not reach the model, or the model did not answer.
+// Distinct from "not enough project information", and never saved as a reply.
+function requestFailureText(status: number): string {
+  const tail = " Nothing was saved, and your message is still in the box.";
+  if (status === 401) return "Your session has expired. Sign in again, then retry." + tail;
+  if (status === 429) return "Too many requests in a short time. Wait a moment, then try again." + tail;
+  if (status === 0) return "The request didn't complete — the connection dropped or the analysis took too long to answer." + tail;
+  return `The analysis couldn't be completed (error ${status}).` + tail;
+}
+// The request body for one Work call: the area's resolved context, then a plain
+// statement of what evidence was and was not supplied, then the BA's message.
+function groundedContent(ctxText: string, g: Grounding, message: string): string {
+  return `${ctxText.replace(/\[USER INPUT\]$/, `${evidenceStatement(g)}\n\n[USER INPUT]`)}\n${message}`;
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const METHODOLOGY_LABEL: Record<string, string> = { agile:"Agile", waterfall:"Waterfall", hybrid:"Hybrid", safe:"SAFe", babok:"Structured Analysis" };
@@ -655,6 +673,9 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
   const [contextSessionIds, setContextSessionIds] = useState<string[]>([]);
   const [showFindings, setShowFindings] = useState(false);
   const [importTarget, setImportTarget] = useState<string|null>(null);
+  // Shown under the composer instead of calling the model (no project information
+  // yet) or instead of a reply (the request failed). Never saved to the conversation.
+  const [requestNotice, setRequestNotice] = useState<{kind:"grounding"; task:string} | {kind:"error"; text:string} | null>(null);
   const [scopeIds, setScopeIds]         = useState<string[]>([]);
   const [lifecycleBusy, setLifecycleBusy] = useState<"approve"|"revise"|null>(null);
   const [lifecycleError, setLifecycleError] = useState("");
@@ -674,6 +695,9 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     methodologyLabel: m => METHODOLOGY_LABEL[m] ?? m,
   }), [ws.id, project, notes, artifacts, findings, decisions, scopeIds]);
   const workCtx = useMemo(() => contextFor(messages), [contextFor, messages]);
+  // Is there any project evidence for this request? (project name + a prompt chip is not)
+  const groundingFor = (history: Message[], message: string, ctx: ReturnType<typeof contextFor>) =>
+    assessGrounding({ project, notes, parts: ctx.parts, decisions, conversation: history, message, prompts: ALL_PROMPTS });
   // Accepted findings relevant to this area only (also what the BA Intelligence
   // panel lists) — never the full project findings array.
   const relevantFindings = workCtx.findings;
@@ -746,6 +770,12 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
   async function send() {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
+    // No project evidence at all (e.g. only a project name and a prompt chip):
+    // do not call the model — ask the BA for information instead.
+    const grounding = groundingFor(messages, trimmed, workCtx);
+    if (!grounding.grounded) { setRequestNotice({kind:"grounding", task:trimmed}); return; }
+    setRequestNotice(null);
+    const before = messages;
     const displayMessages: Message[] = [...messages, {role:"user",content:trimmed}];
     setMessages(displayMessages);
     setInput("");
@@ -763,15 +793,18 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     setContextSessionIds(ctx.sessionIds);
     const apiMessages: Message[] = [
       ...displayMessages.slice(0, -1),
-      {role:"user", content:`${ctx.text}\n${trimmed}`},
+      {role:"user", content:groundedContent(ctx.text, grounding, trimmed)},
     ];
+    // A failed request is not a reply: restore the conversation and the message, say what happened, save nothing.
+    const fail = (status: number) => { setMessages(before); setInput(trimmed); setRequestNotice({kind:"error", text:requestFailureText(status)}); };
 
     try {
       const body: Record<string,unknown> = {messages: apiMessages};
       if (ws.id === "business-case") body.docType = "brd";
       const res  = await fetch(ws.endpoint, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      const data = await res.json();
-      const reply = data.response ?? "Something went wrong. Please try again.";
+      const data = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.response !== "string") { fail(res.ok ? 0 : res.status); return; }
+      const reply: string = data.response;
       const isTruncated = !!data.truncated;
       const updated = [...displayMessages, {role:"assistant" as const, content:reply, truncated:isTruncated}];
       setMessages(updated);
@@ -782,7 +815,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
       }
       await persistConversation(updated, savedArtifactId);
     } catch {
-      setMessages(prev=>[...prev,{role:"assistant",content:"Something went wrong. Please try again."}]);
+      fail(0);
     } finally {
       setLoading(false);
     }
@@ -877,6 +910,11 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
   async function submitEdit() {
     if (editingIdx === null || !editText.trim() || loading) return;
     const truncated = messages.slice(0, editingIdx);
+    const ctx = contextFor(truncated);  // same resolver, for the history actually sent
+    const grounding = groundingFor(truncated, editText.trim(), ctx);
+    if (!grounding.grounded) { setRequestNotice({kind:"grounding", task:editText.trim()}); return; }
+    setRequestNotice(null);
+    const before = messages, editIdx = editingIdx;
     const newUser: Message = {role:"user", content:editText.trim()};
     const displayMessages: Message[] = [...truncated, newUser];
     setMessages(displayMessages);
@@ -886,21 +924,23 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
     setHasAnalysis(false);
     setSaveStatus("idle");
 
-    const ctx = contextFor(truncated);  // same resolver, for the history actually sent
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
     const apiMessages: Message[] = [
       ...truncated,
-      {role:"user", content:`${ctx.text}\n${editText.trim()}`},
+      {role:"user", content:groundedContent(ctx.text, grounding, editText.trim())},
     ];
+    // A failed request is not a reply: restore the conversation and reopen the edit, say what happened, save nothing.
+    const fail = (status: number) => { setMessages(before); setEditingIdx(editIdx); setRequestNotice({kind:"error", text:requestFailureText(status)}); };
 
     try {
       const body: Record<string,unknown> = {messages: apiMessages};
       if (ws.id === "business-case") body.docType = "brd";
       const res  = await fetch(ws.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      const data = await res.json();
-      const reply = data.response ?? "Something went wrong.";
+      const data = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.response !== "string") { fail(res.ok ? 0 : res.status); return; }
+      const reply: string = data.response;
       const isTruncated = !!data.truncated;
       const updated = [...displayMessages,{role:"assistant" as const,content:reply,truncated:isTruncated}];
       setMessages(updated);
@@ -908,7 +948,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
       if (!isTruncated && isAnalysisDone(ws.id,reply)) { setHasAnalysis(true); savedArtifactId = await saveArtifact(reply, {sourceIds:ctx.sourceIds, findingIds:ctx.findingIds, sessionIds:ctx.sessionIds}); }
       await persistConversation(updated, savedArtifactId);
     } catch {
-      setMessages(prev=>[...prev,{role:"assistant",content:"Something went wrong. Please try again."}]);
+      fail(0);
     } finally {
       setLoading(false);
     }
@@ -917,26 +957,33 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
   async function rerunFromHere(idx: number) {
     if (loading) return;
     const truncated = messages.slice(0, idx + 1);
+    const ctx = contextFor(truncated.slice(0, idx));  // same resolver, for the history actually sent
+    const grounding = groundingFor(truncated.slice(0, idx), truncated[idx].content, ctx);
+    if (!grounding.grounded) { setRequestNotice({kind:"grounding", task:truncated[idx].content}); return; }
+    setRequestNotice(null);
+    const before = messages, hadAnalysis = hasAnalysis;
     setMessages(truncated);
     setHasAnalysis(false);
     setSaveStatus("idle");
     setLoading(true);
 
-    const ctx = contextFor(truncated.slice(0, idx));  // same resolver, for the history actually sent
     setContextSourceIds(ctx.sourceIds);
     setContextFindingIds(ctx.findingIds);
     setContextSessionIds(ctx.sessionIds);
     const apiMessages: Message[] = [
       ...truncated.slice(0, idx),
-      {role:"user", content:`${ctx.text}\n${truncated[idx].content}`},
+      {role:"user", content:groundedContent(ctx.text, grounding, truncated[idx].content)},
     ];
+    // A failed request is not a reply: restore the conversation, say what happened, save nothing.
+    const fail = (status: number) => { setMessages(before); setHasAnalysis(hadAnalysis); setRequestNotice({kind:"error", text:requestFailureText(status).replace(", and your message is still in the box", "")}); };
 
     try {
       const body: Record<string,unknown> = {messages: apiMessages};
       if (ws.id === "business-case") body.docType = "brd";
       const res  = await fetch(ws.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      const data = await res.json();
-      const reply = data.response ?? "Something went wrong.";
+      const data = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.response !== "string") { fail(res.ok ? 0 : res.status); return; }
+      const reply: string = data.response;
       const isTruncated = !!data.truncated;
       const updated = [...truncated,{role:"assistant" as const,content:reply,truncated:isTruncated}];
       setMessages(updated);
@@ -944,7 +991,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
       if (!isTruncated && isAnalysisDone(ws.id,reply)) { setHasAnalysis(true); savedArtifactId = await saveArtifact(reply, {sourceIds:ctx.sourceIds, findingIds:ctx.findingIds, sessionIds:ctx.sessionIds}); }
       await persistConversation(updated, savedArtifactId);
     } catch {
-      setMessages(prev=>[...prev,{role:"assistant",content:"Something went wrong."}]);
+      fail(0);
     } finally {
       setLoading(false);
     }
@@ -1051,7 +1098,31 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
 
   // The composer — the same send/persist flow wherever it renders. "main" is
   // the blank-start version: the primary element of the page.
+  // What the BA sees instead of a reply: either "I need some information about
+  // this project first" (the model was not called) or why the request failed.
+  const taskPhrase = (task: string) => {
+    const chip = ALL_PROMPTS.find(p => p.toLowerCase() === task.trim().replace(/[.!?]+$/, "").toLowerCase());
+    return chip ? chip.charAt(0).toLowerCase() + chip.slice(1) : `help with ${ws.label}`;
+  };
+  const noticeBtn: React.CSSProperties = {padding:"6px 12px",borderRadius:7,background:"var(--lc-surface)",border:"1px solid var(--lc-border)",fontSize:12.5,fontWeight:600,color:"var(--lc-text-2)",cursor:"pointer",fontFamily:"inherit"};
+  const requestNoticeEl = requestNotice && (requestNotice.kind === "grounding" ? (
+    <div role="status" className="ws-request-notice" style={{marginTop:10,padding:"12px 14px",borderRadius:10,background:"var(--lc-amber-bg)",border:"1px solid rgba(181,116,31,.3)",fontSize:13,color:"var(--lc-text-1)",lineHeight:1.55}}>
+      <div>I need some information about this project before I can {taskPhrase(requestNotice.task)}. Add project context, paste what you know here, or import existing material.</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
+        <button style={noticeBtn} onClick={onOpenContext}>Add project context</button>
+        <button style={noticeBtn} onClick={()=>{ const t = textareaRef.current; if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }}>Type or paste what you know</button>
+        <button style={noticeBtn} onClick={()=>setImportTarget(ws.artifactType)}>Import existing material</button>
+      </div>
+    </div>
+  ) : (
+    <div role="alert" className="ws-request-notice" style={{marginTop:10,padding:"10px 14px",borderRadius:10,background:"var(--lc-red-bg)",border:"1px solid var(--lc-red-border)",fontSize:13,color:"var(--lc-text-1)",lineHeight:1.55,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
+      <span>{requestNotice.text}</span>
+      <button style={noticeBtn} onClick={()=>setRequestNotice(null)}>Dismiss</button>
+    </div>
+  ));
+
   const composerBox = (main: boolean, bare = false) => (
+    <>
     <div style={bare ? {} : {background:main?"var(--lc-surface)":"transparent",border:"1px solid var(--lc-border)",borderRadius:main?14:12,boxShadow:main?"var(--lc-shadow-sm)":"none",overflow:"hidden",transition:"border-color .2s, background .2s"}}
             onFocusCapture={bare ? undefined : e=>{e.currentTarget.style.borderColor=`${ws.color}55`;e.currentTarget.style.background="var(--lc-surface)";}}
             onBlurCapture={bare ? undefined : e=>{e.currentTarget.style.borderColor="var(--lc-border)";if(!main)e.currentTarget.style.background="transparent";}}
@@ -1077,6 +1148,8 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
               </button>
             </div>
           </div>
+    {requestNoticeEl}
+    </>
   );
 
   return (
@@ -1182,16 +1255,18 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
                   <div style={{padding:"11px 14px",background:`${ws.color}14`,border:`1px solid ${ws.color}28`,borderRadius:"14px 14px 3px 14px",fontSize:13.5,color:"var(--lc-text-1)",lineHeight:1.6}}>
                     {msg.content}
                   </div>
-                  <div className="msg-actions" style={{position:"absolute",top:-28,right:0,display:"none",alignItems:"center",gap:4,background:"var(--lc-faint)",border:"1px solid var(--lc-border)",borderRadius:8,padding:"3px 6px"}}>
-                    <button onClick={()=>{navigator.clipboard?.writeText(msg.content);}} title="Copy" style={{background:"none",border:"none",cursor:"pointer",color:"var(--lc-text-3)",padding:"2px 4px",borderRadius:4,fontSize:11}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
+                  <div className="msg-actions" style={{position:"absolute",bottom:"100%",right:0,paddingBottom:4}}>
+                  <div role="toolbar" aria-label="Message actions" style={{display:"flex",alignItems:"center",gap:4,background:"var(--lc-faint)",border:"1px solid var(--lc-border)",borderRadius:8,padding:"3px 6px"}}>
+                    <button onClick={()=>{navigator.clipboard?.writeText(msg.content);}} title="Copy" aria-label="Copy message" style={{background:"none",border:"none",cursor:"pointer",color:"var(--lc-text-3)",padding:"2px 4px",borderRadius:4,fontSize:11}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     </button>
-                    <button onClick={()=>startEdit(i)} title="Edit and re-run" style={{background:"none",border:"none",cursor:"pointer",color:"var(--lc-text-3)",padding:"2px 4px",borderRadius:4,fontSize:11}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
+                    <button onClick={()=>startEdit(i)} title="Edit and re-run" aria-label="Edit and re-run" style={{background:"none",border:"none",cursor:"pointer",color:"var(--lc-text-3)",padding:"2px 4px",borderRadius:4,fontSize:11}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button onClick={()=>rerunFromHere(i)} title="Re-run from here" style={{background:"none",border:"none",cursor:"pointer",color:"var(--lc-text-3)",padding:"2px 4px",borderRadius:4,fontSize:11}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
+                    <button onClick={()=>rerunFromHere(i)} title="Re-run from here" aria-label="Re-run from here" style={{background:"none",border:"none",cursor:"pointer",color:"var(--lc-text-3)",padding:"2px 4px",borderRadius:4,fontSize:11}} onMouseEnter={e=>e.currentTarget.style.color="var(--lc-text-1)"} onMouseLeave={e=>e.currentTarget.style.color="var(--lc-text-3)"}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
                     </button>
+                  </div>
                   </div>
                 </div>
               )}
@@ -1535,7 +1610,9 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
       )}
 
       <style>{`
-        .msg-group:hover .msg-actions { display: flex !important; }
+        .msg-actions { opacity: 0; pointer-events: none; transition: opacity .12s; }
+        .msg-group:hover .msg-actions, .msg-group:focus-within .msg-actions { opacity: 1; pointer-events: auto; }
+        .msg-actions button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
         @keyframes pulse-dot { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,64,125,.22);}50%{opacity:.7;box-shadow:0 0 0 6px transparent;} }
         @keyframes typing-dot { 0%,80%,100%{transform:scale(.6);opacity:.3;}40%{transform:scale(1);opacity:1;} }
       `}</style>

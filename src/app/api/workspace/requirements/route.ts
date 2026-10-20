@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { EVIDENCE_RULES } from "@/lib/projects/grounding";
 
 const SYSTEM_PROMPT = `You are a senior Business Analyst writing structured requirements for a project.
 You produce business capabilities, business requirements, functional requirements, and non functional requirements, each with a stable ID, grounded only in what has been explicitly provided.
@@ -141,7 +142,7 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
-      system: SYSTEM_PROMPT.replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
+      system: (SYSTEM_PROMPT + EVIDENCE_RULES).replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
       messages: anthropicMessages,
     });
 

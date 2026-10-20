@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { EVIDENCE_RULES } from "@/lib/projects/grounding";
 
 const SYSTEM_PROMPT = `You are a Senior Business Analyst and process improvement specialist with 20+ years of experience mapping and redesigning business processes across banking, healthcare, retail, technology, and government. You are trained in Business Process Modelling Notation (BPMN), Lean, and Six Sigma principles.
 
@@ -217,7 +218,7 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
-      system: SYSTEM_PROMPT.replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
+      system: (SYSTEM_PROMPT + EVIDENCE_RULES).replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
       messages: anthropicMessages,
     });
 

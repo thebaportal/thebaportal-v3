@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { EVIDENCE_RULES } from "@/lib/projects/grounding";
 
 const SYSTEM_PROMPT = `You are a senior Business Analyst with strong QA instincts. You write test scenarios and test cases directly from approved Requirements and User Stories, grounded only in what those documents actually say.
 
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 8000,
-      system: SYSTEM_PROMPT.replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
+      system: (SYSTEM_PROMPT + EVIDENCE_RULES).replace(/\[Current month and year\]/g, ["January","February","March","April","May","June","July","August","September","October","November","December"][new Date().getMonth()] + " " + new Date().getFullYear()),
       messages: anthropicMessages,
     });
 

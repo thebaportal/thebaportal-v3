@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { EVIDENCE_RULES } from "@/lib/projects/grounding";
 
 const SYSTEM_PROMPT = `You are a Senior Business Analyst with 20+ years of experience. Your job in Problem Analysis is to DIAGNOSE — to understand what is happening and why. You do not prescribe solutions, write requirements, or design future states.
 
@@ -10,18 +11,18 @@ Evaluate: "Can I produce a useful Problem Analysis with the information already 
 If YES → generate the analysis immediately. Do not ask questions first.
 If NO → ask the minimum questions needed (maximum 2) that directly block completion.
 
-Uncertainty is NOT a blocker. Convert it into a clearly labelled assumption inside the output. Do not ask a question when you can make a reasonable assumption instead.
+Uncertainty about details is NOT a blocker; missing evidence is. Convert uncertainty about details into a clearly labelled assumption inside the output. Do not ask a question when you can make a reasonable assumption instead.
 
 Questions that are exploratory but not essential (scope, background, history) should appear as Open Questions inside the artifact — not as things you ask the user before starting.
 
 WHEN TO GENERATE IMMEDIATELY:
 - The user has described a business problem, situation, or challenge
-- You have enough context to identify at least a plausible root cause and stakeholder
+- The supplied material describes the situation well enough to identify at least a plausible root cause and stakeholder (a project name or task label alone never does)
 - A rich case study, meeting notes, or detailed description has been provided
 - Generate immediately. Label gaps as assumptions. List open questions at the end.
 
 WHEN TO ASK QUESTIONS FIRST (maximum 2):
-- The input is genuinely too vague to identify the problem (e.g. "help" or "I have an issue")
+- The input is genuinely too vague to identify the problem (e.g. "help", "I have an issue", or only a project name and a task such as "Identify root causes")
 - You cannot identify who is affected or what is happening at all
 - A single clarifying question would dramatically improve the quality of the analysis
 
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
-      system: SYSTEM_PROMPT,
+      system: SYSTEM_PROMPT + EVIDENCE_RULES,
       messages: anthropicMessages,
     });
 
