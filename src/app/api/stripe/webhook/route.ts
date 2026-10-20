@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { checkoutSessionOwner, subscriptionProfileUpdate } from "@/lib/stripeSubscription";
 
 export const dynamic = "force-dynamic";
+
+// Every required database write must succeed before the event is acknowledged.
+// A failed write returns 500 so Stripe retries the event; it is never silently
+// acknowledged. Events that carry no user reference are acknowledged and logged
+// (retrying cannot add the missing reference).
+class RetryableError extends Error {}
 
 export async function POST(request: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -16,7 +23,7 @@ export async function POST(request: Request) {
   );
 
   const body = await request.text();
-  const sig = request.headers.get("stripe-signature")!;
+  const sig = request.headers.get("stripe-signature") ?? "";
 
   let event: Stripe.Event;
 
@@ -31,94 +38,69 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const subscription = event.data.object as Stripe.Subscription;
+  const updateProfile = async (userId: string, fields: Record<string, unknown>) => {
+    const { error } = await supabaseAdmin.from("profiles").update(fields).eq("id", userId);
+    if (error) throw new RetryableError(`profiles update failed for ${userId}: ${error.message}`);
+  };
 
-  switch (event.type) {
-    // Fires immediately on payment confirmation — use this to avoid timing race
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.supabase_user_id;
-      console.log("[webhook] checkout.session.completed — userId:", userId, "session status:", session.status);
-      if (userId) {
-        const { error } = await supabaseAdmin.rpc("activate_pro_subscription", { p_user_id: userId });
-        if (error) {
-          console.error("[webhook] activate_pro_subscription failed:", error.message, error.details);
-        } else {
-          console.log("[webhook] subscription_tier set to pro for user:", userId);
-        }
-      } else {
-        console.warn("[webhook] checkout.session.completed — no supabase_user_id in metadata. Session metadata:", session.metadata);
+  try {
+    switch (event.type) {
+      // Fires on payment confirmation — grant access immediately, with the full subscription state.
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = checkoutSessionOwner(session);
+        console.log("[webhook] checkout.session.completed — userId:", userId, "status:", session.status, "payment:", session.payment_status);
+        if (!userId) { console.warn("[webhook] checkout.session.completed — no consistent user reference; metadata:", session.metadata); break; }
+        if (session.mode !== "subscription" || session.payment_status !== "paid" || !session.subscription) break;
+        const subId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+        const sub = await stripe.subscriptions.retrieve(subId);   // a failure throws → 500 → Stripe retries
+        await updateProfile(userId, subscriptionProfileUpdate(sub));
+        console.log("[webhook] pro granted for user:", userId);
+        break;
       }
-      break;
-    }
 
-    case "customer.subscription.created":
-    case "customer.subscription.updated": {
-      const userId = subscription.metadata?.supabase_user_id;
-      if (userId) {
-        const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end === true;
-        // Keep pro access if active OR if the user cancelled but still has paid time remaining
-        const tier = (subscription.status === "active" || cancelAtPeriodEnd) ? "pro" : "free";
-        // Surface "canceled" status in the UI when cancellation is scheduled, even though Stripe still calls it "active"
-        const status = cancelAtPeriodEnd ? "canceled" : subscription.status;
-        await supabaseAdmin
-          .from("profiles")
-          .update({
-            subscription_tier: tier,
-            subscription_status: status,
-            stripe_subscription_id: subscription.id,
-            stripe_customer_id: typeof subscription.customer === "string" ? subscription.customer : null,
-            subscription_current_period_end: (subscription as any).current_period_end
-              ? new Date((subscription as any).current_period_end * 1000).toISOString()
-              : null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", userId);
+      case "customer.subscription.created":
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const userId = subscription.metadata?.supabase_user_id;
+        if (!userId) { console.warn("[webhook]", event.type, "— no supabase_user_id on subscription", subscription.id); break; }
+        await updateProfile(userId, subscriptionProfileUpdate(subscription));
+        break;
       }
-      break;
-    }
 
-    case "customer.subscription.deleted": {
-      // Fires at actual period end — safe to revoke access now
-      const userId = subscription.metadata?.supabase_user_id;
-      if (userId) {
-        await supabaseAdmin
-          .from("profiles")
-          .update({
-            subscription_tier: "free",
-            subscription_status: "canceled",
-            stripe_subscription_id: null,
-            subscription_current_period_end: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", userId);
+      case "customer.subscription.deleted": {
+        // Fires at actual period end — safe to revoke access now
+        const subscription = event.data.object as Stripe.Subscription;
+        const userId = subscription.metadata?.supabase_user_id;
+        if (!userId) { console.warn("[webhook] subscription.deleted — no supabase_user_id on subscription", subscription.id); break; }
+        await updateProfile(userId, {
+          subscription_tier: "free",
+          subscription_status: "canceled",
+          stripe_subscription_id: null,
+          subscription_current_period_end: null,
+          updated_at: new Date().toISOString(),
+        });
+        break;
       }
-      break;
-    }
 
-    case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice;
-      const parent = invoice.parent;
-      const subId =
-        parent && parent.type === "subscription_details"
-          ? parent.subscription_details?.subscription
-          : null;
-
-      if (subId) {
-        const sub = await stripe.subscriptions.retrieve(subId as string);
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const parent = invoice.parent;
+        const subId =
+          parent && parent.type === "subscription_details"
+            ? parent.subscription_details?.subscription
+            : null;
+        if (!subId) break;
+        const sub = await stripe.subscriptions.retrieve(typeof subId === "string" ? subId : subId.id);
         const userId = sub.metadata?.supabase_user_id;
-        if (userId) {
-          await supabaseAdmin
-            .from("profiles")
-            .update({
-              subscription_status: "past_due",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", userId);
-        }
+        if (!userId) { console.warn("[webhook] invoice.payment_failed — no supabase_user_id on subscription", sub.id); break; }
+        await updateProfile(userId, { subscription_status: "past_due", updated_at: new Date().toISOString() });
+        break;
       }
-      break;
     }
+  } catch (err) {
+    console.error("[webhook]", event.type, event.id, "failed — not acknowledged, Stripe will retry:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "processing_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

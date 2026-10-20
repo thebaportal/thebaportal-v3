@@ -53,6 +53,20 @@ export async function POST(request: Request) {
 
     let customerId = profile?.stripe_customer_id;
 
+    // A stored customer may not exist for the active Stripe mode/account (e.g. a test-mode
+    // customer once Production uses live keys) or may have been deleted. Validate it and
+    // create a fresh customer instead of failing checkout with "No such customer".
+    if (customerId) {
+      try {
+        const existing = await stripe.customers.retrieve(customerId);
+        if ((existing as Stripe.DeletedCustomer).deleted) customerId = null;
+      } catch (err) {
+        if ((err as { code?: string }).code !== "resource_missing") throw err;
+        console.warn("Stored Stripe customer not valid for this Stripe account/mode; creating a new one:", customerId);
+        customerId = null;
+      }
+    }
+
     if (!customerId) {
       console.log("Creating new Stripe customer...");
       const customer = await stripe.customers.create({
@@ -90,6 +104,8 @@ export async function POST(request: Request) {
       cancel_url: return_job
         ? `${siteUrl()}/jobs/${return_job}?cancelled=true`
         : `${siteUrl()}/pricing?canceled=true`,
+      // Ownership for reconciliation (verify-session, webhook): Checkout's own fields.
+      client_reference_id: user.id,
       metadata: { supabase_user_id: user.id },
       subscription_data: {
         metadata: { supabase_user_id: user.id },
