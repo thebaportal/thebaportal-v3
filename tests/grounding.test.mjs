@@ -95,6 +95,8 @@ test("the request states exactly what was and was not supplied, and that labels 
 test("system rules: never invent facts from the name, separate facts/assumptions/missing, never claim unsupplied context", () => {
   assert.match(EVIDENCE_RULES, /overrides any instruction above to infer, assume or generate immediately/);
   assert.match(EVIDENCE_RULES, /Do not invent facts because of what the project is called/);
+  assert.match(EVIDENCE_RULES, /Do not infer the project's industry, regulatory regime, product type, systems, stakeholders or policies from generic terms such as account, approval, ID, onboarding, customer or document/);
+  assert.match(EVIDENCE_RULES, /present it only conditionally, as an example .*never as a fact or as assumed project context/);
   assert.match(EVIDENCE_RULES, /facts that were supplied, assumptions you are making, and information that is missing/);
   assert.match(EVIDENCE_RULES, /Never say or imply that you have context, documents, data or information that was not supplied/);
   assert.match(EVIDENCE_RULES, /I don't yet have enough project evidence to determine which ones apply/);
