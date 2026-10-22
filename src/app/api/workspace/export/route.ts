@@ -3,6 +3,8 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { buildRequirementsWorkbook, buildUserStoriesWorkbook, buildTestingWorkbook } from "@/lib/xlsxExport";
+import { getEntitlements } from "@/lib/entitlements";
+import { upgradeRequired } from "@/lib/upgradeRequired";
 
 const XLSX_TYPES = new Set(["requirements", "user_stories", "test_case"]);
 
@@ -114,6 +116,8 @@ export async function POST(request: Request) {
         // exported, to match the in-app RTM panel's own coverage computation.
         if (!projectId) return NextResponse.json({ error: "projectId is required for the Testing workbook" }, { status: 400 });
         const db = admin();
+        // The Testing workbook carries the Traceability Matrix: Pro-only (Word/PDF of Testing stay available).
+        if (!(await getEntitlements(db, user.id)).pro) return upgradeRequired("testing_rtm_export", "The Testing Excel workbook with the Traceability Matrix is a Pro feature.");
         const { data: rtmArtifacts, error } = await db
           .from("artifacts")
           .select("type,status,content")

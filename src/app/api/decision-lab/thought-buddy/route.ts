@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { getEntitlements } from "@/lib/entitlements";
+import { upgradeRequired } from "@/lib/upgradeRequired";
 import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
@@ -52,6 +55,15 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
   if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
+  // Pro-only helper — entitlement from the server, never from the request.
+  try {
+    const { pro } = await getEntitlements(createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } }), user.id);
+    if (!pro) return upgradeRequired("thought_buddy", "Thought Buddy is a Pro feature. Upgrade to Pro to use it.");
+  } catch (e) {
+    console.error("[thought_buddy] entitlement check failed:", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  }
 
   try {
     const { situation, question } = await request.json();

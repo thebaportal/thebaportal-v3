@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { getEntitlements } from "@/lib/entitlements";
+import { upgradeRequired } from "@/lib/upgradeRequired";
 
 const SYSTEM_PROMPT = `You are a Senior Business Analyst helping someone who has identified a problem or goal but has not yet defined their options.
 
@@ -35,6 +38,15 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
   if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
+  // Pro-only helper — entitlement from the server, never from the request.
+  try {
+    const { pro } = await getEntitlements(createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } }), user.id);
+    if (!pro) return upgradeRequired("suggest_alternatives", "Suggest alternatives is a Pro feature. Upgrade to Pro to use it.");
+  } catch (e) {
+    console.error("[suggest_alternatives] entitlement check failed:", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  }
 
   try {
     const { situation } = await request.json();

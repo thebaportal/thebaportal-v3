@@ -5,6 +5,7 @@ import AppSidebar from "@/components/AppSidebar";
 import ProjectNavBar from "@/components/ProjectNavBar";
 import { ArtifactViewer } from "@/app/projects/[id]/ProjectWorkspaceClient";
 import { mutateArtifact, CLIENT_OUTDATED_MESSAGE } from "@/lib/projects/artifactLifecycle";
+import { isOneOptionGate, isZeroOptionGate, isGateMessage } from "@/lib/decisionLabGate";
 
 type SavedOutput = Parameters<typeof ArtifactViewer>[0]["artifact"];
 
@@ -35,6 +36,23 @@ interface DecisionSession {
 interface Props {
   user: { email: string };
   initialProjectId?: string | null;
+  /** Display only — the server enforces every Pro gate itself. */
+  isPro: boolean;
+  initialQuota: Quota | null;
+}
+
+/** Free allowance of full analyses this UTC month (from the server). */
+type Quota = { used: number; limit: number; resets_at: string };
+const fmtReset = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+
+/** Shown instead of a Pro-only Decision Lab helper for Free users. */
+function ProLock({ feature }: { feature: string }) {
+  return (
+    <div style={{ padding: "14px 16px", border: "1px solid var(--lc-border)", borderRadius: 10, background: "var(--lc-surface)", fontSize: 13, color: "var(--lc-text-2)", lineHeight: 1.55 }}>
+      {feature} is a Pro feature.{" "}
+      <a href="/pricing" style={{ color: "var(--teal)", fontWeight: 600 }}>Upgrade to Pro →</a>
+    </div>
+  );
 }
 
 interface ProjectOption { id: string; name: string; }
@@ -424,12 +442,7 @@ function Level2Action({ name, onAdd }: { name: string; onAdd: (n: string) => voi
 
 // ── Gate detection helpers ────────────────────────────────────────────────────
 
-const ONE_OPTION_GATE = "I can see one option in what you've described";
-const ZERO_OPTION_GATE = "I couldn't identify multiple options to compare";
-
-function isOneOptionGate(content: string) { return content.includes(ONE_OPTION_GATE); }
-function isZeroOptionGate(content: string) { return content.includes(ZERO_OPTION_GATE); }
-function isGateMessage(content: string) { return isOneOptionGate(content) || isZeroOptionGate(content); }
+// isOneOptionGate / isZeroOptionGate / isGateMessage live in @/lib/decisionLabGate (shared with the server).
 
 // ── Suggestions panel ─────────────────────────────────────────────────────────
 
@@ -532,7 +545,8 @@ function SuggestionsPanel({ situation, onAdd }: {
 
 // ── Results panel ─────────────────────────────────────────────────────────────
 
-function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, onAddToSituation, explorerActive, onExplorerClick }: {
+function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, onAddToSituation, explorerActive, onExplorerClick, isPro }: {
+  isPro: boolean;
   activeMode: Mode | null;
   results: Partial<Record<Mode, ModeResult>>;
   onSwitchMode: (m: Mode) => void;
@@ -613,7 +627,7 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
 
       {/* Decision Explorer content */}
       {showExplorerContent && (
-        <DecisionExplorerPanel situation={situation} />
+        isPro ? <DecisionExplorerPanel situation={situation} /> : <ProLock feature="Thought Buddy" />
       )}
 
       {/* Loading state */}
@@ -653,7 +667,7 @@ function ResultsPanel({ activeMode, results, onSwitchMode, loading, situation, o
         <div style={{ padding: "28px 32px" }}>
           <p style={{ fontSize: 14, color: "var(--lc-text-2)", lineHeight: 1.7, margin: 0 }}>{currentResult.content}</p>
           {showSuggestButton && (
-            <SuggestionsPanel situation={situation} onAdd={onAddToSituation} />
+            isPro ? <SuggestionsPanel situation={situation} onAdd={onAddToSituation} /> : <ProLock feature="Suggest alternatives" />
           )}
         </div>
       )}
@@ -879,7 +893,9 @@ function buildDecisionArtifactContent(situation: string, results: Partial<Record
   return parts.join("\n\n---\n\n");
 }
 
-export default function DecisionLabClient({ user, initialProjectId }: Props) {
+export default function DecisionLabClient({ user, initialProjectId, isPro, initialQuota }: Props) {
+  const [quota, setQuota] = useState<Quota | null>(initialQuota);
+  const [upgradeMessage, setUpgradeMessage] = useState("");
   const [situation, setSituation] = useState("");
   const [activeMode, setActiveMode] = useState<Mode | null>(null);
   const [results, setResults] = useState<Partial<Record<Mode, ModeResult>>>({});
@@ -972,6 +988,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
     setActiveMode(mode);
     setExplorerActive(false);
     setError("");
+    setUpgradeMessage("");
 
     // Use cached result unless it is a gate message — gate messages must re-run after the user adds options
     const existing = results[mode];
@@ -981,13 +998,22 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
     prevSituationRef.current = currentSituation;
 
     try {
-      const res = await fetch("/api/decision-lab/analyze", {
+      // One id per logical analysis: a retry of this request never uses a second Free slot.
+      const requestId = crypto.randomUUID();
+      const send = () => fetch("/api/decision-lab/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ situation: currentSituation.trim(), mode, project_id: selectedProjectId }),
+        body: JSON.stringify({ situation: currentSituation.trim(), mode, project_id: selectedProjectId, request_id: requestId }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Analysis failed.");
+      const res = await send().catch(() => send());   // a dropped connection is retried once, with the same id
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 403 && data.error === "upgrade_required") {
+        if (typeof data.used === "number") setQuota({ used: data.used, limit: data.limit, resets_at: data.resets_at });
+        setUpgradeMessage(data.message ?? "Upgrade to Pro to continue.");
+        return;
+      }
+      if (!res.ok || data.error) throw new Error(data.message || data.error || "Analysis failed.");
+      if (data.quota) setQuota(data.quota);
 
       const newResults = { ...results, [mode]: { content: data.result, generatedAt: Date.now() } };
       setResults(newResults);
@@ -1176,6 +1202,20 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
             </div>
           )}
 
+          {/* Free allowance (display only — enforced on the server) */}
+          {!isPro && quota && (
+            <div className="dl-quota" style={{ fontSize: 12.5, color: "var(--lc-text-3)", margin: "0 0 10px" }}>
+              {Math.max(0, quota.limit - quota.used)} of {quota.limit} free analyses left this month · resets {fmtReset(quota.resets_at)} ·{" "}
+              <a href="/pricing" style={{ color: "var(--teal)", fontWeight: 600 }}>Upgrade for unlimited</a>
+            </div>
+          )}
+          {upgradeMessage && (
+            <div role="alert" className="dl-upgrade" style={{ background: "var(--lc-amber-bg)", border: "1px solid rgba(181,116,31,0.3)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13.5, color: "var(--lc-text-1)", lineHeight: 1.55 }}>
+              {upgradeMessage}{quota ? ` Your allowance resets on ${fmtReset(quota.resets_at)}.` : ""}{" "}
+              <a href="/pricing" style={{ color: "var(--teal)", fontWeight: 700 }}>Upgrade to Pro →</a>
+            </div>
+          )}
+
           {/* Input panel */}
           <InputPanel
             situation={situation}
@@ -1189,6 +1229,7 @@ export default function DecisionLabClient({ user, initialProjectId }: Props) {
 
           {/* Results + Decision Explorer */}
           <ResultsPanel
+            isPro={isPro}
             activeMode={activeMode}
             results={results}
             onSwitchMode={mode => {

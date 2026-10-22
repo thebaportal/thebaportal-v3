@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import {
   ARTIFACT_LIFECYCLE_VERSION, ARTIFACT_POST_INTENTS, ARTIFACT_PATCH_INTENTS, WORK_ARTIFACT_TYPES, DECISION_LAB_TYPE, CLIENT_OUTDATED_MESSAGE,
 } from "@/lib/projects/artifactLifecycle";
+import { getEntitlements, hasEligibleTestingLineage } from "@/lib/entitlements";
+import { upgradeRequired } from "@/lib/upgradeRequired";
 
 function admin() {
   return createAdminClient(
@@ -134,6 +136,21 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     reasoning_context?: Record<string, unknown>; source_artifact_ids?: string[];
   };
   const type = (body.type as string | undefined) ?? DECISION_LAB_TYPE;
+
+  // Testing is Pro. A Free user may create a new Testing version only inside this project's
+  // eligible (grandfathered) lineage — one with a current Approved version or working Draft.
+  // Revise / save / approve / archive act on an existing live row and stay available.
+  if (type === "test_case" && (intent === "autosave" || intent === "import_draft" || intent === "import_approved")) {
+    try {
+      const { pro } = await getEntitlements(db, user.id);
+      if (!pro && !(await hasEligibleTestingLineage(db, user.id, params.id))) {
+        return upgradeRequired("testing", "Testing is a Pro feature. Upgrade to Pro to start Testing work in this project.");
+      }
+    } catch (e) {
+      console.error("[artifacts] testing entitlement check failed:", e);
+      return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    }
+  }
 
   if (intent === "revise") {
     const { data, error } = await db.rpc("artifact_revise", { p_project_id: params.id, p_user_id: user.id, p_source_id: source_id });

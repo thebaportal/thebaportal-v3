@@ -359,7 +359,7 @@ function AddDecisionModal({projectId,onSaved,onClose,prefill}:{projectId:string;
 // ── Artifact viewer ────────────────────────────────────────────────────────────
 // Exported so Decision Lab can manage its own saved outputs with the exact
 // same lifecycle (edit draft / approve / revise / archive) — reused, not copied.
-export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,onClose,onRevised}:{artifact:Artifact;projectId:string;exportContext?:ExportContext;onStatusChange:(id:string,s:string)=>void;onClose:()=>void;onRevised:(a:Artifact)=>void}) {
+export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,onClose,onRevised,canExportTestingXlsx=true}:{canExportTestingXlsx?:boolean;artifact:Artifact;projectId:string;exportContext?:ExportContext;onStatusChange:(id:string,s:string)=>void;onClose:()=>void;onRevised:(a:Artifact)=>void}) {
   const sc = STATUS_COLOR[artifact.status] ?? STATUS_COLOR.draft;
   const prov = provenanceInfo(artifact);
   const [draftText,setDraftText] = useState(artifact.content);
@@ -486,7 +486,7 @@ export function ArtifactViewer({artifact,projectId,exportContext,onStatusChange,
               edits in the draft textarea — what's exported is this version. */}
           {artifact.type !== "process_diagram" ? (
             <ExportMenu content={artifact.content} meta={artifactExportMeta(artifact, exportContext ?? {projectName: "Project"})}
-              artifactType={artifact.type} projectId={projectId} xlsx={XLSX_TYPES.has(artifact.type)} placement="up"/>
+              artifactType={artifact.type} projectId={projectId} xlsx={XLSX_TYPES.has(artifact.type) && (artifact.type !== "test_case" || canExportTestingXlsx)} placement="up"/>
           ) : (
             <button style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",background:"none",border:"1px solid var(--lc-border)",borderRadius:8,fontSize:12,color:"var(--lc-text-2)",cursor:"pointer"}} onClick={()=>navigator.clipboard?.writeText(artifact.content)}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy
@@ -654,7 +654,8 @@ function WorkstreamSwitcher({current, onSwitch}: {current: Workstream; onSwitch:
   );
 }
 
-function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, onBack, onSwitchWs, onArtifactSaved, onStatusChange, onDecisionLog, onOpenContext, onOpenArtifact, onOpenRTM}: {
+function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, onBack, onSwitchWs, onArtifactSaved, onStatusChange, onDecisionLog, onOpenContext, onOpenArtifact, onOpenRTM, isPro}: {
+  isPro: boolean;   // display only — the server enforces every Pro gate
   ws: Workstream; project: Project; notes: ProjectNote[]; artifacts: Artifact[]; findings: Finding[]; decisions: Decision[];
   onBack: ()=>void; onSwitchWs:(ws:Workstream)=>void; onArtifactSaved:(a:Artifact)=>void; onStatusChange:(id:string,status:string)=>void; onDecisionLog:(prefill?:string)=>void;
   onOpenContext: ()=>void; onOpenArtifact:(a:Artifact)=>void; onOpenRTM: ()=>void;
@@ -714,6 +715,18 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
   // Blank start uses the wide, centred layout: context strip, white composer
   // surface, four prompts in a 2×2 grid.
   const centredStart = isBlankStart;
+  // Testing is Pro. A Free user keeps an existing (grandfathered) Testing lineage — one with a
+  // current Approved version or working Draft — but cannot generate or start new Testing work.
+  const testingEligible = artifacts.some(a => a.type === "test_case" && ["approved", "draft", "in_review"].includes(a.status));
+  const testingLocked = ws.id === "testing" && !isPro;
+  const testingProNotice = (
+    <div role="note" className="ws-pro-notice" style={{padding:"14px 16px",border:"1px solid var(--lc-border)",borderRadius:12,background:"var(--lc-surface)",fontSize:13.5,color:"var(--lc-text-2)",lineHeight:1.6}}>
+      {testingEligible
+        ? "AI Testing generation is a Pro feature. You can still open, edit, approve, archive and export your existing Testing work."
+        : "Testing is a Pro feature. Upgrade to Pro to generate test scenarios and test cases and use the Requirements Traceability Matrix."}{" "}
+      <a href="/pricing" style={{color:"var(--teal)",fontWeight:700}}>Upgrade to Pro →</a>
+    </div>
+  );
   const contextInUse = workCtx.strip;
 
   // Testing's declared scope: requirement ids (CAP/BR/FR/NFR) from the latest
@@ -1034,7 +1047,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
         accentColor={ws.color}
         onBack={() => setViewMode("chat")}
         meta={docMeta}
-        actions={<ExportMenu content={docContent} meta={docMeta} artifactType={ws.artifactType} projectId={project.id} xlsx={XLSX_TYPES.has(ws.artifactType)}/>}
+        actions={<ExportMenu content={docContent} meta={docMeta} artifactType={ws.artifactType} projectId={project.id} xlsx={XLSX_TYPES.has(ws.artifactType) && (ws.artifactType !== "test_case" || isPro)}/>}
       />
     );
   }
@@ -1196,10 +1209,10 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
             {/* RTM is contextual to Requirements and Testing only — not a
                 project-wide control on every work area. */}
             {(ws.id === "requirements" || ws.id === "testing") && (
-              <button onClick={onOpenRTM} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--teal)",fontFamily:"inherit",whiteSpace:"nowrap"}}>Traceability (RTM) →</button>
+              !isPro ? <a href="/pricing" title="The Requirements Traceability Matrix is a Pro feature" className="ws-rtm-pro" style={{fontSize:12,fontWeight:600,color:"var(--lc-text-3)",whiteSpace:"nowrap"}}>Traceability (RTM) · Pro →</a> : <button onClick={onOpenRTM} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--teal)",fontFamily:"inherit",whiteSpace:"nowrap"}}>Traceability (RTM) →</button>
             )}
             {/* Work produced outside TheBAPortal only — never in-app work. */}
-            {centredStart && (
+            {centredStart && !(testingLocked && !testingEligible) && (
               <button onClick={()=>setImportTarget(ws.artifactType)} className="ws-bring-btn">+ {ws.importLabel}</button>
             )}
           </div>
@@ -1212,10 +1225,10 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
             {scopePicker && <div style={{marginBottom:18}}>{scopePicker}</div>}
             <div className="ws-start-surface">
               <h2 style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:700,color:"var(--lc-text-1)",letterSpacing:"-0.01em",margin:"0 0 10px"}}>What would you like to work through?</h2>
-              {composerBox(true, true)}
+              {testingLocked ? testingProNotice : composerBox(true, true)}
             </div>
             <div className="ws-prompt-grid">
-              {startCopy.prompts.map(pr => (
+              {(testingLocked ? [] : startCopy.prompts).map(pr => (
                 <button key={pr} className="ws-prompt" onClick={()=>{setInput(pr);textareaRef.current?.focus();}}>
                   <span>{pr}</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
@@ -1391,7 +1404,7 @@ function WorkstreamSession({ws, project, notes, artifacts, findings, decisions, 
           On a blank simplified start the composer sits in the page instead. */}
       {!isBlankStart && (
       <div style={{padding:"10px 32px 16px",flexShrink:0}} className="ws-composer">
-        {composerBox(false)}
+        {testingLocked ? testingProNotice : composerBox(false)}
       </div>
       )}
 
@@ -1484,6 +1497,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
   const [impactReviews, setImpactReviews] = useState<ImpactReview[]>(initialImpactReviews);
   const impacts = useMemo(() => computeImpacts(artifacts, impactReviews), [artifacts, impactReviews]);
   const attentionItems: AttentionItem[]     = computeAttention(artifacts, initialReviewFindings, impacts);
+  const isPro = profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise";   // display only
   const [decisionModal, setDecisionModal]   = useState<{open:boolean;prefill?:string}>({open:false});
   const [showRTM, setShowRTM]               = useState(false);
   const [showContext, setShowContext]       = useState(false);
@@ -1576,7 +1590,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
             <RTMPanel artifacts={artifacts} onClose={()=>setShowRTM(false)} onGoToRequirements={()=>{setShowRTM(false);setActiveWs(WORKSTREAMS.find(w=>w.id==="requirements")??null);}}/>
           ) : viewingArtifact ? (
             <ArtifactViewer artifact={viewingArtifact} projectId={project.id} exportContext={{projectName:project.name, organization:project.organizations?.name ?? null}} onStatusChange={handleStatusChange} onClose={()=>setViewingArtifact(null)}
-              onRevised={(a)=>{handleArtifactSaved(a);setViewingArtifact(a);}}/>
+              onRevised={(a)=>{handleArtifactSaved(a);setViewingArtifact(a);}} canExportTestingXlsx={isPro}/>
           ) : activeWs ? (
             // Keyed by work area so switching areas starts that area's session
             // fresh (its own conversation, input, save state) — never carries
@@ -1591,6 +1605,7 @@ export default function ProjectWorkspaceClient({user,profile,project,initialArti
               onOpenContext={()=>setShowContext(true)}
               onOpenArtifact={(a)=>setViewingArtifact(a)}
               onOpenRTM={()=>setShowRTM(true)}
+              isPro={isPro}
             />
           ) : (
             <WorkstreamsHub project={project} artifacts={artifacts} onSelectWs={(ws)=>goToWorkstream(ws.id)} onOpenContext={()=>setShowContext(true)}/>

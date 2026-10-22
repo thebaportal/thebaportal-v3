@@ -8,7 +8,7 @@ import { Check, Crown, Zap, ArrowLeft, Loader2, Lock, CreditCard, RotateCcw, Glo
 const freeFeatures = [
   "Unlimited projects",
   "Problem Analysis, Stakeholder Analysis, Requirements",
-  "User Stories and Process Analysis",
+  "User Stories, Process Analysis and Business Case",
   "5 Decision Lab analyses per month",
   "8 downloadable professional templates",
 ];
@@ -16,10 +16,8 @@ const freeFeatures = [
 const proFeatures = [
   "Everything in Free",
   "Unlimited Decision Lab analyses — all 5 modes",
+  "Thought Buddy and option suggestions in Decision Lab",
   "Testing and Requirements Traceability Matrix",
-  "Priority document generation",
-  "Template Studio organisation customisation",
-  "Priority support",
 ];
 
 function PricingInner() {

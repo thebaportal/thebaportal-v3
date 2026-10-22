@@ -395,7 +395,7 @@ function BillingPanel({ isPro, subscriptionStatus, periodEnd, hasPortal }: {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
-          {["Unlimited Decision Lab analyses — all 5 modes", "Testing and Requirements Traceability Matrix", "Priority document generation", "Priority support"].map(f => (
+          {["Unlimited Decision Lab analyses — all 5 modes", "Thought Buddy and option suggestions in Decision Lab", "Testing and Requirements Traceability Matrix"].map(f => (
             <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "var(--lc-text-2)" }}>
               <span style={{ color: "var(--teal)" }}><IconCheck /></span>{f}
             </div>

@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { getApprovedArtifacts } from "@/lib/projects/context";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createHash, randomUUID } from "crypto";
+import { getEntitlements, FREE_DECISION_LAB_ANALYSES } from "@/lib/entitlements";
+import { upgradeRequired } from "@/lib/upgradeRequired";
+import { isGateMessage } from "@/lib/decisionLabGate";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const adminClient = () => createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
+type Quota = { used: number; limit: number; resets_at: string };
 
 const CONTEXT_TYPE_LABEL: Record<string, string> = {
   problem_analysis: "Problem Analysis",
@@ -950,22 +959,58 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
   if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
+  const body = await request.json().catch(() => null);
+  const { situation, mode, project_id } = body ?? {};
+  if (!situation || typeof situation !== "string" || situation.trim().length < 10) {
+    return NextResponse.json({ error: "Please describe your situation first." }, { status: 400 });
+  }
+  const rawPrompt = PROMPTS[mode];
+  if (!rawPrompt) {
+    return NextResponse.json({ error: "Invalid analysis mode." }, { status: 400 });
+  }
+
+  // Free allowance: reserve → model call → settle (success) or release (failure / gate reply).
+  // request_id identifies one logical analysis so a retry never takes a second slot; the
+  // fingerprint ties it to this exact input. Entitlement comes only from the server.
+  const requestId: string = typeof body?.request_id === "string" && UUID.test(body.request_id) ? body.request_id : randomUUID();
+  const fingerprint = createHash("sha256").update(`${mode}\n${project_id ?? ""}\n${situation.trim()}`).digest("hex");
+  const db = adminClient();
+  let quota: Quota | null = null;
+
   try {
-    const { situation, mode, project_id } = await request.json();
-
-    if (!situation || typeof situation !== "string" || situation.trim().length < 10) {
-      return NextResponse.json({ error: "Please describe your situation first." }, { status: 400 });
+    const { pro } = await getEntitlements(db, user.id);
+    if (!pro) {
+      const { data: r, error } = await db.rpc("decision_lab_reserve", { p_user_id: user.id, p_request_id: requestId, p_fingerprint: fingerprint, p_limit: FREE_DECISION_LAB_ANALYSES });
+      if (error) throw new Error(`reserve failed: ${error.message}`);
+      if (r.outcome === "replay") {
+        const { data: q } = await db.rpc("decision_lab_quota", { p_user_id: user.id, p_limit: FREE_DECISION_LAB_ANALYSES });
+        return NextResponse.json({ result: r.result, source_artifact_ids: r.source_artifact_ids ?? [], replayed: true, quota: q });
+      }
+      if (r.outcome === "in_progress") return NextResponse.json({ error: "analysis_in_progress", message: "This analysis is already running. It will appear shortly." }, { status: 409 });
+      if (r.outcome === "conflict") return NextResponse.json({ error: "request_conflict", message: "Please start the analysis again." }, { status: 409 });
+      if (r.outcome === "quota_exceeded") {
+        return upgradeRequired("decision_lab_analyses",
+          `You've used your ${r.limit} free Decision Lab analyses this month. Upgrade to Pro for unlimited analyses, or wait until your allowance resets.`,
+          { used: r.used, limit: r.limit, resets_at: r.resets_at });
+      }
+      quota = { used: r.used, limit: r.limit, resets_at: r.resets_at };
     }
+  } catch (error) {
+    console.error("[decision-lab] entitlement/quota error:", error);
+    return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 });
+  }
 
-    const rawPrompt = PROMPTS[mode];
-    if (!rawPrompt) {
-      return NextResponse.json({ error: "Invalid analysis mode." }, { status: 400 });
-    }
+  const release = async () => {
+    if (!quota) return;
+    const { error } = await db.rpc("decision_lab_release", { p_user_id: user.id, p_request_id: requestId });
+    if (error) console.error("[decision-lab] release failed (reservation will expire):", error.message);
+  };
 
+  try {
     const now = new Date();
     const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     const currentDate = `${months[now.getMonth()]} ${now.getFullYear()}`;
-    const systemPrompt = rawPrompt.replace(new RegExp(DATE_PLACEHOLDER.replace(/[[\]]/g, "\\$&"), "g"), currentDate);
+    const systemPrompt = rawPrompt.replace(new RegExp(DATE_PLACEHOLDER.replace(/[[\]]/g, "\$&"), "g"), currentDate);
 
     const { text: projectContext, sourceIds } = project_id
       ? await buildProjectContext(project_id, user.id)
@@ -982,14 +1027,24 @@ export async function POST(request: Request) {
       messages: [{ role: "user", content: userContent }],
     });
 
-    const text = response.content[0].type === "text"
-      ? response.content[0].text
-      : "Something went wrong. Please try again.";
+    if (response.content[0]?.type !== "text") throw new Error("model returned no text");
+    const text = response.content[0].text;
 
-    return NextResponse.json({ result: text, source_artifact_ids: sourceIds });
+    if (quota) {
+      if (isGateMessage(text)) {
+        // Not a full analysis (the model asked for more options): the slot is released, not consumed.
+        await release();
+        quota = { ...quota, used: quota.used - 1 };
+      } else {
+        const { error } = await db.rpc("decision_lab_settle", { p_user_id: user.id, p_request_id: requestId, p_result: text, p_source_artifact_ids: sourceIds });
+        if (error) console.error("[decision-lab] settle failed (reservation will expire):", error.message);
+      }
+    }
+    return NextResponse.json({ result: text, source_artifact_ids: sourceIds, ...(quota ? { quota } : {}) });
 
   } catch (error) {
     console.error("[decision-lab] error:", error);
+    await release();   // a failed or aborted analysis never uses the Free allowance
     return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 });
   }
 }

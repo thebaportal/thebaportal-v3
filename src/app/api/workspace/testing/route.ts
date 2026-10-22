@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { getEntitlements } from "@/lib/entitlements";
+import { upgradeRequired } from "@/lib/upgradeRequired";
 import { EVIDENCE_RULES } from "@/lib/projects/grounding";
 
 const SYSTEM_PROMPT = `You are a senior Business Analyst with strong QA instincts. You write test scenarios and test cases directly from approved Requirements and User Stories, grounded only in what those documents actually say.
@@ -111,6 +114,15 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
   if (isRateLimited(`ai:${user.id}`)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
+  // AI Testing generation is Pro-only (grandfathered Free users keep their existing Testing work).
+  try {
+    const { pro } = await getEntitlements(createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } }), user.id);
+    if (!pro) return upgradeRequired("testing_generation", "AI Testing generation is a Pro feature. Upgrade to Pro to generate test scenarios and cases.");
+  } catch (e) {
+    console.error("[testing] entitlement check failed:", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  }
 
   try {
     const { messages } = await request.json();

@@ -48,11 +48,11 @@ const FAQ_GROUPS = [
     items: [
       {
         q: "What is free?",
-        a: "Unlimited projects, all core workstreams (Problem Analysis, Stakeholder Analysis, Requirements, User Stories, Process Analysis), a limited number of Decision Lab analyses per month, and all downloadable templates. No credit card required.",
+        a: "Unlimited projects, all core workstreams (Problem Analysis, Stakeholder Analysis, Requirements, User Stories, Process Analysis, Business Case), 5 Decision Lab analyses per month, and all downloadable templates. No credit card required.",
       },
       {
         q: "What does Pro unlock?",
-        a: "Unlimited Decision Lab analyses across all modes, Testing and RTM, priority document generation, and Template Studio organisation customisation.",
+        a: "Unlimited Decision Lab analyses across all modes, Thought Buddy and option suggestions in Decision Lab, and Testing with the Requirements Traceability Matrix.",
       },
       {
         q: "Can I cancel at any time?",
