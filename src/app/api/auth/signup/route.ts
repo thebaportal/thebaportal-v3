@@ -31,7 +31,6 @@ function supabaseAdminRequest(path: string, method: string, body: object): Promi
         "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
         "Content-Length": Buffer.byteLength(payload),
       },
-      rejectUnauthorized: false,
     };
     const req = https.request(options, (res) => {
       let raw = "";
