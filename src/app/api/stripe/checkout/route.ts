@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
     }
 
-    const { billing, return_job } = await request.json();
+    const { billing } = await request.json();
 
     const priceId = billing === "annual"
       ? process.env.STRIPE_ANNUAL_PRICE_ID!
@@ -86,12 +86,8 @@ export async function POST(request: Request) {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: return_job
-        ? `${siteUrl()}/jobs/${return_job}?return=true&session_id={CHECKOUT_SESSION_ID}`
-        : `${siteUrl()}/projects?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: return_job
-        ? `${siteUrl()}/jobs/${return_job}?cancelled=true`
-        : `${siteUrl()}/pricing?canceled=true`,
+      success_url: `${siteUrl()}/projects?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl()}/pricing?canceled=true`,
       // Ownership for reconciliation (verify-session, webhook): Checkout's own fields.
       client_reference_id: user.id,
       metadata: { supabase_user_id: user.id },

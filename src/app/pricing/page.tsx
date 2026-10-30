@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Crown, Zap, ArrowLeft, Loader2, Lock, CreditCard, RotateCcw, Globe } from "lucide-react";
 
@@ -24,8 +24,6 @@ function PricingInner() {
   const [loading, setLoading] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const router      = useRouter();
-  const searchParams = useSearchParams();
-  const returnJob   = searchParams.get("return_job");
 
   // Launch pricing (CAD). Stripe price IDs come from the environment; these are display values only.
   const monthlyPrice = 19;
@@ -40,7 +38,7 @@ function PricingInner() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billing, return_job: returnJob ?? undefined }),
+        body: JSON.stringify({ billing }),
       });
       const data = await res.json();
       if (data.url) {
