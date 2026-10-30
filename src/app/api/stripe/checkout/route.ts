@@ -21,22 +21,17 @@ export async function POST(request: Request) {
     });
 
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    console.log("User:", user?.email, "Auth error:", authError?.message);
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
     }
 
     const { billing, return_job } = await request.json();
-    console.log("Billing type:", billing, "Return job:", return_job);
 
     const priceId = billing === "annual"
       ? process.env.STRIPE_ANNUAL_PRICE_ID!
       : process.env.STRIPE_MONTHLY_PRICE_ID!;
-
-    console.log("Using price ID:", priceId);
 
     const supabaseAdmin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,20 +57,18 @@ export async function POST(request: Request) {
         if ((existing as Stripe.DeletedCustomer).deleted) customerId = null;
       } catch (err) {
         if ((err as { code?: string }).code !== "resource_missing") throw err;
-        console.warn("Stored Stripe customer not valid for this Stripe account/mode; creating a new one:", customerId);
+        console.warn("[checkout] stored Stripe customer not valid for this Stripe account/mode; creating a new one:", customerId);
         customerId = null;
       }
     }
 
     if (!customerId) {
-      console.log("Creating new Stripe customer...");
       const customer = await stripe.customers.create({
         email: user.email!,
         name: profile?.full_name || undefined,
         metadata: { supabase_user_id: user.id },
       });
       customerId = customer.id;
-      console.log("Created customer:", customerId);
 
       // Use supabaseAdmin to save customer ID (bypasses RLS)
       const { error: updateError } = await supabaseAdmin
@@ -84,15 +77,10 @@ export async function POST(request: Request) {
         .eq("id", user.id);
 
       if (updateError) {
-        console.error("Failed to save stripe_customer_id:", updateError.message, "| code:", updateError.code, "| details:", updateError.details, "| hint:", updateError.hint);
-      } else {
-        console.log("stripe_customer_id saved successfully");
+        console.error("[checkout] failed to save stripe_customer_id:", updateError.message, "| code:", updateError.code, "| details:", updateError.details, "| hint:", updateError.hint);
       }
-    } else {
-      console.log("Reusing existing Stripe customer:", customerId);
     }
 
-    console.log("Creating checkout session...");
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
@@ -112,15 +100,11 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log("Session created:", session.id, "URL:", session.url);
     return NextResponse.json({ url: session.url });
 
   } catch (error: unknown) {
     const err = error as Error & { type?: string; code?: string };
-    console.error("=== CHECKOUT ERROR ===");
-    console.error("Message:", err.message);
-    console.error("Type:", err.type);
-    console.error("Code:", err.code);
+    console.error("[checkout] failed:", err.message, "| type:", err.type, "| code:", err.code);
     return NextResponse.json({
       error: "checkout_failed",
       message: err.message,
