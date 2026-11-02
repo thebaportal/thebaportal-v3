@@ -56,7 +56,7 @@ const FAQ_GROUPS = [
       },
       {
         q: "Can I cancel at any time?",
-        a: "Yes. Cancel from Settings at any time. You keep full access until the end of your billing period. No cancellation fees or complicated steps.",
+        a: "Yes. Go to Settings → Billing → Manage subscription, which opens the Stripe billing portal. Cancellation takes effect at the end of your current billing period: you keep Pro until then, you are not charged again, and your projects stay in your account on the Free plan. There are no cancellation fees.",
       },
     ],
   },
@@ -64,8 +64,8 @@ const FAQ_GROUPS = [
     group: "Technical",
     items: [
       {
-        q: "What file types can I attach?",
-        a: "PDF, Word (.docx, .doc), and plain text (.txt). The document is parsed server-side and the text is inserted into the input field so you can review it before sending. Maximum file size is 10 MB.",
+        q: "Can I attach files?",
+        a: "Not at the moment. Paste the text you want to work with into the input field, where you can review and edit it before sending.",
       },
       {
         q: "What browser do I need?",
@@ -73,11 +73,11 @@ const FAQ_GROUPS = [
       },
       {
         q: "Is my data private?",
-        a: "Yes. Your projects and business information are private to your account. We do not sell or share personal data. See our Privacy Policy for full details.",
+        a: "Your projects and business information are private to your account. We do not sell personal information. We use a small number of service providers to run the platform, including hosting, database, payments, analytics and AI processing, as described in our Privacy Policy.",
       },
       {
         q: "Something is not working. What do I do?",
-        a: "Email us directly. We are a small team and we read every message. Pro members typically get a response within one business day.",
+        a: "Email support@thebaportal.com with what you were doing and what you saw. A screenshot helps. We are a small team and we read every message.",
       },
     ],
   },
@@ -126,7 +126,7 @@ export default function FAQPage() {
             Frequently asked questions
           </h1>
           <p style={{ fontSize: "16px", color: "#9090a8", lineHeight: 1.68, maxWidth: "480px" }}>
-            Everything you need to know about the platform. Can not find an answer? Email us directly.
+            Everything you need to know about the platform. Can not find an answer? Email support@thebaportal.com.
           </p>
         </div>
 
@@ -147,8 +147,8 @@ export default function FAQPage() {
           <p style={{ fontSize: "16px", color: "#9090a8", marginBottom: "8px" }}>Still have questions?</p>
           <p style={{ fontSize: "14px", color: "#505068", marginBottom: "24px" }}>
             Email us at{" "}
-            <a href="mailto:hello@thebaportal.com" style={{ color: "#34407d", textDecoration: "none" }}>hello@thebaportal.com</a>
-            {" "}and we will get back to you within one business day.
+            <a href="mailto:support@thebaportal.com" style={{ color: "#8d97d9", textDecoration: "none" }}>support@thebaportal.com</a>
+            {" "}or visit our <Link href="/support" style={{ color: "#8d97d9", textDecoration: "none" }}>Support</Link> page.
           </p>
           <Link href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 28px", borderRadius: "12px", background: "#34407d", color: "#f5f1e7", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: "'Inter',sans-serif" }}>
             Start free — no credit card required
@@ -159,7 +159,7 @@ export default function FAQPage() {
       {/* Footer */}
       <footer style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "28px", textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", gap: "24px", flexWrap: "wrap" }}>
-          {[["Home", "/"], ["Pricing", "/pricing"], ["Privacy", "/privacy"], ["Terms", "/terms"]].map(([l, h]) => (
+          {[["Home", "/"], ["Pricing", "/pricing"], ["Support", "/support"], ["Privacy", "/privacy"], ["Terms", "/terms"]].map(([l, h]) => (
             <Link key={l} href={h} style={{ fontSize: "12px", color: "#2a2a38", textDecoration: "none", transition: "color .15s" }} onMouseEnter={e => (e.currentTarget.style.color = "#505068")} onMouseLeave={e => (e.currentTarget.style.color = "#2a2a38")}>{l}</Link>
           ))}
         </div>

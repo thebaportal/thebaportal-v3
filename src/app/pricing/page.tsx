@@ -309,7 +309,7 @@ function PricingInner() {
           }}
         >
           {[
-            { icon: Lock, label: "256-bit SSL encryption" },
+            { icon: Lock, label: "Encrypted HTTPS connection" },
             { icon: CreditCard, label: "Powered by Stripe" },
             { icon: RotateCcw, label: "Cancel anytime" },
             { icon: Globe, label: "Used by BAs in 20+ countries" },

@@ -1,95 +1,256 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicDocLayout, SupportEmail, LEGAL_LAST_UPDATED } from "@/components/PublicDocLayout";
 
-export const metadata = { title: "Privacy Policy — TheBAPortal" };
-
-const SECTIONS = [
-  {
-    title: "Information we collect",
-    body: `When you create an account, we collect your name and email address. When you use the platform, we collect your project data — problem statements, stakeholder input, generated artifacts, and activity data — so we can provide the service and show your project history. When you subscribe to Pro, payment is processed by Stripe — we do not store your card details.`,
-  },
-  {
-    title: "How we use your information",
-    body: `We use your data to provide the platform: personalising your experience, generating your business analysis artifacts, maintaining your project history, and sending you transactional emails (account confirmation, receipts). We do not use your data to train third-party AI models without your consent. We do not sell your data.`,
-  },
-  {
-    title: "Data storage and security",
-    body: `Your data is stored in Supabase (hosted on AWS infrastructure in the United States). We use industry-standard encryption in transit (TLS) and at rest. Access to production data is restricted to authorised team members only.`,
-  },
-  {
-    title: "Cookies",
-    body: `We use strictly necessary cookies to keep you signed in (session cookies via Supabase Auth). We do not use advertising cookies or third-party tracking pixels. You can clear cookies at any time via your browser settings, which will sign you out.`,
-  },
-  {
-    title: "Third-party services",
-    body: `We use Supabase for database and authentication, Stripe for payment processing, and Anthropic's Claude API to power the platform's AI business analysis tools. Each provider has their own privacy policy. We do not share your personally identifiable information with any other third parties.`,
-  },
-  {
-    title: "Your rights",
-    body: `You can request a copy of your data, ask us to correct inaccurate information, or request deletion of your account and associated data at any time. To exercise any of these rights, email us at the address below. We will respond within 30 days.`,
-  },
-  {
-    title: "Data retention",
-    body: `We retain your account data for as long as your account is active. If you delete your account, we will remove your personal information within 30 days, except where we are required to retain it for legal or financial compliance purposes (for example, transaction records).`,
-  },
-  {
-    title: "Children",
-    body: `TheBAPortal is not directed at children under 16. We do not knowingly collect personal information from anyone under 16. If you believe a child has provided us with personal information, please contact us and we will delete it.`,
-  },
-  {
-    title: "Changes to this policy",
-    body: `We may update this policy from time to time. We will notify you of material changes via email or a notice on the platform at least 14 days before the change takes effect.`,
-  },
-  {
-    title: "Contact",
-    body: `For any privacy-related questions or requests, email us at privacy@thebaportal.com. We aim to respond within 2 business days.`,
-  },
-];
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "How Consultingly Inc. collects, uses, shares and protects personal information in The BA Portal.",
+};
 
 export default function PrivacyPage() {
   return (
-    <div style={{ background: "#07070a", color: "#f2f2f8", minHeight: "100vh", fontFamily: "'Open Sans',sans-serif", WebkitFontSmoothing: "antialiased" }}>
-
-      <nav style={{ position: "fixed", inset: "0 0 auto", zIndex: 100, height: 58, display: "flex", alignItems: "center", padding: "0 28px", background: "rgba(7,7,10,0.92)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ textDecoration: "none", fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 700, color: "#f2f2f8", letterSpacing: "-0.02em" }}>
-            The<span style={{ color: "#8d97d9", fontWeight: 800 }}>BA</span>Portal
-          </Link>
-          <Link href="/" style={{ fontSize: 13, color: "#505068", textDecoration: "none", fontFamily: "'Open Sans',sans-serif" }}>← Back to home</Link>
-        </div>
-      </nav>
-
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "110px 28px 80px" }}>
-
-        <div style={{ marginBottom: "52px" }}>
-          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#34407d", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>Legal</div>
-          <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#f2f2f8", marginBottom: "14px", lineHeight: 1.05 }}>Privacy Policy</h1>
-          <p style={{ fontSize: "14px", color: "#505068", fontFamily: "monospace" }}>Last updated: March 2026</p>
-        </div>
-
-        <p style={{ fontSize: "15px", color: "#9090a8", lineHeight: 1.75, marginBottom: "48px" }}>
-          TheBAPortal ("we", "us", "our") is committed to protecting your privacy. This policy explains what information we collect, how we use it, and what rights you have in relation to it. By using the platform you agree to the collection and use of information as described here.
+    <PublicDocLayout
+      eyebrow="Legal"
+      title="Privacy Policy"
+      lastUpdated={LEGAL_LAST_UPDATED}
+      intro={<>
+        <p>
+          This Privacy Policy explains how Consultingly Inc. (&ldquo;Consultingly&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo;), a company based in Alberta, Canada, collects, uses, discloses and protects personal information in connection with The BA Portal, the website at thebaportal.com and the application available through it (the &ldquo;Service&rdquo;).
         </p>
+        <p>
+          If you have a question about this policy or about how we handle your information, contact us at <SupportEmail />.
+        </p>
+      </>}
+    >
+      <section>
+        <h2>1. Who is responsible for your information</h2>
+        <p>
+          Consultingly Inc. operates The BA Portal and is responsible for the personal information under its control. Our Privacy Officer answers questions about this policy, about requests to access, correct or delete personal information, and about how our service providers, including those outside Canada, handle personal information for us. You can reach the Privacy Officer at <SupportEmail />. Please put &ldquo;Privacy&rdquo; in the subject line.
+        </p>
+      </section>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "36px" }}>
-          {SECTIONS.map((s, i) => (
-            <div key={s.title}>
-              <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "17px", fontWeight: 700, color: "#f2f2f8", marginBottom: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontFamily: "monospace", fontSize: "12px", color: "#34407d", fontWeight: 600, minWidth: "24px" }}>{String(i + 1).padStart(2, "0")}</span>
-                {s.title}
-              </h2>
-              <p style={{ fontSize: "14px", color: "#9090a8", lineHeight: 1.78 }}>{s.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <section>
+        <h2>2. Information we collect</h2>
+        <h3>Account and profile information</h3>
+        <ul>
+          <li>Your email address, and your name if you choose to provide it.</li>
+          <li>Your password. It is sent over an encrypted connection to our authentication provider, which stores it in hashed form. We do not keep your password ourselves.</li>
+          <li>Account records that our authentication provider keeps, such as when the account was created and when you last signed in.</li>
+          <li>Your plan (Free or Pro), subscription status, and the end date of your current billing period.</li>
+        </ul>
+        <h3>Project and workspace content</h3>
+        <p>
+          Everything you create or enter in the Service: projects, problem statements, notes and text you type or paste, stakeholder information, requirements, user stories, process analyses, test cases, business cases, decisions, Decision Lab analyses, BA Intelligence sessions and findings, AI conversations, generated documents, and their approval status and history.
+        </p>
+        <h3>AI prompts and context</h3>
+        <p>
+          When you use an AI feature, we process your request together with the project context the feature needs. Section 4 explains how this works.
+        </p>
+        <h3>Payment and subscription information</h3>
+        <p>
+          Payments are handled by Stripe. When you subscribe, you enter your card details on Stripe&rsquo;s hosted checkout page, and they go directly to Stripe. We never receive or store your full card number. We store your Stripe customer and subscription identifiers, plan and subscription status. Through our Stripe account we can also see the billing details Stripe holds, such as your billing name, email address, billing address if you give one, card brand, the last four digits and expiry date of your card, payment history and invoices.
+        </p>
+        <h3>Technical and usage information</h3>
+        <ul>
+          <li><strong>Product analytics.</strong> Information about how pages are used, collected through PostHog. Section 5 describes exactly what is collected.</li>
+          <li><strong>Server and hosting logs.</strong> When your browser connects to the Service, our hosting provider records technical request details such as your IP address, the page or address requested, the time, your browser&rsquo;s user agent, and the response status. Our application logs record errors, and for some billing and account events they record your account identifier.</li>
+          <li><strong>Session and browser storage.</strong> Information stored in your browser to keep you signed in and remember your preferences. See section 6.</li>
+        </ul>
+        <h3>Communications</h3>
+        <p>
+          If you email us, we keep your message, your email address and our reply so we can help you and keep a record of the conversation.
+        </p>
+        <p>
+          We do not ask for government identification numbers, health information or other sensitive personal information, and the Service is not designed to hold it. Section 3 explains your responsibilities if your work involves information about other people.
+        </p>
+      </section>
 
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "28px", textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "center", gap: "24px", flexWrap: "wrap" }}>
-          {[["Home", "/"], ["FAQ", "/faq"], ["Terms", "/terms"], ["Pricing", "/pricing"]].map(([l, h]) => (
-            <Link key={l} href={h} style={{ fontSize: "12px", color: "#2a2a38", textDecoration: "none" }}>{l}</Link>
-          ))}
-        </div>
-      </footer>
-    </div>
+      <section>
+        <h2>3. Information you add about other people</h2>
+        <p>
+          Business analysis work often involves information about colleagues, stakeholders, clients, customers or your employer. If you add that kind of information to the Service, you are responsible for making sure you are allowed to do so. That means following your employer&rsquo;s or client&rsquo;s policies, any confidentiality obligations you have, and applicable privacy laws. Please include only what your work needs. Avoid entering sensitive personal information about individuals, such as health information, financial account numbers or government identifiers, unless it is necessary and you have authority to share it.
+        </p>
+        <p>
+          We use that information only to provide the Service to you as described in this policy.
+        </p>
+      </section>
+
+      <section>
+        <h2>4. AI processing</h2>
+        <p>
+          The Service&rsquo;s AI features use Anthropic, PBC&rsquo;s Claude API. These features include the project workstreams, document generation, Decision Lab, Thought Buddy, option suggestions and BA Intelligence. When you use one, our servers send Anthropic the following:
+        </p>
+        <ul>
+          <li>Your message or input.</li>
+          <li>The project context the feature needs. Depending on the feature, this can include your problem statement, approved documents from the same project, accepted findings, earlier messages in that conversation, and decisions you have recorded.</li>
+          <li>Our own instructions to the model.</li>
+        </ul>
+        <p>
+          Anthropic returns a response, which we store in your workspace. These requests go from our servers to Anthropic, not from your browser. Anthropic processes them in the United States. Under Anthropic&rsquo;s commercial terms for API customers, Anthropic does not use these inputs and outputs to train its models. Anthropic may keep them for a limited period under its own terms, for example for safety and abuse monitoring.
+        </p>
+        <p>
+          We do not use your workspace content to train AI models. AI output can be inaccurate or incomplete. Please review it before relying on it. Our <Link href="/terms">Terms of Service</Link> say more about this.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. Analytics (PostHog)</h2>
+        <p>
+          We use PostHog, a product analytics service operated by PostHog, Inc., to understand how the Service is used and where it can be improved. PostHog&rsquo;s script runs on every page of the Service, including when you are not signed in. As currently configured, it:
+        </p>
+        <ul>
+          <li>Records clicks on buttons and links (&ldquo;autocapture&rdquo;). Each recorded click includes the page address, a description of the element clicked and its visible text, which can include on-screen labels such as a project name.</li>
+          <li>Includes with each event your browser and operating system, device type, screen and window size, language, time zone, the referring website, and a random identifier stored in your browser.</li>
+          <li>Receives your IP address when your browser connects to PostHog&rsquo;s servers in the United States.</li>
+        </ul>
+        <p>
+          PostHog does not record what you type into form fields. Session recording, heatmaps and surveys are turned off. We do not send your name or email address to PostHog, and we do not link PostHog data to your account.
+        </p>
+        <p>
+          You can stop analytics collection by blocking scripts from posthog.com with your browser&rsquo;s content-blocking settings or an extension, or by clearing the PostHog identifier from your browser storage. The Service works without it.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. Cookies, browser storage and fonts</h2>
+        <ul>
+          <li><strong>Sign-in cookie.</strong> When you sign in, our authentication provider (Supabase) sets a cookie named <code>sb-…-auth-token</code> that keeps you signed in. It is necessary for the Service to work and is removed when you sign out. No cookies are set while you browse the public pages without signing in.</li>
+          <li><strong>Analytics storage.</strong> PostHog keeps its random identifier and session information in your browser&rsquo;s local storage and session storage, not in cookies.</li>
+          <li><strong>Preferences and recent work in your browser.</strong> The Service stores a few items in your browser&rsquo;s local storage: whether the sidebar is collapsed, the last project and session you used in BA Intelligence, and your most recent Decision Lab sessions (up to 20), including the text you entered, so you can return to them. These items stay on your device until you clear them, so take care on shared computers.</li>
+          <li><strong>Google Fonts.</strong> Our pages load fonts from Google&rsquo;s servers (fonts.googleapis.com and fonts.gstatic.com). Your browser therefore sends your IP address and browser information to Google when it loads a page.</li>
+        </ul>
+        <p>
+          We do not use advertising cookies or advertising tracking pixels. We do not sell personal information or use it for targeted advertising.
+        </p>
+      </section>
+
+      <section>
+        <h2>7. How we use personal information</h2>
+        <ul>
+          <li>To create and manage your account and sign you in.</li>
+          <li>To provide the Service: storing, displaying and exporting your work, and generating AI output when you ask for it.</li>
+          <li>To process subscriptions and payments, and to apply plan features, usage allowances and rate limits.</li>
+          <li>To send service emails, such as sign-in links and password reset emails. We also contact you about your account, billing, security or changes to our terms or this policy.</li>
+          <li>To respond to your support requests.</li>
+          <li>To keep the Service secure and working: detecting and preventing abuse, investigating errors and fixing problems.</li>
+          <li>To understand how the Service is used and improve it.</li>
+          <li>To meet legal, tax and accounting obligations, and to enforce our Terms of Service.</li>
+        </ul>
+        <p>
+          We do not send marketing emails unless you have agreed to receive them. We collect, use and disclose personal information only for these purposes, or for purposes that a reasonable person would consider appropriate in the circumstances, or as permitted or required by law.
+        </p>
+      </section>
+
+      <section>
+        <h2>8. Service providers and other disclosures</h2>
+        <p>
+          We use the following service providers to run the Service. They process personal information on our behalf for the purposes described here.
+        </p>
+        <table className="pdoc-table">
+          <thead>
+            <tr><th>Provider</th><th>What it does for us</th><th>Where it processes data</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Vercel Inc.</td><td>Hosts the website and application servers</td><td>United States (Washington, D.C. area)</td></tr>
+            <tr><td>Supabase Inc.</td><td>Database, authentication, and sign-in and password reset emails</td><td>United States (AWS, US East)</td></tr>
+            <tr><td>Anthropic, PBC</td><td>AI model processing for the AI features</td><td>United States</td></tr>
+            <tr><td>Stripe</td><td>Payment processing, subscriptions, billing portal and invoices</td><td>Canada, the United States and other countries where Stripe operates</td></tr>
+            <tr><td>PostHog, Inc.</td><td>Product analytics</td><td>United States</td></tr>
+            <tr><td>Google LLC</td><td>Delivers web fonts to your browser</td><td>United States and other countries where Google operates</td></tr>
+          </tbody>
+        </table>
+        <p>We may also disclose personal information:</p>
+        <ul>
+          <li>when required or permitted by law, for example in response to a valid court order or other legal process;</li>
+          <li>to protect the rights, safety or security of our users, the public or Consultingly, including to investigate fraud or abuse;</li>
+          <li>to a buyer, successor or advisor in a merger, financing, acquisition or sale of all or part of our business, subject to obligations to protect the information; and</li>
+          <li>with your consent.</li>
+        </ul>
+        <p>We do not sell personal information.</p>
+      </section>
+
+      <section>
+        <h2>9. Processing outside Canada</h2>
+        <p>
+          Your information is stored and processed mainly in the United States, by the providers listed above. Stripe may also process payment information in Canada and other countries. Information held outside Canada is subject to the laws of the country where it is held, and the courts, law enforcement and national security authorities there may be able to access it. If you have questions about how our service providers outside Canada collect, use, disclose or store personal information for us, contact our Privacy Officer at <SupportEmail />.
+        </p>
+      </section>
+
+      <section>
+        <h2>10. How we protect information</h2>
+        <p>We use reasonable safeguards for the sensitivity of the information we handle, including:</p>
+        <ul>
+          <li>encrypted HTTPS connections between your browser and the Service;</li>
+          <li>database access rules that limit each account to its own records, plus ownership checks on our servers;</li>
+          <li>keeping secret credentials on our servers and out of the browser;</li>
+          <li>password storage handled by our authentication provider in hashed form, and card details handled only by Stripe;</li>
+          <li>verifying that payment notifications really come from Stripe, and checking plan access on our servers;</li>
+          <li>limits on how often AI features can be called; and</li>
+          <li>limiting access to production systems to the people who operate the Service.</li>
+        </ul>
+        <p>
+          No method of transmission or storage is completely secure, and we cannot guarantee absolute security. You can help by using a strong, unique password, signing out on shared devices, and telling us promptly if you think your account has been used without your permission.
+        </p>
+      </section>
+
+      <section>
+        <h2>11. How long we keep information</h2>
+        <ul>
+          <li><strong>Account and workspace content</strong> is kept while your account is open. When your account is deleted at your request, or closed under our Terms of Service, it is handled as described below.</li>
+          <li><strong>Account deletion.</strong> The Service does not currently have a self-service delete button. To delete your account, email <SupportEmail /> from the email address on the account. After we confirm the request, we delete your account, profile and workspace content from our production database. We aim to complete this within 30 days and will confirm when it is done. Copies in our database provider&rsquo;s backups are removed as those backups expire. We keep only what we need to meet legal, tax and accounting obligations, to resolve disputes, and to record that the request was handled.</li>
+          <li><strong>Payment records</strong> are kept by Stripe and by us for as long as tax, accounting and legal requirements require.</li>
+          <li><strong>Server and application logs</strong> are kept for limited periods under our hosting provider&rsquo;s log retention settings.</li>
+          <li><strong>Analytics data</strong> is kept in PostHog under our account&rsquo;s retention settings. It is not linked to your name or email address.</li>
+          <li><strong>Support emails</strong> are kept as long as needed to help you and to keep a reasonable record of the conversation.</li>
+          <li><strong>Information in your browser</strong> stays on your device until you clear it or sign out.</li>
+        </ul>
+        <p>
+          We do not currently delete inactive accounts automatically. If we introduce a practice of deleting inactive accounts, we will tell you before it applies to you.
+        </p>
+      </section>
+
+      <section>
+        <h2>12. Your choices and rights</h2>
+        <p>Subject to applicable law, you can:</p>
+        <ul>
+          <li>ask for access to the personal information we hold about you;</li>
+          <li>ask us to correct information that is inaccurate or incomplete;</li>
+          <li>ask us to delete your account and associated personal information;</li>
+          <li>withdraw your consent to certain uses, although this may mean we can no longer provide some or all of the Service; and</li>
+          <li>complain to us, and, if you are not satisfied, to the Office of the Privacy Commissioner of Canada or the Office of the Information and Privacy Commissioner of Alberta.</li>
+        </ul>
+        <p>
+          Some changes you can make yourself. You can update your name in Settings, update billing details in the Stripe billing portal (Settings → Billing → Manage subscription), and export your documents from the workspace. For anything else, email <SupportEmail /> from the email address on your account. We may need to confirm your identity before acting on a request. We will respond within the time required by applicable law, which is generally 30 days. If we cannot fully meet a request, we will explain why.
+        </p>
+      </section>
+
+      <section>
+        <h2>13. Privacy and security incidents</h2>
+        <p>
+          If we learn of a breach of security safeguards involving personal information under our control, we will act promptly to contain and investigate it. Where the law requires, including where a breach creates a real risk of significant harm, we will notify affected individuals and the relevant privacy regulators. We also keep records of breaches as the law requires. If you believe your account or information has been compromised, or you have found a security vulnerability, please report it to <SupportEmail />.
+        </p>
+      </section>
+
+      <section>
+        <h2>14. Age requirement</h2>
+        <p>
+          The Service is a professional tool for adults. It is not intended for children, and you must be at least 18 years old to create an account. We do not knowingly collect personal information from anyone under 18. If you believe someone under 18 has given us personal information, contact us and we will delete it.
+        </p>
+      </section>
+
+      <section>
+        <h2>15. Changes to this policy</h2>
+        <p>
+          We may update this policy as the Service or the law changes. When we do, we will change the &ldquo;Last updated&rdquo; date at the top of this page. If we make a material change, we will notify you by email or with a notice in the Service before the change takes effect.
+        </p>
+      </section>
+
+      <section>
+        <h2>16. Contact us</h2>
+        <p>
+          Consultingly Inc., Alberta, Canada. Privacy Officer: <SupportEmail />. For general help, see our <Link href="/support">Support</Link> page.
+        </p>
+      </section>
+    </PublicDocLayout>
   );
 }

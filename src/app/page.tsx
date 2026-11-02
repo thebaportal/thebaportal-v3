@@ -1124,7 +1124,7 @@ export default function HomePage() {
             </span>
           </div>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            {[["Pricing", "/pricing"], ["FAQ", "/faq"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"]].map(([label, href]) => (
+            {[["Pricing", "/pricing"], ["FAQ", "/faq"], ["Support", "/support"], ["Privacy", "/privacy"], ["Terms", "/terms"]].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 13, color: "#6b6b80", textDecoration: "none" }}>{label}</Link>
             ))}
           </div>
