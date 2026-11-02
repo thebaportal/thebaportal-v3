@@ -24,6 +24,10 @@ const nextConfig = {
     workerThreads: false,
     cpus: 1,
   },
+  async redirects() {
+    // The old Contact page listed retired addresses; Support is the single public contact page.
+    return [{ source: "/contact", destination: "/support", permanent: true }];
+  },
 };
 
 export default nextConfig;

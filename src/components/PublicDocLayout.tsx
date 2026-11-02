@@ -56,7 +56,13 @@ export function PublicDocLayout({ eyebrow, title, lastUpdated, intro, children }
         <p>The BA Portal is operated by Consultingly Inc., Alberta, Canada.</p>
       </footer>
 
-      <style>{`
+      {/* Injected as raw CSS: React escapes quotes in <style> text children, which breaks hydration. */}
+      <style dangerouslySetInnerHTML={{ __html: PDOC_CSS }} />
+    </div>
+  );
+}
+
+const PDOC_CSS = `
         .pdoc { background: #07070a; color: #f2f2f8; min-height: 100vh; font-family: 'Open Sans', sans-serif; -webkit-font-smoothing: antialiased; }
         .pdoc a { color: #8d97d9; text-decoration: none; }
         .pdoc a:hover { text-decoration: underline; }
@@ -108,7 +114,4 @@ export function PublicDocLayout({ eyebrow, title, lastUpdated, intro, children }
           .pdoc-table td { border: none; padding: 2px 0; }
           .pdoc-table td:first-child { color: #e4e4f0; font-weight: 600; }
         }
-      `}</style>
-    </div>
-  );
-}
+`;
