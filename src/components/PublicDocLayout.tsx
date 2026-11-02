@@ -84,7 +84,8 @@ const PDOC_CSS = `
         .pdoc h3 { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: #e4e4f0; margin: 20px 0 8px; }
         .pdoc-body p, .pdoc-body li { font-size: 14.5px; color: #a8a8bc; line-height: 1.78; }
         .pdoc-body p { margin: 0 0 12px; }
-        .pdoc-body ul { margin: 0 0 12px; padding-left: 20px; }
+        .pdoc-body ul { margin: 0 0 12px; padding-left: 20px; list-style: disc outside; }
+        .pdoc-body li::marker { color: #6b6b80; }
         .pdoc-body li { margin-bottom: 6px; }
         .pdoc-body strong { color: #e4e4f0; font-weight: 600; }
         .pdoc-body a { overflow-wrap: anywhere; }
