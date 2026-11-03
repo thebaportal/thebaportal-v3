@@ -99,12 +99,13 @@ export default function PrivacyPage() {
       <section>
         <h2>5. Analytics (PostHog)</h2>
         <p>
-          We use PostHog, a product analytics service operated by PostHog, Inc., to understand how the Service is used and where it can be improved. PostHog&rsquo;s script runs on every page of the Service, including when you are not signed in. As currently configured, it:
+          We use PostHog, a product analytics service operated by PostHog, Inc., to understand how the Service is used and where it can be improved. PostHog&rsquo;s script runs on every page of the Service, including when you are not signed in. As currently configured:
         </p>
         <ul>
-          <li>Records clicks on buttons and links (&ldquo;autocapture&rdquo;). Each recorded click includes the page address, a description of the element clicked and its visible text, which can include on-screen labels such as a project name.</li>
-          <li>Includes with each event your browser and operating system, device type, screen and window size, language, time zone, the referring website, and a random identifier stored in your browser.</li>
-          <li>Receives your IP address when your browser connects to PostHog&rsquo;s servers in the United States.</li>
+          <li><strong>Public pages.</strong> On our home, pricing, FAQ, support, privacy and terms pages, and the sign-in, sign-up and password-reset pages, PostHog records clicks on buttons and links (&ldquo;autocapture&rdquo;). Each recorded click includes the page address and a description of the element clicked, including its text. These pages contain only our own text.</li>
+          <li><strong>Signed-in workspace pages.</strong> On projects, workstreams, Decision Lab, BA Intelligence, templates and settings, click recording is turned off. The Service also blocks any analytics event that would contain page elements or their text. PostHog does not receive project names, requirements, client or stakeholder names, user stories, decisions or any other text from your workspace. PostHog&rsquo;s script still loads on these pages. Any technical event it sends there contains only the page address, which can include a project&rsquo;s internal identifier but not its name, plus the technical details below.</li>
+          <li>Each event includes your browser and operating system, device type, screen and window size, language, time zone, the referring website, and a random identifier stored in your browser.</li>
+          <li>PostHog receives your IP address when your browser connects to its servers in the United States.</li>
         </ul>
         <p>
           PostHog does not record what you type into form fields. Session recording, heatmaps and surveys are turned off. We do not send your name or email address to PostHog, and we do not link PostHog data to your account.
