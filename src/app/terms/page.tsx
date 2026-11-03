@@ -53,7 +53,7 @@ export default function TermsPage() {
           <li>Payments are processed by Stripe through Stripe&rsquo;s hosted checkout page. Stripe&rsquo;s own terms also apply to the payment. We never receive your full card number.</li>
           <li>Pro is a subscription. It <strong>renews automatically</strong> at the end of each billing period (each month for monthly, each year for annual) until you cancel. By subscribing, you authorize us, through Stripe, to charge your payment method at the start of each billing period.</li>
           <li>If a renewal payment fails, Stripe may retry it, and we may mark your subscription as past due. If payment still cannot be collected, the subscription may end and your account will move to the Free plan.</li>
-          <li>If we change the Pro price, we will tell you by email at least 30 days in advance. The new price applies from your first renewal after the notice period. You can cancel before then if you do not want to continue at the new price.</li>
+          <li>If we change the Pro price, we will give you reasonable advance notice by email, or any longer notice that applicable law requires. The new price applies from your first renewal after the notice period. You can cancel before then if you do not want to continue at the new price.</li>
         </ul>
       </section>
 
@@ -147,7 +147,7 @@ export default function TermsPage() {
       <section>
         <h2>12. Third-party services</h2>
         <p>
-          The Service relies on third-party providers, including Stripe for payments, Anthropic for AI processing, Supabase for database and authentication, Vercel for hosting, PostHog for analytics and Google for web fonts. Their services are subject to their own terms. We are not responsible for third-party services beyond our reasonable control, but we choose providers carefully and use them as described in our <Link href="/privacy">Privacy Policy</Link>.
+          The Service relies on third-party providers, including Stripe for payments, Anthropic for AI processing, Supabase for database and authentication, Vercel for hosting and PostHog for analytics. Their services are subject to their own terms. We are not responsible for third-party services beyond our reasonable control, but we choose providers carefully and use them as described in our <Link href="/privacy">Privacy Policy</Link>.
         </p>
       </section>
 
@@ -174,7 +174,7 @@ export default function TermsPage() {
       <section>
         <h2>15. Availability and changes to the Service</h2>
         <p>
-          We work to keep the Service available and reliable, but we do not promise that it will be uninterrupted or error-free. Maintenance, provider outages and other events can affect it. We may add, change or remove features. If a change materially reduces the Pro features you are paying for, you can cancel under section 4. If we decide to discontinue the Service entirely, we will give at least 30 days&rsquo; notice where reasonably possible so that you can export your content, and we will refund prepaid fees for the unused period.
+          We work to keep the Service available and reliable, but we do not promise that it will be uninterrupted or error-free. Maintenance, provider outages and other events can affect it. We may add, change or remove features. If a change materially reduces the Pro features you are paying for, you can cancel under section 4. If we decide to discontinue the Service entirely, we will give reasonable advance notice where possible so that you can export your content, and we will refund prepaid fees for the unused period.
         </p>
       </section>
 
@@ -223,7 +223,7 @@ export default function TermsPage() {
           <li>If we do not enforce a right right away, we have not given it up.</li>
           <li>You may not transfer your rights under these Terms without our consent. We may transfer ours in connection with a merger, acquisition or sale of all or part of our business, and we will tell you if that happens.</li>
           <li>We may send you notices by email to the address on your account or by a notice in the Service.</li>
-          <li>We may update these Terms. We will change the &ldquo;Last updated&rdquo; date, and for material changes we will give at least 14 days&rsquo; notice by email or in the Service before they take effect. Changes do not apply to past events. If you do not agree with a change, you can cancel and stop using the Service before it takes effect.</li>
+          <li>We may update these Terms. We will change the &ldquo;Last updated&rdquo; date, and for material changes we will give reasonable advance notice by email or in the Service before they take effect, or such other notice as applicable law requires. Changes do not apply to past events. If you do not agree with a change, you can cancel and stop using the Service before it takes effect.</li>
         </ul>
       </section>
 

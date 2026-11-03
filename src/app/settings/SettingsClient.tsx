@@ -23,9 +23,6 @@ function IconUser() {
 function IconShield() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2L3 6v6c0 5.25 3.75 10.14 9 11.25C18.25 22.14 22 17.25 22 12V6L12 2z"/></svg>;
 }
-function IconBell() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>;
-}
 function IconCreditCard() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
 }
@@ -36,12 +33,11 @@ function IconLogOut() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>;
 }
 
-type Tab = "profile" | "security" | "notifications" | "billing";
+type Tab = "profile" | "security" | "billing";
 
 const NAV: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "profile",       label: "Profile",       icon: <IconUser /> },
   { id: "security",      label: "Security",      icon: <IconShield /> },
-  { id: "notifications", label: "Notifications", icon: <IconBell /> },
   { id: "billing",       label: "Billing",       icon: <IconCreditCard /> },
 ];
 
@@ -196,18 +192,6 @@ export default function SettingsClient({ userId, email, fullName, isPro, subscri
               </Section>
             )}
 
-            {/* NOTIFICATIONS */}
-            {tab === "notifications" && (
-              <Section title="Notifications" subtitle="Control how and when TheBAPortal contacts you.">
-                {[
-                  { label: "Project activity",   sub: "Email when there's new activity in your projects",     key: "activity" },
-                  { label: "New features",        sub: "Be first to know when new tools or workstreams go live", key: "releases" },
-                  { label: "Platform updates",    sub: "Feature releases, improvements, and news",              key: "updates" },
-                  { label: "Product tips",        sub: "Periodic tips for getting more out of TheBAPortal",     key: "tips" },
-                ].map(item => <ToggleRow key={item.key} label={item.label} sub={item.sub} defaultOn={item.key !== "updates"} />)}
-              </Section>
-            )}
-
             {/* BILLING */}
             {tab === "billing" && (
               <Section title="Billing" subtitle="Manage your plan and payment details.">
@@ -252,21 +236,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Divider() {
   return <div style={{ height: 1, background: "var(--lc-border)", margin: "6px 0" }} />;
-}
-
-function ToggleRow({ label, sub, defaultOn }: { label: string; sub: string; defaultOn: boolean }) {
-  const [on, setOn] = useState(defaultOn);
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: "1px solid var(--lc-border-soft)" }}>
-      <div>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--lc-text-1)", marginBottom: 3 }}>{label}</div>
-        <div style={{ fontSize: 12, color: "var(--lc-text-3)" }}>{sub}</div>
-      </div>
-      <button onClick={() => setOn(v => !v)} style={{ width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", background: on ? "var(--teal)" : "var(--lc-border)", position: "relative", flexShrink: 0, transition: "background .2s" }}>
-        <div style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: on ? "#f5f1e7" : "#ffffff", transition: "left .2s" }} />
-      </button>
-    </div>
-  );
 }
 
 function PasswordResetButton({ email }: { email: string }) {

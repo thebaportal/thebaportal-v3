@@ -86,10 +86,13 @@ export default function PrivacyPage() {
           <li>Our own instructions to the model.</li>
         </ul>
         <p>
-          Anthropic returns a response, which we store in your workspace. These requests go from our servers to Anthropic, not from your browser. Anthropic processes them in the United States. Under Anthropic&rsquo;s commercial terms for API customers, Anthropic does not use these inputs and outputs to train its models. Anthropic may keep them for a limited period under its own terms, for example for safety and abuse monitoring.
+          Anthropic returns a response, which we store in your workspace. These requests go from our servers to Anthropic, not from your browser.
         </p>
         <p>
-          We do not use your workspace content to train AI models. AI output can be inaccurate or incomplete. Please review it before relying on it. Our <Link href="/terms">Terms of Service</Link> say more about this.
+          Anthropic stores API data in the United States. Under its current default settings, the model processing itself may run on Anthropic&rsquo;s infrastructure in other countries for performance and availability. Anthropic currently states that inputs and outputs from its commercial API are not used to train its models unless the customer explicitly opts in. We have not opted in. Anthropic also currently states that it deletes standard API inputs and outputs within 30 days. It can keep them longer where needed to enforce its usage policies, where the law requires it, or under a different agreement with the customer. These are Anthropic&rsquo;s policies, which Anthropic may change.
+        </p>
+        <p>
+          The BA Portal does not use your workspace content to train AI models. AI output can be inaccurate or incomplete. Please review it before relying on it. Our <Link href="/terms">Terms of Service</Link> say more about this.
         </p>
       </section>
 
@@ -112,13 +115,15 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>6. Cookies, browser storage and fonts</h2>
+        <h2>6. Cookies and browser storage</h2>
         <ul>
           <li><strong>Sign-in cookie.</strong> When you sign in, our authentication provider (Supabase) sets a cookie named <code>sb-…-auth-token</code> that keeps you signed in. It is necessary for the Service to work and is removed when you sign out. No cookies are set while you browse the public pages without signing in.</li>
           <li><strong>Analytics storage.</strong> PostHog keeps its random identifier and session information in your browser&rsquo;s local storage and session storage, not in cookies.</li>
           <li><strong>Preferences and recent work in your browser.</strong> The Service stores a few items in your browser&rsquo;s local storage: whether the sidebar is collapsed, the last project and session you used in BA Intelligence, and your most recent Decision Lab sessions (up to 20), including the text you entered, so you can return to them. These items stay on your device until you clear them, so take care on shared computers.</li>
-          <li><strong>Google Fonts.</strong> Our pages load fonts from Google&rsquo;s servers (fonts.googleapis.com and fonts.gstatic.com). Your browser therefore sends your IP address and browser information to Google when it loads a page.</li>
         </ul>
+        <p>
+          Our fonts are served from our own website, so loading a page does not contact a third-party font service.
+        </p>
         <p>
           We do not use advertising cookies or advertising tracking pixels. We do not sell personal information or use it for targeted advertising.
         </p>
@@ -151,12 +156,11 @@ export default function PrivacyPage() {
             <tr><th>Provider</th><th>What it does for us</th><th>Where it processes data</th></tr>
           </thead>
           <tbody>
-            <tr><td>Vercel Inc.</td><td>Hosts the website and application servers</td><td>United States (Washington, D.C. area)</td></tr>
-            <tr><td>Supabase Inc.</td><td>Database, authentication, and sign-in and password reset emails</td><td>United States (AWS, US East)</td></tr>
-            <tr><td>Anthropic, PBC</td><td>AI model processing for the AI features</td><td>United States</td></tr>
-            <tr><td>Stripe</td><td>Payment processing, subscriptions, billing portal and invoices</td><td>Canada, the United States and other countries where Stripe operates</td></tr>
-            <tr><td>PostHog, Inc.</td><td>Product analytics</td><td>United States</td></tr>
-            <tr><td>Google LLC</td><td>Delivers web fonts to your browser</td><td>United States and other countries where Google operates</td></tr>
+            <tr><td>Vercel Inc.</td><td>Hosts the website and runs our application servers, including request and error logs</td><td>Application servers in the United States (Washington, D.C. area). Requests first reach Vercel&rsquo;s network point nearest to you, which for visitors in Canada is usually in Canada or the United States.</td></tr>
+            <tr><td>Supabase Inc.</td><td>Stores account and workspace data, handles sign-in, and sends sign-in and password reset emails</td><td>United States (Amazon Web Services, US East, Northern Virginia)</td></tr>
+            <tr><td>Anthropic, PBC</td><td>Generates AI responses from the requests our servers send</td><td>Data stored in the United States. Model processing may run in other countries, as described in section 4.</td></tr>
+            <tr><td>Stripe</td><td>Payment processing, subscriptions, billing portal, invoices and fraud prevention</td><td>Canada and the United States. Stripe states that it transfers Canadian personal data to its data centres in the United States, and that its own service providers are mainly in the United States, the European Union and India.</td></tr>
+            <tr><td>PostHog, Inc.</td><td>Product analytics, as described in section 5</td><td>United States (PostHog&rsquo;s US cloud, hosted on Amazon Web Services)</td></tr>
           </tbody>
         </table>
         <p>We may also disclose personal information:</p>
@@ -172,7 +176,7 @@ export default function PrivacyPage() {
       <section>
         <h2>9. Processing outside Canada</h2>
         <p>
-          Your information is stored and processed mainly in the United States, by the providers listed above. Stripe may also process payment information in Canada and other countries. Information held outside Canada is subject to the laws of the country where it is held, and the courts, law enforcement and national security authorities there may be able to access it. If you have questions about how our service providers outside Canada collect, use, disclose or store personal information for us, contact our Privacy Officer at <SupportEmail />.
+          Your information is stored and processed outside Canada by the providers listed above, for the purposes listed beside each one. Account and workspace data, application servers, logs and analytics are in the United States. AI requests are stored by Anthropic in the United States, and the model processing may run in other countries. Payment information is handled by Stripe in Canada and the United States, and by Stripe&rsquo;s own service providers, mainly in the United States, the European Union and India. Information held outside Canada is subject to the laws of the country where it is held, and the courts, law enforcement and national security authorities there may be able to access it. If you have questions about how our service providers outside Canada collect, use, disclose or store personal information for us, contact our Privacy Officer at <SupportEmail />.
         </p>
       </section>
 
@@ -197,7 +201,7 @@ export default function PrivacyPage() {
         <h2>11. How long we keep information</h2>
         <ul>
           <li><strong>Account and workspace content</strong> is kept while your account is open. When your account is deleted at your request, or closed under our Terms of Service, it is handled as described below.</li>
-          <li><strong>Account deletion.</strong> The Service does not currently have a self-service delete button. To delete your account, email <SupportEmail /> from the email address on the account. After we confirm the request, we delete your account, profile and workspace content from our production database. We aim to complete this within 30 days and will confirm when it is done. Copies in our database provider&rsquo;s backups are removed as those backups expire. We keep only what we need to meet legal, tax and accounting obligations, to resolve disputes, and to record that the request was handled.</li>
+          <li><strong>Account deletion.</strong> The Service does not currently have a self-service delete button. To delete your account, email <SupportEmail /> from the email address on the account. After we verify the request, we delete your account, profile and workspace content from our production database within a reasonable period and confirm when it is done. This is subject to applicable law and to information we must or legitimately need to keep for legal, security, accounting and dispute-resolution purposes. Copies in our database provider&rsquo;s backups are removed as those backups expire. We also keep a record that the request was handled.</li>
           <li><strong>Payment records</strong> are kept by Stripe and by us for as long as tax, accounting and legal requirements require.</li>
           <li><strong>Server and application logs</strong> are kept for limited periods under our hosting provider&rsquo;s log retention settings.</li>
           <li><strong>Analytics data</strong> is kept in PostHog under our account&rsquo;s retention settings. It is not linked to your name or email address.</li>
@@ -241,7 +245,7 @@ export default function PrivacyPage() {
       <section>
         <h2>15. Changes to this policy</h2>
         <p>
-          We may update this policy as the Service or the law changes. When we do, we will change the &ldquo;Last updated&rdquo; date at the top of this page. If we make a material change, we will notify you by email or with a notice in the Service before the change takes effect.
+          We may update this policy as the Service or the law changes. When we do, we will change the &ldquo;Last updated&rdquo; date at the top of this page. If we make a material change, we will give you reasonable advance notice by email or with a notice in the Service before the change takes effect, or such other notice as applicable law requires.
         </p>
       </section>
 

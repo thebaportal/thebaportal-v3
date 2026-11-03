@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Check, Crown, Zap, ArrowLeft, Loader2, Lock, CreditCard, RotateCcw, Globe } from "lucide-react";
+import { Check, Crown, Zap, ArrowLeft, Loader2, Lock, CreditCard, RotateCcw } from "lucide-react";
 
 const freeFeatures = [
   "Unlimited projects",
@@ -312,7 +312,6 @@ function PricingInner() {
             { icon: Lock, label: "Encrypted HTTPS connection" },
             { icon: CreditCard, label: "Powered by Stripe" },
             { icon: RotateCcw, label: "Cancel anytime" },
-            { icon: Globe, label: "Used by BAs in 20+ countries" },
           ].map(({ icon: Icon, label }) => (
             <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Icon size={13} color="var(--text-3)" />
