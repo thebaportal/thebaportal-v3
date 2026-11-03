@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./fonts.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,17 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Inter for headings — clean, professional, sharp at heavy weights */}
-        {/* Open Sans for body — warm, readable, highly legible at all sizes */}
-        {/* JetBrains Mono for labels, eyebrows, stats — technical credibility */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+      {/* Fonts (Inter headings, Open Sans body, JetBrains Mono labels) are self-hosted: see ./fonts.css. */}
       <body>
         {children}
       </body>
