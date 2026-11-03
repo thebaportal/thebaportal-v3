@@ -16,6 +16,8 @@ An ordered, reproducible definition of TheBAPortal's app schema, in two parts.
 | `0010_security_hardening.sql` | Security fix | **Applied 2026-10-06** |
 | `0011_artifact_lifecycle_integrity.sql` | Lifecycle integrity | **Applied 2026-10-19** |
 | `0012_impact_reviews.sql` | Impact review acknowledgements | **Applied 2026-10-19** |
+| `0013_decision_lab_usage.sql` | Decision Lab Free allowance | **Applied 2026-10-22** |
+| `0014_project_ownership_guard.sql` | Cross-project integrity | Not yet applied (TEST project only) |
 
 `0011` enforces the artifact lifecycle in the database: one Approved version
 plus at most one working Draft per lineage, unique versions, read-only history,
@@ -31,6 +33,12 @@ source, current source). Impacts themselves are computed by the app and never
 stored. An insert guard re-checks ownership and that the change is current;
 clients have no access (server only). Checks: `checks/0012_impact_reviews_verify.sql`;
 rollback `checks/0012_impact_reviews_rollback.sql` drops only that table.
+
+`0014` adds one trigger function and a BEFORE INSERT / UPDATE OF (project_id, user_id)
+trigger on artifacts, decision_log, artifact_conversations, ba_intel_sessions,
+ba_intel_findings and impact_reviews: a row's user_id must own its project_id (all roles,
+including the service role). Checks: `checks/0014_project_ownership_guard_verify.sql`;
+rollback `checks/0014_project_ownership_guard_rollback.sql` drops the triggers and function.
 
 ## Production history
 

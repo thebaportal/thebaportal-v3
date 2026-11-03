@@ -41,6 +41,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!workstream_type || !messages) return NextResponse.json({ error: "workstream_type and messages required" }, { status: 400 });
 
   const db = admin();
+  // The service role bypasses RLS, so ownership of the project is checked here
+  // (and enforced again in the database by 0014's project-owner guard).
+  const { data: project } = await db.from("projects").select("id").eq("id", params.id).eq("user_id", user.id).maybeSingle();
+  if (!project) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
   // Conflict target includes user_id (matches the artifact_conversations unique
   // constraint) so an upsert can never collide with, and silently overwrite, a
   // different user's row for the same project_id + workstream_type.
