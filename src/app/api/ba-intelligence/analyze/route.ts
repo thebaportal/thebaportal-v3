@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createMessage } from "@/lib/anthropic";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
@@ -117,10 +118,8 @@ export async function POST(request: Request) {
 
   let rawFindings: RawFinding[];
   try {
-    const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const response = await client.messages.create({
+    const response = await createMessage({
       model: "claude-sonnet-4-6",
       max_tokens: 8000,
       system: SYSTEM_PROMPT,

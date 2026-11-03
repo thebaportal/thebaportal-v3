@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createMessage } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { EVIDENCE_RULES } from "@/lib/projects/grounding";
@@ -105,8 +106,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Messages required" }, { status: 400 });
     }
 
-    const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const anthropicMessages = messages.map((m: { role: string; content: string }) => ({
       role: m.role === "user" ? ("user" as const) : ("assistant" as const),
@@ -115,7 +114,7 @@ export async function POST(request: Request) {
 
     const maxTokens = 8000;
 
-    const response = await client.messages.create({
+    const response = await createMessage({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
       system: SYSTEM_PROMPT + EVIDENCE_RULES,

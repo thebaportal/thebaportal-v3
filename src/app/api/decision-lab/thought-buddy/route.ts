@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
+import { createMessage } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getEntitlements } from "@/lib/entitlements";
 import { upgradeRequired } from "@/lib/upgradeRequired";
-import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic();
 
 const SYSTEM_PROMPT = `You are Decision Lab's Thought Buddy — a thinking partner for the decision the user has already described.
 
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
 
     const userMessage = `DECISION CONTEXT:\n${situation.trim()}\n\nQUESTION:\n${question.trim()}`;
 
-    const message = await client.messages.create({
+    const message = await createMessage({
       model: "claude-sonnet-4-6",
       max_tokens: 1500,
       system: SYSTEM_PROMPT,
