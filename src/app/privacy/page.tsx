@@ -52,7 +52,6 @@ export default function PrivacyPage() {
         </p>
         <h3>Technical and usage information</h3>
         <ul>
-          <li><strong>Product analytics.</strong> Information about how pages are used, collected through PostHog. Section 5 describes exactly what is collected.</li>
           <li><strong>Server and hosting logs.</strong> When your browser connects to the Service, our hosting provider records technical request details such as your IP address, the page or address requested, the time, your browser&rsquo;s user agent, and the response status. Our application logs record errors, and for some billing and account events they record your account identifier.</li>
           <li><strong>Session and browser storage.</strong> Information stored in your browser to keep you signed in and remember your preferences. See section 6.</li>
         </ul>
@@ -97,21 +96,9 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>5. Analytics (PostHog)</h2>
+        <h2>5. No third-party analytics or advertising tracking</h2>
         <p>
-          We use PostHog, a product analytics service operated by PostHog, Inc., to understand how the Service is used and where it can be improved. PostHog&rsquo;s script runs on every page of the Service, including when you are not signed in. As currently configured:
-        </p>
-        <ul>
-          <li><strong>Public pages.</strong> On our home, pricing, FAQ, support, privacy and terms pages, and the sign-in, sign-up and password-reset pages, PostHog records clicks on buttons and links (&ldquo;autocapture&rdquo;). Each recorded click includes the page address and a description of the element clicked, including its text. These pages contain only our own text.</li>
-          <li><strong>Signed-in workspace pages.</strong> On projects, workstreams, Decision Lab, BA Intelligence, templates and settings, click recording is turned off. The Service also blocks any analytics event that would contain page elements or their text. PostHog does not receive project names, requirements, client or stakeholder names, user stories, decisions or any other text from your workspace. PostHog&rsquo;s script still loads on these pages. Any technical event it sends there contains only the page address, which can include a project&rsquo;s internal identifier but not its name, plus the technical details below.</li>
-          <li>Each event includes your browser and operating system, device type, screen and window size, language, time zone, the referring website, and a random identifier stored in your browser.</li>
-          <li>PostHog receives your IP address when your browser connects to its servers in the United States.</li>
-        </ul>
-        <p>
-          PostHog does not record what you type into form fields. Session recording, heatmaps and surveys are turned off. We do not send your name or email address to PostHog, and we do not link PostHog data to your account.
-        </p>
-        <p>
-          You can stop analytics collection by blocking scripts from posthog.com with your browser&rsquo;s content-blocking settings or an extension, or by clearing the PostHog identifier from your browser storage. The Service works without it.
+          The Service does not use third-party analytics, advertising or tracking services. We do not use tracking pixels, session recording or heatmaps, and we do not share information about how you use the Service with advertisers.
         </p>
       </section>
 
@@ -119,7 +106,6 @@ export default function PrivacyPage() {
         <h2>6. Cookies and browser storage</h2>
         <ul>
           <li><strong>Sign-in cookie.</strong> When you sign in, our authentication provider (Supabase) sets a cookie named <code>sb-…-auth-token</code> that keeps you signed in. It is necessary for the Service to work and is removed when you sign out. No cookies are set while you browse the public pages without signing in.</li>
-          <li><strong>Analytics storage.</strong> PostHog keeps its random identifier and session information in your browser&rsquo;s local storage and session storage, not in cookies.</li>
           <li><strong>Preferences and recent work in your browser.</strong> The Service stores a few items in your browser&rsquo;s local storage: whether the sidebar is collapsed, the last project and session you used in BA Intelligence, and your most recent Decision Lab sessions (up to 20), including the text you entered, so you can return to them. These items stay on your device until you clear them, so take care on shared computers.</li>
         </ul>
         <p>
@@ -161,7 +147,6 @@ export default function PrivacyPage() {
             <tr><td>Supabase Inc.</td><td>Stores account and workspace data, handles sign-in, and sends sign-in and password reset emails</td><td>United States (Amazon Web Services, US East, Northern Virginia)</td></tr>
             <tr><td>Anthropic, PBC</td><td>Generates AI responses from the requests our servers send</td><td>Data stored in the United States. Model processing may run in other countries, as described in section 4.</td></tr>
             <tr><td>Stripe</td><td>Payment processing, subscriptions, billing portal, invoices and fraud prevention</td><td>Canada and the United States. Stripe states that it transfers Canadian personal data to its data centres in the United States, and that its own service providers are mainly in the United States, the European Union and India.</td></tr>
-            <tr><td>PostHog, Inc.</td><td>Product analytics, as described in section 5</td><td>United States (PostHog&rsquo;s US cloud, hosted on Amazon Web Services)</td></tr>
           </tbody>
         </table>
         <p>We may also disclose personal information:</p>
@@ -177,7 +162,7 @@ export default function PrivacyPage() {
       <section>
         <h2>9. Processing outside Canada</h2>
         <p>
-          Your information is stored and processed outside Canada by the providers listed above, for the purposes listed beside each one. Account and workspace data, application servers, logs and analytics are in the United States. AI requests are stored by Anthropic in the United States, and the model processing may run in other countries. Payment information is handled by Stripe in Canada and the United States, and by Stripe&rsquo;s own service providers, mainly in the United States, the European Union and India. Information held outside Canada is subject to the laws of the country where it is held, and the courts, law enforcement and national security authorities there may be able to access it. If you have questions about how our service providers outside Canada collect, use, disclose or store personal information for us, contact our Privacy Officer at <SupportEmail />.
+          Your information is stored and processed outside Canada by the providers listed above, for the purposes listed beside each one. Account and workspace data, application servers and logs are in the United States. AI requests are stored by Anthropic in the United States, and the model processing may run in other countries. Payment information is handled by Stripe in Canada and the United States, and by Stripe&rsquo;s own service providers, mainly in the United States, the European Union and India. Information held outside Canada is subject to the laws of the country where it is held, and the courts, law enforcement and national security authorities there may be able to access it. If you have questions about how our service providers outside Canada collect, use, disclose or store personal information for us, contact our Privacy Officer at <SupportEmail />.
         </p>
       </section>
 
@@ -205,7 +190,6 @@ export default function PrivacyPage() {
           <li><strong>Account deletion.</strong> The Service does not currently have a self-service delete button. To delete your account, email <SupportEmail /> from the email address on the account. After we verify the request, we delete your account, profile and workspace content from our production database within a reasonable period and confirm when it is done. This is subject to applicable law and to information we must or legitimately need to keep for legal, security, accounting and dispute-resolution purposes. Copies in our database provider&rsquo;s backups are removed as those backups expire. We also keep a record that the request was handled.</li>
           <li><strong>Payment records</strong> are kept by Stripe and by us for as long as tax, accounting and legal requirements require.</li>
           <li><strong>Server and application logs</strong> are kept for limited periods under our hosting provider&rsquo;s log retention settings.</li>
-          <li><strong>Analytics data</strong> is kept in PostHog under our account&rsquo;s retention settings. It is not linked to your name or email address.</li>
           <li><strong>Support emails</strong> are kept as long as needed to help you and to keep a reasonable record of the conversation.</li>
           <li><strong>Information in your browser</strong> stays on your device until you clear it or sign out.</li>
         </ul>

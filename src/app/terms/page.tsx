@@ -147,7 +147,7 @@ export default function TermsPage() {
       <section>
         <h2>12. Third-party services</h2>
         <p>
-          The Service relies on third-party providers, including Stripe for payments, Anthropic for AI processing, Supabase for database and authentication, Vercel for hosting and PostHog for analytics. Their services are subject to their own terms. We are not responsible for third-party services beyond our reasonable control, but we choose providers carefully and use them as described in our <Link href="/privacy">Privacy Policy</Link>.
+          The Service relies on third-party providers, including Stripe for payments, Anthropic for AI processing, Supabase for database and authentication and Vercel for hosting. Their services are subject to their own terms. We are not responsible for third-party services beyond our reasonable control, but we choose providers carefully and use them as described in our <Link href="/privacy">Privacy Policy</Link>.
         </p>
       </section>
 

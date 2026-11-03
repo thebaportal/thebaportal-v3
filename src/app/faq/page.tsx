@@ -73,7 +73,7 @@ const FAQ_GROUPS = [
       },
       {
         q: "Is my data private?",
-        a: "Your projects and business information are private to your account. We do not sell personal information. We use a small number of service providers to run the platform, including hosting, database, payments, analytics and AI processing, as described in our Privacy Policy.",
+        a: "Your projects and business information are private to your account. We do not sell personal information. We use a small number of service providers to run the platform, including hosting, database, payments and AI processing, as described in our Privacy Policy.",
       },
       {
         q: "Something is not working. What do I do?",
