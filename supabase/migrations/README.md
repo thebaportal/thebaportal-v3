@@ -17,7 +17,7 @@ An ordered, reproducible definition of TheBAPortal's app schema, in two parts.
 | `0011_artifact_lifecycle_integrity.sql` | Lifecycle integrity | **Applied 2026-10-19** |
 | `0012_impact_reviews.sql` | Impact review acknowledgements | **Applied 2026-10-19** |
 | `0013_decision_lab_usage.sql` | Decision Lab Free allowance | **Applied 2026-10-22** |
-| `0014_project_ownership_guard.sql` | Cross-project integrity | Not yet applied (TEST project only) |
+| `0014_project_ownership_guard.sql` | Cross-project integrity | **Applied 2026-11-03** |
 
 `0011` enforces the artifact lifecycle in the database: one Approved version
 plus at most one working Draft per lineage, unique versions, read-only history,
