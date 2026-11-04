@@ -1011,7 +1011,7 @@ export async function POST(request: Request) {
     const now = new Date();
     const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     const currentDate = `${months[now.getMonth()]} ${now.getFullYear()}`;
-    const systemPrompt = rawPrompt.replace(new RegExp(DATE_PLACEHOLDER.replace(/[[\]]/g, "\$&"), "g"), currentDate);
+    const systemPrompt = rawPrompt.split(DATE_PLACEHOLDER).join(currentDate);
 
     const { text: projectContext, sourceIds } = project_id
       ? await buildProjectContext(project_id, user.id)
