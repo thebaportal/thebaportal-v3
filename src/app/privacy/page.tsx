@@ -88,7 +88,7 @@ export default function PrivacyPage() {
           Anthropic returns a response, which we store in your workspace. These requests go from our servers to Anthropic, not from your browser.
         </p>
         <p>
-          Anthropic stores API data in the United States. Under its current default settings, the model processing itself may run on Anthropic&rsquo;s infrastructure in other countries for performance and availability. Anthropic currently states that inputs and outputs from its commercial API are not used to train its models unless the customer explicitly opts in. We have not opted in. Anthropic also currently states that it deletes standard API inputs and outputs within 30 days. It can keep them longer where needed to enforce its usage policies, where the law requires it, or under a different agreement with the customer. These are Anthropic&rsquo;s policies, which Anthropic may change.
+          We send every request with Anthropic&rsquo;s United States-only processing setting, so the AI model processes it in the United States. Anthropic stores API data in the United States. Anthropic currently states that inputs and outputs from its commercial API are not used to train its models unless the customer explicitly opts in. We have not opted in. Anthropic also currently states that it deletes standard API inputs and outputs within 30 days. It can keep them longer where needed to enforce its usage policies, where the law requires it, or under a different agreement with the customer. These are Anthropic&rsquo;s policies, which Anthropic may change.
         </p>
         <p>
           The BA Portal does not use your workspace content to train AI models. AI output can be inaccurate or incomplete. Please review it before relying on it. Our <Link href="/terms">Terms of Service</Link> say more about this.
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
           <tbody>
             <tr><td>Vercel Inc.</td><td>Hosts the website and runs our application servers, including request and error logs</td><td>Application servers in the United States (Washington, D.C. area). Requests first reach Vercel&rsquo;s network point nearest to you, which for visitors in Canada is usually in Canada or the United States.</td></tr>
             <tr><td>Supabase Inc.</td><td>Stores account and workspace data, handles sign-in, and sends sign-in and password reset emails</td><td>United States (Amazon Web Services, US East, Northern Virginia)</td></tr>
-            <tr><td>Anthropic, PBC</td><td>Generates AI responses from the requests our servers send</td><td>Data stored in the United States. Model processing may run in other countries, as described in section 4.</td></tr>
+            <tr><td>Anthropic, PBC</td><td>Generates AI responses from the requests our servers send</td><td>United States (processing and storage)</td></tr>
             <tr><td>Stripe</td><td>Payment processing, subscriptions, billing portal, invoices and fraud prevention</td><td>Canada and the United States. Stripe states that it transfers Canadian personal data to its data centres in the United States, and that its own service providers are mainly in the United States, the European Union and India.</td></tr>
           </tbody>
         </table>
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
       <section>
         <h2>9. Processing outside Canada</h2>
         <p>
-          Your information is stored and processed outside Canada by the providers listed above, for the purposes listed beside each one. Account and workspace data, application servers and logs are in the United States. AI requests are stored by Anthropic in the United States, and the model processing may run in other countries. Payment information is handled by Stripe in Canada and the United States, and by Stripe&rsquo;s own service providers, mainly in the United States, the European Union and India. Information held outside Canada is subject to the laws of the country where it is held, and the courts, law enforcement and national security authorities there may be able to access it. If you have questions about how our service providers outside Canada collect, use, disclose or store personal information for us, contact our Privacy Officer at <SupportEmail />.
+          Your information is stored and processed outside Canada by the providers listed above, for the purposes listed beside each one. Account and workspace data, application servers and logs are in the United States. AI requests are processed and stored by Anthropic in the United States. Payment information is handled by Stripe in Canada and the United States, and by Stripe&rsquo;s own service providers, mainly in the United States, the European Union and India. Information held outside Canada is subject to the laws of the country where it is held, and the courts, law enforcement and national security authorities there may be able to access it. If you have questions about how our service providers outside Canada collect, use, disclose or store personal information for us, contact our Privacy Officer at <SupportEmail />.
         </p>
       </section>
 
