@@ -4,7 +4,7 @@ import Link from "next/link";
 // Same dark public-site styling as FAQ / Contact: fixed top bar, centred reading column, link footer.
 
 export const SUPPORT_EMAIL = "support@thebaportal.com";
-export const LEGAL_LAST_UPDATED = "November 2, 2026";
+export const LEGAL_LAST_UPDATED = "November 5, 2026";
 
 export const PUBLIC_FOOTER_LINKS: [string, string][] = [
   ["Home", "/"],

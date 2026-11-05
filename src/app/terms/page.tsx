@@ -211,7 +211,7 @@ export default function TermsPage() {
           These Terms are governed by the laws of the Province of Alberta and the federal laws of Canada that apply there. Subject to the next sentence, the courts of Alberta have jurisdiction over disputes about these Terms or the Service. If you are a consumer, you keep any protection given to you by the mandatory laws of the place where you live, including any right to bring a claim in your local courts.
         </p>
         <p>
-          If you have a concern or dispute, please contact us first at <SupportEmail /> and describe the issue. We will try in good faith to resolve it with you informally within 30 days. This does not prevent either of us from going to court or from contacting a regulator.
+          If you have a concern or dispute, please contact us first at <SupportEmail /> and describe the issue. We will try in good faith to resolve it with you informally. This does not prevent either of us from going to court or from contacting a regulator.
         </p>
       </section>
 

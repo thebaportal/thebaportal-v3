@@ -209,7 +209,7 @@ export default function PrivacyPage() {
           <li>complain to us, and, if you are not satisfied, to the Office of the Privacy Commissioner of Canada or the Office of the Information and Privacy Commissioner of Alberta.</li>
         </ul>
         <p>
-          Some changes you can make yourself. You can update your name in Settings, update billing details in the Stripe billing portal (Settings → Billing → Manage subscription), and export your documents from the workspace. For anything else, email <SupportEmail /> from the email address on your account. We may need to confirm your identity before acting on a request. We will respond within the time required by applicable law, which is generally 30 days. If we cannot fully meet a request, we will explain why.
+          Some changes you can make yourself. You can update your name in Settings, update billing details in the Stripe billing portal (Settings → Billing → Manage subscription), and export your documents from the workspace. For anything else, email <SupportEmail /> from the email address on your account. We may need to confirm your identity before acting on a request. We will respond within the time required by applicable law. If we cannot fully meet a request, we will explain why.
         </p>
       </section>
 
