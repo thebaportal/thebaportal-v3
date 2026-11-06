@@ -7,12 +7,37 @@ export const metadata: Metadata = {
   description: "The terms that apply to your use of The BA Portal, operated by Consultingly Inc.",
 };
 
+const TOC: [string, string][] = [
+  ["s1", "1. Your account"],
+  ["s2", "2. The Service and its plans"],
+  ["s3", "3. Payment and automatic renewal"],
+  ["s4", "4. Cancellation"],
+  ["s5", "5. Refunds"],
+  ["s6", "6. Your content"],
+  ["s7", "7. Confidential, client and company information"],
+  ["s8", "8. AI features and output"],
+  ["s9", "9. Acceptable use"],
+  ["s10", "10. Usage limits"],
+  ["s11", "11. Our intellectual property"],
+  ["s12", "12. Third-party services"],
+  ["s13", "13. Privacy and security"],
+  ["s14", "14. Suspension and termination"],
+  ["s15", "15. Availability and changes to the Service"],
+  ["s16", "16. Disclaimer of warranties"],
+  ["s17", "17. Limitation of liability"],
+  ["s18", "18. Indemnity"],
+  ["s19", "19. Governing law and disputes"],
+  ["s20", "20. General"],
+  ["s21", "21. Contact"],
+];
+
 export default function TermsPage() {
   return (
     <PublicDocLayout
       eyebrow="Legal"
       title="Terms of Service"
       lastUpdated={LEGAL_LAST_UPDATED}
+      toc={TOC}
       intro={<>
         <p>
           These Terms of Service (&ldquo;Terms&rdquo;) are an agreement between you and Consultingly Inc. (&ldquo;Consultingly&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo;), a company based in Alberta, Canada. They govern your use of The BA Portal, the website at thebaportal.com and the application available through it (the &ldquo;Service&rdquo;).
@@ -22,7 +47,7 @@ export default function TermsPage() {
         </p>
       </>}
     >
-      <section>
+      <section id="s1">
         <h2>1. Your account</h2>
         <ul>
           <li>You must be at least 18 years old, and able to enter into a binding contract, to create an account.</li>
@@ -33,7 +58,7 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s2">
         <h2>2. The Service and its plans</h2>
         <p>
           The BA Portal is a workspace for business analysts. It includes project workstreams, AI-assisted document generation, Decision Lab, BA Intelligence, exports and downloadable templates. It is offered in two plans:
@@ -47,7 +72,7 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section>
+      <section id="s3">
         <h2>3. Payment and automatic renewal</h2>
         <ul>
           <li>Payments are processed by Stripe through Stripe&rsquo;s hosted checkout page. Stripe&rsquo;s own terms also apply to the payment. We never receive your full card number.</li>
@@ -57,7 +82,7 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s4">
         <h2>4. Cancellation</h2>
         <ul>
           <li>You can cancel at any time in <strong>Settings → Billing → Manage subscription</strong>, which opens the Stripe billing portal. If you cannot reach the billing portal, email <SupportEmail /> from the email address on your account and we will cancel for you.</li>
@@ -67,7 +92,7 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s5">
         <h2>5. Refunds</h2>
         <ul>
           <li>Except as described in this section or required by law, payments are non-refundable. We do not give refunds or credits for partial billing periods, unused time, or for cancelling partway through a period.</li>
@@ -77,7 +102,7 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s6">
         <h2>6. Your content</h2>
         <p>
           &ldquo;Your content&rdquo; means everything you enter into the Service, such as projects, notes, text you type or paste, and decisions, together with the documents and other output the Service generates for you. As between you and us, <strong>you own your content</strong>. We do not claim ownership of it.
@@ -90,7 +115,7 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section>
+      <section id="s7">
         <h2>7. Confidential, client and company information</h2>
         <p>
           You are responsible for the content you put into the Service, including information that belongs to or concerns your employer, your clients, or other people. Before you add it, make sure you have the right to use it this way. That includes complying with any confidentiality agreements, workplace or client policies, and privacy laws that apply to you.
@@ -100,7 +125,7 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section>
+      <section id="s8">
         <h2>8. AI features and output</h2>
         <ul>
           <li>The Service uses a third-party AI model, provided by Anthropic, to generate drafts, analyses and suggestions from what you provide.</li>
@@ -109,7 +134,7 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s9">
         <h2>9. Acceptable use</h2>
         <p>You agree not to:</p>
         <ul>
@@ -124,14 +149,14 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s10">
         <h2>10. Usage limits</h2>
         <p>
           To keep the Service reliable and fair, we apply rate limits to AI features, and the Free plan includes a monthly Decision Lab allowance. Do not try to get around these limits, for example by creating multiple accounts, automating requests, or tampering with requests sent to the Service. We may adjust limits to protect the Service&rsquo;s reliability and security.
         </p>
       </section>
 
-      <section>
+      <section id="s11">
         <h2>11. Our intellectual property</h2>
         <p>
           The Service is owned by Consultingly or its licensors and is protected by intellectual property laws. That includes its software, design, prompts, templates, text and branding. Apart from your content, these Terms give you no rights in the Service except a limited, non-exclusive, non-transferable and revocable right to use it in line with these Terms.
@@ -144,14 +169,14 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section>
+      <section id="s12">
         <h2>12. Third-party services</h2>
         <p>
           The Service relies on third-party providers, including Stripe for payments, Anthropic for AI processing, Supabase for database and authentication and Vercel for hosting. Their services are subject to their own terms. We are not responsible for third-party services beyond our reasonable control, but we choose providers carefully and use them as described in our <Link href="/privacy">Privacy Policy</Link>.
         </p>
       </section>
 
-      <section>
+      <section id="s13">
         <h2>13. Privacy and security</h2>
         <p>
           Our <Link href="/privacy">Privacy Policy</Link> explains how we handle personal information. We use reasonable safeguards, but no online service can guarantee complete security. You are responsible for securing your password, email account and devices, and for telling us promptly about any unauthorized use.
@@ -161,7 +186,7 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section>
+      <section id="s14">
         <h2>14. Suspension and termination</h2>
         <ul>
           <li>You can stop using the Service at any time. To close your account, see section 13.</li>
@@ -171,21 +196,21 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s15">
         <h2>15. Availability and changes to the Service</h2>
         <p>
           We work to keep the Service available and reliable, but we do not promise that it will be uninterrupted or error-free. Maintenance, provider outages and other events can affect it. We may add, change or remove features. If a change materially reduces the Pro features you are paying for, you can cancel under section 4. If we decide to discontinue the Service entirely, we will give reasonable advance notice where possible so that you can export your content, and we will refund prepaid fees for the unused period.
         </p>
       </section>
 
-      <section>
+      <section id="s16">
         <h2>16. Disclaimer of warranties</h2>
         <p>
           To the extent permitted by law, the Service and all output are provided &ldquo;as is&rdquo; and &ldquo;as available&rdquo;. We disclaim all warranties and conditions not expressly stated in these Terms, including implied warranties or conditions of merchantability, fitness for a particular purpose, accuracy and non-infringement. Some laws do not allow these exclusions. Where that is the case, the exclusions apply only to the extent the law allows.
         </p>
       </section>
 
-      <section>
+      <section id="s17">
         <h2>17. Limitation of liability</h2>
         <p>
           To the extent permitted by law, Consultingly is not liable for indirect, incidental, special, consequential or punitive damages. Nor is it liable for loss of profits, revenue, business opportunity or goodwill arising from or related to the Service, even if we were told such damages were possible.
@@ -198,14 +223,14 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section>
+      <section id="s18">
         <h2>18. Indemnity</h2>
         <p>
           To the extent permitted by law, you agree to indemnify Consultingly against reasonable losses and costs, including reasonable legal fees, arising from third-party claims caused by your misconduct. This covers (a) content you submitted without the right to do so, (b) your breach of section 7 or section 9, or (c) your violation of law or of someone else&rsquo;s rights. This indemnity does not apply to the extent a claim is caused by our own breach, negligence or misconduct.
         </p>
       </section>
 
-      <section>
+      <section id="s19">
         <h2>19. Governing law and disputes</h2>
         <p>
           These Terms are governed by the laws of the Province of Alberta and the federal laws of Canada that apply there. Subject to the next sentence, the courts of Alberta have jurisdiction over disputes about these Terms or the Service. If you are a consumer, you keep any protection given to you by the mandatory laws of the place where you live, including any right to bring a claim in your local courts.
@@ -215,7 +240,7 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section>
+      <section id="s20">
         <h2>20. General</h2>
         <ul>
           <li>These Terms and our Privacy Policy are the entire agreement between you and us about the Service.</li>
@@ -227,7 +252,7 @@ export default function TermsPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="s21">
         <h2>21. Contact</h2>
         <p>
           Consultingly Inc., Alberta, Canada. Email: <SupportEmail />. For help with your account or billing, see our <Link href="/support">Support</Link> page.

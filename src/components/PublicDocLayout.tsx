@@ -1,7 +1,8 @@
 import Link from "next/link";
 
-// Shared frame for the public, logged-out document pages (Support, Privacy Policy, Terms of Service).
-// Same dark public-site styling as FAQ / Contact: fixed top bar, centred reading column, link footer.
+// Shared frame for the public document pages (Support, Privacy Policy, Terms of Service).
+// Light "Folio" look, matching the sign-in and sign-up pages: cream page, white document
+// sheet, navy accents, and everything anchored to the same left gutter as the wordmark.
 
 export const SUPPORT_EMAIL = "support@thebaportal.com";
 export const LEGAL_LAST_UPDATED = "November 5, 2026";
@@ -19,100 +20,199 @@ export function SupportEmail() {
   return <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>;
 }
 
-export function PublicDocLayout({ eyebrow, title, lastUpdated, intro, children }: {
+function Wordmark() {
+  return <>The<span>BA</span>Portal</>;
+}
+
+export function PublicDocLayout({ eyebrow, title, lastUpdated, intro, toc, children }: {
   eyebrow: string;
   title: string;
   lastUpdated?: string;
   intro?: React.ReactNode;
+  /** Section anchors for the "On this page" list: [id, label]. Omit for non-document pages. */
+  toc?: [string, string][];
   children: React.ReactNode;
 }) {
   return (
-    <div className="pdoc">
-      <nav className="pdoc-nav">
-        <div className="pdoc-nav-inner">
-          <Link href="/" className="pdoc-brand">
-            The<span>BA</span>Portal
-          </Link>
-          <Link href="/" className="pdoc-back">← Back to home</Link>
+    <div className="pd">
+      <header className="pd-top">
+        <div className="pd-wrap pd-top-inner">
+          <Link href="/" className="pd-brand" aria-label="TheBAPortal home"><Wordmark /></Link>
+          <nav className="pd-nav" aria-label="Site">
+            <Link href="/pricing" className="pd-nav-link">Pricing</Link>
+            <Link href="/faq" className="pd-nav-link">FAQ</Link>
+            <Link href="/support" className="pd-nav-link">Support</Link>
+            <Link href="/auth/login" className="pd-nav-link pd-signin">Sign in</Link>
+            <Link href="/auth/signup" className="pd-cta">Get started</Link>
+          </nav>
         </div>
-      </nav>
+      </header>
 
-      <main className="pdoc-main">
-        <header className="pdoc-header">
-          <div className="pdoc-eyebrow">{eyebrow}</div>
+      <div className="pd-wrap">
+        <div className="pd-hero">
+          <div className="pd-eyebrow">{eyebrow}</div>
           <h1>{title}</h1>
-          {lastUpdated && <p className="pdoc-updated">Last updated: {lastUpdated}</p>}
-        </header>
-        {intro && <div className="pdoc-intro">{intro}</div>}
-        <div className="pdoc-body">{children}</div>
-      </main>
-
-      <footer className="pdoc-footer">
-        <div className="pdoc-footer-links">
-          {PUBLIC_FOOTER_LINKS.map(([label, href]) => (
-            <Link key={href} href={href}>{label}</Link>
-          ))}
+          {lastUpdated && (
+            <div className="pd-meta">
+              <span>Last updated: {lastUpdated}</span>
+              <span className="pd-meta-dot" aria-hidden="true" />
+              <span>Consultingly Inc., Alberta, Canada</span>
+            </div>
+          )}
         </div>
-        <p>The BA Portal is operated by Consultingly Inc., Alberta, Canada.</p>
+
+        {toc ? (
+          <div className="pd-doc-grid">
+            <aside className="pd-toc" aria-label="On this page">
+              <div className="pd-toc-label">On this page</div>
+              <ol>
+                {toc.map(([id, label]) => (
+                  <li key={id}><a href={`#${id}`}>{label}</a></li>
+                ))}
+              </ol>
+              <div className="pd-toc-help">
+                <div className="pd-toc-help-title">Questions?</div>
+                <p>Email <SupportEmail /> and put &ldquo;Privacy&rdquo; or &ldquo;Terms&rdquo; in the subject line.</p>
+              </div>
+            </aside>
+            <main className="pd-sheet">
+              {intro && <div className="pd-intro">{intro}</div>}
+              <div className="pd-body">{children}</div>
+            </main>
+          </div>
+        ) : (
+          <main className="pd-plain">
+            {intro && <div className="pd-intro">{intro}</div>}
+            {children}
+          </main>
+        )}
+      </div>
+
+      <footer className="pd-footer">
+        <div className="pd-wrap pd-footer-inner">
+          <div className="pd-footer-brand">
+            <span className="pd-brand pd-brand-sm"><Wordmark /></span>
+            <p>The BA Portal is operated by Consultingly Inc., Alberta, Canada.</p>
+          </div>
+          <nav className="pd-footer-links" aria-label="Footer">
+            {PUBLIC_FOOTER_LINKS.map(([label, href]) => (
+              <Link key={href} href={href}>{label}</Link>
+            ))}
+          </nav>
+        </div>
       </footer>
 
       {/* Injected as raw CSS: React escapes quotes in <style> text children, which breaks hydration. */}
-      <style dangerouslySetInnerHTML={{ __html: PDOC_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: PD_CSS }} />
     </div>
   );
 }
 
-const PDOC_CSS = `
-        .pdoc { background: #07070a; color: #f2f2f8; min-height: 100vh; font-family: 'Open Sans', sans-serif; -webkit-font-smoothing: antialiased; }
-        .pdoc a { color: #8d97d9; text-decoration: none; }
-        .pdoc a:hover { text-decoration: underline; }
-        .pdoc-nav { position: fixed; inset: 0 0 auto; z-index: 100; height: 58px; display: flex; align-items: center; padding: 0 16px; background: rgba(7,7,10,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid rgba(255,255,255,0.07); }
-        .pdoc-nav-inner { max-width: 860px; margin: 0 auto; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-        .pdoc .pdoc-brand { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: #f2f2f8; letter-spacing: -0.02em; }
-        .pdoc .pdoc-brand span { color: #8d97d9; font-weight: 800; }
-        .pdoc .pdoc-back { font-size: 13px; color: #9090a8; }
-        .pdoc-main { max-width: 760px; margin: 0 auto; padding: 108px 16px 72px; }
-        .pdoc-header { margin-bottom: 36px; }
-        .pdoc-eyebrow { font-family: monospace; font-size: 11px; color: #8d97d9; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; }
-        .pdoc h1 { font-family: 'Inter', sans-serif; font-size: clamp(32px, 6vw, 48px); font-weight: 800; letter-spacing: -0.03em; color: #f2f2f8; margin: 0 0 14px; line-height: 1.08; }
-        .pdoc-updated { font-size: 13px; color: #9090a8; font-family: monospace; margin: 0; }
-        .pdoc-intro p { font-size: 15.5px; color: #b4b4c8; line-height: 1.75; margin: 0 0 16px; }
-        .pdoc-intro { margin-bottom: 40px; }
-        .pdoc-body > section { padding-top: 28px; margin-top: 28px; border-top: 1px solid rgba(255,255,255,0.06); scroll-margin-top: 80px; }
-        .pdoc-body > section:first-child { border-top: none; margin-top: 0; padding-top: 0; }
-        .pdoc h2 { font-family: 'Inter', sans-serif; font-size: 19px; font-weight: 700; color: #f2f2f8; margin: 0 0 12px; letter-spacing: -0.01em; line-height: 1.3; }
-        .pdoc h3 { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: #e4e4f0; margin: 20px 0 8px; }
-        .pdoc-body p, .pdoc-body li { font-size: 14.5px; color: #a8a8bc; line-height: 1.78; }
-        .pdoc-body p { margin: 0 0 12px; }
-        .pdoc-body ul { margin: 0 0 12px; padding-left: 20px; list-style: disc outside; }
-        .pdoc-body li::marker { color: #6b6b80; }
-        .pdoc-body li { margin-bottom: 6px; }
-        .pdoc-body strong { color: #e4e4f0; font-weight: 600; }
-        .pdoc-body a { overflow-wrap: anywhere; }
-        .pdoc-table { width: 100%; border-collapse: collapse; margin: 4px 0 14px; font-size: 14px; }
-        .pdoc-table th, .pdoc-table td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid rgba(255,255,255,0.07); color: #a8a8bc; line-height: 1.6; }
-        .pdoc-table th { color: #e4e4f0; font-weight: 600; font-size: 13px; }
-        .pdoc-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-        .pdoc-card { padding: 20px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); }
-        .pdoc-card h2 { font-size: 16px; margin-bottom: 8px; }
-        .pdoc-card p, .pdoc-card li { font-size: 14px; }
-        .pdoc-card p:last-child, .pdoc-card ul:last-child { margin-bottom: 0; }
-        .pdoc-contact { margin: 0 0 36px; padding: 22px; border-radius: 16px; background: rgba(52,64,125,0.12); border: 1px solid rgba(141,151,217,0.25); }
-        .pdoc-contact p { margin: 0 0 8px; color: #b4b4c8; font-size: 14.5px; line-height: 1.7; }
-        .pdoc-contact .pdoc-email { display: inline-block; font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; color: #f2f2f8; margin: 2px 0 10px; overflow-wrap: anywhere; }
-        .pdoc-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-        .pdoc-links a { padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); font-size: 13.5px; color: #e4e4f0; }
-        .pdoc-footer { border-top: 1px solid rgba(255,255,255,0.07); padding: 28px 16px; text-align: center; }
-        .pdoc-footer-links { display: flex; justify-content: center; gap: 10px 22px; flex-wrap: wrap; margin-bottom: 12px; }
-        .pdoc .pdoc-footer-links a { font-size: 13px; color: #9090a8; }
-        .pdoc-footer p { margin: 0; font-size: 12px; color: #6b6b80; }
-        @media (max-width: 640px) {
-          .pdoc-cards { grid-template-columns: 1fr; }
-          .pdoc-main { padding-top: 96px; }
-          .pdoc-table thead { display: none; }
-          .pdoc-table, .pdoc-table tbody, .pdoc-table tr, .pdoc-table td { display: block; width: 100%; }
-          .pdoc-table tr { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
-          .pdoc-table td { border: none; padding: 2px 0; }
-          .pdoc-table td:first-child { color: #e4e4f0; font-weight: 600; }
-        }
+const PD_CSS = `
+.pd { min-height: 100vh; background: var(--lc-bg); color: var(--lc-text-2); font-family: var(--font-body); -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; }
+.pd a { color: var(--lc-teal); text-decoration: underline; text-decoration-color: var(--lc-teal-border); text-underline-offset: 3px; }
+.pd a:hover { text-decoration-color: var(--lc-teal); }
+.pd-wrap { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 48px; box-sizing: border-box; }
+
+/* top bar — same anchoring as the sign-in page */
+.pd-top-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 24px; padding-bottom: 24px; }
+.pd .pd-brand { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: -0.02em; color: var(--lc-text-1); text-decoration: none; }
+.pd .pd-brand span { color: var(--lc-teal); }
+.pd-nav { display: flex; align-items: center; gap: 6px; }
+.pd .pd-nav-link { font-family: var(--font-display); font-size: 13.5px; font-weight: 600; color: var(--lc-text-3); text-decoration: none; padding: 8px 12px; border-radius: 8px; }
+.pd .pd-nav-link:hover { color: var(--lc-text-1); background: var(--lc-faint); }
+.pd .pd-signin { margin-left: 6px; }
+.pd .pd-cta { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: #f5f1e7; background: var(--lc-teal); text-decoration: none; padding: 9px 16px; border-radius: 10px; margin-left: 4px; }
+.pd .pd-cta:hover { background: var(--teal-bright); }
+
+/* page title — anchored left, not centred */
+.pd-hero { padding: 40px 0 36px; border-bottom: 1px solid var(--lc-border); margin-bottom: 40px; }
+.pd-eyebrow { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--lc-teal); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
+.pd h1 { font-family: var(--font-display); font-size: 46px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; color: var(--lc-text-1); margin: 0; }
+.pd-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 18px; font-size: 13.5px; color: var(--lc-text-4); }
+.pd-meta-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--lc-border); }
+
+/* document layout: section list on the left, white sheet beside it */
+.pd-doc-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 56px; align-items: start; padding-bottom: 80px; }
+.pd-toc { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; }
+.pd-toc-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--lc-text-4); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.pd-toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--lc-border); }
+.pd-toc li { margin: 0; }
+.pd .pd-toc a { display: block; padding: 6px 0 6px 14px; margin-left: -1px; border-left: 2px solid transparent; font-size: 13.5px; line-height: 1.45; color: var(--lc-text-3); text-decoration: none; }
+.pd .pd-toc a:hover { color: var(--lc-text-1); border-left-color: var(--lc-teal); }
+.pd-toc-help { margin-top: 28px; padding: 16px; border-radius: 12px; background: var(--lc-teal-bg); border: 1px solid var(--lc-teal-border); }
+.pd-toc-help-title { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: var(--lc-text-1); margin-bottom: 4px; }
+.pd-toc-help p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--lc-text-3); }
+
+.pd-sheet { background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: var(--radius-lg); box-shadow: var(--lc-shadow-sm); padding: 52px 56px; max-width: 860px; box-sizing: border-box; }
+.pd-intro p { font-size: 16.5px; line-height: 1.7; color: var(--lc-text-2); margin: 0 0 14px; }
+.pd-sheet .pd-intro { padding-bottom: 28px; margin-bottom: 4px; border-bottom: 1px solid var(--lc-border-soft); }
+.pd-body > section { padding-top: 32px; scroll-margin-top: 24px; }
+.pd h2 { font-family: var(--font-display); font-size: 21px; font-weight: 750; letter-spacing: -0.015em; line-height: 1.3; color: var(--lc-text-1); margin: 0 0 12px; }
+.pd h3 { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--lc-text-1); margin: 22px 0 8px; }
+.pd-body p, .pd-body li { font-size: 15px; line-height: 1.75; color: var(--lc-text-2); }
+.pd-body p { margin: 0 0 12px; }
+.pd-body ul { margin: 0 0 12px; padding-left: 22px; list-style: disc outside; }
+.pd-body li { margin-bottom: 6px; padding-left: 2px; }
+.pd-body li::marker { color: var(--lc-text-5); }
+.pd-body strong { color: var(--lc-text-1); font-weight: 650; }
+.pd-body code { font-family: var(--font-mono); font-size: 13px; background: var(--lc-faint); padding: 1px 6px; border-radius: 5px; }
+.pd a { overflow-wrap: anywhere; }
+.pd-table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 14px; }
+.pd-table th, .pd-table td { text-align: left; vertical-align: top; padding: 12px 14px 12px 0; border-bottom: 1px solid var(--lc-border-soft); line-height: 1.6; color: var(--lc-text-2); }
+.pd-table th { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--lc-text-4); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--lc-border); }
+.pd-table td:first-child { font-weight: 650; color: var(--lc-text-1); white-space: nowrap; }
+
+/* Support page */
+.pd-plain { padding-bottom: 80px; }
+.pd-support { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 32px; align-items: start; }
+.pd-contact { background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: var(--radius-lg); box-shadow: var(--lc-shadow-md); padding: 32px; position: sticky; top: 24px; }
+.pd-contact-kicker { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--lc-text-4); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+.pd .pd-contact-email { display: block; font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--lc-text-1); text-decoration: none; margin-bottom: 14px; overflow-wrap: anywhere; }
+.pd .pd-contact-email:hover { color: var(--lc-teal); }
+.pd-contact p { font-size: 14px; line-height: 1.65; color: var(--lc-text-3); margin: 0 0 18px; }
+.pd .pd-contact-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 13px 16px; border-radius: 10px; background: var(--lc-teal); color: #f5f1e7; font-family: var(--font-display); font-size: 14.5px; font-weight: 700; text-decoration: none; }
+.pd .pd-contact-btn:hover { background: var(--teal-bright); }
+.pd-contact-links { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--lc-border-soft); }
+.pd-contact-links ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.pd .pd-contact-links a { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; font-weight: 600; color: var(--lc-text-2); text-decoration: none; }
+.pd .pd-contact-links a:hover { color: var(--lc-teal); }
+.pd-topics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.pd-topic { background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: var(--radius); padding: 24px; }
+.pd-topic-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--lc-teal-bg); color: var(--lc-teal); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+.pd-topic h2 { font-size: 16.5px; margin-bottom: 8px; }
+.pd-topic p { font-size: 14.5px; line-height: 1.7; color: var(--lc-text-3); margin: 0; }
+.pd-topic strong { color: var(--lc-text-1); font-weight: 650; }
+
+/* footer */
+.pd-footer { margin-top: auto; border-top: 1px solid var(--lc-border); background: var(--lc-surface); }
+.pd-footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 28px; padding-bottom: 28px; }
+.pd-footer-brand p { margin: 6px 0 0; font-size: 13px; color: var(--lc-text-4); }
+.pd .pd-brand-sm { font-size: 15px; }
+.pd-footer-links { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.pd .pd-footer-links a { font-size: 13.5px; font-weight: 600; color: var(--lc-text-3); text-decoration: none; }
+.pd .pd-footer-links a:hover { color: var(--lc-teal); }
+
+@media (max-width: 1080px) {
+  .pd-doc-grid { grid-template-columns: 220px minmax(0, 1fr); gap: 36px; }
+  .pd-support { grid-template-columns: 1fr; }
+  .pd-contact { position: static; }
+}
+@media (max-width: 820px) {
+  .pd-wrap { padding: 0 16px; }
+  .pd-nav .pd-nav-link:not(.pd-signin) { display: none; }
+  .pd-hero { padding: 20px 0 24px; margin-bottom: 24px; }
+  .pd h1 { font-size: 34px; }
+  .pd-doc-grid { grid-template-columns: 1fr; gap: 20px; padding-bottom: 48px; }
+  .pd-toc { position: static; max-height: none; background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: 14px; padding: 16px; }
+  .pd-toc-help { display: none; }
+  .pd-sheet { padding: 28px 20px; border-radius: 16px; }
+  .pd-topics { grid-template-columns: 1fr; }
+  .pd-contact { padding: 24px; }
+  .pd-table thead { display: none; }
+  .pd-table, .pd-table tbody, .pd-table tr, .pd-table td { display: block; width: 100%; }
+  .pd-table tr { padding: 12px 0; border-bottom: 1px solid var(--lc-border-soft); }
+  .pd-table td { border: none; padding: 2px 0; white-space: normal; }
+  .pd-footer-inner { flex-direction: column; align-items: flex-start; }
+}
 `;
