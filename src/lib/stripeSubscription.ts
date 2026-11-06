@@ -17,10 +17,12 @@ export function subscriptionPeriodEnd(sub: Stripe.Subscription): string | null {
   return t ? new Date(t * 1000).toISOString() : null;
 }
 
-/** Profile columns for a subscription's current state. Pro while active, trialing, or cancelled-but-still-paid-up. */
+/** Profile columns for a subscription's current state. Pro while active, trialing, past_due (Stripe is still
+ *  retrying a failed renewal), or cancelled-but-still-paid-up. Free once the subscription has ended
+ *  (canceled, unpaid, incomplete_expired, paused) or never started (incomplete). */
 export function subscriptionProfileUpdate(sub: Stripe.Subscription, now = new Date()) {
   const cancelAtPeriodEnd = sub.cancel_at_period_end === true;
-  const live = sub.status === "active" || sub.status === "trialing";
+  const live = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
   return {
     subscription_tier: live || (cancelAtPeriodEnd && sub.status !== "canceled") ? "pro" : "free",
     // Show "canceled" once cancellation is scheduled, even though Stripe still reports it active.

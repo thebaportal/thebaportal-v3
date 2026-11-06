@@ -23,15 +23,44 @@ test("renewal moves the period end forward", () => {
   assert.equal(subscriptionProfileUpdate(sub({ items: { data: [{ current_period_end: T2 }] } })).subscription_current_period_end, new Date(T2 * 1000).toISOString());
 });
 
-test("profile state: active → pro; cancel scheduled → pro + 'canceled'; past_due / canceled / incomplete → free", () => {
+test("profile state: active → pro; cancel scheduled → pro + 'canceled'; past_due → pro; ended / never started → free", () => {
   const u = o => subscriptionProfileUpdate(sub(o));
   assert.deepEqual([u().subscription_tier, u().subscription_status], ["pro", "active"]);
   assert.deepEqual([u({ cancel_at_period_end: true }).subscription_tier, u({ cancel_at_period_end: true }).subscription_status], ["pro", "canceled"]);
   assert.equal(u({ status: "trialing" }).subscription_tier, "pro");
-  for (const status of ["past_due", "canceled", "incomplete", "incomplete_expired", "unpaid"]) assert.equal(u({ status }).subscription_tier, "free", status);
+  assert.deepEqual([u({ status: "past_due" }).subscription_tier, u({ status: "past_due" }).subscription_status], ["pro", "past_due"]);
+  for (const status of ["canceled", "incomplete", "incomplete_expired", "unpaid", "paused"]) assert.equal(u({ status }).subscription_tier, "free", status);
   assert.equal(u({ status: "canceled", cancel_at_period_end: true }).subscription_tier, "free");
   assert.equal(u().stripe_subscription_id, "sub_1");
   assert.equal(u({ customer: { id: "cus_9" } }).stripe_customer_id, "cus_9");
+});
+
+test("failed renewal lifecycle: Pro is kept while Stripe retries, and only lost when the subscription ends", () => {
+  const u = o => subscriptionProfileUpdate(sub(o));
+  // 1. active, period T1
+  assert.equal(u().subscription_tier, "pro");
+  // 2. renewal at T1 fails → Stripe marks past_due and retries; the period has already advanced to T2
+  const pastDue = u({ status: "past_due", items: { data: [{ current_period_end: T2 }] } });
+  assert.deepEqual([pastDue.subscription_tier, pastDue.subscription_status], ["pro", "past_due"]);
+  // 3. a retry succeeds → active again, still Pro, same period
+  const recovered = u({ status: "active", items: { data: [{ current_period_end: T2 }] } });
+  assert.deepEqual([recovered.subscription_tier, recovered.subscription_status, recovered.subscription_current_period_end], ["pro", "active", new Date(T2 * 1000).toISOString()]);
+  // 4. retries exhausted → per the failed-payment policy Stripe cancels (or marks unpaid) → Free
+  assert.equal(u({ status: "canceled" }).subscription_tier, "free");
+  assert.equal(u({ status: "unpaid" }).subscription_tier, "free");
+});
+
+test("voluntary cancellation at period end keeps Pro until Stripe actually ends the subscription", () => {
+  const scheduled = subscriptionProfileUpdate(sub({ cancel_at_period_end: true }));
+  assert.deepEqual([scheduled.subscription_tier, scheduled.subscription_status], ["pro", "canceled"]);
+  // a renewal never happens for a scheduled cancellation, but if a payment issue overlaps, access still follows Stripe's state
+  assert.equal(subscriptionProfileUpdate(sub({ cancel_at_period_end: true, status: "past_due" })).subscription_tier, "pro");
+  // at period end Stripe sets status canceled (and sends customer.subscription.deleted) → Free
+  assert.equal(subscriptionProfileUpdate(sub({ cancel_at_period_end: true, status: "canceled" })).subscription_tier, "free");
+});
+
+test("a past_due subscription does not grant Pro through a NEW checkout (checkout still requires a paid, active subscription)", () => {
+  assert.equal(checkCheckoutSession(session({ subscription: sub({ status: "past_due" }) }), "u1").reason, "not_paid");
 });
 
 test("session owner comes from Checkout's own fields and must agree", () => {
