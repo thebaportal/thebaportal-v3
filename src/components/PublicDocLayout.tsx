@@ -63,6 +63,14 @@ export function PublicDocLayout({ eyebrow, title, lastUpdated, intro, toc, child
 
         {toc ? (
           <div className="pd-doc-grid">
+            <details className="pd-toc-mobile">
+              <summary>On this page <span>{toc.length} sections</span></summary>
+              <ol>
+                {toc.map(([id, label]) => (
+                  <li key={id}><a href={`#${id}`}>{label}</a></li>
+                ))}
+              </ol>
+            </details>
             <aside className="pd-toc" aria-label="On this page">
               <div className="pd-toc-label">On this page</div>
               <ol>
@@ -138,12 +146,13 @@ const PD_CSS = `
 .pd-toc-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--lc-text-4); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
 .pd-toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--lc-border); }
 .pd-toc li { margin: 0; }
-.pd .pd-toc a { display: block; padding: 6px 0 6px 14px; margin-left: -1px; border-left: 2px solid transparent; font-size: 13.5px; line-height: 1.45; color: var(--lc-text-3); text-decoration: none; }
-.pd .pd-toc a:hover { color: var(--lc-text-1); border-left-color: var(--lc-teal); }
-.pd-toc-help { margin-top: 28px; padding: 16px; border-radius: 12px; background: var(--lc-teal-bg); border: 1px solid var(--lc-teal-border); }
+.pd .pd-toc ol a { display: block; padding: 6px 0 6px 14px; margin-left: -1px; border-left: 2px solid transparent; font-size: 13.5px; line-height: 1.45; color: var(--lc-text-3); text-decoration: none; }
+.pd .pd-toc ol a:hover { color: var(--lc-text-1); border-left-color: var(--lc-teal); }
+.pd-toc-help { margin-top: 28px; padding: 16px 18px; border-radius: 14px; background: var(--lc-surface); border: 1px solid var(--lc-border); }
 .pd-toc-help-title { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: var(--lc-text-1); margin-bottom: 4px; }
 .pd-toc-help p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--lc-text-3); }
 
+.pd-toc-mobile { display: none; }
 .pd-sheet { background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: var(--radius-lg); box-shadow: var(--lc-shadow-sm); padding: 52px 56px; max-width: 860px; box-sizing: border-box; }
 .pd-intro p { font-size: 16.5px; line-height: 1.7; color: var(--lc-text-2); margin: 0 0 14px; }
 .pd-sheet .pd-intro { padding-bottom: 28px; margin-bottom: 4px; border-bottom: 1px solid var(--lc-border-soft); }
@@ -167,6 +176,7 @@ const PD_CSS = `
 .pd-plain { padding-bottom: 80px; }
 .pd-support { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 32px; align-items: start; }
 .pd-contact { background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: var(--radius-lg); box-shadow: var(--lc-shadow-md); padding: 32px; position: sticky; top: 24px; }
+.pd-contact-lead { font-size: 14.5px; font-weight: 600; color: var(--lc-text-2); margin: 0 0 6px; }
 .pd-contact-kicker { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--lc-text-4); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
 .pd .pd-contact-email { display: block; font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--lc-text-1); text-decoration: none; margin-bottom: 14px; overflow-wrap: anywhere; }
 .pd .pd-contact-email:hover { color: var(--lc-teal); }
@@ -175,7 +185,7 @@ const PD_CSS = `
 .pd .pd-contact-btn:hover { background: var(--teal-bright); }
 .pd-contact-links { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--lc-border-soft); }
 .pd-contact-links ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
-.pd .pd-contact-links a { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; font-weight: 600; color: var(--lc-text-2); text-decoration: none; }
+.pd .pd-contact-links a { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; font-size: 14px; font-weight: 600; color: var(--lc-text-2); text-decoration: none; }
 .pd .pd-contact-links a:hover { color: var(--lc-teal); }
 .pd-topics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .pd-topic { background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: var(--radius); padding: 24px; }
@@ -204,8 +214,17 @@ const PD_CSS = `
   .pd-hero { padding: 20px 0 24px; margin-bottom: 24px; }
   .pd h1 { font-size: 34px; }
   .pd-doc-grid { grid-template-columns: 1fr; gap: 20px; padding-bottom: 48px; }
-  .pd-toc { position: static; max-height: none; background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: 14px; padding: 16px; }
-  .pd-toc-help { display: none; }
+  .pd-toc { display: none; }
+  .pd-toc-mobile { display: block; background: var(--lc-surface); border: 1px solid var(--lc-border); border-radius: 14px; }
+  .pd-toc-mobile summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--lc-text-1); }
+  .pd-toc-mobile summary::-webkit-details-marker { display: none; }
+  .pd-toc-mobile summary span { font-size: 12.5px; font-weight: 600; color: var(--lc-text-4); }
+  .pd-toc-mobile summary span::after { content: "  ▾"; }
+  .pd-toc-mobile[open] summary span::after { content: "  ▴"; }
+  .pd-toc-mobile ol { list-style: none; margin: 0; padding: 4px 16px 12px; border-top: 1px solid var(--lc-border-soft); }
+  .pd .pd-toc-mobile a { display: block; padding: 8px 0; font-size: 14px; color: var(--lc-text-2); text-decoration: none; }
+  .pd-meta-dot { display: none; }
+  .pd-meta { flex-direction: column; align-items: flex-start; gap: 2px; }
   .pd-sheet { padding: 28px 20px; border-radius: 16px; }
   .pd-topics { grid-template-columns: 1fr; }
   .pd-contact { padding: 24px; }

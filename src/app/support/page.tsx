@@ -15,7 +15,7 @@ export default function SupportPage() {
     <PublicDocLayout eyebrow="Support" title="How can we help?">
       <div className="pd-support">
         <aside className="pd-contact" aria-label="Contact support">
-          <div className="pd-contact-kicker">Email us and a real person will reply.</div>
+          <p className="pd-contact-lead">Email us and a real person will reply.</p>
           <a className="pd-contact-email" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
           <p>
             Please write from the email address on your account and briefly describe what you need. For billing questions, include the date and amount of the charge. Never send us your password or full card number.
