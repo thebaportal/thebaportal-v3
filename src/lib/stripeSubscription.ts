@@ -34,6 +34,15 @@ export function subscriptionProfileUpdate(sub: Stripe.Subscription, now = new Da
   };
 }
 
+/** Subscription states after which billing has ended (the profile is Free). Kept in step with subscriptionProfileUpdate. */
+const ENDED_STATUSES: ReadonlySet<string> = new Set(["canceled", "unpaid", "incomplete_expired", "paused"]);
+
+/** May a failed invoice mark this subscription past_due? Only while it has not ended: a late invoice.payment_failed
+ *  must not overwrite the terminal state written when Stripe cancelled or deleted the subscription. */
+export function paymentFailedMayMarkPastDue(sub: Stripe.Subscription): boolean {
+  return !ENDED_STATUSES.has(sub.status);
+}
+
 /** Who a Checkout Session belongs to, from Checkout's own reconciliation fields. Conflicting fields → null. */
 export function checkoutSessionOwner(session: Stripe.Checkout.Session): string | null {
   const sub = typeof session.subscription === "object" ? session.subscription : null;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { checkoutSessionOwner, subscriptionProfileUpdate } from "@/lib/stripeSubscription";
+import { checkoutSessionOwner, paymentFailedMayMarkPastDue, subscriptionProfileUpdate } from "@/lib/stripeSubscription";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +94,7 @@ export async function POST(request: Request) {
         const sub = await stripe.subscriptions.retrieve(typeof subId === "string" ? subId : subId.id);
         const userId = sub.metadata?.supabase_user_id;
         if (!userId) { console.warn("[webhook] invoice.payment_failed — no supabase_user_id on subscription", sub.id); break; }
+        if (!paymentFailedMayMarkPastDue(sub)) { console.log("[webhook] invoice.payment_failed — subscription", sub.id, "already ended (" + sub.status + "); state left unchanged"); break; }
         await updateProfile(userId, { subscription_status: "past_due", updated_at: new Date().toISOString() });
         break;
       }

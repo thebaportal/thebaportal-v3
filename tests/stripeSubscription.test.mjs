@@ -2,7 +2,7 @@
 // Run (Node 22, built-in runner, no dependencies):  node --test tests/stripeSubscription.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { subscriptionPeriodEnd, subscriptionProfileUpdate, checkoutSessionOwner, checkCheckoutSession } from "../src/lib/stripeSubscription.ts";
+import { subscriptionPeriodEnd, subscriptionProfileUpdate, paymentFailedMayMarkPastDue, checkoutSessionOwner, checkCheckoutSession } from "../src/lib/stripeSubscription.ts";
 
 const T1 = 1793311901, T2 = 1795990301;   // 2026-10-29, 2026-11-29 (unix seconds)
 const sub = (o = {}) => ({ id: "sub_1", status: "active", cancel_at_period_end: false, customer: "cus_1", metadata: { supabase_user_id: "u1" }, items: { data: [{ current_period_end: T1 }] }, ...o });
@@ -87,4 +87,17 @@ test("only a completed, paid subscription checkout with an active subscription g
   assert.equal(checkCheckoutSession(session({ subscription: "sub_1" }), "u1").reason, "not_subscription");   // not expanded
   assert.equal(checkCheckoutSession(session({ payment_status: "no_payment_required", subscription: sub({ status: "trialing" }) }), "u1").ok, true);
   assert.equal(checkCheckoutSession(session({ payment_status: "no_payment_required" }), "u1").reason, "not_paid");
+});
+
+test("late invoice.payment_failed after the subscription ended does not revert the profile to past_due", () => {
+  // Order: subscription cancelled/deleted → profile Free → a later invoice.payment_failed for the same subscription.
+  const ended = subscriptionProfileUpdate(sub({ status: "canceled" }));
+  assert.deepEqual([ended.subscription_tier, ended.subscription_status], ["free", "canceled"]);
+  for (const status of ["canceled", "unpaid", "incomplete_expired", "paused"]) {
+    assert.equal(paymentFailedMayMarkPastDue(sub({ status })), false, status);
+    assert.equal(subscriptionProfileUpdate(sub({ status })).subscription_tier, "free", status);   // every ended state is Free
+  }
+  // While the subscription has not ended (Stripe still retrying, or otherwise live), a failed payment still marks past_due.
+  for (const status of ["active", "trialing", "past_due", "incomplete"]) assert.equal(paymentFailedMayMarkPastDue(sub({ status })), true, status);
+  assert.equal(paymentFailedMayMarkPastDue(sub({ status: "active", cancel_at_period_end: true })), true);
 });
